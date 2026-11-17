@@ -3,6 +3,7 @@
  * Desde o Marco 10 toda família tem ultimate (powers3d.js); os limiares dependem do nível: chefes duas vezes
  * (60% e 25% da vida), elites uma (50%) e comuns uma (30%).
  */
+import { meleeOnlyProfile } from './combat-melee-test-mode.js';
 import { kitFor, ultThresholds } from './powers3d.js';
 export const ULTIMATES = {
   zarkhael: { kind: 'zarkhael_six_seals', name: 'OS SEIS SELOS DO JUÍZO ETERNO', at: [0.6, 0.25] },
@@ -12,6 +13,7 @@ export const ULTIMATES = {
 };
 /** Ultimate deste perfil: { kind, name, at } (ou null). */
 export function ultimateFor(profile) {
+  if (meleeOnlyProfile(profile)) return null;
   if (ULTIMATES[profile]) return ULTIMATES[profile];
   const k = kitFor(profile); if (!k || !k.ult || k.ult.disabled) return null; // MOD 260: ultimate reservada não sai
   return { kind: k.ult.type, name: k.ult.name, at: ultThresholds(profile) };
