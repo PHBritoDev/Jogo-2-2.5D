@@ -22,6 +22,24 @@ async function capture(page,file){
    const start=Date.now();await page.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
    await page.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',null,{timeout:90000});
    const loadMs=Date.now()-start;
+   // Regression: fallback feathers must have a material and finite instance transforms;
+   // central suspension must begin on masonry, not inside the broken arch's gap.
+   if(view.width===1536){
+    const contracts=await page.evaluate(async()=>{
+     const T=await import('three'),{addCinematicStage}=await import('../../galaxies-cinematic-stage.js');
+     const parent=new T.Group(),stage=addCinematicStage(parent,1536,864);
+     const feathers=stage.group.getObjectByName('menu-wings-fallback').children[0];
+     const validFeathers=feathers.count===94&&!!feathers.material?.isMaterial&&Array.from(feathers.instanceMatrix.array).every(Number.isFinite);
+     stage.alignChains([{position:new T.Vector3(0,0,0),userData:{screenRadius:150}}],1536,864);
+     const chain=parent.children.find(o=>o.isInstancedMesh),left=new T.Matrix4(),right=new T.Matrix4();chain.getMatrixAt(0,left);chain.getMatrixAt(28,right);
+     const anchored=Math.abs(left.elements[12])>=1536*.0649&&Math.abs(right.elements[12])>=1536*.0649;
+     const gs=new Set(),ms=new Set(),ts=new Set();parent.traverse(o=>{if(o.geometry)gs.add(o.geometry);if(o.material?.isMaterial)ms.add(o.material);});
+     ms.forEach(m=>{Object.values(m).forEach(t=>{if(t?.isTexture)ts.add(t);});m.dispose();});gs.forEach(g=>g.dispose());ts.forEach(t=>t.dispose());
+     return {validFeathers,anchored};
+    });
+    assert.deepEqual(contracts,{validFeathers:true,anchored:true});
+   }
+
    const readyAt=await page.evaluate(()=>performance.now());
    await page.waitForFunction(t=>Number(document.querySelector('#galaxy-screen')?.dataset.gxTelemetryAt)>t,readyAt,{timeout:15000});
    const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{guardian:root.dataset.gxGuardianModel,wings:root.dataset.gxWingsModel,lust:root.dataset.gxLustModel,hero:root.dataset.gxHeroModel,storm:root.dataset.gxStormModel,rock:root.dataset.gxScannedRock,fort:root.dataset.gxScannedFort,environment:root.dataset.gxEnvironment},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});

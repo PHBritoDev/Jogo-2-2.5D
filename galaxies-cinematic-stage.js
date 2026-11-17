@@ -31,13 +31,18 @@ export function addCinematicStage(parent,W,H){
  // Individually fractured blocks follow a shallow, broken vault (no luminous cable).
  batch(group,new T.BoxGeometry(2,2,2),stone,68,(o,i)=>{const x=(i/67-.5)*W*.95;o.position.set(x,archY(x),-55);o.scale.set(W*.011,H*.018,17);o.rotation.set(.1,noise(i)*.2,-x/W*.8);if(Math.abs(x)<W*.055)o.scale.setScalar(0);});
  batch(group,new T.BoxGeometry(1,1,1),edge,54,(o,i)=>{const x=(i/53-.5)*W*.94;o.position.set(x,archY(x)+H*.018,-51);o.scale.set(W*.014,H*.005,14);o.rotation.z=-x/W*.8;if(Math.abs(x)<W*.06)o.scale.setScalar(0);});
+ // Recessed metal bands and worn quatrefoil relief break up the masonry silhouette.
+ const bronze=material('#62503c',.68,.62);
+ const relief=new T.TorusGeometry(1,.19,5,12);
+ batch(group,new T.BoxGeometry(1,1,1),iron,22,(o,i)=>{const x=(i/21-.5)*W*.93;o.position.set(x,archY(x),-34);o.scale.set(W*.0028,H*.041,4);o.rotation.z=-x/W*.8;if(Math.abs(x)<W*.066)o.scale.setScalar(0);});
+ batch(group,relief,bronze,80,(o,i)=>{const j=Math.floor(i/4),petal=i%4,x=(j/19-.5)*W*.91,a=petal*Math.PI/2;o.position.set(x+Math.cos(a)*H*.0045,archY(x)+Math.sin(a)*H*.0045,-33);o.scale.setScalar(H*.0055);o.rotation.z=-x/W*.8;if(Math.abs(x)<W*.075)o.scale.setScalar(0);});
  // Chains are updated from actual button/planet coordinates, including resize.
  const links=new T.InstancedMesh(new T.TorusGeometry(1,.25,5,10),iron,7*2*28);links.instanceMatrix.setUsage(T.DynamicDrawUsage);parent.add(links);
  const dummy=new T.Object3D();
  function alignChains(planets,width,height){let k=0;
   for(const p of planets){for(const sign of [-1,1]){
    const r=p.userData.screenRadius,x=p.position.x+sign*r*.4,y=p.position.y+r*.80;
-   const ax=x+sign*r*.18,ay=height*(.30-.28*Math.pow(ax/(width*.49),2));
+   const rawAnchor=x+sign*r*.18,ax=Math.abs(rawAnchor)<width*.065?Math.sign(rawAnchor||sign)*width*.065:rawAnchor,ay=height*(.30-.28*Math.pow(ax/(width*.49),2));
    for(let i=0;i<28;i++){const t=i/27;dummy.position.set(ax+(x-ax)*t,ay+(y-ay)*t,-3);dummy.rotation.set(0,i%2?1.05:.12,Math.atan2(x-ax,ay-y));dummy.scale.setScalar(Math.max(1.2,height*.0034));dummy.updateMatrix();links.setMatrixAt(k++,dummy.matrix);}
   }}links.instanceMatrix.needsUpdate=true;
  }
@@ -86,6 +91,6 @@ export function addCinematicStage(parent,W,H){
  // White feather silhouettes supplement the existing angel rig, sharing one draw call.
  const feather=new T.SphereGeometry(1,8,6),pearl=material('#abb4bd',.18,.7);
  const wings=new T.Group();wings.position.set(-W*.30,H*.29,-80);wings.name='menu-wings-fallback';group.add(wings);
- batch(wings,feather,94,(o,i)=>{const side=i%2?-1:1,j=Math.floor(i/2),t=j/46;const a=side*(.30+t*1.0);o.position.set(side*H*(.035+t*.17),H*(.02+Math.sin(t*2.9)*.085),-t*12);o.rotation.z=-a;o.scale.set(H*(.008-t*.003),H*(.10-t*.04),H*.004);});
+ batch(wings,feather,pearl,94,(o,i)=>{const side=i%2?-1:1,j=Math.floor(i/2),t=j/46;const a=side*(.30+t*1.0);o.position.set(side*H*(.035+t*.17),H*(.02+Math.sin(t*2.9)*.085),-t*12);o.rotation.z=-a;o.scale.set(H*(.008-t*.003),H*(.10-t*.04),H*.004);});
  return {hero,group,rocks,stone,alignChains,resize:(w,h)=>{group.scale.set(w/W,h/H,1);},update:t=>{cape.update(t);flags.forEach((f,i)=>f.update(t-i*.3));fallMat.uniforms.time.value=t;wings.rotation.z=Math.sin(t*.36)*.003;}};
 }
