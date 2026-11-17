@@ -9,6 +9,27 @@ import { FOREST_CLEARINGS } from './act1-world-layout.js';
 
 const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
+/**
+ * Centro do tronco acompanha o terreno em vez de erguer ambas as pontas
+ * quando encontra uma lombada. Cada anel da malha usa a altura do chão
+ * sob seus vértices: sem pilares invisíveis nem novas draw calls.
+ */
+export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = .42 }) {
+  const dirX = Math.cos(yaw), dirZ = -Math.sin(yaw);
+  const point = t => {
+    const px = x + dirX * length * (t - .5);
+    const pz = z + dirZ * length * (t - .5);
+    return { x: px, y: ground(px, pz) + radius, z: pz };
+  };
+  const a = point(0), b = point(1);
+  return { a, b, center: point(.5), length, yaw, radius, point };
+}
+
+/** Altura de um vértice do tronco: geratriz inferior tangente ao terreno. */
+export function remansoBarkVertexY(terrainY, ringRadius, radialY, deformation, capRadius = .42) {
+  return terrainY + (ringRadius > .01 ? ringRadius * deformation : capRadius) + radialY * deformation;
+}
+
 export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = false } = {}) {
   const group = new THREE.Group(); group.name = 'lugares-floresta-mod316';
   const by = id => FOREST_CLEARINGS.find(c => c.id === id);
@@ -47,8 +68,41 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
   const runes = new THREE.Mesh(new THREE.RingGeometry(.35, .52, 24, 1), runeMat); runes.rotation.x = -Math.PI / 2; runes.position.set(altar.x, altar.y + altar.sy + .02, altar.z); runes.name = 'runas-circulo'; group.add(runes);
 
   // tronco caído do remanso (banco natural)
-  const log = new THREE.Mesh(new THREE.CylinderGeometry(.32, .38, 3.6, 10, 1), new THREE.MeshStandardMaterial({ color: 0x5a4632, roughness: 1 }));
-  log.rotation.set(0, .6, Math.PI / 2); log.position.set(rem.x - 1, ground(rem.x - 1, rem.z + .6) + .3, rem.z + .6); log.castShadow = !lowSpec; log.receiveShadow = true; log.name = 'tronco-banco'; group.add(log);
+  const logPlan = planRemansoLog(ground, { x: rem.x - 1, z: rem.z + .6 });
+  // Tronco antigo com silhueta e casca irregulares, sem textura externa ou draw call adicional.
+  // As extremidades permanecem no mesmo eixo calculado pelo relevo.
+  const bark = new THREE.CylinderGeometry(.32, .38, logPlan.length, 12, 12);
+  const barkPos = bark.attributes.position;
+  const barkColors = new Float32Array(barkPos.count * 3);
+  const alongX = Math.cos(logPlan.yaw), alongZ = -Math.sin(logPlan.yaw);
+  const acrossX = -alongZ, acrossZ = alongX;
+  for (let i = 0; i < barkPos.count; i++) {
+    const radialX = barkPos.getX(i), axial = barkPos.getY(i), radialY = barkPos.getZ(i);
+    const angle = Math.atan2(radialY, radialX);
+    const along = axial / logPlan.length;
+    const ridge = Math.sin(angle * 7 + along * 8) * .022 + Math.sin(angle * 13 - along * 19) * .009;
+    const taper = 1 + .035 * Math.sin(along * 11 + 1.2);
+    const radius = Math.hypot(radialX, radialY);
+    const k = radius > .01 ? taper + ridge / radius : 1;
+    const sideways = radialX * k;
+    const worldX = logPlan.center.x + axial * alongX + sideways * acrossX;
+    const worldZ = logPlan.center.z + axial * alongZ + sideways * acrossZ;
+    // Seguir o relevo em cada anel elimina o vão sob as extremidades.
+    // Usar o raio REAL de cada anel (0.32–0.38), não 0.42 fixo:
+    // a geratriz inferior toca o chão, inclusive após a deformação da casca.
+    const capRadius = axial >= 0 ? .32 : .38;
+    const worldY = remansoBarkVertexY(ground(worldX, worldZ), radius, radialY, k, capRadius * k);
+    barkPos.setXYZ(i, worldX - logPlan.center.x, worldY, worldZ - logPlan.center.z);
+    const shade = .78 + .16 * Math.sin(angle * 9 + along * 15) + .07 * Math.sin(along * 37);
+    barkColors[i * 3] = .35 * shade;
+    barkColors[i * 3 + 1] = .24 * shade;
+    barkColors[i * 3 + 2] = .15 * shade;
+  }
+  bark.setAttribute('color', new THREE.BufferAttribute(barkColors, 3));
+  bark.computeVertexNormals();
+  const log = new THREE.Mesh(bark, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+  log.position.set(logPlan.center.x, 0, logPlan.center.z);
+  log.castShadow = !lowSpec; log.receiveShadow = true; log.name = 'tronco-banco'; group.add(log);
 
   const update = (t, night) => { runeMat.opacity = Math.max(0, night - .35) * (.55 + .2 * Math.sin(t * 1.3)); runes.visible = runeMat.opacity > .01; };
   return { group, update, stones: stones.length };
