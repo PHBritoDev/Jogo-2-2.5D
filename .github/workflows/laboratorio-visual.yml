@@ -14,24 +14,8 @@ on:
           - chamas
           - agente
           - cinematica
-  schedule:
-    # Auditoria semanal sem depender de uma nova mensagem no chat (segunda 12:00 UTC).
-    - cron: '0 12 * * 1'
-  pull_request:
-    branches: [main]
-    paths:
-      - "*.js"
-      - "*.html"
-      - "tools/visual-lab/**"
-      - ".github/workflows/laboratorio-visual.yml"
-  push:
-    branches: [main]
-    paths:
-      - "*.js"
-      - "*.html"
-      - "*.glb"
-      - "tools/visual-lab/**"
-      - ".github/workflows/laboratorio-visual.yml"
+  # PAUSADO PELO CRIADOR (17/11/2026): sem gravações automáticas em push/PR/agendamento.
+  # Somente execução manual por workflow_dispatch quando o criador autorizar.
 
 permissions:
   contents: read
