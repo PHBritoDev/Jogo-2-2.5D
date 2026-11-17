@@ -5,6 +5,8 @@ import { SHIELD_SPECS } from './combat-defense3d.js';
 import { VZ_MOVES } from './vhazrael-rig3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
 export const VHAZRAEL_BUILD = '320-ceifador-glb';
+/** TESTE TEMPORÁRIO solicitado pelo criador: duelo de espada sem poderes. Mudar para false restaura o kit original. */
+export const VHAZRAEL_SWORD_ONLY_TEST = true;
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -64,16 +66,16 @@ const VHAZ = {
   ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
   speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
-  dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: .42, cd: VZ_DASH.cd },
+  dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? 0 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
-  decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: true, feint: 'throne',
-  kit: ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
+  leap: VHAZRAEL_SWORD_ONLY_TEST ? null : VZ_LEAP, shield: VHAZRAEL_SWORD_ONLY_TEST ? null : SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
+  decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: !VHAZRAEL_SWORD_ONLY_TEST, feint: VHAZRAEL_SWORD_ONLY_TEST ? null : 'throne',
+  kit: VHAZRAEL_SWORD_ONLY_TEST ? [] : ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
   brain: vhazraelBrain, pickMove: vhazraelPickMove, holdDeath: (sq, a) => orbitalHoldsDeath(sq, a)
 };
 /* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
    mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
-BOSS_MOVES.vhazrael = VZ_MOVES.map(m => ({ ...m, patterns: ['diagonal'] }));
+BOSS_MOVES.vhazrael = (VHAZRAEL_SWORD_ONLY_TEST ? VZ_MOVES.filter(m => !m.range) : VZ_MOVES).map(m => ({ ...m, patterns: ['diagonal'] }));
 for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
 /** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
     abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
@@ -113,7 +115,7 @@ export function vhazraelBrain(sq, a, dt, t) {
     a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
     a.T.thorns.bias = clamp(S.side, -1, 1) * clamp(S.dash / 3, 0, 1); a.T.thorns.delay = clamp(S.dash / 4, 0, 1) * .35; a.T.throne.guardBreak = guard > .35;
     // quem foge e mantém distância: dash de aproximação emendando o golpe (com recarga própria)
-    if (!a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
+    if (!VHAZRAEL_SWORD_ONLY_TEST && !a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
       a.cds.close = 4.5; sq.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.6, anim: 'dash', dx: dx / d, dz: dz / d, face: true, chain: 'melee', token: 'melee', tid: t.id }); sq.event('vzClose', { actor: a });
     }
     // contra quem ataca sem parar: passo atrás logo depois de bloquear, e contra-ataque rápido
