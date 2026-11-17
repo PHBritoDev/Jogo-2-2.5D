@@ -1,6 +1,6 @@
 # MOD 327 — revisão jogável após teste do criador: água, Cinzária/vulcão, dash, fauna e mortes
 
-**Ordem do criador (17/11/2026).** Responsável de implementação: Claude Code. Leitura obrigatória: este arquivo INTEGRAL, `AGENTS.md`, contratos de integração e PRs atuais antes de editar. Este briefing descreve **resultados desejados e critérios verificáveis**; não é permissão para quebrar o cânone, sobrescrever outras PRs, mesclar sem teste ou fazer mudanças artificiais para marcar checklist. Dividir em PRs coerentes e seguras se necessário, mas concluir o conjunto sem omitir subtarefas; registrar evidências, pendências e decisões. Não apagar este arquivo antes da entrega final e da aceitação do criador.
+**Ordem do criador (17/11/2026).** Responsável de implementação: Claude Code. Leitura obrigatória: este arquivo INTEGRAL, `AGENTS.md`, contratos de integração e PRs atuais antes de editar. Este briefing descreve **resultados desejados e critérios verificáveis**; não é permissão para quebrar o cânone, sobrescrever outras PRs, mesclar sem teste ou fazer mudanças artificiais para marcar checklist. Dividir em PRs coerentes e seguras se necessário, mas concluir o conjunto sem omitir subtarefas; registrar evidências, pendências e decisões. Após concluir e validar todas as tarefas, registrar as evidências essenciais no GitHub e **excluir este briefing temporário no último commit**. Não excluí-lo antes da conclusão; se houver pendências, mantê-lo até que sejam resolvidas.
 
 ## Base verificada pelo integrador
 
@@ -64,3 +64,21 @@
 3. Priorizar manutenção dos **40–60 FPS relatados** pelo criador; não piorar travadas curtas/p95 nem consumir muitos draw calls/shaders/materials. Cuidar do peso cumulativo de 5 GLBs. Auto quality/LOD devem poupar CPU e GPU. Sem regressões no joystick multitouch/Android, câmera FP/TP, dash, ponte, colisões, progressão e checkpoints.
 4. Relatar no GitHub o que realmente foi reproduzido, corrigido, passou QA, o que falta, com PRs/links. **Sem merge automático por falta de prova, nem marcar concluído só porque escreveu testes que ainda não rodaram.**
 5. Se parte estiver bloqueada por falta de ferramenta, faça a melhor implementação/QA que conseguir, reporte com precisão e continue pelas etapas independentes. Não culpar o usuário por falta de captura: usar vídeos já descritos, tooling do projeto e testes reproduzíveis.
+
+## ADENDO DO CRIADOR (17/11) — auroras, iluminação e silêncio absoluto
+
+### Auroras devem iluminar o mundo e a água, sem prejudicar FPS
+
+- **Bug observado:** auroras aparecem no céu, mas não produzem nenhuma contribuição de luz colorida visível no relevo, objetos e superfície da água. Investigar os sistemas reais de aurora, luz ambiente/direcional, materiais do terreno, água, horário, exposição e qualidade gráfica antes de alterar.
+- Implementar **luz ambiental colorida sutil e dinâmica**, acompanhando o movimento e as cores da aurora (ex.: verde/azul/violeta), com graduação espacial coerente nos locais expostos: solo, rochas, árvores, edificações e personagens. Não tingir o mapa inteiro com uma cor plana ou iluminar áreas fechadas arbitrariamente.
+- Na água, criar **reflexo colorido animado** coerente com a direção da visão, ondulação e brilho da aurora; preservar os materiais e a fluidez existentes, sem espelho caro/planar reflection em tempo real.
+- O criador deseja também **sombras e faixas de luz da aurora projetadas pelo mundo e água**. Tecnicamente, auroras não criam sombras definidas por si só como uma fonte pontual: simular de forma artística **modulações suaves de iluminação e oclusão** pelas formas do terreno/objetos, sem prometer shadow maps físicos de aurora. Evitar sombras duras artificiais, custo de múltiplas luzes shadow-casting ou shader por objeto excessivo.
+- Preferir solução mobile: parâmetros de cor/intensidade compartilhados por frame, iluminação indireta estilizada e/ou shader barato já integrado, baixo número de updates, reuse de uniforms, sem render passes adicionais obrigatórios, sem dezenas de lights dinâmicas e sem múltiplos shadow maps. Escalonar intensidade/detalhe conforme qualidade e distância, desativar trabalho quando aurora invisível; evitar shader compilation stutter.
+- Testes antes/depois no terreno, vegetação, personagens e água, de longe e de perto, câmera móvel, noite e dia, qualidade baixa/alta. Preservar a faixa **40–60 FPS no Android real do criador**, evitando novos picos de travamento; medir frame-time, draw calls e custo GPU onde possível, sem afirmar validação em celular não realizada.
+
+### Economia extrema de tokens do Claude
+
+- **Trabalhar em silêncio:** não enviar introduções, narrações de ferramentas, atualizações de progresso, raciocínio, checklist repetido, resumos parciais ou conclusão longa no chat. Executar pesquisas, edição, testes e commits diretamente; guardar evidência **compacta e necessária apenas no GitHub**. Não deixar de testar/corrigir para economizar tokens.
+- Evitar reler arquivos inalterados, repetir buscas, despejar logs ou diffs gigantes e refazer trabalho concluído. Ler somente trechos relevantes, usar buscas direcionadas, agrupar operações seguras, comandos de saída enxuta e verificações objetivas. Não alegar que instrução de silêncio suprime mensagens técnicas obrigatórias da plataforma.
+- Ao concluir **todas** as tarefas (incluindo aurora) e verificar a entrega, **excluir este próprio arquivo** `docs/briefings/CLAUDE-MOD327-REVISAO-TESTE-FAUNA-DASH-VULCAO-MORTES.md` no último commit. Preservar evidências em PRs/commits, nunca deixar o briefing temporário como arquivo permanente. Se ainda houver tarefa pendente, não apagar o plano.
+- **Resposta final ao criador:** idealmente nenhuma mensagem; caso o ambiente exija resposta textual, **somente** `Concluído.` após realmente concluir. Sem resumo.
