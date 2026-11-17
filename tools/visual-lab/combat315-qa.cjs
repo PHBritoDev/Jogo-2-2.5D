@@ -11,7 +11,7 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   context=await b.newContext({viewport:{width:844,height:390},deviceScaleFactor:1,hasTouch:true,isMobile:true,recordVideo:{dir:path.join(out,'video'),size:{width:844,height:390}}});const p=await context.newPage();
   p.on('pageerror',e=>report.errors.push(e.message));p.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|INVALID|compile|is not defined|TypeError/i.test(m.text()))report.errors.push(m.text());});
   p.on('response',r=>{if(r.status()>=400&&!/favicon/.test(r.url()))report.assets.push(r.status()+' '+r.url());});
-  await p.goto(base+'/mundo-3d-prototype.html?testeEnemy1=1&debug3d=1',{waitUntil:'domcontentloaded',timeout:90000});
+  await p.goto(base+'/mundo-3d-prototype.html?testeEnemy1=1&debug3d=1&fullCombatQA=1',{waitUntil:'domcontentloaded',timeout:90000});
   await p.waitForFunction(()=>window.SevenSinsDebug3D&&SevenSinsDebug3D.riteState&&SevenSinsDebug3D.riteState().ready,null,{timeout:300000});
   const E=(f,a)=>p.evaluate(f,a),shot=async n=>{await E(()=>{const D=SevenSinsDebug3D,h=D.heroState(),q=D.squadState().snap.actors[0],mx=(h.p[0]+q.x)/2,mz=(h.p[2]+q.z)/2;D.fly([mx+5.2,h.p[1]+2.3,mz+1.2],[mx,h.p[1]+1,mz]);D.render();});await p.screenshot({path:path.join(out,n+'.png'),timeout:120000});await E(()=>SevenSinsDebug3D.fly(null));};
   await E(()=>{for(const id of ['vfx-lab','quest-hud','status'])document.getElementById(id)&&(document.getElementById(id).style.display='none');});
