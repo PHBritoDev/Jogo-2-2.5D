@@ -228,4 +228,6 @@ test('cinzas no jogo: esquadrão, hordas e herói usam o mesmo pipeline; nada de
   assert.ok(/function disposeClone\(c\)\{if\(!c\)return;ashFx\.cancel\(c\.holder\);/.test(m));
   assert.ok(/now>=playerRespawnAt-760\)\{heroAsh\.on=true;/.test(m) && /ashFx\.start\(model,'hero',\{reverse:true\}\)/.test(m), 'herói: some depois do clipe e rematerializa no checkpoint');
   assert.ok(/if\(heroAsh\.on&&playerHP>0&&model\)\{heroAsh\.on=false;ashFx\.cancel\(model\);model\.visible=heroAsh\.vis;\}/.test(m), 'qualquer outro retorno devolve o corpo');
+  assert.ok(/registerEnemyDefeat\(encounterProfile\);\/\* MOD 327[^]*?ashFx\.start\(enemy,/.test(m) && /if\(enemyAlive&&ashFx\.active\(enemy\)\)ashFx\.cancel\(enemy\);/.test(m), 'inimigo principal (caminho genérico): cinza no lugar do sumiço; novo encontro nunca é desfeito');
+  assert.ok(/playStory\('vorgazhek-cai'/.test(m) && /playStory\('zarkhael-cai'/.test(m), 'chefes com cena de derrota seguem pelas cenas (sem cinza antes da cena)');
 });
