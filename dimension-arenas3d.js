@@ -12,6 +12,7 @@ import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
 import { VOLCANO } from './volcano3d.js';
+import { createLava } from './fluidos3d.js';
 import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
 import { TOWER_HALL } from './tower3d.js';
 
@@ -422,6 +423,46 @@ const THEMES = {
       const stainMat = new THREE.MeshBasicMaterial({ color: 0x2a0806, transparent: true, opacity: .55, depthWrite: false });
       for (let i = 0; i < 7; i++) stains.push({ x: (r() - .5) * 2.4, y: .02, z: C.z - 3 - i * 4.6, sx: .5 + r() * .6, sy: 1, sz: 1.4 + r() * 1.6, ry: (r() - .5) * .4 });
       g.add(instanced(THREE, new THREE.CircleGeometry(.5, 10).rotateX(-Math.PI / 2), stainMat, stains)); } room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
+    // MOD 326-B — chegada pelo pé do cone e SALÃO DE MAGMA. Rocha orgânica (anéis deslocados por ruído, nada de cilindro
+    // liso), túnel que faz curva e se fecha, depois a abóbada enorme sobre um lago de lava em cota baixa, cortado por uma
+    // calçada de basalto com patamar no meio; colunas hexagonais nascem da lava; dois respiradouros de lava no patamar
+    // queimam quem pisar (mesmo sistema de fluxo/dano da jornada). Layout e colisão: volcano3d.js (approach, magma).
+    { const M = V.magma, nz = (a, b, c) => Math.sin(a * 1.7 + b * 2.3 + c) * .5 + Math.sin(a * 3.1 - b * 1.3 + c * 2) * .3 + Math.sin(a * 5.3 + b * 4.1 - c) * .2;
+      const lavaT = { value: 0 }; ctx.tick.push(t => { lavaT.value = t; });
+      // basalto: veios incandescentes FINOS e fracos (a luz forte vem da lava, de baixo), não o rabisco vermelho das salas antigas
+      const basalt = (m, rx, ry, k = .2) => { const c = tex(m, rx, ry); c.emissiveIntensity = k; c.color = new THREE.Color(0xa09088); return c; };
+      // túnel de chegada: anéis irregulares ao longo do caminho (teto baixando e alargando perto do salão)
+      const path = []; for (const sg of V.approach) { const L = Math.hypot(sg.to.x - sg.from.x, sg.to.z - sg.from.z), n = Math.ceil(L / 1.4); for (let i = path.length ? 1 : 0; i <= n; i++) { const u = i / n; path.push({ x: sg.from.x + (sg.to.x - sg.from.x) * u, z: sg.from.z + (sg.to.z - sg.from.z) * u, r: sg.r }); } }
+      { const RS = 18, pos = [], uv = [], idx = [], fpos = [], fuv = [], fidx = [];
+        for (let i = 0; i < path.length; i++) { const P = path[i], Q = path[Math.min(path.length - 1, i + 1)], O = path[Math.max(0, i - 1)], tx = Q.x - O.x, tz = Q.z - O.z, tl = Math.hypot(tx, tz) || 1, sx = -tz / tl, sz = tx / tl, k = i / (path.length - 1), R = P.r + 1 + 1.6 * k * k, H = 4.4 + 3.5 * k * k;
+          for (let j = 0; j <= RS; j++) { const a = -.12 + j / RS * (Math.PI + .24), w = 1 + .22 * nz(i * .35, j * .6, 1.3), c = Math.cos(a) * R * w, y = Math.max(-.6, Math.sin(a) * H * w); pos.push(P.x + sx * c, y, P.z + sz * c); uv.push(j / RS * 4, i * .35); }
+          for (const sd of [-1, 1]) { fpos.push(P.x + sx * sd * (R + .4), .01, P.z + sz * sd * (R + .4)); fuv.push(sd * R * .4, i * .5); } }
+        for (let i = 0; i < path.length - 1; i++) { for (let j = 0; j < RS; j++) { const a = i * (RS + 1) + j, b = a + RS + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } const f = i * 2; fidx.push(f, f + 1, f + 2, f + 1, f + 3, f + 2); } // chão com a face para cima (revisão #595)
+        const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); tg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); tg.setIndex(idx); tg.computeVertexNormals();
+        const tw = basalt(wallMat, 3, 3, .22); tw.side = THREE.DoubleSide; const tm = new THREE.Mesh(tg, tw); tm.name = 'vulcao-tunel-chegada'; g.add(tm);
+        const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fpos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(fuv, 2)); fg.setIndex(fidx); fg.computeVertexNormals();
+        const fl = new THREE.Mesh(fg, basalt(floorMat, 1, 1, .12)); fl.receiveShadow = true; fl.name = 'vulcao-chao-chegada'; g.add(fl); }
+      for (const k of [.35, .75]) { const P = path[Math.round(k * (path.length - 1))], l = new THREE.PointLight(0xff6a2a, 1.6, 15, 1.7); l.position.set(P.x + 1.5, 1.2, P.z); l.name = 'vulcao-luz-tunel'; g.add(l); } // brasa nas frestas do túnel: o calor cresce até o salão
+      // abóbada do salão: esfera deslocada por ruído, com os dois vãos da calçada recortados
+      { const sg = new THREE.SphereGeometry(1, 56, 28), p = sg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), d = 1 + .13 * nz(x * 2.2, z * 2.2, y * 3) + .05 * nz(x * 7, z * 7, y * 9); p.setXYZ(i, M.x + x * M.r * d, 2 + y * 12 * (y > 0 ? 1 : 1.1) * d, M.z + z * M.r * d); }
+        const ix = sg.index.array, keep = []; for (let t = 0; t < ix.length; t += 3) { let cx = 0, cy = 0, cz = 0; for (let q = 0; q < 3; q++) { cx += p.getX(ix[t + q]) / 3; cy += p.getY(ix[t + q]) / 3; cz += p.getZ(ix[t + q]) / 3; } if (Math.abs(cx - M.x) < 4.2 && cy < 6.2 && (Math.abs(cz - (M.z + M.r)) < 5 || Math.abs(cz - (M.z - M.r)) < 5)) continue; keep.push(ix[t], ix[t + 1], ix[t + 2]); }
+        sg.setIndex(keep); sg.computeVertexNormals(); const dm = new THREE.Mesh(sg, basalt(wallMat, 22, 11, .16)); dm.name = 'vulcao-salao-magma'; g.add(dm); }
+      // calçada e patamar de basalto (topo y = 0), lados descendo até a lava
+      { const bm = basalt(floorMat, 1, 9, .1), cw = M.causeway, L = cw.from.z - cw.to.z, box = new THREE.BoxGeometry(cw.r * 2 + .3, 3.4, L, 6, 2, 40), bp = box.attributes.position;
+        for (let i = 0; i < bp.count; i++) { const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i); if (Math.abs(x) > cw.r) bp.setX(i, x + Math.sign(x) * (.35 * nz(z * .4, y, 2) + (y < 0 ? .6 : 0))); }
+        box.computeVertexNormals(); const cm = new THREE.Mesh(box, bm); cm.position.set(cw.to.x, -1.7, (cw.from.z + cw.to.z) / 2); cm.name = 'vulcao-calcada'; g.add(cm);
+        const lg = new THREE.CylinderGeometry(M.landing.r, M.landing.r + 1.2, 3.4, 18, 2), lp = lg.attributes.position; for (let i = 0; i < lp.count; i++) { const x = lp.getX(i), z = lp.getZ(i), a = Math.atan2(z, x), k = 1 + .08 * nz(a * 3, 0, 4); lp.setX(i, x * k); lp.setZ(i, z * k); } lg.computeVertexNormals();
+        const lm = new THREE.Mesh(lg, basalt(floorMat, 3, 3, .1)); lm.position.set(M.landing.x, -1.7, M.landing.z); lm.name = 'vulcao-patamar'; g.add(lm); }
+      // colunas de basalto nascendo da lava (fora da calçada)
+      { const cols = []; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283 + r() * .3, d = 12 + r() * (M.r - 15), x = M.x + Math.cos(a) * d, z = M.z + Math.sin(a) * d; if (Math.abs(x - M.x) < 8) continue; const k = .7 + r() * .6; cols.push({ x, y: 2, z, sx: k, sy: 1, sz: k, ry: r() * 6 }); }
+        const cg = new THREE.CylinderGeometry(1, 1.15, 24, 6, 6), cp = cg.attributes.position; for (let i = 0; i < cp.count; i++) { const y = cp.getY(i), k = 1 + .12 * Math.sin(y * .9 + cp.getX(i) * 2); cp.setX(i, cp.getX(i) * k); cp.setZ(i, cp.getZ(i) * k); } cg.computeVertexNormals();
+        const ci = instanced(THREE, cg, basalt(floorMat, 1, 5, .14), cols); ci.name = 'vulcao-colunas-basalto'; g.add(ci); }
+      // lago de lava (cota baixa) e respiradouros no patamar: o MESMO fluido da jornada (crosta que corre, borda que esfria)
+      const lake = createLava(THREE, { height: () => M.lava, time: lavaT, pools: [{ x: M.x, z: M.z, r: M.r * .8, seed: 3.3, light: false }] }); lake.group.name = 'vulcao-lago-magma'; g.add(lake.group);
+      const vents = createLava(THREE, { height: () => .02, time: lavaT, pools: M.vents.map(v => ({ ...v, light: false })) }); vents.group.name = 'vulcao-respiradouros'; g.add(vents.group);
+      refs.lavaHeat = (x, z) => vents.heatAt(x, z);
+      for (const [x, z] of [[M.x - 9, M.z - 6], [M.x + 9, M.z + 7]]) { const l = new THREE.PointLight(0xff5a1c, 3.2, 28, 1.6); l.position.set(x, -.5, z); l.name = 'vulcao-luz-magma'; g.add(l); }
+    }
     // Caveiras e ossos pelo chão do túnel e das salas.
     const skulls = [], bones = [];
     for (let i = 0; i < 46; i++) {
