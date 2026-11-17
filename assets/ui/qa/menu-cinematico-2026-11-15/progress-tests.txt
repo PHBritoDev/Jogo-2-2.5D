@@ -1,6 +1,6 @@
-✔ sete galáxias; só a primeira começa liberada (1.400755ms)
-✔ progresso da Galáxia 1 cresce com o Ato I e não passa de 100% (3.800613ms)
-✔ Galáxia 1 completa ao fim do arco final (0.085799ms)
+✔ sete galáxias; só a primeira começa liberada (1.288648ms)
+✔ progresso da Galáxia 1 cresce com o Ato I e não passa de 100% (4.673559ms)
+✔ Galáxia 1 completa ao fim do arco final (0.135805ms)
 ℹ tests 3
 ℹ suites 0
 ℹ pass 3
@@ -8,4 +8,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 51.331255
+ℹ duration_ms 168.690048

@@ -1,6 +1,6 @@
 # Evidência real — menu cinematográfico
 
-Atualizado em 16/11/2026. Código: `0be78a2`; baseline: `2732e9d`. PNGs capturados no Chromium, abertos e inspecionados, nos mesmos 1536×864 e 852×393. Nenhum PNG faz parte do runtime.
+Atualizado em 17/11/2026. Código: `ff36a23`; baseline: `2732e9d`. PNGs capturados no Chromium, abertos e inspecionados, nos mesmos 1536×864 e 852×393. Nenhum PNG faz parte do runtime.
 
 | Viewport | Antes | Depois |
 | --- | --- | --- |
@@ -9,9 +9,9 @@ Atualizado em 16/11/2026. Código: `0be78a2`; baseline: `2732e9d`. PNGs capturad
 
 [Fallback sem WebGL](fallback.png) · [mundo real após ENTRAR](world-after-enter.png)
 
-GPU desktop: 300 → 231 draw calls (−23%); 184.277 → 370.533 triângulos; 9 → 30 texturas. Mobile usa seis instâncias de rocha em vez de dez: 227 calls / 337.421 triângulos / 30 texturas. O refinamento PBR/CC0 **aumenta custo geométrico e texturas** em relação ao baseline e à primeira proposta. A redução das rochas para 28% removeu cerca de 197 mil triângulos do primeiro ensaio com fotogrametria. Todas as texturas CC0 de superfície são 512px; HDR 1K. A efígie estática agora conserva os mapas PBR 512px, com aproximadamente 972 KiB.
+GPU desktop: 300 → 233 draw calls (−22,3%); 184.277 → 380.397 triângulos; 9 → 30 texturas. Mobile usa seis instâncias de rocha em vez de dez: 229 calls / 347.285 triângulos / 30 texturas. O refinamento PBR/CC0 **aumenta custo geométrico e texturas** em relação ao baseline e à primeira proposta. A redução das rochas para 28% removeu cerca de 197 mil triângulos do primeiro ensaio com fotogrametria. Todas as texturas CC0 de superfície são 512px; HDR 1K. A efígie estática agora conserva os mapas PBR 512px, com aproximadamente 972 KiB.
 
-Tempo observado até modelos carregados: desktop 11.423 → 5.329 ms; móvel 5.979 → 3.025 ms. São execuções isoladas sujeitas a cache, CDN e concorrência, **não um benchmark de velocidade**. A telemetria só é lida após um frame posterior ao término das cargas (incluindo movimento reduzido). Não foi medido FPS em Samsung A55 ou outro aparelho físico.
+Tempo observado até modelos carregados: desktop 11.423 → 4.568 ms; móvel 5.979 → 4.050 ms. São execuções isoladas sujeitas a cache, CDN e concorrência, **não um benchmark de velocidade**. A telemetria só é lida após um frame posterior ao término das cargas (incluindo movimento reduzido). Não foi medido FPS em Samsung A55 ou outro aparelho físico.
 
 [Fontes CC0 e reprodução](../../menu/polyhaven/LICENSE-SOURCES.md): Rock Face 02, Modular Fort 01 e céu HDR da Poly Haven, usados como geometria, materiais PBR e iluminação. Downloads adicionais em runtime são locais ao repositório; não há serviço pago nem chamadas ao site de modelos. O anjo mantém os detalhes de sua textura original e o demônio usa uma derivação estática do GLB do projeto; originais preservados.
 
@@ -32,3 +32,9 @@ O laboratório geral encontra **dois testes já falhando na main `f5c6de45bbcc8e
 ## Refinamento de enquadramento e pose
 
 Anjo ampliado com asas inclinadas e material pérola; silhueta desvanece na atmosfera sem invadir o título. Herói de costas usa derivação estática com PBR do protagonista atual, espada baixa e capa ampliada. Os exportadores agora selecionam explicitamente o idle nativo com sufixo de rig do Blender e desativam NLA: antes, o nome sem sufixo deixava Running ativo. A exportação falha se faltar o clipe. Originais preservados. Capturas finais inspecionadas no Chromium 156, com navegação, restauração de contexto e entrada real novamente aprovadas. O custo do novo herói está incluído nas métricas acima.
+
+## Arco e reserva de asas — 17/11
+
+As correntes centrais agora começam nas bordas de pedra, fora do vão do arco. Faixas de ferro e relevos compartilham duas malhas instanciadas (+2 calls). Corrigido argumento ausente no batch de penas de reserva: 94 instâncias recebem o material pérola. Regressões verificam material válido, matrizes finitas e âncoras fora do vão; executadas isoladamente no Chromium e incorporadas ao QA contínuo. Capturas desktop/mobile abertas e inspecionadas, fluxo e fallback aprovados.
+
+O [CI do menu no commit anterior](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43997699638) passou; o laboratório geral mantém os mesmos dois testes de URLs antigas (log do run 43997699651), sem alterações nesses sistemas. Nenhum merge.

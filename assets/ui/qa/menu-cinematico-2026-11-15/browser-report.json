@@ -7,7 +7,7 @@
         "width": 1536,
         "height": 864
       },
-      "loadMs": 5329,
+      "loadMs": 4568,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
@@ -20,8 +20,8 @@
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 231,
-          "triangles": 370533,
+          "calls": 233,
+          "triangles": 380397,
           "textures": 30
         },
         "canvasCount": 1,
@@ -78,7 +78,7 @@
         "width": 852,
         "height": 393
       },
-      "loadMs": 3025,
+      "loadMs": 4050,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
@@ -91,8 +91,8 @@
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 227,
-          "triangles": 337421,
+          "calls": 229,
+          "triangles": 347285,
           "textures": 30
         },
         "canvasCount": 1,
@@ -150,7 +150,7 @@
         "height": 375,
         "reduced": true
       },
-      "loadMs": 1093,
+      "loadMs": 831,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
@@ -163,8 +163,8 @@
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 227,
-          "triangles": 337421,
+          "calls": 229,
+          "triangles": 347285,
           "textures": 30
         },
         "canvasCount": 1,
