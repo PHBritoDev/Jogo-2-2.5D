@@ -19,8 +19,9 @@ test('vulcão: superfície contínua (sem costura angular nem degraus), cratera 
   assert.ok(J.volcanoHeight(V.x + V.r * 1.15, V.z) === 0, 'o cone termina no chão (sem borda flutuando)');
 });
 
-test('sopé: do centro de Cinzária ao portal sobe suave, os dois guardas ficam em chão firme e o cone acima é bloqueado', () => {
-  let prev = null, mx = 0; for (let x = -1262; x >= J.GATE2.x + 3; x -= 1) { const y = J.journeyHeight(x, J.GATE2.z); if (prev !== null) mx = Math.max(mx, Math.abs(y - prev)); prev = y; assert.ok(!J.journeyBlocked(x, J.GATE2.z, y), 'caminho bloqueado em ' + x); }
+test('sopé: do centro de Cinzária à boca da caverna (Mod 327: pela trilha em volta do cone) sobe suave, os dois guardas ficam em chão firme e o cone acima é bloqueado', () => {
+  const path = [[J.CITY2.x, J.CITY2.z], ...J.TRAIL2.slice(0, -1), [J.GATE2.x, J.GATE2.z]]; let prev = null, mx = 0;
+  for (let i = 0; i < path.length - 1; i++) { const [ax, az] = path[i], [bx, bz] = path[i + 1], L = Math.hypot(bx - ax, bz - az); for (let s = 0; s <= L; s += 1) { const x = ax + (bx - ax) * s / L, z = az + (bz - az) * s / L, y = J.journeyHeight(x, z); if (prev !== null) mx = Math.max(mx, Math.abs(y - prev)); prev = y; assert.ok(!J.journeyBlocked(x, z, y), 'caminho bloqueado em ' + x.toFixed(0) + ',' + z.toFixed(0)); } }
   assert.ok(mx < .6, 'rampa do sopé: ' + mx.toFixed(2) + ' m por metro');
   assert.ok(J.journeyHeight(J.GATE2.x, J.GATE2.z) - J.CITY2.y < 8, 'portal no avental baixo do cone');
   for (const g of J.GUARDS2) assert.ok(!J.journeyBlocked(g.x, g.z, 99));
@@ -51,7 +52,7 @@ test('céu: aurora só de noite e de céu aberto, entrando aos poucos; hora dour
 
 test('integração: aurora sem cilindro, moradores Meshy, câmera fora das casas, pedras como domos, céu ligado ao relógio', () => {
   const w = fs.readFileSync(new URL('../jornada-world3d.js', import.meta.url), 'utf8'), m = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8'), sky = fs.readFileSync(new URL('../ceu-atmosfera3d.js', import.meta.url), 'utf8');
-  assert.ok(!/CylinderGeometry\(560/.test(w) && !/aurora/i.test(w.replace(/get aurora\(\) \{ return null; \}/, '')), 'sem anel de aurora no mundo da jornada');
+  assert.ok(!/CylinderGeometry\(560/.test(w) && !/aurora/i.test(w.replace(/get aurora\(\) \{ return null; \}/, '').replace(/aurora: auroraUniforms|auroraUniforms|patchAuroraGround|aurora-luz3d|a aurora ilumina/g, '')), 'sem anel de aurora no mundo da jornada (Mod 327: só a LUZ da aurora-luz3d no relevo/água)');
   assert.ok(/uAurDir/.test(sky) && /for \(int i = 0; i < 2; i\+\+\)/.test(sky), 'aurora em arcos no céu (Mod 325: dois arcos, presentes em quase todos os rumos)');
   const folk = m.slice(m.indexOf('async function spawnCityFolk'), m.indexOf('function updateCityFolk'));
   assert.ok(/npcFactory\.create/.test(folk) && !/npcBase|makeTownsfolk/.test(folk), 'moradores de Cinzária com os NPCs Meshy');

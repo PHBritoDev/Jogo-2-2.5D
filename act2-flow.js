@@ -1,4 +1,4 @@
-import { CITY2, GATE2, GUARDS2, VOLCANO2, cinzariaLayout } from './jornada3d.js';
+import { CITY2, GATE2, GUARDS2, VOLCANO2, CAVE2, cinzariaLayout } from './jornada3d.js';
 /**
  * MOD 205 — Marco 3: Ato II como no roteiro original do autor (docs/roteiro/M3-ATO2.md). Dados e transições puras;
  * as cenas são passos do diretor (cutscenes3d.js). Passos continuam a numeração do Ato I (8 = Ato I concluído).
@@ -28,6 +28,8 @@ export const DISTRICT_SPOTS = {
   gate: { x: -1206, z: -64 },
   plaza: { x: CITY2.x, z: CITY2.z },
   volcanoGate: { x: GATE2.x, z: GATE2.z },
+  volcanoExit: { x: GATE2.out.x, z: GATE2.out.z }, // Mod 327: saída do interior / abortos voltam para FORA da boca (flanco sul)
+  volcanoGuardFuture: { x: CAVE2.futureGuard.x, z: CAVE2.futureGuard.z }, // reservado (sem NPC)
   volcanoGuards: GUARDS2.map(p => ({ x: p.x, z: p.z })),
   volcano: { x: VOLCANO2.x, z: VOLCANO2.z },
   note: { x: CITY2.x + 8, z: CITY2.z + 4 }
@@ -44,8 +46,8 @@ export function act2Presentation(step, sub = 0) {
   const pages = {
     8: ['ATO I · CONCLUÍDO', 'Uma longa jornada começa'],
     9: ['ATO II · A JORNADA', 'Siga a estrada a oeste: o vale, a serra e a ponte do abismo levam à cidade do vulcão'],
-    10: ['ATO II · ' + CITY_NAME.toUpperCase(), 'Siga até a entrada do vulcão, no sopé a oeste da cidade'],
-    11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois guardas protegem a entrada do vulcão, a oeste da cidade'],
+    10: ['ATO II · ' + CITY_NAME.toUpperCase(), 'Saia pelo sudoeste da cidade e siga as pegadas na cinza que contornam o vulcão'],
+    11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois guardas vigiam a caverna escondida no flanco sul do vulcão'],
     12: vol[Math.max(0, Math.min(4, sub))],
     13: ['ATO II · VORGAZHEK', 'Entre no portal do Segundo Bispo'],
     14: ['ATO II · CONCLUÍDO', 'Vá à cidade de neve']

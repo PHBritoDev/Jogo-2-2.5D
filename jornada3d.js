@@ -36,18 +36,28 @@ export const BRIDGE = Object.freeze({ x0: -806, x1: -930, z: -50, y: 62, half: 1
 export const ABYSS = Object.freeze({ x0: -930, x1: -806, z0: -300, z1: 180, floor: -320, fogY: -34 });
 export const CITY2 = Object.freeze({ x: -1262, z: -66, r: 64, y: 24 });
 export const VOLCANO2 = Object.freeze({ x: -1528, z: -66, r: 220, h: 290, crater: 60, craterDepth: 58, block: 186 });
-export const GATE2 = Object.freeze({ x: -1327, z: -66, face: Math.PI / 2 });
-export const GUARDS2 = Object.freeze([{ x: -1318.5, z: -62.6 }, { x: -1318.5, z: -69.4 }]);
+/** Mod 327 — a entrada do vulcão deixou o sopé de frente para a cidade (pilares + plano negro no fim da estrada) e virou
+ *  uma BOCA DE CAVERNA no flanco SUL, já do lado de trás do cone (ângulo CAVE2.a medido do centro; a cidade fica a leste).
+ *  Fonte ÚNICA: boca, ponto de interação (GATE2), saída do interior, guardas, ponto reservado e a trilha de pegadas
+ *  (TRAIL2) que contorna o cone desde a saída sudoeste de Cinzária. O avental antigo fica só como chão (saves antigos). */
+const CAVE_A = -1.92, polarV = (r, da = 0, t = 0) => { const a = CAVE_A + da, c = Math.cos(a), s = Math.sin(a); return { x: +(-1528 + c * r - s * t).toFixed(2), z: +(-66 + s * r + c * t).toFixed(2) }; };
+export const CAVE2 = Object.freeze({ a: CAVE_A, mouth: Object.freeze(polarV(195)), r: 195,
+  /** reservado para o guarda que o criador quer pôr vigiando a boca (sem NPC, diálogo ou cânone ainda) */
+  futureGuard: Object.freeze({ ...polarV(201, 0, -7), note: 'guarda futuro da boca da caverna (reservado, sem NPC)' }) });
+export const GATE2 = Object.freeze({ ...polarV(195.5), face: Math.PI / 2 - CAVE_A, out: Object.freeze(polarV(205.5)), legacy: Object.freeze({ x: -1327, z: -66 }) });
+export const GUARDS2 = Object.freeze([Object.freeze(polarV(203.5, 0, 3.4)), Object.freeze(polarV(203.5, 0, -3.4))]);
+/** Trilha parcial (pegadas na cinza): sai de Cinzária pelo sudoeste e contorna o cone por fora do anel de basalto. */
+export const TRAIL2 = Object.freeze([[-1300, -112], [-1334, -156], [-1379.5, -214.5], [-1440, -254.5], [-1510, -273], [-1564, -270], [GATE2.out.x, GATE2.out.z], [polarV(189).x, polarV(189).z]].map(p => Object.freeze(p)));
 export const WATERFALL = Object.freeze({ x: -432, z: 64, zTop: 108, w: 9 }); // cascata descendo a encosta da serra norte até o poço (z = 64)
 /** Mod 323 — poço ao pé da cachoeira (lago raso de 0,7 m que alimenta o rio) e quedas d'água das paredes do abismo. */
 export const FALL_POOL = Object.freeze({ x: -432, z: 58, r: 10 });
 export const ABYSS_FALLS = Object.freeze([{ side: 1, z: -128, w: 26 }, { side: -1, z: 16, w: 40 }, { side: 1, z: 72, w: 16 }]); // Mod 325: quedas largas (a de 40 m é o marco visto da ponte)
-/** Percurso principal (polilinha jogável) Eldória → portão do vulcão. */
+/** Percurso principal (polilinha jogável) Eldória → Cinzária (avental oeste). */
 export const ROUTE = Object.freeze([
   [-112, -62], [-150, -70], [-200, -58], [-260, -40], [-320, -62], [-380, -92], [-440, -80], [-500, -52], [-560, -64], [-612, -84],
   [-650, -78], [-688, -54], [-720, -30], [-748, -44], [-776, -60], [-800, -50], [BRIDGE.x0, BRIDGE.z],
   [BRIDGE.x1, BRIDGE.z], [-940, -50], [-984, -30], [-1032, -46], [-1080, -78], [-1130, -70], [-1172, -54], [-1206, -64],
-  [CITY2.x, CITY2.z], [-1306, -66], [GATE2.x + 4, GATE2.z]
+  [CITY2.x, CITY2.z], [-1306, -66], [-1323, -66] /* Mod 327: a estrada termina no avental oeste, sem levar à boca da caverna */
 ].map(p => Object.freeze(p)));
 const ROUTE_CUM = cumulative(ROUTE);
 export const ROUTE_LENGTH = ROUTE_CUM[ROUTE_CUM.length - 1];
@@ -63,6 +73,9 @@ const VALLEY = { cx: -366, cz: -52, hx: 262, hz: 116, round: 60 };
 const ASH = { cx: -1070, cz: -56, hx: 128, hz: 84, round: 46 };
 const APPROACH = { cx: -1312, cz: -66, hx: 22, hz: 20, round: 9 };
 const ASCENT = ROUTE.slice(9, 17), CROSS = ROUTE.slice(16, 19), ASCENT_CUM = cumulative(ASCENT);
+const TRAIL2_CUM = cumulative(TRAIL2);
+/** distância à trilha da caverna (m) */
+export function trailDistance(x, z) { return polyProject(x, z, TRAIL2, TRAIL2_CUM).d; }
 function rect(a, x, z) { const qx = Math.abs(x - a.cx) - (a.hx - a.round), qz = Math.abs(z - a.cz) - (a.hz - a.round); return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0) - a.round; }
 const smin = (a, b, k) => { const h = clamp(.5 + .5 * (b - a) / k, 0, 1); return b + (a - b) * h - k * h * (1 - h); };
 
@@ -82,6 +95,7 @@ export function journeyBoundary(x, z) {
   d = smin(d, rect(ASH, x, z), 14);
   d = smin(d, Math.hypot(x - CITY2.x, z - CITY2.z) - CITY2.r, 12);
   d = smin(d, rect(APPROACH, x, z), 8);
+  d = smin(d, polyProject(x, z, TRAIL2, TRAIL2_CUM).d - 7.5, 8); // Mod 327: trilha da caverna (corredor de cinza em volta do cone)
   d = Math.min(d, polyProject(x, z, CROSS, cumulative(CROSS)).d - 7); // pontas firmes da ponte
   if (inAbyss(x, z)) d = Math.min(d, -1);
   return d + (fbm2(x * .03, z * .03, 2, 41) - .5) * 6;
@@ -119,7 +133,20 @@ export function volcanoHeight(x, z) {
 /** Lago de lava no fundo da cratera (altura e raio, para o visual). */
 export function craterFloor() { const V = VOLCANO2; return { x: V.x, z: V.z, r: V.crater * .45, y: volcanoHeight(V.x, V.z) }; }
 /** Relevo da jornada. Retorna null fora da região (o mundo antigo responde). */
-export function journeyHeight(x, z) {
+/** Mod 327 — coordenadas locais da boca: lz para fora do cone (0 = lábio, negativo = garganta), lx ao longo do flanco. */
+export function caveLocal(x, z) { const c = Math.cos(CAVE_A), s = Math.sin(CAVE_A), dx = x - CAVE2.mouth.x, dz = z - CAVE2.mouth.z; return { lz: dx * c + dz * s, lx: -dx * s + dz * c }; }
+let caveLip = null;
+/** Recorte da garganta no flanco (física E malha do cone usam a mesma altura): chão que desce 6 cm/m para dentro. */
+function caveCarve(x, z, h) {
+  const { lz, lx } = caveLocal(x, z); if (lz > 2 || lz < -14 || Math.abs(lx) > 5.4) return h;
+  if (caveLip === null) { caveLip = -1e9; const M = CAVE2.mouth, c = Math.cos(CAVE_A), s = Math.sin(CAVE_A); caveLip = journeyHeight(M.x + c * 2, M.z + s * 2); }
+  const k = sstep(5.4, 3, Math.abs(lx)) * sstep(2, 0, lz) * sstep(-14, -12, lz);
+  return h + (Math.min(h, caveLip - .1 + Math.min(0, lz) * .06) - h) * k;
+}
+/** a parte funda da garganta (escura) não é caminhável: o jogador para no escuro, onde aparece ENTRAR NO VULCÃO */
+export function caveDeep(x, z) { const { lz, lx } = caveLocal(x, z); return lz < -4.2 && lz > -16 && Math.abs(lx) < 6; }
+export function journeyHeight(x, z) { const h = journeyHeight0(x, z); return h === null || caveLip === -1e9 ? h : caveCarve(x, z, h); }
+function journeyHeight0(x, z) {
   if (!inJourney(x, z)) return null;
   if (inAbyss(x, z)) { const e = Math.min(x - ABYSS.x0 - abyssEdge(z, -1), ABYSS.x1 + abyssEdge(z, 1) - x); return ABYSS.floor + 160 * (1 - sstep(0, 14, e)) - 40 * fbm2(x * .08, z * .08, 2, 5); } // paredes quase verticais e irregulares
   const q = polyProject(x, z, ROUTE, ROUTE_CUM), py = routeY(clamp(x, -1400, -112));
@@ -151,6 +178,7 @@ export function journeyBlocked(x, z, y = 0) {
   const deck = bridgeDeck(x, z); if (deck) return deck.edge && y < deck.y + .7; // pulando por cima do corrimão, cai
   if (inAbyss(x, z)) return false;
   if (Math.hypot(x - VOLCANO2.x, z - VOLCANO2.z) < VOLCANO2.block) return true; // o cone não é escalável (anel de basalto marca o limite)
+  if (caveDeep(x, z)) return true; // Mod 327: fundo escuro da garganta da caverna
   return journeyBoundary(x, z) > 7;
 }
 
@@ -218,7 +246,7 @@ export const JOURNEY_POIS = Object.freeze([
   { id: 'ponte-abismo', name: 'Ponte do Abismo', x: -868, z: BRIDGE.z, kind: 'danger', revealRadius: 40 },
   { id: 'cinzas', name: 'Terras de Cinza', x: -1060, z: -56, kind: 'danger', revealRadius: 60 },
   { id: 'cinzaria', name: 'Cinzária', x: CITY2.x, z: CITY2.z, kind: 'village', revealRadius: 50 },
-  { id: 'vulcao', name: 'Entrada do Vulcão', x: GATE2.x, z: GATE2.z, kind: 'danger', revealRadius: 34 }
+  { id: 'vulcao', name: 'Boca da Caverna do Vulcão', x: GATE2.x, z: GATE2.z, kind: 'danger', revealRadius: 26 }
 ]);
 /** Desvios exploratórios reservados para histórias futuras (sem conteúdo canônico ainda). */
 export const RESERVED_SITES = Object.freeze([

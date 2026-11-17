@@ -48,5 +48,5 @@ test('vulcão: malha densa com saia, relevo de detalhe, afloramentos com a mesma
 test('aurora: dois arcos pelo céu (presente em quase todos os rumos) e tinge levemente o ambiente', () => {
   assert.ok(/for \(int i = 0; i < 2; i\+\+\)/.test(sky) && /float win = \.3 \+ \.7 \*/.test(sky), 'nunca zera por direção');
   assert.ok(auroraLevel(1, 1) > .99 && auroraLevel(0, 1) === 0);
-  assert.ok(/hemiLight\.color\.lerp\(AUR_TINT_SKY,ak\*\.4\)/.test(m) && /scene\.fog\.color\.lerp\(AUR_TINT_FOG,ak\*\.2\)/.test(m), 'influência ambiental (Mod 326: perceptível)');
+  assert.ok(/hemiLight\.color\.lerp\(AUR_TINT_SKY,ak\*\.24\)/.test(m) && /scene\.fog\.color\.lerp\(AUR_TINT_FOG,ak\*\.16\)/.test(m) && /updateAuroraLight\(THREE,\{level:ak,/.test(m), 'influência ambiental (Mod 327: tom global mais leve + luz espacial no relevo e na água)');
 });
