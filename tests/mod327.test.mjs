@@ -190,10 +190,42 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   const mat = new THREE.MeshStandardMaterial(); const prev = mat.customProgramCacheKey(); patchAuroraGround(THREE, mat);
   const sh = { uniforms: {}, vertexShader: '#include <common>\n#include <project_vertex>', fragmentShader: '#include <common>\n#include <emissivemap_fragment>' }; mat.onBeforeCompile(sh);
   assert.ok(sh.uniforms.uAurK === auroraUniforms(THREE).uAurK, 'mesmo objeto de uniform (1 atualização por quadro)');
-  assert.ok(/smoothstep\(\.35,\.95,n\.y\)/.test(sh.fragmentShader) && /band\*band/.test(sh.fragmentShader) && /\*diffuseColor\.rgb\*/.test(sh.fragmentShader), 'faixas, oclusão por inclinação, luz × albedo (não tinta)');
+  assert.ok(/smoothstep\(\.35,\.95,n\.y\)/.test(sh.fragmentShader) && /band\*band/.test(sh.fragmentShader) && /\*\(diffuseColor\.rgb\*/.test(sh.fragmentShader), 'faixas, oclusão por inclinação, luz × albedo (não tinta)');
   assert.ok(/if\(uAurK>\.001\)/.test(sh.fragmentShader), 'não trabalha sem aurora'); assert.ok(mat.customProgramCacheKey().endsWith('|aurora327') && mat.customProgramCacheKey() === mat.customProgramCacheKey() && typeof prev === 'string', 'chave fixa (não recompila quando a aurora acende)');
   assert.ok(/reflect\(-avd,wN\)/.test(AURORA_WATER) && /wFres/.test(AURORA_WATER), 'água: reflexo pela visão + ondulação + fresnel');
   const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8'); assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
-  assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.45\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
+  assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
+});
+
+/* ---------- P2: morte → desintegração em pó ---------- */
+import { ASH, ashVisible, createAshDissolve } from '../cinzas3d.js';
+test('cinzas: some de baixo para cima conforme o progresso (o pé antes da cabeça), nada no início, tudo no fim', () => {
+  for (const n of [0, .5, 1]) { assert.ok(ashVisible(0, 0, n) && ashVisible(0, 1, n), 'p=0 inteiro'); assert.ok(!ashVisible(1, 1, n) && !ashVisible(1, 0, n), 'p=1 nada'); }
+  assert.ok(!ashVisible(.35, .1, .5) && ashVisible(.35, .9, .5), 'meio do caminho: pés já foram, cabeça ainda está');
+  assert.ok(ASH.hero.dur < 1 && ASH.boss.dur > ASH.demon.dur && ASH.human.dur > ASH.demon.dur && ASH.boss.crack === 1 && ASH.hero.celestial === 1 && ASH.animal.parts === 0);
+});
+test('cinzas: clona o material (o compartilhado dos vivos não muda), uma vez por entidade, devolve tudo no cancelamento e rematerializa', needs3, () => {
+  assert.ok(THREE, 'CI precisa de three.js');
+  const scene = new THREE.Scene(), shared = new THREE.MeshStandardMaterial({ color: 0x884444 }), g = new THREE.BoxGeometry(1, 2, 1);
+  const a = new THREE.Group(), b = new THREE.Group(); a.add(new THREE.Mesh(g, shared)); b.add(new THREE.Mesh(g, shared)); scene.add(a, b);
+  const fx = createAshDissolve(THREE, scene, { low: false });
+  assert.ok(fx.start(a, 'demon')); assert.equal(fx.start(a, 'demon'), false, 'uma vez só'); assert.equal(fx.count, 1);
+  assert.notEqual(a.children[0].material, shared, 'clone no que morre'); assert.equal(b.children[0].material, shared, 'o vivo continua com o original');
+  const sh = { uniforms: {}, vertexShader: '#include <common>\n#include <project_vertex>', fragmentShader: '#include <common>\n#include <map_fragment>\n#include <emissivemap_fragment>' }; a.children[0].material.onBeforeCompile(sh);
+  assert.ok(/discard/.test(sh.fragmentShader) && /uAshEdge/.test(sh.fragmentShader) && sh.uniforms.uAshP, 'limiar + borda incandescente');
+  assert.ok(a.children[0].material.customProgramCacheKey().startsWith('cinza327|'), 'chave de programa própria e estável');
+  let done = 0; fx.cancel(a); assert.equal(a.children[0].material, shared, 'cancelar devolve o original'); assert.equal(fx.count, 0);
+  fx.start(b, 'boss', { onDone: () => done++ }); for (let i = 0; i < 40; i++) fx.update(.1); assert.equal(done, 1); assert.equal(b.visible, false, 'terminado: some'); assert.equal(b.children[0].material, shared, 'e os clones foram descartados');
+  b.visible = true; fx.start(b, 'hero', { reverse: true, onDone: () => done++ }); for (let i = 0; i < 12; i++) fx.update(.1); assert.equal(done, 2); assert.ok(b.visible && b.children[0].material === shared, 'rematerializa inteiro');
+  const lowFx = createAshDissolve(THREE, new THREE.Scene(), { low: true }); lowFx.start(a, 'demon'); for (let i = 0; i < 5; i++) lowFx.update(.1); assert.equal(lowFx.count, 1, 'baixa qualidade: só o dissolve (sem partículas)');
+});
+test('cinzas no jogo: esquadrão, hordas e herói usam o mesmo pipeline; nada de afundar no chão; herói nunca fica invisível', () => {
+  const rt = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
+  assert.ok(/if \(ctx\.ash && b\.dead > 2\.2 && !b\.ashed\)/.test(rt) && /BOSSES\[a\.kind\] \? 'boss' : 'demon'/.test(rt) && /ctx\.ash\?\.cancel\(b\.holder\)/.test(rt), 'esquadrão: depois do clipe, uma vez, limpeza no descarte');
+  assert.ok(/squadRT=createEnemy1SquadRuntime\(\{T:THREE,scene,ash:ashFx,/.test(m));
+  assert.ok(/if\(f\.t>2\.2&&!f\.ash\)\{f\.ash=true;/.test(m) && !/if\(f\.t>2\.6\)h\.position\.y-=dt\*\.55;/.test(m), 'hordas: cinza no lugar do afundar');
+  assert.ok(/function disposeClone\(c\)\{if\(!c\)return;ashFx\.cancel\(c\.holder\);/.test(m));
+  assert.ok(/now>=playerRespawnAt-760\)\{heroAsh\.on=true;/.test(m) && /ashFx\.start\(model,'hero',\{reverse:true\}\)/.test(m), 'herói: some depois do clipe e rematerializa no checkpoint');
+  assert.ok(/if\(heroAsh\.on&&playerHP>0&&model\)\{heroAsh\.on=false;ashFx\.cancel\(model\);model\.visible=heroAsh\.vis;\}/.test(m), 'qualquer outro retorno devolve o corpo');
 });

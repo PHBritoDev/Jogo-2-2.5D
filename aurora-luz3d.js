@@ -13,7 +13,9 @@
 let U = null;
 /** Uniforms compartilhados (singleton por THREE). */
 export function auroraUniforms(T) {
-  if (!U) U = { uAurC: { value: new T.Color(0, 0, 0) }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new T.Vector2(1, 0) } };
+  // o carregador do jogo (mod181-loader) importa o mundo com ?v=BUILD e os módulos aninhados sem: o MESMO arquivo vira
+  // duas instâncias. Os uniforms moram no globalThis para que mundo, jornada e água leiam o mesmo objeto.
+  if (!U) U = globalThis.__aurora327U || (globalThis.__aurora327U = { uAurC: { value: new T.Color(0, 0, 0) }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new T.Vector2(1, 0) } });
   return U;
 }
 /** Cor viva da aurora no tempo (mesma paleta do céu: rosa → violeta → azul, com pulsos esverdeados raros). Pura. */
@@ -39,15 +41,15 @@ const GROUND = `vec3 aurGround(vec3 wp,vec3 n){
  float open=smoothstep(.35,.95,n.y);
  return uAurC*uAurK*(.3+.7*band*band)*(.75+.25*band2)*open;}`;
 /** Injeta a luz da aurora num MeshStandard/Lambert/Phong existente (encadeia onBeforeCompile e a chave do programa). */
-export function patchAuroraGround(T, material, strength = .55) {
-  const u = auroraUniforms(T), prev = material.onBeforeCompile, prevKey = material.customProgramCacheKey?.bind(material);
+export function patchAuroraGround(T, material, strength = .8) {
+  const u = auroraUniforms(T), prev = material.onBeforeCompile, baseKey = material.customProgramCacheKey(); // chave do ORIGINAL (fogLift etc.), lida antes de trocar o onBeforeCompile
   material.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r); Object.assign(sh.uniforms, u);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vAurWp;').replace('#include <project_vertex>', '#include <project_vertex>\n{vec4 aw=vec4(transformed,1.);\n#ifdef USE_INSTANCING\naw=instanceMatrix*aw;\n#endif\nvAurWp=(modelMatrix*aw).xyz;}');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vAurWp;' + PARS + GROUND)
-      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\nif(uAurK>.001){vec3 aurN=normalize((vec4(normal,0.)*viewMatrix).xyz);totalEmissiveRadiance+=aurGround(vAurWp,aurN)*diffuseColor.rgb*${strength.toFixed(3)};}`);
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\nif(uAurK>.001){vec3 aurN=normalize((vec4(normal,0.)*viewMatrix).xyz);totalEmissiveRadiance+=aurGround(vAurWp,aurN)*(diffuseColor.rgb*${strength.toFixed(3)}+${(strength * .0075).toFixed(4)});}`);
   };
-  material.customProgramCacheKey = () => (prevKey ? prevKey() : '') + '|aurora327';
+  material.customProgramCacheKey = () => baseKey + '|aurora327';
   material.needsUpdate = true;
   return material;
 }
@@ -56,4 +58,4 @@ export const AURORA_WATER_PARS = PARS;
 export const AURORA_WATER = `if(uAurK>.001){vec3 avd=normalize(cameraPosition-vWp);vec3 aR=reflect(-avd,wN);float up=smoothstep(.04,.5,aR.y);
  float curt=.5+.5*sin(dot(aR.xz/(aR.y+.25),uAurD)*3.1+uAurT*.11+wn(vWp.xz*.05+uAurT*.03)*2.4);
  float rays=.55+.45*sin(dot(aR.xz,vec2(-uAurD.y,uAurD.x))*19.+uAurT*.23);
- totalEmissiveRadiance+=uAurC*uAurK*up*curt*curt*rays*(.25+.95*wFres)*(1.-wFoam)*.85;}`;
+ totalEmissiveRadiance+=uAurC*uAurK*up*curt*curt*rays*(.25+.95*wFres)*(1.-wFoam)*.9;}`;

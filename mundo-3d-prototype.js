@@ -57,6 +57,7 @@ import { FOREST_TRAILS, FOREST_CLEARINGS } from './act1-world-layout.js';
 import {buildWaterfall,WATERFALL} from './eldoria-waterfall3d.js';
 import {createBirdFlocks} from './eldoria-birds3d.js';
 import {createFauna,habitatOk as faunaHabitatOk,insectLevel} from './fauna3d.js';
+import {createAshDissolve} from './cinzas3d.js';
 import {buildForestPlaces} from './eldoria-forest-places3d.js';
 import {buildFarRidges} from './eldoria-far-ridges3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, TEREN_ORIGIN, ORIGIN_LIMIT, nearestAlong as nearestAlongRoad, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
@@ -484,7 +485,7 @@ function updateDayNight(dt){
  eldoriaWeatherView.update(eldoriaWeather.params,nostalgicLight,{camera,dt,time:performance.now()*.001,night:dayNightState.t,sunDir:weatherSunDir,wind:eldoriaWeather.windNow,windDir:weatherWindDir,wetness:eldoriaWeather.wetness,active:weatherActive,allowRain:weatherActive,lowFps:weatherLowFps});
  skyAtmo.update(dt,{camera,sunDir:SUN_DIRECTION,elev:nostalgicLight.elev,night:dayNightState.t,clear:skyClearK,visible:skyDome.visible&&!(typeof voidMode!=='undefined'&&voidMode)});
  // MOD 325: a aurora tinge de leve o ambiente (céu/hemisfério, chão e névoa) — aproximação artística discreta, sem luz extra
- {const ak=skyAtmo.aurora;/* MOD 327: luz espacial da aurora (terreno + água) por uniforms compartilhados; o tom global ficou mais leve (antes tingia o mapa inteiro por igual) e some em lugar fechado */updateAuroraLight(THREE,{level:ak,time:performance.now()*.001,closed:voidMode||!!caveWalk,low:terrainLowSpec});if(ak>.01&&!voidMode){hemiLight.color.lerp(AUR_TINT_SKY,ak*.24);hemiLight.groundColor.lerp(AUR_TINT_GND,ak*.18);scene.fog.color.lerp(AUR_TINT_FOG,ak*.16);hemiLight.intensity*=1+ak*.18;/* MOD 326: tinta perceptível no chão, pedras, árvores e água (via hemisfério/névoa, sem luz extra nem pós) */}}
+ {const ak=skyAtmo.aurora;/* MOD 327: luz espacial da aurora (terreno + água) por uniforms compartilhados; o tom global ficou mais leve (antes tingia o mapa inteiro por igual) e some em lugar fechado */updateAuroraLight(THREE,{level:ak,time:performance.now()*.001,closed:voidMode||!!caveWalk||auroraQAOff,low:terrainLowSpec});if(ak>.01&&!voidMode){hemiLight.color.lerp(AUR_TINT_SKY,ak*.24);hemiLight.groundColor.lerp(AUR_TINT_GND,ak*.18);scene.fog.color.lerp(AUR_TINT_FOG,ak*.16);hemiLight.intensity*=1+ak*.18;/* MOD 326: tinta perceptível no chão, pedras, árvores e água (via hemisfério/névoa, sem luz extra nem pós) */}}
  if(worldAudio.setRain)worldAudio.setRain(weatherActive?eldoriaWeather.params.rain:0);
  clockBtnT+=dt;if(clockBtnT>1){clockBtnT=0;syncDayNightButton();}
  clockSaveT+=dt;if(clockSaveT>5){clockSaveT=0;try{localStorage.setItem('seven-sins-3d-clock',gameClock.hour.toFixed(3));}catch(e){}}
@@ -1353,8 +1354,12 @@ function updateEnemyAI(dt){
  if(!enemyBlockedAt(nextX,enemy.position.z)){enemy.position.x=nextX;moved=true;}if(!enemyBlockedAt(enemy.position.x,nextZ)){enemy.position.z=nextZ;moved=true;}
  playEnemyAnimation(moved?(role==='run'&&enemyActions.run?'run':'walk'):'idle',.12);
 }
+const heroAsh={on:false,vis:true};let auroraQAOff=false;
 function updatePlayerRespawn(now){
+ // MOD 327: morte do herói → o clipe de morte toca, depois o corpo se desfaz em partículas celestiais e rematerializa no checkpoint
+ if(playerHP<=0&&playerRespawnAt&&model&&!heroAsh.on&&now>=playerRespawnAt-760){heroAsh.on=true;heroAsh.vis=model.visible;ashFx.start(model,'hero');}
  if(playerHP>0||!playerRespawnAt||now<playerRespawnAt)return;
+ if(model&&heroAsh.on){heroAsh.on=false;ashFx.cancel(model);model.visible=heroAsh.vis;if(model.visible)ashFx.start(model,'hero',{reverse:true});}
  ascFallFrom=null;
  player.position.set(checkpointX,terrainHeightAt(checkpointX,checkpointZ),checkpointZ);playerHP=playerMaxHP;playerInvulnerableUntil=now+1000;playerRespawnAt=0;
  moveVX=moveVZ=0;verticalVelocity=0;grounded=true;dashRemaining=0;actionUntil=0;pendingEnemyHitAt=0;if(mixer){mixer.stopAllAction();activeAction=null;}if(actions.idle)play('idle',.08);updatePlayerHud();status.textContent='Você voltou à trilha; o inimigo continua à espreita.';
@@ -2782,6 +2787,8 @@ function faunaBiome(x,z){
  let trees=0;for(const o of treeObstacles){if(Math.abs(o.x-x)<9&&Math.abs(o.z-z)<9&&++trees>2)break;}return trees>2?'floresta':'prado';
 }
 const faunaCtx={biome:faunaBiome,water:(x,z)=>terrain3D.waterDepth(x,z),road:faunaRoad,lava:(x,z)=>journeyWorld&&inJourney(x,z)?journeyWorld.lavaHeat(x,z):0,blocked:(x,z)=>blockedAt(x,z)};
+/* MOD 327 — morte confirmada → desintegração em pó (cinzas3d.js): um pipeline para esquadrão, hordas e herói */
+const ashFx=createAshDissolve(THREE,scene,{low:terrainLowSpec});
 let fauna=null,faunaInsects=0;try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
 const forestPlaces=buildForestPlaces(THREE,{ground:(x,z)=>groundHeightAt(x,z),obstacles:rockObstacles,lowSpec:terrainLowSpec});scene.add(forestPlaces.group);
 /* MOD 317 — a garganta de origem segue por dias até as terras baixas: depois da curva (ORIGIN_LIMIT) o herói não segue
@@ -2794,7 +2801,7 @@ function updateAmbientLife(dt,now){
  shopBuilding.star.rotation.y+=dt*.8;shopBuilding.lamp.intensity=dayNightState.t*2.2;
  if(grassRefresh)grassRefresh(player.position.x,player.position.z);
  const night=dayNightState.t,t=now*.001,px=player.position.x,pz=player.position.z;
- forestPlaces.update(t,night);originLimitCheck(t);for(const v of waystoneVisuals)v.shelter.update(t,dt);if(!voidMode)birdFlocks.update(dt,t,player.position,1-THREE.MathUtils.smoothstep(night,.25,.7));else birdFlocks.mesh.visible=false;if(fauna){const P=player.position;fauna.update(dt,{px:P.x,pz:P.z,hour:gameClock.hour,camera,hidden:voidMode||caveWalk});faunaInsects=insectLevel(gameClock.hour,faunaHabitatOk('grilo',P.x+3,P.z+2,faunaCtx)||faunaHabitatOk('grilo',P.x-4,P.z-3,faunaCtx));}
+ forestPlaces.update(t,night);originLimitCheck(t);for(const v of waystoneVisuals)v.shelter.update(t,dt);if(!voidMode)birdFlocks.update(dt,t,player.position,1-THREE.MathUtils.smoothstep(night,.25,.7));else birdFlocks.mesh.visible=false;if(heroAsh.on&&playerHP>0&&model){heroAsh.on=false;ashFx.cancel(model);model.visible=heroAsh.vis;}/* outro caminho de retorno (queda/abismo/cena) reviveu o herói: nunca fica invisível */ashFx.update(dt);if(fauna){const P=player.position;fauna.update(dt,{px:P.x,pz:P.z,hour:gameClock.hour,camera,hidden:voidMode||caveWalk});faunaInsects=insectLevel(gameClock.hour,faunaHabitatOk('grilo',P.x+3,P.z+2,faunaCtx)||faunaHabitatOk('grilo',P.x-4,P.z-3,faunaCtx));}
  const ready=questStep>=6;portalBeacon.material.opacity=(ready?.42:.17)+night*.14+Math.sin(t*1.7)*.035;
  fireflies.pts.visible=night>.35&&grassGroup.visible;
  if(fireflies.pts.visible){fireflies.pts.material.opacity=THREE.MathUtils.smoothstep(night,.35,1)*(.75+Math.sin(t*3.1)*.2);
@@ -4163,10 +4170,11 @@ function foeFinalBlow(c,byHero=true){
 function updateFallen(dt){
  for(let i=fallenFoes.length-1;i>=0;i--){const f=fallenFoes[i],h=f.c.holder,inner=h.children[0];f.t+=dt;
   if(f.tilt&&inner)inner.rotation.x=-(Math.min(1,f.t/.7)**2)*Math.PI/2;
-  if(f.t>2.6)h.position.y-=dt*.55;
-  if(f.t>4.2||!h.parent){h.visible=false;fallenFoes.splice(i,1);const k=hordeClones.indexOf(f.c);if(k>=0){hordeClones.splice(k,1);disposeClone(f.c);}}}
+  // MOD 327: terminado o clipe de morte, o corpo vira cinza de baixo para cima (uma vez) em vez de afundar no chão
+  if(f.t>2.2&&!f.ash){f.ash=true;if(!ashFx.start(h,f.c.boss?'boss':'demon',{onDone:()=>{f.ashDone=true;}}))f.ashDone=true;}
+  if(f.ashDone||f.t>7||!h.parent){ashFx.cancel(h);h.visible=false;fallenFoes.splice(i,1);const k=hordeClones.indexOf(f.c);if(k>=0){hordeClones.splice(k,1);disposeClone(f.c);}}}
 }
-function disposeClone(c){if(!c)return;c.mixer.stopAllAction();scene.remove(c.holder);}
+function disposeClone(c){if(!c)return;ashFx.cancel(c.holder);c.mixer.stopAllAction();scene.remove(c.holder);}
 /** Começa uma luta em grupo. spots: onde cada um espera; o primeiro (ou o mais perto) luta. */
 function startPack(o){
  clearPack();pendingRelease=false;const rigName=o.rig||'enemy1';
@@ -4216,7 +4224,7 @@ const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
  if(squadRT)return squadRT;
- squadRT=createEnemy1SquadRuntime({T:THREE,scene,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
+ squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
   source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
@@ -8321,7 +8329,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  act(kind,x,z){if(x!==undefined){joyX=x;joyY=z;}action(kind);if(x!==undefined)joyX=joyY=0;return this.riteState();},
  pickAt(px,py){const rc=new THREE.Raycaster(),v=new THREE.Vector2(px/innerWidth*2-1,-(py/innerHeight)*2+1);rc.setFromCamera(v,camera);return rc.intersectObjects(scene.children,true).slice(0,6).map(h=>{let o=h.object,n=[];while(o&&n.length<4){n.push(o.name||o.type);o=o.parent;}return n.join('<')+' @'+h.distance.toFixed(1);});},
  vfxHide(which){const r={prota:protaVFX.root,rites:scene.getObjectByName('SwordRites231')}[which];if(r)r.visible=false;renderer.render(scene,camera);return !!r;},
- faunaState(){/* Mod 327 (QA) */return fauna?{...JSON.parse(JSON.stringify(fauna.stats)),list:fauna.list()}:null;},async faunaSpawn(kind,x,z,yaw=0){if(!fauna)return false;await fauna.load(kind);return fauna.debugSpawnAt(kind,x,z,yaw);},faunaBiome(x,z){return faunaBiome(x,z);},act2Label(){/* Mod 327 (QA) */return act2StoryLabel();},leaveVolcanoQA(){/* Mod 327 (QA): sai do interior pelo caminho real */if(inVolcano)leaveVolcano();return{...this.walkState(),inVolcano,yaw:+playerYaw.toFixed(2)};},freeze(on=true){/* Mod 327 (QA): congela o laço real (dt 0) para capturar quadro a quadro só com combatStep */debugDtScale=on?0:1;return debugDtScale;},realtime(){debugDtScale=1;return true;},
+ async ashDemo(rig='enemy2',boss=false){/* Mod 327 (QA): um clone real do rig morre na frente do herói e vira cinza pelo caminho do jogo */await loadRig(rig);const P=player.position,c=makeFoeClone(rig,{x:P.x+Math.sin(playerYaw)*3,z:P.z+Math.cos(playerYaw)*3});if(!c)return null;c.boss=boss;hordeClones.push(c);foeFinalBlow(c,false);return{n:fallenFoes.length};},ashState(){return{jobs:ashFx.count,fallen:fallenFoes.map(f=>({t:+f.t.toFixed(2),ash:!!f.ash,done:!!f.ashDone,vis:f.c.holder.visible})),heroAsh:{...heroAsh},hp:playerHP,heroVisible:!!(model&&model.visible)};},killHeroQA(){checkpointX=player.position.x;checkpointZ=player.position.z;playerHP=0;playerRespawnAt=performance.now()+1250;if(actions.death)playOnce('death',.08);return true;},auroraProbe(){const gl=renderer.getContext();return renderer.info.programs.map(p=>({name:p.name,aur:/aurGround/.test(gl.getShaderSource(p.fragmentShader)||''),n:p.usedTimes})).filter(x=>x.aur||/Standard/.test(x.name));},auroraMatProbe(){const out=[];scene.traverse(o=>{if(o.isMesh&&/jornada-bloco|terrain-mod186/.test(o.name)&&out.length<3){const pr=renderer.properties.get(o.material);const u=pr&&pr.uniforms;out.push({name:o.name,has:!!(u&&u.uAurK),k:u&&u.uAurK?u.uAurK.value:null,same:u&&u.uAurK===auroraUniforms(THREE).uAurK,key:o.material.customProgramCacheKey().slice(-40),prog:!!(pr&&pr.currentProgram)});}});return out;},auroraOff(v=true){auroraQAOff=!!v;return v;},auroraLight(){const u=auroraUniforms(THREE);return{k:+u.uAurK.value.toFixed(3),c:u.uAurC.value.toArray().map(v=>+v.toFixed(2)),sky:+skyAtmo.aurora.toFixed(3)};},faunaState(){/* Mod 327 (QA) */return fauna?{...JSON.parse(JSON.stringify(fauna.stats)),list:fauna.list()}:null;},async faunaSpawn(kind,x,z,yaw=0){if(!fauna)return false;await fauna.load(kind);return fauna.debugSpawnAt(kind,x,z,yaw);},faunaBiome(x,z){return faunaBiome(x,z);},act2Label(){/* Mod 327 (QA) */return act2StoryLabel();},leaveVolcanoQA(){/* Mod 327 (QA): sai do interior pelo caminho real */if(inVolcano)leaveVolcano();return{...this.walkState(),inVolcano,yaw:+playerYaw.toFixed(2)};},freeze(on=true){/* Mod 327 (QA): congela o laço real (dt 0) para capturar quadro a quadro só com combatStep */debugDtScale=on?0:1;return debugDtScale;},realtime(){debugDtScale=1;return true;},
  combatQA(on=true,hp=0){debugCombat=!!on;if(hp>0){enemyHP=enemyMaxHP=hp;}return debugCombat;},
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
  enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},

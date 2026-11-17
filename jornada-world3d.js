@@ -368,7 +368,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 {vec2 q=vWp.xz-uV.xy;float k=length(q)/uV.z;float lane=chan(q,-.62,.8)*smoothstep(.78,.5,k)*smoothstep(.3,.42,k);float pulse=.75+.25*sin(uLT*.9+length(q)*.08);totalEmissiveRadiance+=vec3(1.,.28,.05)*lane*pulse*uGlowK*.0;}`)
         .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nfloat f=smoothstep(uFog.x,uFog.y*1.2,vDist)*(1.-.6*smoothstep(20.,180.,vWp.y-24.))*.62;gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze,f);'); };
-    patchAuroraGround(T, m, .45); const cone = new T.Mesh(g, m); cone.name = 'jornada-vulcao-cone'; cone.frustumCulled = false; cone.receiveShadow = true; volcano.add(cone); }
+    patchAuroraGround(T, m, .6); const cone = new T.Mesh(g, m); cone.name = 'jornada-vulcao-cone'; cone.frustumCulled = false; cone.receiveShadow = true; volcano.add(cone); }
   // Mod 325 — afloramentos de basalto e escória nos flancos (quebram o "cone liso" e a silhueta de pirâmide), meio enterrados
   { const out = [], n = low ? 22 : 34; for (let k = 0; k < n * 4 && out.length < n; k++) { const a = hash(k, 1, 201) * 6.28, r = V.crater * 2.3 + hash(k, 2, 202) ** .7 * (V.r * .92 - V.crater * 2.3), x = V.x + Math.cos(a) * r, z = V.z + Math.sin(a) * r;
       if (Math.hypot(x - GATE2.x, z - GATE2.z) < 30) continue; out.push({ x, z, a, r, s: (6 + hash(k, 3, 203) * 12) * (1.2 - r / V.r * .5) }); }

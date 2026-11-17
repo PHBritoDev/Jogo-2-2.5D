@@ -72,7 +72,7 @@ void main(){
   vec3 col = mix(body, sky, fres * (1.0 - ford * .55)); // raso do vau: menos céu refletido, mais leito (sem leitoso)
   // Mod 327 — reflexo colorido e animado da aurora: depende da direção refletida (visão + ondulação), sem espelho
   if (uAurK > .001) { float aUp = smoothstep(.04, .5, R.y), curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + fbm(vWorld.xz * .05 + uAurT * .03) * 2.4);
-    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23); col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .9 * (1.0 - ford * .5); }
+    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23); col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5); }
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
   col += uSunCol * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
