@@ -25,9 +25,9 @@
 test at ../menu-ci-main/vorgazhek-eclipse-sword.test.mjs:80:1
 ✖ Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ultimate seguem reservados; nada antigo voltou (16.4004ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-  
+
     assert.ok(lab.includes('testSwordEclipse=1'))
-  
+
       at TestContext.<anonymous> (file:///workspace/work/menu-ci-main/vorgazhek-eclipse-sword.test.mjs:98:104)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)
@@ -46,9 +46,9 @@ test at ../menu-ci-main/vorgazhek-eclipse-sword.test.mjs:80:1
 test at ../menu-ci-main/zarkhael-blackflame.test.mjs:73:1
 ✖ Interrupção, IA e integração — some limpo, IA usa a Skill 2 à distância e alterna com a Hidra; nada genérico voltou (14.632131ms)
   AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
-  
+
     assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'))
-  
+
       at TestContext.<anonymous> (file:///workspace/work/menu-ci-main/zarkhael-blackflame.test.mjs:87:104)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1382:25)
