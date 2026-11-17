@@ -1,3 +1,4 @@
+import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
 import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
 import { EnergyShield, SHIELD_SPECS } from './combat-defense3d.js';
 import { MOBILITY } from './combat-mobility3d.js';
@@ -47,7 +48,8 @@ const COMMON = {
 };
 /** Mod 315: o Demônio1 (Enemy1 comum) luta com GARRAS — clipes nativos recortados, salto predatório (2 saltos + dash aéreo)
     e escudo próprio. Só ele: as outras espécies que herdam o tuning base não ganham estes campos. */
-const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: DEMON1_LEAP, shield: SHIELD_SPECS.demon1 };
+const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: TEMP_MELEE_ONLY_TEST ? null : DEMON1_LEAP, shield: TEMP_MELEE_ONLY_TEST ? null : SHIELD_SPECS.demon1,
+  kit: TEMP_MELEE_ONLY_TEST ? [] : undefined, counter: { ...COMMON.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : COMMON.counter.chance } };
 const WARDEN = {
   ...COMMON, hp: 480, radius: .55, height: 2.25, poise: 32, leash: 40,
   speed: { walk: 1.75, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
@@ -58,7 +60,9 @@ const WARDEN = {
   spiral: { ...COMMON.spiral, r: .8, speed: 12, dmg: 21, knock: 2, cd: 6.5 },
   judgment: { ...COMMON.judgment, r: 3.4, dmg: 32, edge: 12, prep: 1.2, cd: 13 },
   counter: { ...COMMON.counter, chance: .42, cd: 7, power: 22, r: .6 },
-  gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], reap: 'claws', feint: 'spiral'
+  gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], kit: TEMP_MELEE_ONLY_TEST ? [] : undefined,
+  counter: { ...COMMON.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : .42, cd: 7, power: 22, r: .6 },
+  reap: TEMP_MELEE_ONLY_TEST ? null : 'claws', feint: TEMP_MELEE_ONLY_TEST ? null : 'spiral'
 };
 export const E1 = Object.freeze({ common: COMMON, demon1: DEMON1, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
 /** MOD 238 — espécies e poderes registráveis: outra espécie (Enemy2) entra com tuning e kit próprios sem tocar no
