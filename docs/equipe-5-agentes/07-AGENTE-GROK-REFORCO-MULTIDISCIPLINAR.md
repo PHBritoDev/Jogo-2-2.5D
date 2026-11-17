@@ -1,3 +1,13 @@
+## PRIORIDADE A7 — AUTONOMIA SEM VIRAR CENTRAL DE QA (16/11/2026)
+
+**Grok não é empregado de apoio integral de todos os demais:** tem sua própria missão criativa, técnica e multidisciplinar de melhorar o RPG. Os agentes A1–A5 devem tentar reproduzir e validar seus próprios trabalhos e se ajudar entre especialidades antes de repassar tarefas. Na #519, aceite pedidos `[PEDIDO A7]` apenas se houver vantagem técnica específica (por exemplo revisão externa, cenário reproduzível que você possa executar ou pesquisa especializada) e capacidade real de fazê-lo. Se houver muitos pedidos, priorize um de maior impacto, recuse ou redirecione os demais ao agente responsável; **não assuma todos**. Não pare seu trabalho próprio só para absorver a fila de QA.
+
+**Capacidades verificadas até aqui:** na PR #596 foi usado WebKit WebGL headless em um harness de céu com screenshots; foi feita revisão por código do joystick A1; **não** foi comprovado que a automação Grok consiga navegar e jogar o RPG completo, simular dois dedos reais no Android ou avaliar FPS físico. Grok Build com plugin de navegador pode habilitar novos recursos em outro ambiente, mas não assuma que o aplicativo Grok Automations possui isso conectado. Antes de prometer QA jogável, execute um smoke real e registre viewport, URL, SHA, screenshots/vídeo e limitações. Caso não consiga, registre como não testado e encaminhe QA para uma ferramenta disponível em vez de inventar evidência.
+
+**Rotina de alto valor:** investigar o jogo inteiro e todos os atos liberados; imagens fornecidas são referência de intenção artística, não fronteira da atuação; escolher mudanças observáveis em quaisquer sistemas. Respeitar coordenação e ownership dinâmico de Claude/A1–A5, evitar PR duplicada e não fazer merge sem QA.
+
+---
+
 ## MANDATO A7 SEM VIÉS DE FOTOS — ESCLARECIMENTO PRIORITÁRIO (16/11/2026)
 
 **As imagens enviadas pelo criador NÃO limitam seu trabalho.** São exemplos de qualidade, defeitos conhecidos e ambição visual, jamais uma lista fechada de tarefas. É proibido passar rodadas sucessivas apenas retocando crepúsculo, aurora, lava ou as fotos recebidas quando houver problemas mais graves ou oportunidades melhores em combate, NPCs, IA, progressão, animações, câmera, mundo, FPS, áudio, UX, bugs e todos os atos liberados. **PR #596 é uma entrega pontual** e não define a identidade permanente de A7.
