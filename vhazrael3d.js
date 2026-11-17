@@ -1,3 +1,4 @@
+import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
 import { orbitalPath, orbitalMeteorAt, segSegDist, orbitalBlastR } from './vhazrael-orbital-path.js';
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
@@ -6,7 +7,7 @@ import { VZ_MOVES } from './vhazrael-rig3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
 export const VHAZRAEL_BUILD = '320-ceifador-glb';
 /** TESTE TEMPORÁRIO solicitado pelo criador: duelo de espada sem poderes. Mudar para false restaura o kit original. */
-export const VHAZRAEL_SWORD_ONLY_TEST = true;
+export const VHAZRAEL_SWORD_ONLY_TEST = TEMP_MELEE_ONLY_TEST;
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
