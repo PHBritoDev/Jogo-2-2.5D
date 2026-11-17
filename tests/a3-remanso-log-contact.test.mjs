@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planRemansoLog } from '../eldoria-forest-places3d.js';
+import { planRemansoLog, remansoBarkVertexY } from '../eldoria-forest-places3d.js';
 
 test('Remanso: as duas pontas acompanham o declive sem elevação artificial', () => {
   const ground = (x, z) => .18 * x - .12 * z;
@@ -32,5 +32,19 @@ test('Remanso: lombada deslocada não cria ponta suspensa', () => {
   for (let i = 0; i <= 12; i++) {
     const p = plan.point(i / 12);
     assert.ok(Math.abs(p.y - ground(p.x, p.z) - plan.radius) < 1e-10, 'anel sem contato no ponto ' + i);
+  }
+});
+
+
+test('Remanso: casca real apoia anéis afunilados no chão, sem fresta de 4–10 cm', () => {
+  for (const terrainY of [-3, 0, 7.2]) {
+    for (const ringRadius of [.32, .35, .38]) {
+      for (const deformation of [.92, 1, 1.08]) {
+        const bottom = remansoBarkVertexY(terrainY, ringRadius, -ringRadius, deformation);
+        assert.ok(Math.abs(bottom - terrainY) < 1e-10, `contato raio ${ringRadius} deformação ${deformation}`);
+        const top = remansoBarkVertexY(terrainY, ringRadius, ringRadius, deformation);
+        assert.ok(top > terrainY + .5, 'seção do tronco mantém volume');
+      }
+    }
   }
 });
