@@ -38,7 +38,8 @@ test('água e lava: malhas voltadas para cima (antes a face era descartada e a �
   const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 0, 5), new THREE.Vector3(40, 0, 0)]);
   const rv = riverGeometry(THREE, curve, { height: () => 0, level: () => .5, N: 20 }); const ru = up(rv); assert.ok(ru.upN > 0 && ru.dn === 0, 'rio');
   assert.ok(rv.attributes.aFlow.count === rv.attributes.position.count, 'rio tem campo de fluxo');
-  const hill = riverGeometry(THREE, curve, { height: () => 0, level: u => .5 + u * 20, N: 20 }), hp = hill.attributes.position.array; let mx = -1e9; for (let i = 1; i < hp.length; i += 3) mx = Math.max(mx, hp[i]); assert.ok(mx <= .5 + 1e-6, 'a água não sobe o morro');
+  const hill = riverGeometry(THREE, curve, { height: () => 0, level: u => .5 + u * 20, N: 20 }), hp = hill.attributes.position.array; let mx = -1e9; for (let i = 1; i < hp.length; i += 3) mx = Math.max(mx, hp[i]); assert.ok(mx <= .5 + 20 * .08 + 1e-6, 'a água não sobe o morro');
+  const wav = riverGeometry(THREE, curve, { height: () => 0, level: u => .5 + .3 * Math.sin(u * 30), N: 40 }), wp = wav.attributes.position.array; let mn = 1e9; for (let i = 1; i < wp.length; i += 3) mn = Math.min(mn, wp[i]); assert.ok(mn > .15, 'leito ondulado não seca o rio (Codex #594)');
   const lava = createLava(THREE, { height: () => 0, time: { value: 0 }, pools: [{ x: 0, z: 0, r: 3, seed: 1 }], channels: [lavaChannelPath(() => 0, 20, 0, { steps: 10 })] });
   for (const o of lava.group.children) if (o.isMesh && o.name !== 'jornada-borda-lava') { const u = up(o.geometry); assert.ok(u.upN > 0 && u.dn === 0, o.name); }
 });

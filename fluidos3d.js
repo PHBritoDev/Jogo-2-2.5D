@@ -90,7 +90,7 @@ diffuseColor.a=shore*clamp(mix(.38,.9,1.-exp(-dep*1.3))+wFres*.45+wFoam*.6,0.,.9
 /** Faixa de água ao longo de uma curva (rio): aDepth do relevo, aFlow pela tangente. */
 export function riverGeometry(T, curve, { height, level, halfW = 5.6, cross = 8, N = 160, speed = .9 } = {}) {
   const pos = [], dep = [], flow = [], idx = [];
-  const lv = []; for (let i = 0; i <= N; i++) { const y = level(i / N, curve.getPoint(i / N)); lv.push(i ? Math.min(lv[i - 1], y) : y); } // nível só desce rio abaixo (antes subia o morro como uma fita)
+  const lv = []; for (let i = 0; i <= N; i++) { const y = level(i / N, curve.getPoint(i / N)); lv.push(i ? Math.min(y, lv[i - 1] + .08) : y); } // o nível acompanha as ondulações do leito (até +8 cm por amostra), mas não sobe o morro do fim do rio como uma fita
   for (let i = 0; i <= N; i++) { const u = i / N, c = curve.getPoint(u), t = curve.getTangent(u), sx = -t.z, sz = t.x, y = lv[i];
     for (let k = 0; k <= cross; k++) { const o = (k / cross * 2 - 1) * halfW, x = c.x + sx * o, z = c.z + sz * o, g = height(x, z); pos.push(x, y, z); dep.push(y - g); const v = speed * (1 - .55 * (o / halfW) ** 2); flow.push(t.x * v, t.z * v); } }
   const W = cross + 1; for (let i = 0; i < N; i++) for (let k = 0; k < cross; k++) { const a = i * W + k, b = a + W; if (dep[a] < -.4 && dep[a + 1] < -.4 && dep[b] < -.4 && dep[b + 1] < -.4) continue; idx.push(a, a + 1, b, a + 1, b + 1, b); } // face para cima
