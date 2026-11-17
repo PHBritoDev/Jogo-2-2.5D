@@ -13,6 +13,7 @@
  * lâminas numa área), wave (corte em lua crescente), line (lança/raio em linha), ring (onda de choque que se expande),
  * vortex (furacão que persegue), grab (mãos/correntes que prendem), dash (investida), cone (varrida em leque).
  */
+import { meleeOnlyProfile } from './combat-melee-test-mode.js';
 export const FAMILY = {
   captor: 'seguidor', warden: 'seguidor', evo1: 'seguidor', elite1: 'seguidor',
   demon2: 'demonio', miniboss2: 'demonio', evo2: 'demonio', elite2: 'demonio',
@@ -111,7 +112,7 @@ export function powerStats(profile, move) {
  * O golpe de espada só sai de perto (até 4,5 m); as habilidades saem de 3 a 16 m, em rodízio.
  */
 export function pickMove(profile, cds, dist, lastId = '') {
-  const k = kitFor(profile); if (!k) return null;
+  const k = kitFor(profile); if (!k || meleeOnlyProfile(profile)) return null;
   const sw = k.sword; if (sw && !sw.disabled && !(cds.sw > 0) && (sw.range ? dist >= sw.range[0] && dist <= sw.range[1] : dist <= 4.5)) return sw; // MOD 261: especial de espada à distância tem alcance próprio
   if (dist < 3 || dist > 16) return null;
   const ready = k.skills.filter(s => !s.disabled && !(cds[s.id] > 0)); // MOD 260: poderes reservados nunca saem
@@ -119,4 +120,4 @@ export function pickMove(profile, cds, dist, lastId = '') {
   return ready.find(s => s.id !== lastId) || ready[0];
 }
 /** Limiares de vida em que a ultimate sai (fração da vida máxima), na ordem. */
-export function ultThresholds(profile) { const t = TIER[tierOf(profile)]; return t ? t.ult : []; }
+export function ultThresholds(profile) { if (meleeOnlyProfile(profile)) return []; const t = TIER[tierOf(profile)]; return t ? t.ult : []; }
