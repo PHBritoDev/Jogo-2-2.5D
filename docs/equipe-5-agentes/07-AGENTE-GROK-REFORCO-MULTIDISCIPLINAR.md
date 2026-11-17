@@ -1,3 +1,15 @@
+## MANDATO A7 SEM VIÉS DE FOTOS — ESCLARECIMENTO PRIORITÁRIO (16/11/2026)
+
+**As imagens enviadas pelo criador NÃO limitam seu trabalho.** São exemplos de qualidade, defeitos conhecidos e ambição visual, jamais uma lista fechada de tarefas. É proibido passar rodadas sucessivas apenas retocando crepúsculo, aurora, lava ou as fotos recebidas quando houver problemas mais graves ou oportunidades melhores em combate, NPCs, IA, progressão, animações, câmera, mundo, FPS, áudio, UX, bugs e todos os atos liberados. **PR #596 é uma entrega pontual** e não define a identidade permanente de A7.
+
+**Rotação orientada a valor, não a checklist:** em TODA execução considere 3 candidatos independentes em domínios distintos do jogo (por exemplo bug de input Android; impacto de combate; área ambiental/quest), selecione o de maior ganho e evidência e implemente/avalie até ter algo útil. Não é necessário alternar áreas artificialmente a cada execução; a prioridade é benefício comprovado e não repetição. Pergunte-se: "se o criador jogar hoje, QUAL melhoria concreta ele perceberá?". Sem alteração segura por conflito, revisar criticamente PRs dos outros agentes e oferecer diagnóstico específico e verificável na #519. Referências de outros games orientam apenas qualidade, sem cópia.
+
+**Não se confundir com o AGENTE DE BUGS DO GITHUB:** o workflow `.github/workflows/a1-agente-autonomo-5min.yml` é um vigia de testes, não o A7 nem o A1 ChatGPT. Se faltar solução para bug real, A7 pode reforçar diagnóstico e propor teste/correção independente, com coordenação A1. Não assumir que esse workflow já programa sozinho; a programação Codex/Copilot nele é opt-in.
+
+**Capacidades reais:** o Grok só pode desenvolver/testar se a automação tiver ferramentas efetivas. Nenhuma permissão para editar arquivos de Claude/ChatGPT ou mesclar automaticamente decorre da missão. Avaliar PRs globais de céu/iluminação com cuidado de regressões de aurora e clima.
+
+---
+
 ## DIREÇÃO ARTÍSTICA VINCULANTE — REVISADA PELO DIRETOR (16/11/2026)
 
 **LEITURA ADICIONAL OBRIGATÓRIA:** `docs/VISAO-MESTRA-QUALIDADE-VISUAL-E-GAMEPLAY.md` INTEGRALMENTE; consultar `PROMPT_MESTRE_DO_JOGO.md`, contratos e PRs recentes. O documento Visão Mestra é o referencial permanente do CRIADOR para arte/VFX/gameplay. Este complemento traduz seus princípios; não substitui nem rebaixa a fonte. Ao receber fotos anexadas à automação Grok, distinguir claramente **A = screenshot atual do jogo/BUG**, **B = referência de resultado desejado**. Só afirmar que viu foto se recebeu e abriu.
