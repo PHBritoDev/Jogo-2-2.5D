@@ -22,10 +22,13 @@ void main(){
     float cs = max(0., dot(d, uSun));
     vec2 hz = normalize(d.xz + 1e-4), sz = normalize(uSun.xz + 1e-4);
     float side = max(0., dot(hz, sz));
-    float band = exp(-max(d.y, -.05) * 7.) * pow(side, 2.2);
-    float halo = pow(cs, 24.) * .9 + pow(cs, 5.) * .28;
-    vec3 warm = mix(vec3(1., .46, .3), vec3(1., .72, .38), smoothstep(.0, .25, d.y));
-    vec3 g = warm * (band * .55 + halo) * uGold + vec3(.62, .42, .7) * exp(-max(d.y, 0.) * 5.) * (1. - side) * .16 * uGold;
+    // A7: faixa mais larga no horizonte do sol (âmbar) e prateleira rosa/malva do lado oposto,
+    // baixa — não pinta o zênite. O disco do sol continua sendo o sunDisk do mundo (sem segundo disco).
+    float band = exp(-max(d.y, -.04) * 5.2) * pow(side, 1.55);
+    float halo = pow(cs, 16.) * .7 + pow(cs, 4.) * .2;
+    vec3 warm = mix(vec3(1., .32, .14), vec3(1., .58, .28), smoothstep(0., .16, d.y));
+    vec3 g = warm * (band * .66 + halo) * uGold;
+    g += vec3(.74, .34, .56) * exp(-max(d.y, 0.) * 4.) * (1. - side) * .24 * uGold * (1. - smoothstep(.02, .34, d.y));
     col += g; a += 0.;
   }
   // ---- aurora (Mod 325): DOIS arcos em oval inclinado que atravessam o céu (presentes em quase todos os rumos, com

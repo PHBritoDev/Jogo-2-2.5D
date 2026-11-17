@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<title>A7 crepúsculo — rig de céu</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { sampleTimeOfDay, createLightState, sunDirection } from '../eldoria-nostalgic-light.js';
+import { createSkyAtmosphere } from '../ceu-atmosfera3d.js';
+import { createWeatherView } from '../eldoria-weather3d.js';
+import { WEATHER } from '../eldoria-weather.js';
+
+const params = new URLSearchParams(location.search);
+const hour = Number(params.get('hour') || 18.4);
+const weatherKey = params.get('weather') || 'nuvens';
+const W = WEATHER[weatherKey];
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(1280, 720);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(58, 1280 / 720, 0.1, 4000);
+const L = sampleTimeOfDay(hour, createLightState());
+renderer.toneMappingExposure = L.exposure;
+
+const skyGeometry = new THREE.SphereGeometry(220, 28, 18);
+const skyPositions = skyGeometry.attributes.position;
+const skyColors = new Float32Array(skyPositions.count * 3);
+skyGeometry.setAttribute('color', new THREE.Float32BufferAttribute(skyColors, 3));
+const skyDome = new THREE.Mesh(skyGeometry, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false }));
+skyDome.renderOrder = -10; skyDome.frustumCulled = false; skyDome.scale.setScalar(3.15); scene.add(skyDome);
+
+const skyH = new THREE.Color().setRGB(L.skyH[0], L.skyH[1], L.skyH[2], THREE.SRGBColorSpace);
+const skyZ = new THREE.Color().setRGB(L.skyZ[0], L.skyZ[1], L.skyZ[2], THREE.SRGBColorSpace);
+const tmp = new THREE.Color();
+const cols = skyGeometry.attributes.color;
+for (let i = 0; i < skyPositions.count; i++) {
+  const y = skyPositions.getY(i) / 220;
+  let u = THREE.MathUtils.clamp((y + .12) / .94, 0, 1); u = u * u * (3 - 2 * u);
+  tmp.copy(skyH).lerp(skyZ, u);
+  cols.setXYZ(i, tmp.r, tmp.g, tmp.b);
+}
+cols.needsUpdate = true;
+
+const e = L.elev * Math.PI / 180, az = L.sunAz;
+const sx = Math.sin(az) * Math.cos(e), sy = Math.sin(e), sz = Math.cos(az) * Math.cos(e);
+const sunDir = new THREE.Vector3();
+const lit = sunDirection(L.elev, L.sunAz);
+sunDir.set(lit[0], lit[1], lit[2]);
+
+camera.position.set(0, 1.65, 0);
+camera.lookAt(sx * 40, 1.65 + sy * 40 + 2.2, sz * 40);
+
+const hemi = new THREE.HemisphereLight(
+  new THREE.Color().setRGB(L.hemiSky[0], L.hemiSky[1], L.hemiSky[2], THREE.SRGBColorSpace),
+  new THREE.Color().setRGB(L.hemiGround[0], L.hemiGround[1], L.hemiGround[2], THREE.SRGBColorSpace),
+  L.hemiInt);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(L.sun[0], L.sun[1], L.sun[2], THREE.SRGBColorSpace), L.sunInt);
+sun.position.copy(sunDir).multiplyScalar(80);
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(80, 48), new THREE.MeshLambertMaterial({ color: 0x6a5830 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = false; scene.add(ground);
+// silhuetas simples para ler o horizonte (não são o terreno do jogo)
+const treeMat = new THREE.MeshLambertMaterial({ color: 0x1c140e });
+for (const [x, z, s] of [[-7, 10, 1.1], [6.5, 11, 1.4], [-3, 16, .8], [10, 18, 1], [-11, 20, 1.3]]) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 1.2, 5), treeMat);
+  trunk.position.y = .6;
+  const crown = new THREE.Mesh(new THREE.ConeGeometry(.9 * s, 2.4 * s, 6), treeMat);
+  crown.position.y = 1.6 * s;
+  g.add(trunk, crown);
+  g.position.set(x, 0, z);
+  scene.add(g);
+}
+
+const disk = new THREE.Mesh(new THREE.SphereGeometry(3.1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffe4a2, toneMapped: false, fog: false }));
+disk.position.set(sx, sy, sz).multiplyScalar(420);
+scene.add(disk);
+
+const skyAtmo = createSkyAtmosphere(THREE, scene);
+const weather = createWeatherView(THREE, { scene });
+const night = (hour < 4.5 || hour > 19.5) ? 1 : (hour < 6.5 ? 1 - (hour - 4.5) / 2 : (hour < 17.5 ? 0 : (hour - 17.5) / 2));
+skyAtmo.update(0.016, { camera, sunDir, elev: L.elev, night, clear: 0.72, visible: true, radius: 600 });
+weather.update(W, L, { camera, dt: 0.016, time: 12, night, sunDir, wind: W.wind, windDir: 0.4, wetness: 0, active: true, allowRain: false });
+skyDome.position.copy(camera.position);
+
+renderer.render(scene, camera);
+window.__a7Ready = { hour, elev: +L.elev.toFixed(2), weather: weatherKey, warmthH: +(L.skyH[0] - L.skyH[2]).toFixed(3) };
+</script>
