@@ -443,7 +443,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   const dpr=Math.min(window.devicePixelRatio||1,lowQuality?1.65:2.4,Math.max(.75,Math.sqrt((lowQuality?1000000:1900000)/(width*height))));
   if(Math.abs(renderer.getPixelRatio()-dpr)>.03)renderer.setPixelRatio(dpr);
   updateCoordinates(root,scene,camera,groups,details,{renderer});
-  stage.resize(width,height);stage.alignChains(groups,width,height);environment.scale.set(width/W,height/H,1);
+  cinematic.resize(height);stage.resize(width,height);stage.alignChains(groups,width,height);environment.scale.set(width/W,height/H,1);
  };
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);

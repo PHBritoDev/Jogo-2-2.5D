@@ -66,7 +66,7 @@ export function addCinematicStage(parent,W,H){
  }
  const sword=mesh(hero,new T.CylinderGeometry(0,H*.003,H*.13,4),steel,H*.062,-H*.11,4);sword.rotation.z=.35;
  mesh(hero,new T.BoxGeometry(H*.028,H*.004,H*.005),steel,H*.039,-H*.048,5).rotation.z=.35;
- const cape=cloth(hero,[-H*.013,-H*.037,13],H*.13,H*.17,'#29131c');
+ const cape=cloth(hero,[-H*.013,-H*.037,13],H*.18,H*.17,'#29131c');
  const flags=[];for(const side of [-1,1]){const x=side*W*.39;mesh(group,new T.CylinderGeometry(1,1,H*.14,6),iron,x,-H*.15,-80);flags.push(cloth(group,[x-H*.018,-H*.16,-76],H*.042,H*.09,'#42131b'));}
  // Original horned storm effigy: organic intersecting volumes, not a named boss.
  const demon=new T.Group();demon.position.set(W*.325,H*.29,-180);demon.name='menu-demon-fallback';group.add(demon);
