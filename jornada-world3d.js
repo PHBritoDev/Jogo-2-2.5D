@@ -1,4 +1,5 @@
 import { abyssEdge, inJourney, inAbyss, journeyHeight, volcanoHeight, volcanoGully, craterFloor, journeyBoundary, polyProject, fbm2, ROUTE, RIVER2, BRIDGE, ABYSS, CITY2, VOLCANO2, GATE2, WATERFALL, FALL_POOL, ABYSS_FALLS, CITY_PROPS, cinzariaLayout, cinzariaStyle, cinzariaLandmarks, riverDepth, JOURNEY_BOUNDS } from './jornada3d.js';
+import { createRippleSim, createWaterMaterial, riverGeometry, poolGeometry, createSpray, createFallMaterial, makeFall, createLava, lavaChannelPath } from './fluidos3d.js';
 /**
  * Mod 321/323 — o MUNDO VISÍVEL da jornada (o relevo e as regras vêm de jornada3d.js; a física usa a mesma função).
  *  • Terreno em BLOCOS com LOD e streaming: blocos finos de 64 m (célula 2 m, saia contra frestas) perto do herói e
@@ -80,6 +81,11 @@ export function createJourneyWorld(T, scene, opts = {}) {
   function* tileGeometryGen(x0, z0, S, cell, skirt) { // gerador: o bloco é montado aos pedaços, dentro de um orçamento de ms por quadro
     const n = Math.round(S / cell) + 1, verts = n * n, sk = skirt ? 4 * n : 0, pos = new Float32Array((verts + sk) * 3), col = new Float32Array((verts + sk) * 3), uv = new Float32Array((verts + sk) * 2);
     for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const k = j * n + i, x = x0 + i * cell, z = z0 + j * cell; pos[k * 3] = x; pos[k * 3 + 1] = renderH(x, z); pos[k * 3 + 2] = z; uv[k * 2] = x * .12; uv[k * 2 + 1] = z * .12; if (i === n - 1) yield; }
+    if (cell < FAR_CELL) { // Mod 326: borda do bloco fino costurada à grade grossa (8 m): sem T-junction com o bloco grosso vizinho (fendas pretas/brancas em diagonal nos morros)
+      const r = FAR_CELL / cell, H = k => pos[k * 3 + 1];
+      for (let e = 0; e < n; e++) { const t = e % r, e0 = e - t; if (!t) continue; const w = t / r;
+        for (const [ka, kb, k] of [[e0, e0 + r, e], [(n - 1) * n + e0, (n - 1) * n + e0 + r, (n - 1) * n + e], [e0 * n, (e0 + r) * n, e * n], [e0 * n + n - 1, (e0 + r) * n + n - 1, e * n + n - 1]]) pos[k * 3 + 1] = H(ka) + (H(kb) - H(ka)) * w; }
+    }
     const idx = [];
     for (let j = 0; j < n - 1; j++) for (let i = 0; i < n - 1; i++) { const a = j * n + i, b = a + 1, c = a + n, d = c + 1; if ((i + j) & 1) idx.push(a, c, b, b, c, d); else idx.push(a, c, d, a, d, b); }
     if (skirt) { // saia vertical nas 4 bordas: esconde frestas entre blocos finos e grossos
@@ -150,9 +156,9 @@ export function createJourneyWorld(T, scene, opts = {}) {
      célula é de 2,5 m), deixando uma fresta de até ~1 m por onde o céu vazava ("faixa branca" na descida da floresta).
      Uma faixa fina segue a mesma função de relevo 5 cm abaixo: onde a malha antiga existe ela vence a profundidade, na
      fresta a faixa aparece. */
-  { const xs = [], zs = []; for (let x = X0; x <= X0 + 10.001; x += 1) xs.push(x); for (let z = -178; z <= JOURNEY_BOUNDS.z1; z += 2) zs.push(z);
+  { const xs = [], zs = []; for (let x = X0; x <= X0 + 10.001; x += 1) xs.push(x); for (let z = -178; z <= 90; z += 2) zs.push(z); // Mod 326: só no vale (na serra norte a faixa aflorava na silhueta)
     const nx = xs.length, nz = zs.length, pos = new Float32Array(nx * nz * 3), col = new Float32Array(nx * nz * 3), uv = new Float32Array(nx * nz * 2), idx = [];
-    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = xs[i], z = zs[j], h = height(x, z) - .05, c = groundColor(x, z, h, .9); pos.set([x, h, z], k * 3); col.set(c, k * 3); uv[k * 2] = x * .12; uv[k * 2 + 1] = z * .12; }
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = xs[i], z = zs[j], g0 = height(x, z), sl = Math.abs(height(x + 1.25, z) - height(x - 1.25, z)) / 2.5 + Math.abs(height(x, z + 1.25) - height(x, z - 1.25)) / 2.5, h = g0 - .05 - sl * 1.6, c = groundColor(x, z, h, .9); /* Mod 326: em encosta a faixa afunda (antes aparecia como "fita" cinza acima da serra norte) */ pos.set([x, h, z], k * 3); col.set(c, k * 3); uv[k * 2] = x * .12; uv[k * 2 + 1] = z * .12; }
     for (let j = 0; j < nz - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, b, c, d); }
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
     const m = new T.Mesh(g, terrainMat); m.name = 'jornada-costura-leste'; m.receiveShadow = true; root.add(m); }
@@ -256,45 +262,27 @@ export function createJourneyWorld(T, scene, opts = {}) {
   /* ---------------- rio, cachoeira e poço ---------------- */
   const fallT = { value: 0 };
   const water = opts.waterMaterial || new T.MeshStandardMaterial({ color: 0x23505c, roughness: .08, metalness: .2, transparent: true, opacity: .85 });
-  const clearWater = new T.MeshStandardMaterial({ color: 0x2c6878, roughness: .06, metalness: .2, transparent: true, opacity: .58, emissive: 0x08202a, emissiveIntensity: .5 }); // poço da cachoeira: água clara e rasa (fundo de areia visível)
-  { const curve = new T.CatmullRomCurve3(RIVER2.map(p => new T.Vector3(p[0], 0, p[1]))), N = 140, pos = [], idx = [];
-    for (let i = 0; i <= N; i++) { const c = curve.getPoint(i / N), t = curve.getTangent(i / N), sx = -t.z, sz = t.x, w = 4.6; let y = Infinity; for (const o of [-1.5, 0, 1.5]) y = Math.min(y, height(c.x + sx * o, c.z + sz * o)); y += .55; pos.push(c.x + sx * w, y, c.z + sz * w, c.x - sx * w, y, c.z - sz * w); if (i < N) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2); }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, water); m.renderOrder = 2; m.name = 'jornada-rio'; root.add(m); }
-  const foamMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { uT: { value: 0 } }, vertexShader: 'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: 'uniform float uT;varying vec2 vU;float h(vec2 p){return fract(sin(dot(p,vec2(12.9,78.2)))*43758.5);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}void main(){vec2 q=vU-.5;float r=length(q)*2.;float m=n(q*9.+vec2(uT*.4,-uT*.3))*.6+n(q*23.-vec2(uT*.7,uT*.2))*.4;float ring=smoothstep(1.,.3,r);float rip=.5+.5*sin(r*26.-uT*5.);float k=ring*smoothstep(.36,.8,m+.32*(1.-r))+ring*rip*.14*(1.-r);gl_FragColor=vec4(vec3(.95,.98,1.),clamp(k,0.,1.)*.88);}' }); // espuma irregular + ondas que se afastam do impacto (sem raios)
-  /* Mod 325 — cortina d'água volumétrica: seção curva (abaulada para fora), duas camadas (frente/fundo) com velocidades
-     diferentes, listras em três escalas que descem, bordas que se desfazem, vãos que separam véus e espuma no pé. */
-  const curtainMat = (len, tint, alpha, fade0 = 1e9, fade1 = 1e9) => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide,
-    uniforms: { uT: fallT, uLen: { value: len }, uW: { value: 10 }, uV: { value: 6 }, uTint: { value: new T.Color(...tint) }, uA: { value: alpha }, uF: { value: new T.Vector2(fade0, fade1) } },
-    vertexShader: 'attribute float aL;varying vec2 vU;varying float vL;void main(){vU=uv;vL=aL;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: 'uniform float uT,uLen,uA,uW,uV;uniform vec3 uTint;uniform vec2 uF;varying vec2 vU;varying float vL;float h(vec2 p){return fract(sin(dot(p,vec2(12.9,78.2)))*43758.5);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}' +
-      'void main(){float x=vU.x,y=vU.y,xm=x*uW,yy=y-uT*uV*(1.+vL*.35);float n1=n(vec2(xm*1.1+vL*5.,yy*.055)),n2=n(vec2(xm*2.9+7.,yy*.14)),n3=n(vec2(xm*.32-3.+vL*2.,yy*.018));' +
-      'float streak=smoothstep(.3,.9,n1*.55+n2*.45);float en=n(vec2(yy*.08,vL*9.+x*2.));float ew=.1+.14*en;float edge=smoothstep(0.,ew,x)*smoothstep(1.,1.-ew,x);' +
-      'float gaps=smoothstep(.12,.42,n3+.22);float foot=smoothstep(uLen-7.,uLen,y);vec3 c=mix(uTint*.72,vec3(1.),clamp(streak*.85+foot*.7,0.,1.));' +
-      'float a=edge*gaps*uA*(.4+.6*streak)*(1.-.45*vL)*(1.-smoothstep(uF.x,uF.y,y));gl_FragColor=vec4(c,a);}' });
-  /** path: [{x,y,z}] de cima para baixo; side: vetor lateral unitário [sx,sz]; width(u); bulge: espessura da seção (m). */
-  function makeCurtain(path, side, width, bulge, mat, segs = 6, out = null) {
-    const pos = [], uv = [], al = [], idx = []; let len = 0; const cum = [0]; for (let i = 1; i < path.length; i++) { len += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y, path[i].z - path[i - 1].z); cum.push(len); }
-    for (const L of [0, 1]) { const base = pos.length / 3;
-      for (let i = 0; i < path.length; i++) { const P = path[i], Q = path[Math.min(path.length - 1, i + 1)], R0 = path[Math.max(0, i - 1)], tx = Q.x - R0.x, ty = Q.y - R0.y, tz = Q.z - R0.z, tl = Math.hypot(tx, ty, tz) || 1;
-        let nx = ty * side[1] * 0 - tz * 0 + (side[1] * ty) / tl, ny = (side[0] * tz - side[1] * tx) / tl, nz = (-side[0] * ty) / tl; const nl = (Math.hypot(nx, ny, nz) || 1) * (out && nx * out[0] + ny * out[1] + nz * out[2] < 0 ? -1 : 1); nx /= nl; ny /= nl; nz /= nl; // normal da cortina (lateral × tangente), virada para fora da rocha
-        const w = width(cum[i] / len), off = L ? -.45 : 0;
-        for (let k = 0; k <= segs; k++) { const sx = k / segs - .5, b = Math.sin(Math.PI * (k / segs)) * bulge * (L ? .6 : 1) + off; pos.push(P.x + side[0] * sx * w + nx * b, P.y + ny * b, P.z + side[1] * sx * w + nz * b); uv.push(k / segs, cum[i]); al.push(L); } }
-      for (let i = 0; i < path.length - 1; i++) for (let k = 0; k < segs; k++) { const a = base + i * (segs + 1) + k, b2 = a + segs + 1; idx.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setAttribute('aL', new T.Float32BufferAttribute(al, 1)); g.setIndex(idx); g.computeBoundingSphere();
-    mat.uniforms.uLen.value = len; mat.uniforms.uW.value = width(.5); return new T.Mesh(g, mat);
-  }
-  // Mod 325: anel de espuma na linha d'água em volta das pernas de quem anda no poço/rio (a superfície não "corta" o corpo sem interface)
-  const wade = new T.Mesh(new T.RingGeometry(.38, 1.25, 28).rotateX(-Math.PI / 2), foamMat.clone()); wade.material.uniforms.uT = foamMat.uniforms.uT; wade.renderOrder = 5; wade.visible = false; wade.name = 'jornada-espuma-pernas'; root.add(wade);
-  const fallParts = { mist: [] };
+  /* Mod 326 — água de jogo: ondulações simuladas em volta do herói (pés, gotas, cachoeira), fluxo na direção do rio,
+     cor e transparência pela profundidade real (o leito aparece no raso, a margem some sem borda) e espuma onde há
+     contato. O rio e o poço usam o MESMO material; o Eldória continua com a água dele. */
+  const sim = createRippleSim(T), waterMat = createWaterMaterial(T, { sim, time: fallT }), spray = createSpray(T); root.add(spray.points);
+  const riverCurve = new T.CatmullRomCurve3(RIVER2.map(p => new T.Vector3(p[0], 0, p[1])));
+  { const lvl = (u, c) => { const t = riverCurve.getTangent(u), sx = -t.z, sz = t.x; let y = Infinity; for (const o of [-1.5, 0, 1.5]) y = Math.min(y, height(c.x + sx * o, c.z + sz * o)); return y + .55; };
+    const m = new T.Mesh(riverGeometry(T, riverCurve, { height, level: lvl, halfW: 6.2, cross: 8, N: low ? 120 : 170, speed: .85 }), waterMat); m.renderOrder = 2; m.name = 'jornada-rio'; root.add(m); }
+  // Mod 326: sem anel fixo nas pernas — a superfície simulada abre ondas e espuma reais onde o herói pisa
+  const fallParts = { mist: [] }, simLast = [0, 0]; let simAcc = 0, sprayAcc = 0;
   { const W = WATERFALL, N = 30, pos = [], uv = [], idx = [], lip = height(W.x, W.zTop); // queda: lábio de pedra no alto, cortina afastada da encosta no meio, alarga ao cair no poço
     // queda livre curta do lábio (sai da encosta), depois cascata sobre a rocha até o poço; dois véus laterais menores
     const lvl0 = journeyHeight(FALL_POOL.x, FALL_POOL.z) + .7, path = []; for (let i = 0; i <= N; i++) { const u = i / N, z = W.zTop + 1 - (W.zTop + 1 - (FALL_POOL.z + 7.5)) * u, slope = height(W.x, z), free = Math.max(0, 1 - u / .32), y = Math.max(lip + .6 - (lip - slope) * Math.min(1, u / .32) ** 1.6, slope + .9 + 1.6 * Math.sin(Math.PI * u) * (1 - free)); path.push({ x: W.x + Math.sin(u * 5.3) * .8, y: i === N ? lvl0 : y, z }); }
-    const main = makeCurtain(path, [1, 0], u => W.w * (.9 + .85 * u), 1.8, curtainMat(1, [.72, .86, .95], .95), 8, [0, .4, -1]); main.material.uniforms.uV.value = 7; main.name = 'jornada-cachoeira'; main.renderOrder = 3; gFall.add(main);
-    for (const sd of [-1, 1]) { const vp = path.slice(9).map((p, i) => ({ x: p.x + sd * (W.w * .55 + 1.5 + i * .06), y: p.y + .3, z: p.z + .4 })); const v = makeCurtain(vp, [1, 0], u => 2.2 + 2.5 * u, .6, curtainMat(1, [.75, .88, .96], .7), 4, [0, .4, -1]); v.renderOrder = 3; gFall.add(v); }
-    const lvl = journeyHeight(FALL_POOL.x, FALL_POOL.z) + .7;
-    const pool = new T.Mesh(new T.CircleGeometry(FALL_POOL.r - .4, 40).rotateX(-Math.PI / 2), clearWater); pool.position.set(FALL_POOL.x, lvl, FALL_POOL.z); pool.renderOrder = 2; pool.name = 'jornada-poco'; gFall.add(pool);
-    const foam = new T.Mesh(new T.PlaneGeometry(11, 11).rotateX(-Math.PI / 2), foamMat); foam.position.set(W.x, lvl + .05, FALL_POOL.z + 6.5); foam.renderOrder = 4; gFall.add(foam);
+    // Mod 326: a queda termina ABAIXO da superfície do poço (sem ponta seca/triangular); largura e balanço variam no tempo
+    path[N].y = lvl0 - .9; path[N].z -= .6;
+    const main = makeFall(T, path, [1, 0], u => W.w * (.95 + .3 * u + .12 * Math.sin(u * 9)), 1.9, createFallMaterial(T, { time: fallT, speed: 7, sway: .3 }), low ? 7 : 10, [0, .4, -1]); main.name = 'jornada-cachoeira'; main.renderOrder = 3; gFall.add(main);
+    // (sem véus laterais soltos: de frente eles viravam "braços" de um vulto; os filetes agora rompem da própria lâmina)
+    const lvl = lvl0, impact = { x: W.x, z: FALL_POOL.z + 6.4 }, outA = Math.atan2(40 - FALL_POOL.z, -424 - FALL_POOL.x);
+    fallParts.lvl = lvl; fallParts.impact = impact; waterMat.userData.water.uImp.value[0].set(impact.x, impact.z, 1, .32);
+    const pool = new T.Mesh(poolGeometry(T, { x: FALL_POOL.x, z: FALL_POOL.z, r: FALL_POOL.r + 3.5, level: lvl, height, rings: low ? 10 : 14, segs: low ? 40 : 56,
+      flowAt: (x, z) => { const dx = x - impact.x, dz = z - impact.z, d = Math.hypot(dx, dz) || 1, k = Math.exp(-d * .25); return [dx / d * .6 * k + Math.cos(outA) * .35 * (1 - k), dz / d * .6 * k + Math.sin(outA) * .35 * (1 - k)]; } }), waterMat);
+    pool.renderOrder = 2; pool.name = 'jornada-poco'; gFall.add(pool);
     const lipRock = new T.Mesh(rockGeo, rockMat); lipRock.scale.set(W.w * .55, 2.2, 3); lipRock.position.set(W.x, lip - .4, W.zTop + 1.5); gFall.add(lipRock); // lábio de pedra de onde a água sai
     if (opts.softDot) for (let k = 0; k < 4; k++) { const s = new T.Sprite(new T.SpriteMaterial({ map: opts.softDot, color: 0xe8f2ff, transparent: true, opacity: .2, depthWrite: false })); s.position.set(W.x + (k - 1.5) * 2.4, lvl + 1.4 + k * .4, FALL_POOL.z + 3.5); s.scale.setScalar(5 + k); s.userData.k = k; gFall.add(s); fallParts.mist.push(s); }
     for (let k = 0; k < 16; k++) { const a = -.6 + k / 15 * (Math.PI * 2 - 1.6), r = FALL_POOL.r - .2 + hash(k, 1, 95) * 1.2, x = FALL_POOL.x + Math.cos(a) * r, z = FALL_POOL.z + Math.sin(a) * r * 1.0; if (Math.abs(Math.atan2(z - FALL_POOL.z, x - FALL_POOL.x) + 1.25) < .45) continue; rockSpots.push({ x, z, s: .55 + hash(k, 2, 96) * .9, dark: .5 }); } // pedras da borda (a saída do rio fica livre)
@@ -353,7 +341,7 @@ export function createJourneyWorld(T, scene, opts = {}) {
   for (const F of ABYSS_FALLS) { let x = F.side > 0 ? ABYSS.x1 + 30 : ABYSS.x0 - 30; for (let s2 = 0; s2 < 80; s2++) { if (inAbyss(x - F.side * .5, F.z)) break; x -= F.side * .5; }
     const top = height(x + F.side * 3, F.z) - .4, v0 = 3.2 + F.w * .06, path = []; // queda livre: sai da borda com velocidade e se afasta do paredão enquanto cai
     for (let i = 0; i <= 28; i++) { const t = i / 28 * 6.4, y = top - 4.9 * t * t; path.push({ x: x - F.side * (1.2 + v0 * t), y: Math.max(y, ABYSS.fogY - 70), z: F.z + Math.sin(t * .9) * 1.5 }); }
-    const len0 = top - (ABYSS.fogY - 70), m = makeCurtain(path, [0, 1], u => F.w * (.75 + .8 * u), 2.4 + F.w * .06, curtainMat(1, [.7, .8, .9], .9, len0 * .62, len0 * .95), 8, [-F.side, 0, 0]); m.material.uniforms.uV.value = 11; m.renderOrder = 1; m.name = 'jornada-queda-abismo'; gAbyss.add(m);
+    const len0 = top - (ABYSS.fogY - 70), m = makeFall(T, path, [0, 1], u => F.w * (.75 + .8 * u), 2.4 + F.w * .06, createFallMaterial(T, { time: fallT, tint: [.7, .8, .9], alpha: .9, speed: 11, fade: [len0 * .62, len0 * .95], sway: .7 }), low ? 6 : 8, [-F.side, 0, 0]); m.renderOrder = 1; m.name = 'jornada-queda-abismo'; gAbyss.add(m);
     const lip = new T.Mesh(rockGeo, stone); lip.scale.set(3.2, 2.2, F.w * .62); lip.position.set(x + F.side * 1.6, top - .6, F.z); gAbyss.add(lip);
     if (opts.softDot) for (let k = 0; k < 3; k++) { const P = path[14 + k * 6], sp = new T.Sprite(new T.SpriteMaterial({ map: opts.softDot, color: 0xdfe8f2, transparent: true, opacity: .16 + k * .05, depthWrite: false })); sp.position.set(P.x, P.y, P.z); sp.scale.setScalar(F.w * (1.1 + k * .5)); gAbyss.add(sp); } } // névoa de gotículas que engole a queda
   /* ---------------- vulcão: malha própria até o avental do sopé ---------------- */
@@ -386,10 +374,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
     const om = new T.MeshStandardMaterial({ color: 0x2c2826, roughness: .9, map: detail, fog: false }); om.onBeforeCompile = coneHaze; const im = new T.InstancedMesh(rockGeo, om, out.length); out.forEach((o, i) => { const y = journeyHeight(o.x, o.z) ?? CITY2.y; mx.position.set(o.x, y - o.s * .5, o.z); mx.rotation.set((hash(i, 4, 204) - .5) * .8, o.a + hash(i, 5, 205), (hash(i, 6, 206) - .5) * .6); mx.scale.set(o.s * .8, o.s * .6, o.s * 1.15); mx.updateMatrix(); im.setMatrixAt(i, mx.matrix); });
     im.castShadow = false; im.receiveShadow = true; im.name = 'jornada-vulcao-afloramentos'; volcano.add(im); }
   const CF = craterFloor(), craterTop = new T.Vector3(V.x, journeyHeight(V.x + V.crater, V.z), V.z);
-  const lavaMat = (() => new T.ShaderMaterial({ uniforms: { uT: lavaT }, vertexShader: 'varying vec2 vP;void main(){vP=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: 'uniform float uT;varying vec2 vP;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+1.),f.x),f.y);}void main(){vec2 p=vP*.12;float c=n(p+uT*.03)*.6+n(p*2.7-uT*.05)*.4;float crack=smoothstep(.08,.0,abs(c-.5));vec3 crust=vec3(.08,.05,.04);vec3 hot=mix(vec3(1.,.3,.04),vec3(1.,.75,.25),crack);float k=max(smoothstep(.2,.0,abs(c-.5)),.75*smoothstep(.45,.8,c));gl_FragColor=vec4(mix(crust,hot,k),1.);}'  }))();
-  { const lava = new T.Mesh(new T.CircleGeometry(CF.r, 48).rotateX(-Math.PI / 2), lavaMat);
-    lava.position.set(CF.x, CF.y + .6, CF.z); lava.name = 'jornada-lago-lava'; volcano.add(lava); }
+  const lavaSpec = { pools: [{ x: CF.x, z: CF.z, r: CF.r * .9, seed: 7.7, light: false }], channels: [] }; // lago da cratera: mesmo sistema de lava (contorno irregular)
   const smokeTex = opts.softDot || null;
   // Mod 325 — pluma do vulcão: nuvens "couve-flor" (textura própria de bolhas) que sobem da cratera, abrem em cogumelo e
   // derivam com o vento; a base é iluminada pela lava, o alto fica cinza-escuro. 9–14 sprites (um draw cada, sem luzes).
@@ -419,18 +404,18 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
     im.castShadow = !low; im.name = 'jornada-laminas-basalto'; root.add(im);
     for (let k = 0; k < 200 && pools.length < (low ? 6 : 10); k++) { const x = -1010 - hash(k, 7, 188) * 560, z = -230 + hash(k, 8, 189) * 330, cd = Math.hypot(x - CITY2.x, z - CITY2.z);
       if (!inJourney(x, z) || cd < CITY2.r + 20 || onRoad(x, z, 12) || journeyBoundary(x, z) > 30 || Math.hypot(x - V.x, z - V.z) < V.block - 10 || list.some(L => Math.hypot(L.x - x, L.z - z) < 6)) continue; pools.push({ x, z, r: 2.2 + hash(k, 9, 190) * 3.5 }); }
-    for (const P of pools) { const y = height(P.x, P.z), lp = new T.Mesh(new T.CircleGeometry(P.r, 24).rotateX(-Math.PI / 2), lavaMat); lp.position.set(P.x, y + .06, P.z); lp.scale.set(1, 1, .7 + hash(P.x | 0, 1, 191) * .5); lp.name = 'jornada-poca-lava'; root.add(lp);
-      const crust = new T.Mesh(new T.RingGeometry(P.r * .92, P.r * 1.35, 24).rotateX(-Math.PI / 2), new T.MeshStandardMaterial({ color: 0x15100e, roughness: 1, emissive: 0x3a0e02, emissiveIntensity: .6 })); crust.position.set(P.x, y + .05, P.z); crust.scale.copy(lp.scale); root.add(crust); addSolid({ x: P.x, z: P.z, r: P.r * 1.05 }); }
+    for (const P of pools) lavaSpec.pools.push({ x: P.x, z: P.z, r: P.r * .85, seed: P.x * .37 + P.z * .11 }); // Mod 326: contorno irregular, fluida, com dano (não é mais um sólido)
   }
   // fendas no chão de cinza: rachas escuras e poucas com brilho de magma; respiradouros de vapor
-  const fissureGlow = new T.MeshBasicMaterial({ color: 0xff5a1e, transparent: true, opacity: .55, blending: T.AdditiveBlending, depthWrite: false });
   const vents = [];
   { const crack = [], glow = []; for (let k = 0; k < 70; k++) { const x = -960 - hash(k, 1, 111) * 330, z = -150 + hash(k, 2, 112) * 180; if (!inJourney(x, z) || onRoad(x, z, 3.5) || Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 6 || journeyBoundary(x, z) > 3) continue; const L = 3 + hash(k, 3, 113) * 9, a = hash(k, 4, 114) * 3.14; crack.push({ x, z, L, a, w: .25 + hash(k, 5, 115) * .4 }); if (hash(k, 6, 116) < .35 && x < -1000) glow.push({ x, z, L: L * .8, a, w: .12 }); }
-    const cm = new T.InstancedMesh(new T.BoxGeometry(1, .12, 1), new T.MeshStandardMaterial({ color: 0x0d0b0b, roughness: 1 }), crack.length), gm = new T.InstancedMesh(new T.BoxGeometry(1, .05, 1), fissureGlow, Math.max(1, glow.length));
-    crack.forEach((c, i) => { mx.position.set(c.x, height(c.x, c.z) + .03, c.z); mx.rotation.set(0, c.a, 0); mx.scale.set(c.L, 1, c.w); mx.updateMatrix(); cm.setMatrixAt(i, mx.matrix); });
-    glow.forEach((c, i) => { mx.position.set(c.x, height(c.x, c.z) + .1, c.z); mx.rotation.set(0, c.a, 0); mx.scale.set(c.L, 1, c.w); mx.updateMatrix(); gm.setMatrixAt(i, mx.matrix); }); gm.count = glow.length;
-    cm.name = 'jornada-fendas'; gm.name = 'jornada-fendas-magma'; cm.receiveShadow = true; root.add(cm, gm);
+    /* Mod 326: as antigas "fendas" (caixas pretas retas e faixas laranja aditivas) viraram canais de lava de verdade:
+       nascem num respiradouro, descem o relevo com meandro e largura variável, crosta que corre e borda de basalto. */
+    const avoid = (x, z) => !inJourney(x, z) || onRoad(x, z, 4.5) || Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 8 || journeyBoundary(x, z) > 4 || Math.hypot(x - GATE2.x, z - GATE2.z) < 22;
+    for (const c of glow.slice(0, low ? 3 : 5)) { const ch = lavaChannelPath(height, c.x, c.z, { steps: low ? 18 : 26, step: 1.6, w0: 1.3 + (c.L % 1) * .9, seed: c.a * 3 + c.x * .01, avoid }); if (ch.pts.length > 5) lavaSpec.channels.push(ch); }
     if (smokeTex) for (let k = 0; k < (low ? 3 : 6); k++) { const c = glow[k * 2 % Math.max(1, glow.length)] || crack[k]; if (!c) break; const s = new T.Sprite(new T.SpriteMaterial({ map: smokeTex, color: 0xcfc8c0, transparent: true, opacity: 0, depthWrite: false })); s.userData = { x: c.x, z: c.z, y: height(c.x, c.z), t: k / 6 }; root.add(s); vents.push(s); } }
+
+  const lavaSys = createLava(T, { height, time: lavaT, pools: lavaSpec.pools, channels: lavaSpec.channels, lowSpec: low }); root.add(lavaSys.group);
 
   /* ---------------- Cinzária ---------------- */
   const city = new T.Group(); city.name = 'cinzaria-mod321'; root.add(city);
@@ -508,7 +493,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
     root, volcano, city, craterTop, deckY, treePlan, rockColliders,
     /** px,pz: herói; camera; night 0..1; fog: cor da névoa do mundo; hidden: área interna (dimensão/vulcão). */
     update(dt, { px, pz, camera, night = 0, fog = null, hidden = false, eruption = 0 }) {
-      t += dt; windU.value = t; lavaT.value = t; if (camera) horizonCam.value.copy(camera.position); fallT.value = t; foamMat.uniforms.uT.value = t; for (const m of fogLayers) m.material.uniforms.uT.value = t;
+      t += dt; windU.value = t; lavaT.value = t; lavaSys.update(t, night); if (camera) horizonCam.value.copy(camera.position); fallT.value = t; for (const m of fogLayers) m.material.uniforms.uT.value = t;
       root.visible = !hidden; const near2 = px < -40 && px > JOURNEY_BOUNDS.x0 - 600; active = near2;
       if (hidden) return;
       if (near2) streamTiles(px, pz, 1);
@@ -517,18 +502,27 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
       vegWait -= dt; if (near2 && vegWait <= 0 && (vegDirty || Math.hypot(px - vegAt[0], pz - vegAt[1]) > 24)) { vegDirty = false; vegWait = .35; vegAt = [px, pz]; fillInstances(px, pz); fillTreesAndRocks(px, pz); }
       if (scene.fog) coneFog.value.set(scene.fog.near, scene.fog.far);
       if (fog) { for (const m of fogLayers) m.material.uniforms.uC.value.copy(fog).lerp(C.setRGB(.86, .9, .96), .18 * (1 - night)).multiplyScalar(m.userData.shade * (1 - night * .35)); hazeU.value.copy(fog); }
-      glowU.value = .55 + .45 * night + eruption * 2; liftU.value = .38 - .28 * night;
+      glowU.value = .55 + .45 * night + eruption * 2; liftU.value = .22 - .16 * night; // Mod 326: capim menos "aceso" (antes brilhava mais que o chão)
       { const lit = .35 + .65 * night; for (const s of smoke) { s.userData.t = (s.userData.t + dt * .011) % 1; const k = s.userData.t, o = s.userData.o, rise = k ** .75; // sobe rápido, abre e deriva com o vento no alto
           s.position.set(CF.x + Math.sin(k * 5 + o * 9) * (6 + 30 * k) + k * k * 160, craterTop.y + 4 + rise * 260, CF.z + Math.cos(k * 4 + o * 7) * (5 + 22 * k) + k * k * 40);
           s.scale.setScalar(34 + 260 * k ** .8); s.material.opacity = (.62 - .25 * k) * Math.min(1, k * 7) * (1 - smooth(.75, 1, k)); s.material.rotation += dt * (.02 + o * .03);
           s.material.color.setRGB(.36 + (1 - k) * .5 * lit * (1 - smooth(0, .35, k)) * 1.4, .32 + (1 - k) * .18 * lit * (1 - smooth(0, .35, k)), .3).multiplyScalar(.75 + .25 * (1 - night)); } }
       for (const s of vents) { const u = s.userData; u.t = (u.t + dt * .12) % 1; s.position.set(u.x + u.t * 2, u.y + .5 + u.t * 7, u.z); s.scale.setScalar(1.5 + u.t * 5); s.material.opacity = .22 * Math.sin(Math.PI * u.t); }
-      { const wd = riverDepth(px, pz); wade.visible = wd > .12 && !hidden; if (wade.visible) { wade.position.set(px, height(px, pz) + wd + .02, pz); wade.scale.setScalar(.85 + .15 * Math.sin(t * 3)); } }
+      { const wd = Math.max(riverDepth(px, pz), fallParts.lvl !== undefined && Math.hypot(px - FALL_POOL.x, pz - FALL_POOL.z) < FALL_POOL.r + 3 ? fallParts.lvl - height(px, pz) : 0), mv = Math.hypot(px - simLast[0], pz - simLast[1]) / Math.max(dt, 1e-3); simLast[0] = px; simLast[1] = pz;
+        if (!hidden && (wd > .06 || gFall.visible)) { sim.follow(px, pz); const wy = height(px, pz) + wd;
+          if (wd > .06) { simAcc += dt; if (mv > .4 && simAcc > .09) { simAcc = 0; sim.disturb(px, pz, -.035 - Math.min(mv, 7) * .006, .55 + Math.min(mv, 7) * .05); const n = mv > 4 ? 4 : 2; for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, sp = .6 + Math.random() * (.8 + mv * .12); spray.emit(px + Math.cos(a) * .3, wy + .05, pz + Math.sin(a) * .3, Math.cos(a) * sp, 1.2 + Math.random() * (1 + mv * .15), Math.sin(a) * sp, .9, .09 + Math.random() * .06, wy); } } else if (simAcc > .8) { simAcc = 0; sim.disturb(px, pz, -.012, .5); } }
+          if (gFall.visible && fallParts.impact) { const I = fallParts.impact, dC = camera ? Math.hypot(camera.position.x - I.x, camera.position.z - I.z) : 0; if (sim.inside(I.x, I.z)) for (let k = 0; k < 2; k++) sim.disturb(I.x + (Math.random() - .5) * WATERFALL.w * 1.2, I.z + (Math.random() - .5) * 2, -.04, .7);
+            if (dC < 140) { sprayAcc += dt * (low ? 22 : 40); while (sprayAcc > 1) { sprayAcc--; const x = I.x + (Math.random() - .5) * WATERFALL.w * 1.4; spray.emit(x, fallParts.lvl + .1, I.z + (Math.random() - .5) * 2, (Math.random() - .5) * 2.4, 1.5 + Math.random() * 3.2, -.6 - Math.random() * 2.4, 1.1, .14 + Math.random() * .12, fallParts.lvl); } } }
+          sim.step(dt); }
+        spray.update(dt, (x, z, e) => sim.disturb(x, z, -Math.min(.03, e * .006), .4));
+        if (fog) waterMat.userData.water.uSky.value.copy(fog).lerp(C.setRGB(.7, .82, .92), .35 * (1 - night)).multiplyScalar(1 - night * .55); }
       for (const s of fallParts.mist) { s.material.opacity = .14 + .07 * Math.sin(t * 1.3 + s.userData.k * 2); }
       if (lit.wins) lit.wins.material.emissiveIntensity = .04 + night * 1.8; if (lit.lampMat) lit.lampMat.emissiveIntensity = .3 + night * 2.2; if (lit.lampPts) lit.lampPts.opacity = night * .75;
       if (lit.forgeGlow) { lit.forgeGlow.material.opacity = .35 + .25 * night + .08 * Math.sin(t * 7) * Math.sin(t * 3.1); lit.forgeGlow.scale.setScalar(4 + night * 2.5); }
     },
     /** sólidos da jornada (casas, fonte, bancas, postes, torre, árvores, pilares da ponte, portal). y: pés do herói (sólidos baixos com topo deixam passar por cima). */
+    /** Mod 326: 1 se (x,z) está dentro do contorno visível de lava (poça, canal ou cratera), 0 fora. */
+    lavaHeat(x, z) { return lavaSys.heatAt(x, z); }, lavaSpec,
     solidAt, blockedAt(x, z, y = null) { return !!solidAt(x, z, y); }, setCityGone(v) { cityGone = !!v; if (cityGone) city.visible = false; },
     /** o ponto (x,y,z) do braço da câmera está dentro de um prédio da cidade (ou de um poste alto)? */
     camBlocked(x, y, z) { if (cityGone || Math.hypot(x - CITY2.x, z - CITY2.z) > CITY2.r + 12) return false; for (const o of camBoxes) { if (y > o.top) continue; const dx = x - o.x, dz = z - o.z, c = Math.cos(o.ry), s = Math.sin(o.ry), lx = dx * c - dz * s, lz = dx * s + dz * c; if (Math.abs(lx) < o.hx && Math.abs(lz) < o.hz) return true; } return false; },
