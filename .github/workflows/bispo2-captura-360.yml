@@ -1,0 +1,63 @@
+name: Captura unica — Bispo 2 em 360 graus
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/qa/BISPO2-360-CAPTURAR-AGORA.txt'
+permissions:
+  contents: read
+jobs:
+  fotos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Playwright isolado
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servidor local do jogo real
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/bispo2-360.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4173/tools/visual-lab/bispo2-turntable.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/bispo2-360.log
+          exit 1
+      - name: Capturar frente, costas, lados e diagonais
+        run: node tools/visual-lab/bispo2-turntable.cjs
+      - name: Criar prancha 8 vistas e pacote
+        if: success()
+        run: |
+          python3 -m pip install --user Pillow
+          python3 - <<'PY'
+          from PIL import Image, ImageOps, ImageDraw
+          from pathlib import Path
+          d=Path('visual-lab-results/bispo2-360')
+          files=sorted(d.glob('*.png'))
+          assert len(files)==8, f'Esperadas 8 imagens, vieram {len(files)}'
+          thumbw,thumbh=400,540
+          sheet=Image.new('RGB',(thumbw*4, (thumbh+42)*2),'#151720')
+          draw=ImageDraw.Draw(sheet)
+          for i,p in enumerate(files):
+              im=Image.open(p).convert('RGB')
+              im.thumbnail((thumbw,thumbh))
+              x=(i%4)*thumbw+(thumbw-im.width)//2
+              y=(i//4)*(thumbh+42)
+              sheet.paste(im,(x,y))
+              draw.text(((i%4)*thumbw+12,y+thumbh+6),p.stem,fill='white')
+          sheet.save(d/'00-PRANCHA-COMPLETA.jpg',quality=91)
+          PY
+      - name: Guardar fotos reais do Bispo 2
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: BISOPO2-MODELO-REAL-360
+          path: visual-lab-results/bispo2-360/
+          retention-days: 14
+          if-no-files-found: warn
