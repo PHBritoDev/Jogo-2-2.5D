@@ -83,8 +83,8 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
     const worldX = logPlan.center.x + axial * alongX + sideways * acrossX;
     const worldZ = logPlan.center.z + axial * alongZ + sideways * acrossZ;
     // Seguir o relevo em cada anel elimina o vão sob as extremidades.
-    // A seção continua arredondada e mantém contato no lado inferior.
-    const worldY = ground(worldX, worldZ) + logPlan.radius + radialY * k;
+    // Usar o raio REAL de cada anel (0.32–0.38), não 0.42 fixo:\n    // a geratriz inferior toca o chão, inclusive após a deformação da casca.
+    const worldY = ground(worldX, worldZ) + (radius > .01 ? radius * k : logPlan.radius) + radialY * k;
     barkPos.setXYZ(i, worldX - logPlan.center.x, worldY, worldZ - logPlan.center.z);
     const shade = .78 + .16 * Math.sin(angle * 9 + along * 15) + .07 * Math.sin(along * 37);
     barkColors[i * 3] = .35 * shade;
