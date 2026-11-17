@@ -34,13 +34,46 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       if (Number.isInteger(o.layers?.mask)) originalLayers.set(o, o.layers.mask);
       o.layers.set(safeHiddenLayer); } }
   const Obj = T.Object3D && T.Object3D.prototype, rawAdd = Obj && Obj.add;
+  // Restaurar imediatamente as layers de fontes movidas para outra cena.
+  // Esperar pelo scan periódico deixava a luz invisível no HUD/preview por até 45 frames.
+  function release(o, force = false) {
+    if (!sources.has(o) || (!force && attachedToScene(o))) return;
+    sources.delete(o); sourceScore.delete(o);
+    if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
+    originalLayers.delete(o);
+  }
   if (Obj && !Obj.__budgetGuard) {
     Obj.__budgetGuard = [];
     // só conta o que entra NA cena do orçamento (cenas auxiliares, como o retrato do HUD, mantêm as luzes delas)
-    Obj.add = function (...objs) { const r = rawAdd.apply(this, objs); let root = this; while (root.parent) root = root.parent;
-      for (const g of Obj.__budgetGuard) if (g.scene === root) for (const o of objs) if (o && o.isObject3D) (o.isPointLight ? g.adopt(o) : o.children.length && o.traverse(g.adopt)); return r; };
+    Obj.add = function (...objs) {
+      const r = rawAdd.apply(this, objs);
+      let root = this; while (root.parent) root = root.parent;
+      for (const o of objs) if (o && o.isObject3D) {
+        // Primeiro liberar a máscara de qualquer orçamento anterior; depois adotar na nova cena.
+        for (const g of Obj.__budgetGuard) if (g.scene !== root)
+          (o.isPointLight ? g.release(o) : o.traverse(g.release));
+        for (const g of Obj.__budgetGuard) if (g.scene === root)
+          (o.isPointLight ? g.adopt(o) : o.traverse(g.adopt));
+      }
+      return r;
+    };
   }
-  if (Obj) Obj.__budgetGuard.push({ scene, adopt });
+  // Object3D.remove() não chama add(): liberar a camada no mesmo frame,
+  // inclusive para grupos removidos e usados em previews sem novo parent.
+  // Instalar apenas uma vez por classe Three.js, como o guard de add().
+  if (Obj && !Obj.__budgetRemoveGuard && typeof Obj.remove === 'function') {
+    const rawRemove = Obj.remove;
+    Obj.__budgetRemoveGuard = true;
+    Obj.remove = function (...objs) {
+      const r = rawRemove.apply(this, objs);
+      for (const o of objs) if (o && o.isObject3D) {
+        for (const g of Obj.__budgetGuard)
+          (o.isPointLight ? g.release(o) : o.traverse(g.release));
+      }
+      return r;
+    };
+  }
+  if (Obj) Obj.__budgetGuard.push({ scene, adopt, release });
   const v = new T.Vector3(), cam = new T.Vector3(), lastCamera = new T.Vector3();
   // Uma fonte pode continuar com parent dentro de um grupo já removido da cena.
   // Nunca permitir que esse grupo ocupe slots de luz ou retenha fontes no cadastro.
@@ -52,12 +85,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   function scan() {
     scene.traverse(adopt);
     // fontes removidas da cena saem do conjunto (sem crescer para sempre com efeitos descartados)
-    for (const o of sources) if (!attachedToScene(o)) {
-      sources.delete(o); sourceScore.delete(o);
-      // Uma fonte destacada pode ser reutilizada por outra cena (HUD, preview, dimensão).
-      // Restaurar a máscara anterior em vez de deixá-la invisível na camada 31.
-      if (originalLayers.has(o) && o.layers) o.layers.mask = originalLayers.get(o);
-      originalLayers.delete(o);
+    for (const o of sources) if (!attachedToScene(o) || o.castShadow) {
+      // scan() também é API pública: uma luz que ganhou sombra não pode
+      // permanecer registrada/oculta até update() ser chamado.
+      release(o, o.castShadow);
     }
   }
   function effectiveVisible(o) { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }
@@ -71,6 +102,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
   }
   function update(camera, dt = 1 / 60) {
     if (frame++ % scanInterval === 0) scan();
+    // castShadow pode mudar entre scans (tochas/efeitos dinâmicos).
+    // Uma fonte com sombra não pertence ao pool e deve recuperar sua layer
+    // no próprio frame, sem esperar o próximo scan periódico.
+    for (const o of sources) if (o.castShadow) release(o, true);
     // Uma câmera com transformação transitória inválida não deve apagar todas as
     // tochas nem contaminar o ranking; conservar a última posição válida.
     camera.getWorldPosition(cam);
@@ -91,7 +126,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       if (!Number.isFinite(d) || (!unlimited && d > reach + 30)) continue;
       // Reaproveita o mesmo objeto por luz (sem milhares de alocacoes por minuto).
       const item=sourceScore.get(s);
-      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5;
+      // Histerese espacial: fontes quase empatadas não devem alternar a cada passo da câmera.
+      // Dar pequena preferência à fonte já acesa/selecionada (sem adicionar luzes ou shaders).
+      // A concorrente ainda vence quando se torna perceptivelmente mais próxima.
+      const incumbent = pool.some(p => p.src === s || p.next === s);
+      item.score=d-reach*.5-Math.min(6,s.intensity)*1.5-(incumbent ? 0.75 : 0);
       ranked.push(item);
     }
     ranked.sort((a, b) => a.score - b.score);
@@ -114,7 +153,7 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
     const safeDt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
     const k = 1 - Math.exp(-safeDt * 10);
     for (const p of pool) {
-      const s = p.src, l = p.light, live = s && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finiteColor(s) && finitePosition(s);
+      const s = p.src, l = p.light, live = s && !s.castShadow && attachedToScene(s) && effectiveVisible(s) && Number.isFinite(s.intensity) && s.intensity > .001 && finiteColor(s) && finitePosition(s);
       // Não copiar distância/decay inválidos para os uniforms do shader.
       // A posição da fonte também pode mudar após o ranking do quadro anterior.
       if (live) {
