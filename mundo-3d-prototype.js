@@ -108,6 +108,7 @@ import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
+import { meleeOnlyProfile } from './combat-melee-test-mode.js';
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
@@ -7083,6 +7084,7 @@ function addMat(color,op){return new THREE.MeshBasicMaterial({color,transparent:
 function endBossUlt(){if(bossUlt.kind==='cosmic')stopCosmicUlt();if(bossUlt.kind==='zarkhael6')stopZarkUlt();const f=bossUlt.fx;if(f){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}bossUlt.fx=null;bossUlt.kind=null;ultCam.want=0;ultDim(0,.8);}
 function tickTransientFx(dt){for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}}
 function updateBossUltimates(dt,now){
+ if(meleeOnlyProfile(encounterProfile)){if(bossUlt.kind)endBossUlt();return;}
  tickTransientFx(dt);
  // MOD 238: na esquadra Enemy1/Enemy2 o ultimate genérico do kit antigo ("Ritual"/"Furacão Infernal") disparava pelos
  // limiares de vida do procurador do foco, junto com os poderes novos. A esquadra usa só o próprio kit.
@@ -7265,6 +7267,7 @@ function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&e
  if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(!silent&&!(zarkSword&&zarkSword.holdBoss)&&!(zarkUlt&&zarkUlt.holdBoss)&&!(vxSwords&&vxSwords.holdBoss)&&!(cySkill&&cySkill.holdBoss))playEnemyAnimation('hit',.05,true);}
 /** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
 function runFoeMove(m,k){
+ if(meleeOnlyProfile(encounterProfile))return;
  // MOD 263: bloqueia qualquer magia antiga ou fallback, inclusive por ganchos de teste.
  if(isVorgazhekProfile(encounterProfile)&&!['tornadoes','portal_swords','vorgazhek_eclipse_sword'].includes(m?.type))return;
  if(m.type==='vorgazhek_eclipse_sword'){startEclipseSword(m);return;}
