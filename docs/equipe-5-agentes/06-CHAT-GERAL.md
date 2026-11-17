@@ -1,3 +1,15 @@
+## COORDENAÇÃO MAIS RECENTE — TODOS OS ATOS, A7 E AUTOMAÇÕES (16/11/2026)
+
+**Este bloco supera instruções históricas conflitantes:** A1–A5 podem trabalhar em **TODOS os atos/regiões/dimensões integrados e liberados**, no seu domínio, em vez de apenas Ato I. Confirmar qual região/arquivo Claude está editando em PR ativa antes de agir; reserva é dinâmica. A caverna de Eldória reestruturada continua protegida por seu proprietário.
+
+**A7/Grok (ver `07-AGENTE-GROK-REFORCO-MULTIDISCIPLINAR.md`) é reforço de todas as disciplinas**, não um agente exclusivo das imagens do criador, nem de crepúsculo. Referências de fotos não devem substituir correção de bugs reais ou trabalho em combate, VFX, progressão, NPCs, FPS, mundo, UI e outros atos. Solicitar ajuda na issue #519 com `[PEDIDO A7]`, motivo e evidência; ler resposta em próxima rodada. Nenhum canal instantâneo automático entre ChatGPT e Grok está garantido.
+
+**A1 tem duas iniciativas DISTINTAS:** agente ChatGPT A1 com execução horária; workflow GitHub `a1-agente-autonomo-5min.yml` como **monitor de testes**, com Codex/Copilot apenas por ativação opt-in e custo potencial. Não interpretar um monitor verde como bug visual corrigido nem cron `*/5` como execução assegurada a cada cinco minutos. Auditoria em `tools/bug-agent/README.md`.
+
+**Não usar PRs/commits como métrica substituta de gameplay e arte.** Acompanhar qualidade, testes e evidências do código atual. Merges apenas com gates e conflitos revisados.
+
+---
+
 ## Atualização operacional — PRs paralelas (15/11/2026)
 Por autorização do criador, **A1–A5 podem manter várias PRs em paralelo**, cada uma em branch própria e escopo independente; commits e novos trabalhos não aguardam o merge da PR anterior. **A1–A5 podem mesclar suas próprias PRs de baixo risco** somente depois de CI obrigatório totalmente verde, revisão de conflito/integração, testes e evidências pertinentes confirmados, sem alterar áreas protegidas, sem depender de outro agente e com rastreio na #519. A6 continua podendo integrar PRs elegíveis. Não dar push direto à main nem mesclar pendências, testes falhos, alterações sensíveis ou cenas da caverna/Claude. Em choque com instrução antiga de uma PR ou proibição absoluta de auto-merge, prevalece esta regra mais recente.
 
