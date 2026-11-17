@@ -63,6 +63,31 @@ test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
   for (const s of [0, 1, 6, 7, 8]) assert.equal(combatStep(s), false);
 });
 
+test('objetivos acompanham os eventos jogáveis do resgate até os esgotos', () => {
+  // No runtime, childrenCleared() avança para (3,2) e playFaint() é disparado em seguida.
+  // Depois do desmaio, (4,0) marca MASSACRE_SPOT e dispara massacreScene(),
+  // não a entrada do esgoto; a entrada só é liberada após massacreCleared().
+  assert.match(questPresentation(3, 0).objective, /gaiola/i);
+  assert.match(questPresentation(3, 1).objective, /Derrote/i);
+  assert.match(questPresentation(3, 2).objective, /Anjo-Guia/i);
+  assert.doesNotMatch(questPresentation(3, 2).objective, /Derrote/i);
+  assert.match(questPresentation(4, 0).objective, /moradores/i);
+  assert.doesNotMatch(questPresentation(4, 0).objective, /esgoto/i);
+  assert.match(questPresentation(4, 1).objective, /caverna/i);
+  assert.match(questPresentation(4, 2).objective, /esgoto/i);
+});
+
+test('ao terminar o desmaio, o status imediato aponta para os moradores e não antecipa o esgoto', async () => {
+  // Confere o call-site real: a mensagem de status não pode divergir do objetivo do HUD.
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const scene = source.match(/function playFaint\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(scene, 'gatilho do desmaio presente no runtime');
+  assert.match(scene[1], /act1Advance\(4,0\)/);
+  assert.match(scene[1], /status\.textContent=questPresentation\(4,0\)\.objective/);
+  assert.match(questPresentation(4, 0).objective, /moradores/i);
+});
+
 test('floresta: 1 Seguidor, depois mais 2 (3 no total), e a chave', () => {
   assert.equal(afterEnemyDefeated(0).questStep, 2);
   assert.equal(afterEnemyDefeated(1).journeyEnemyIndex, 2);
