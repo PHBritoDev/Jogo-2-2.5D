@@ -7,22 +7,22 @@
         "width": 1536,
         "height": 864
       },
-      "loadMs": 7159,
+      "loadMs": 5329,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
-          "hero": "Protagonista.glb",
+          "hero": "hero-menu.glb",
           "storm": "storm-effigy.glb",
           "rock": "rock_face_02",
           "fort": "modular_fort_01",
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 230,
-          "triangles": 347186,
-          "textures": 28
+          "calls": 231,
+          "triangles": 370533,
+          "textures": 30
         },
         "canvasCount": 1,
         "glError": 0
@@ -78,22 +78,22 @@
         "width": 852,
         "height": 393
       },
-      "loadMs": 3409,
+      "loadMs": 3025,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
-          "hero": "Protagonista.glb",
+          "hero": "hero-menu.glb",
           "storm": "storm-effigy.glb",
           "rock": "rock_face_02",
           "fort": "modular_fort_01",
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 226,
-          "triangles": 314074,
-          "textures": 28
+          "calls": 227,
+          "triangles": 337421,
+          "textures": 30
         },
         "canvasCount": 1,
         "glError": 0
@@ -150,22 +150,22 @@
         "height": 375,
         "reduced": true
       },
-      "loadMs": 2150,
+      "loadMs": 1093,
       "info": {
         "models": {
           "guardian": "AnjoGuiador-otimizado.glb",
           "wings": "Asas.glb",
           "lust": "Misteriosa-rig.glb",
-          "hero": "Protagonista.glb",
+          "hero": "hero-menu.glb",
           "storm": "storm-effigy.glb",
           "rock": "rock_face_02",
           "fort": "modular_fort_01",
           "environment": "CC0-clouds"
         },
         "gpu": {
-          "calls": 226,
-          "triangles": 314074,
-          "textures": 28
+          "calls": 227,
+          "triangles": 337421,
+          "textures": 30
         },
         "canvasCount": 1,
         "glError": 0

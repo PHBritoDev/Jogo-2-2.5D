@@ -1,6 +1,6 @@
 # Evidência real — menu cinematográfico
 
-Atualizado em 16/11/2026. Código: `385dab9`; baseline: `2732e9d`. PNGs capturados no Chromium, abertos e inspecionados, nos mesmos 1536×864 e 852×393. Nenhum PNG faz parte do runtime.
+Atualizado em 16/11/2026. Código: `0be78a2`; baseline: `2732e9d`. PNGs capturados no Chromium, abertos e inspecionados, nos mesmos 1536×864 e 852×393. Nenhum PNG faz parte do runtime.
 
 | Viewport | Antes | Depois |
 | --- | --- | --- |
@@ -9,9 +9,9 @@ Atualizado em 16/11/2026. Código: `385dab9`; baseline: `2732e9d`. PNGs capturad
 
 [Fallback sem WebGL](fallback.png) · [mundo real após ENTRAR](world-after-enter.png)
 
-GPU desktop: 300 → 230 draw calls (−23,3%); 184.277 → 347.186 triângulos; 9 → 28 texturas. Mobile usa seis instâncias de rocha em vez de dez: 226 calls / 314.074 triângulos / 28 texturas. O refinamento PBR/CC0 **aumenta custo geométrico e texturas** em relação ao baseline e à primeira proposta. A redução das rochas para 28% removeu cerca de 197 mil triângulos do primeiro ensaio com fotogrametria. Todas as texturas CC0 de superfície são 512px; HDR 1K. A efígie estática agora conserva os mapas PBR 512px, com aproximadamente 972 KiB.
+GPU desktop: 300 → 231 draw calls (−23%); 184.277 → 370.533 triângulos; 9 → 30 texturas. Mobile usa seis instâncias de rocha em vez de dez: 227 calls / 337.421 triângulos / 30 texturas. O refinamento PBR/CC0 **aumenta custo geométrico e texturas** em relação ao baseline e à primeira proposta. A redução das rochas para 28% removeu cerca de 197 mil triângulos do primeiro ensaio com fotogrametria. Todas as texturas CC0 de superfície são 512px; HDR 1K. A efígie estática agora conserva os mapas PBR 512px, com aproximadamente 972 KiB.
 
-Tempo observado até modelos carregados: desktop 11.423 → 7.159 ms; móvel 5.979 → 3.409 ms. São execuções isoladas sujeitas a cache, CDN e concorrência, **não um benchmark de velocidade**. A telemetria só é lida após um frame posterior ao término das cargas (incluindo movimento reduzido). Não foi medido FPS em Samsung A55 ou outro aparelho físico.
+Tempo observado até modelos carregados: desktop 11.423 → 5.329 ms; móvel 5.979 → 3.025 ms. São execuções isoladas sujeitas a cache, CDN e concorrência, **não um benchmark de velocidade**. A telemetria só é lida após um frame posterior ao término das cargas (incluindo movimento reduzido). Não foi medido FPS em Samsung A55 ou outro aparelho físico.
 
 [Fontes CC0 e reprodução](../../menu/polyhaven/LICENSE-SOURCES.md): Rock Face 02, Modular Fort 01 e céu HDR da Poly Haven, usados como geometria, materiais PBR e iluminação. Downloads adicionais em runtime são locais ao repositório; não há serviço pago nem chamadas ao site de modelos. O anjo mantém os detalhes de sua textura original e o demônio usa uma derivação estática do GLB do projeto; originais preservados.
 
@@ -28,3 +28,7 @@ Problemas encontrados e corrigidos: seleção anterior mantinha polling de pront
 O Chromium 156 do GitHub expôs um timeout ao capturar o menu em animação contínua por SwiftShader. O capturador agora suspende o menu pelo seu handler de visibilidade, fotografa o último frame realmente renderizado e retoma a animação em `finally`; não altera pixels ou geometria. Passou localmente com Chromium 154 e com a mesma versão do CI, Chromium 156.0.8078.4: [navegação/captura](chromium156-report.json), [entrada no mundo](chromium156-world-report.json).
 
 O laboratório geral encontra **dois testes já falhando na main `f5c6de45bbcc8efbcf8dd34b768fc9259566aae8`**: `vorgazhek-eclipse-sword.test.mjs` exige `testSwordEclipse=1` no HTML; `zarkhael-blackflame.test.mjs` exige `testLuaNegra=1` e `testHidra=1`. A main substituiu esse laboratório por navegação via `data-dim`. Reprodução isolada da main: 13 testes, 11 passaram, os mesmos 2 falharam ([log](main-ci-baseline.txt)). Esta PR não modifica esses testes nem o laboratório de combate; não reintroduz controles removidos por outro trabalho.
+
+## Refinamento de enquadramento e pose
+
+Anjo ampliado com asas inclinadas e material pérola; silhueta desvanece na atmosfera sem invadir o título. Herói de costas usa derivação estática com PBR do protagonista atual, espada baixa e capa ampliada. Os exportadores agora selecionam explicitamente o idle nativo com sufixo de rig do Blender e desativam NLA: antes, o nome sem sufixo deixava Running ativo. A exportação falha se faltar o clipe. Originais preservados. Capturas finais inspecionadas no Chromium 156, com navegação, restauração de contexto e entrada real novamente aprovadas. O custo do novo herói está incluído nas métricas acima.

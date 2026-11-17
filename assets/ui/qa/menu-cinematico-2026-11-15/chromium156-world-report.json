@@ -6,7 +6,7 @@
     "walkable": true,
     "edge": -27.500897004106672,
     "calls": 208,
-    "triangles": 701983,
+    "triangles": 701803,
     "terrain": {
       "vertices": 77724,
       "triangles": 151328,
@@ -18,7 +18,7 @@
     },
     "trees": 0,
     "fog": "c7d2cb",
-    "fogFar": 328.17706246861883,
+    "fogFar": 328.1756486967922,
     "night": 0,
     "quest": 1,
     "coins": 47,
