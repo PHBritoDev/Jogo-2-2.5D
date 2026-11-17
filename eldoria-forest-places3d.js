@@ -14,7 +14,7 @@ const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453;
  * quando encontra uma lombada. Cada anel da malha usa a altura do chão
  * sob seus vértices: sem pilares invisíveis nem novas draw calls.
  */
-export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = .35 }) {
+export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = .42 }) {
   const dirX = Math.cos(yaw), dirZ = -Math.sin(yaw);
   const point = t => {
     const px = x + dirX * length * (t - .5);
