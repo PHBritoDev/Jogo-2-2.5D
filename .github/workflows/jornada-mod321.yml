@@ -12,6 +12,14 @@ on:
       - "tests/jornada-mod323.test.mjs"
       - "tests/jornada-mod325.test.mjs"
       - "tests/jornada-mod326.test.mjs"
+      - "tests/mod327.test.mjs"
+      - "fauna3d.js"
+      - "cinzas3d.js"
+      - "aurora-luz3d.js"
+      - "prota-combat3d.js"
+      - "enemy1-squad-runtime3d.js"
+      - "eldoria-water.js"
+      - "audio3d.js"
       - "fluidos3d.js"
       - "frontier3d.js"
       - "cine3d.css"
@@ -27,6 +35,9 @@ on:
       - "map3d.js"
       - "ceu-atmosfera3d.js"
       - "fluidos3d.js"
+      - "fauna3d.js"
+      - "cinzas3d.js"
+      - "aurora-luz3d.js"
 
 permissions:
   contents: read
@@ -45,9 +56,9 @@ jobs:
       - name: Testes da jornada, do Ato II e do mapa
         env:
           FLUID_THREE_DIR: /tmp/fluid-deps/node_modules/three
-        run: node --test tests/jornada-mod321.test.mjs tests/jornada-mod323.test.mjs tests/jornada-mod325.test.mjs tests/jornada-mod326.test.mjs act2-flow.test.mjs map3d.test.mjs tests/map-state-invalid-saves.test.mjs tests/mod317-prologo.test.mjs
+        run: node --test tests/jornada-mod321.test.mjs tests/jornada-mod323.test.mjs tests/jornada-mod325.test.mjs tests/jornada-mod326.test.mjs tests/mod327.test.mjs act2-flow.test.mjs map3d.test.mjs tests/map-state-invalid-saves.test.mjs tests/mod317-prologo.test.mjs
       - name: Sintaxe de modulo ES
         run: |
-          for f in jornada3d.js jornada-world3d.js fluidos3d.js frontier3d.js ceu-atmosfera3d.js eldoria-weather3d.js act2-flow.js map3d.js mundo-3d-prototype.js; do
+          for f in jornada3d.js jornada-world3d.js fluidos3d.js fauna3d.js cinzas3d.js aurora-luz3d.js frontier3d.js ceu-atmosfera3d.js eldoria-weather3d.js act2-flow.js map3d.js mundo-3d-prototype.js; do
             node --input-type=module --check < "$f"
           done

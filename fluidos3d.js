@@ -17,6 +17,7 @@
  */
 
 // ---------------------------------------------------------------- simulação de ondulações
+import { AURORA_WATER, AURORA_WATER_PARS } from './aurora-luz3d.js';
 export function createRippleSim(T, { res = 64, cell = .5, speed = 3, damping = .984, hz = 30 } = {}) {
   const N = res, size = N * cell; let h0 = new Float32Array(N * N), h1 = new Float32Array(N * N), h2 = new Float32Array(N * N);
   const data = new Uint8Array(N * N * 4); for (let i = 0; i < N * N; i++) { data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = 128; data[i * 4 + 3] = 0; }
@@ -51,13 +52,14 @@ export function createRippleSim(T, { res = 64, cell = .5, speed = 3, damping = .
 // ---------------------------------------------------------------- material da água
 const NOISE = 'float wh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float wn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(wh(i),wh(i+vec2(1,0)),f.x),mix(wh(i+vec2(0,1)),wh(i+1.),f.x),f.y);}vec2 wg(vec2 p){float e=.2;return vec2(wn(p+vec2(e,0.))-wn(p-vec2(e,0.)),wn(p+vec2(0.,e))-wn(p-vec2(0.,e)))/(2.*e);}';
 /** Água rasa/rio/poço. Geometria precisa de aDepth (m, superfície − leito; negativo = margem seca) e aFlow (m/s em xz). */
-export function createWaterMaterial(T, { sim, time, shallow = 0x3f7a74, deep = 0x0a2c38, sky = 0x9fb8cc } = {}) {
+/** Mod 327: `aurora` = uniforms compartilhados de aurora-luz3d (reflexo colorido animado da aurora). */
+export function createWaterMaterial(T, { sim, time, shallow = 0x3f7a74, deep = 0x0a2c38, sky = 0x9fb8cc, aurora = null } = {}) {
   const m = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .07, metalness: .02, transparent: true, depthWrite: false });
   const imp = [0, 1, 2].map(() => new T.Vector4(0, 0, 0, 0));
   const u = { uT: time, uRip: sim.texU, uRipO: sim.originU, uShallow: { value: new T.Color(shallow) }, uDeep: { value: new T.Color(deep) }, uSky: { value: new T.Color(sky) }, uImp: { value: imp } };
   m.userData.water = u;
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, u);
+    Object.assign(sh.uniforms, u); if (aurora) Object.assign(sh.uniforms, aurora);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aDepth;attribute vec2 aFlow;uniform float uT;uniform sampler2D uRip;uniform vec3 uRipO;varying float vDepth;varying vec2 vFlow;varying vec3 vWp;')
       .replace('#include <begin_vertex>', `#include <begin_vertex>
 vec4 wp0=modelMatrix*vec4(transformed,1.);vec2 ruv=(wp0.xz-uRipO.xy)/uRipO.z;float rh=0.;
@@ -65,7 +67,7 @@ if(ruv.x>.01&&ruv.x<.99&&ruv.y>.01&&ruv.y<.99)rh=(texture2D(uRip,ruv).r-.5)*.5;
 float sw=smoothstep(0.,.3,aDepth);transformed.y+=(rh+.02*sin(dot(wp0.xz,vec2(.31,.17))+uT*1.3)+.014*sin(dot(wp0.xz,vec2(-.23,.41))-uT*1.7))*sw;vDepth=aDepth;vFlow=aFlow;`)
       .replace('#include <project_vertex>', '#include <project_vertex>\nvWp=(modelMatrix*vec4(transformed,1.)).xyz;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-uniform float uT;uniform sampler2D uRip;uniform vec3 uRipO,uShallow,uDeep,uSky;uniform vec4 uImp[3];varying float vDepth;varying vec2 vFlow;varying vec3 vWp;${NOISE}
+uniform float uT;uniform sampler2D uRip;uniform vec3 uRipO,uShallow,uDeep,uSky;uniform vec4 uImp[3];varying float vDepth;varying vec2 vFlow;varying vec3 vWp;${aurora ? AURORA_WATER_PARS : ''}${NOISE}
 vec2 flowG(vec2 p,vec2 fl){float a=fract(uT*.22),b=fract(uT*.22+.5);float w=abs(a*2.-1.);vec2 g0=wg(p*.8-fl*a*1.6)*.65+wg(p*2.1-fl*a*2.4+3.1)*.35;vec2 g1=wg(p*.8-fl*b*1.6+7.3)*.65+wg(p*2.1-fl*b*2.4+1.7)*.35;return mix(g0,g1,w);}
 vec3 wN;float wFoam;float wFres;`)
       .replace('#include <color_fragment>', `#include <color_fragment>
@@ -81,26 +83,29 @@ vec3 wc=mix(uShallow,uDeep,1.-exp(-dep*.85));
 diffuseColor.rgb=mix(wc,vec3(.93,.97,1.),wFoam);
 diffuseColor.a=shore*clamp(mix(.38,.9,1.-exp(-dep*1.3))+wFres*.45+wFoam*.6,0.,.97);}`)
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal=normalize((viewMatrix*vec4(wN,0.)).xyz);')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=uSky*wFres*.55*(1.-wFoam);');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=uSky*wFres*.55*(1.-wFoam);' + (aurora ? '\n' + AURORA_WATER : ''));
   };
-  m.customProgramCacheKey = () => 'agua-mod326';
+  m.customProgramCacheKey = () => 'agua-mod326' + (aurora ? '|aurora327' : '');
   return m;
 }
 
 /** Faixa de água ao longo de uma curva (rio): aDepth do relevo, aFlow pela tangente. */
-export function riverGeometry(T, curve, { height, level, halfW = 5.6, cross = 8, N = 160, speed = .9 } = {}) {
+export function riverGeometry(T, curve, { height, level, halfW = 5.6, cross = 8, N = 160, speed = .9, maxDepth = null } = {}) {
   const pos = [], dep = [], flow = [], idx = [];
   const lv = []; for (let i = 0; i <= N; i++) { const y = level(i / N, curve.getPoint(i / N)); lv.push(i ? Math.min(y, lv[i - 1] + .08) : y); } // o nível acompanha as ondulações do leito (até +8 cm por amostra), mas não sobe o morro do fim do rio como uma fita
   for (let i = 0; i <= N; i++) { const u = i / N, c = curve.getPoint(u), t = curve.getTangent(u), sx = -t.z, sz = t.x, y = lv[i];
-    for (let k = 0; k <= cross; k++) { const o = (k / cross * 2 - 1) * halfW, x = c.x + sx * o, z = c.z + sz * o, g = height(x, z); pos.push(x, y, z); dep.push(y - g); const v = speed * (1 - .55 * (o / halfW) ** 2); flow.push(t.x * v, t.z * v); } }
+    for (let k = 0; k <= cross; k++) { const o = (k / cross * 2 - 1) * halfW, x = c.x + sx * o, z = c.z + sz * o, g = height(x, z), md = maxDepth ? Math.max(0, maxDepth(x, z)) : 1e9, yy = Math.min(y, g + ((k === 0 || k === cross) && maxDepth ? 0 : md)); /* a borda da faixa sempre encosta no chão */ pos.push(x, yy, z); dep.push(yy - g); const v = speed * (1 - .55 * (o / halfW) ** 2); flow.push(t.x * v, t.z * v); } }
   const W = cross + 1; for (let i = 0; i < N; i++) for (let k = 0; k < cross; k++) { const a = i * W + k, b = a + W; if (dep[a] < -.4 && dep[a + 1] < -.4 && dep[b] < -.4 && dep[b + 1] < -.4) continue; idx.push(a, a + 1, b, a + 1, b + 1, b); } // face para cima
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('aDepth', new T.Float32BufferAttribute(dep, 1)); g.setAttribute('aFlow', new T.Float32BufferAttribute(flow, 2));
   g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g;
 }
 /** Poço/lago com superfície plana em `level`: grade polar irregular que vai além da margem (aDepth negativo = seco, some). */
-export function poolGeometry(T, { x, z, r, level, height, flowAt = () => [0, 0], rings = 14, segs = 56 } = {}) {
+/* Mod 327 — maxDepth(x,z): profundidade REAL da água naquele ponto (a mesma da física, riverDepth). Onde o relevo cai
+   abaixo do nível (saída do poço, margens baixas do rio) a superfície acompanha o chão + essa profundidade em vez de
+   ficar plana no ar — antes uma lâmina de até 1,2 m "pendurada" sobre o chão terminava em borda seca no vazio. */
+export function poolGeometry(T, { x, z, r, level, height, flowAt = () => [0, 0], rings = 14, segs = 56, maxDepth = null } = {}) {
   const pos = [], dep = [], flow = [], idx = [];
-  for (let j = 0; j <= rings; j++) for (let i = 0; i < segs; i++) { const a = i / segs * Math.PI * 2, rr = r * Math.pow(j / rings, .8), px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr; pos.push(px, level, pz); dep.push(level - height(px, pz)); const f = flowAt(px, pz); flow.push(f[0], f[1]); }
+  for (let j = 0; j <= rings; j++) for (let i = 0; i < segs; i++) { const a = i / segs * Math.PI * 2, rr = r * Math.pow(j / rings, .8), px = x + Math.cos(a) * rr, pz = z + Math.sin(a) * rr, g = height(px, pz), md = maxDepth ? Math.max(0, maxDepth(px, pz)) : 1e9, yy = Math.min(level, g + (j === rings && maxDepth && md < .3 ? 0 : md)); /* borda encosta no chão (exceto onde o rio segue) */ pos.push(px, yy, pz); dep.push(yy - g); const f = flowAt(px, pz); flow.push(f[0], f[1]); }
   for (let j = 0; j < rings; j++) for (let i = 0; i < segs; i++) { const a = j * segs + i, b = j * segs + (i + 1) % segs, c = a + segs, d = b + segs; if (Math.max(dep[a], dep[b], dep[c], dep[d]) < -.3) continue; idx.push(a, b, c, b, d, c); } // face para cima
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('aDepth', new T.Float32BufferAttribute(dep, 1)); g.setAttribute('aFlow', new T.Float32BufferAttribute(flow, 2));
   g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g;

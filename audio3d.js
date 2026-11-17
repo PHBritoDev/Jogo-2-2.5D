@@ -195,7 +195,9 @@ export function createWorldAudio() {
         dripTimer -= dt; if (dripTimer <= 0) { dripTimer = (.35 + Math.random() * 1.6) / Math.max(.15, cv.drip); const f = 1300 + Math.random() * 1400, k = .35 + .65 * cv.drip;
           tone('sine', f, f * .55, .05 * k, .06, ambBus); if (Math.random() < .5) tone('sine', f * 1.5, f * .8, .02 * k, .05, ambBus, .03); }
         return stepsOnly(dt, s); }
-      if (night > .4) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = .25 + Math.random() * .9; cricket(night); } }
+      // Mod 327: grilos só do anoitecer à madrugada e só onde há habitat (fauna3d.insectLevel); coro intermitente com pausas, baixo
+      const ins = s.insects ?? (night > .4 ? 1 : 0);
+      if (night > .4 && ins > .05) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = (.3 + Math.random() * 1.1) / Math.max(.35, ins) + (Math.random() < .14 ? 2.5 + Math.random() * 4 : 0); cricket(night * (.35 + .5 * ins)); } }
       else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = (2.5 + Math.random() * 7) * (1 - .35 * forest); bird(1 - night); } }
       stepsOnly(dt, s);
     },

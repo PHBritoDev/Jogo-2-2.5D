@@ -1,4 +1,5 @@
-import { abyssEdge, inJourney, inAbyss, journeyHeight, volcanoHeight, volcanoGully, craterFloor, journeyBoundary, polyProject, fbm2, ROUTE, RIVER2, BRIDGE, ABYSS, CITY2, VOLCANO2, GATE2, WATERFALL, FALL_POOL, ABYSS_FALLS, CITY_PROPS, cinzariaLayout, cinzariaStyle, cinzariaLandmarks, riverDepth, JOURNEY_BOUNDS } from './jornada3d.js';
+import { abyssEdge, inJourney, inAbyss, journeyHeight, volcanoHeight, volcanoGully, craterFloor, journeyBoundary, polyProject, fbm2, ROUTE, RIVER2, BRIDGE, ABYSS, CITY2, VOLCANO2, GATE2, CAVE2, TRAIL2, trailDistance, WATERFALL, FALL_POOL, ABYSS_FALLS, CITY_PROPS, cinzariaLayout, cinzariaStyle, cinzariaLandmarks, riverDepth, JOURNEY_BOUNDS } from './jornada3d.js';
+import { auroraUniforms, patchAuroraGround } from './aurora-luz3d.js';
 import { createRippleSim, createWaterMaterial, riverGeometry, poolGeometry, createSpray, createFallMaterial, makeFall, createLava, lavaChannelPath } from './fluidos3d.js';
 /**
  * Mod 321/323 — o MUNDO VISÍVEL da jornada (o relevo e as regras vêm de jornada3d.js; a física usa a mesma função).
@@ -73,7 +74,7 @@ export function createJourneyWorld(T, scene, opts = {}) {
   // perspectiva aérea com relevo: as serras altas não viram uma silhueta chapada da cor da névoa (o pé some, o cume fica legível)
   const fogLift = sh => { sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vWY;').replace('#include <fog_vertex>', '#include <fog_vertex>\nvWY=(modelMatrix*vec4(transformed,1.)).y;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vWY;').replace('#include <fog_fragment>', '#ifdef USE_FOG\nfloat fogFactor=smoothstep(fogNear,fogFar,vFogDepth)*(1.-.5*smoothstep(28.,190.,vWY-20.));gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,fogFactor);\n#endif'); };
-  const terrainMat = new T.MeshStandardMaterial({ color: 0xffffff, map: detail, vertexColors: true, roughness: 1, metalness: 0 }); terrainMat.onBeforeCompile = fogLift;
+  const terrainMat = new T.MeshStandardMaterial({ color: 0xffffff, map: detail, vertexColors: true, roughness: 1, metalness: 0 }); terrainMat.onBeforeCompile = fogLift; patchAuroraGround(T, terrainMat); // Mod 327: a aurora ilumina o relevo (faixas + oclusão por inclinação)
   // sob o cone (malha própria) o chão afunda alguns decímetros: sem disputa de profundidade nem degrau na borda
   // fora das bordas oeste/norte/sul o bloco grosso continua a jornada (antes amostrava o relevo antigo do mundo e erguia uma "parede" de serra no horizonte)
   const JB = JOURNEY_BOUNDS, baseH = (x, z) => { if (inJourney(x, z) || x > JB.x1 || (x > -240 && z < -175)) return height(x, z); const cx = Math.min(JB.x1 - 1, Math.max(JB.x0 + 1, x)), cz = Math.min(JB.z1 - 1, Math.max(JB.z0 + 1, z)); return (journeyHeight(cx, cz) ?? CITY2.y) - Math.hypot(x - cx, z - cz) * .15; };
@@ -265,10 +266,10 @@ export function createJourneyWorld(T, scene, opts = {}) {
   /* Mod 326 — água de jogo: ondulações simuladas em volta do herói (pés, gotas, cachoeira), fluxo na direção do rio,
      cor e transparência pela profundidade real (o leito aparece no raso, a margem some sem borda) e espuma onde há
      contato. O rio e o poço usam o MESMO material; o Eldória continua com a água dele. */
-  const sim = createRippleSim(T), waterMat = createWaterMaterial(T, { sim, time: fallT }), spray = createSpray(T); root.add(spray.points);
+  const sim = createRippleSim(T), waterMat = createWaterMaterial(T, { sim, time: fallT, aurora: auroraUniforms(T) }), spray = createSpray(T); root.add(spray.points);
   const riverCurve = new T.CatmullRomCurve3(RIVER2.map(p => new T.Vector3(p[0], 0, p[1])));
   { const lvl = (u, c) => { const t = riverCurve.getTangent(u), sx = -t.z, sz = t.x; let y = Infinity; for (const o of [-1.5, 0, 1.5]) y = Math.min(y, height(c.x + sx * o, c.z + sz * o)); return y + .55; };
-    const m = new T.Mesh(riverGeometry(T, riverCurve, { height, level: lvl, halfW: 6.2, cross: 8, N: low ? 120 : 170, speed: .85 }), waterMat); m.renderOrder = 2; m.name = 'jornada-rio'; root.add(m); }
+    const m = new T.Mesh(riverGeometry(T, riverCurve, { height, level: lvl, halfW: 6.2, cross: 8, N: low ? 120 : 170, speed: .85, maxDepth: riverDepth }), waterMat); m.renderOrder = 2; m.name = 'jornada-rio'; root.add(m); }
   // Mod 326: sem anel fixo nas pernas — a superfície simulada abre ondas e espuma reais onde o herói pisa
   const fallParts = { mist: [] }, simLast = [0, 0]; let simAcc = 0, sprayAcc = 0;
   { const W = WATERFALL, N = 30, pos = [], uv = [], idx = [], lip = height(W.x, W.zTop); // queda: lábio de pedra no alto, cortina afastada da encosta no meio, alarga ao cair no poço
@@ -280,7 +281,7 @@ export function createJourneyWorld(T, scene, opts = {}) {
     // (sem véus laterais soltos: de frente eles viravam "braços" de um vulto; os filetes agora rompem da própria lâmina)
     const lvl = lvl0, impact = { x: W.x, z: FALL_POOL.z + 6.4 }, outA = Math.atan2(40 - FALL_POOL.z, -424 - FALL_POOL.x);
     fallParts.lvl = lvl; fallParts.impact = impact; waterMat.userData.water.uImp.value[0].set(impact.x, impact.z, 1, .32);
-    const pool = new T.Mesh(poolGeometry(T, { x: FALL_POOL.x, z: FALL_POOL.z, r: FALL_POOL.r + 3.5, level: lvl, height, rings: low ? 10 : 14, segs: low ? 40 : 56,
+    const pool = new T.Mesh(poolGeometry(T, { x: FALL_POOL.x, z: FALL_POOL.z, r: FALL_POOL.r + 3.5, level: lvl, height, maxDepth: riverDepth, rings: low ? 10 : 14, segs: low ? 40 : 56,
       flowAt: (x, z) => { const dx = x - impact.x, dz = z - impact.z, d = Math.hypot(dx, dz) || 1, k = Math.exp(-d * .25); return [dx / d * .6 * k + Math.cos(outA) * .35 * (1 - k), dz / d * .6 * k + Math.sin(outA) * .35 * (1 - k)]; } }), waterMat);
     pool.renderOrder = 2; pool.name = 'jornada-poco'; gFall.add(pool);
     const lipRock = new T.Mesh(rockGeo, rockMat); lipRock.scale.set(W.w * .55, 2.2, 3); lipRock.position.set(W.x, lip - .4, W.zTop + 1.5); gFall.add(lipRock); // lábio de pedra de onde a água sai
@@ -367,7 +368,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 {vec2 q=vWp.xz-uV.xy;float k=length(q)/uV.z;float lane=chan(q,-.62,.8)*smoothstep(.78,.5,k)*smoothstep(.3,.42,k);float pulse=.75+.25*sin(uLT*.9+length(q)*.08);totalEmissiveRadiance+=vec3(1.,.28,.05)*lane*pulse*uGlowK*.0;}`)
         .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nfloat f=smoothstep(uFog.x,uFog.y*1.2,vDist)*(1.-.6*smoothstep(20.,180.,vWp.y-24.))*.62;gl_FragColor.rgb=mix(gl_FragColor.rgb,uHaze,f);'); };
-    const cone = new T.Mesh(g, m); cone.name = 'jornada-vulcao-cone'; cone.frustumCulled = false; cone.receiveShadow = true; volcano.add(cone); }
+    patchAuroraGround(T, m, .6); const cone = new T.Mesh(g, m); cone.name = 'jornada-vulcao-cone'; cone.frustumCulled = false; cone.receiveShadow = true; volcano.add(cone); }
   // Mod 325 — afloramentos de basalto e escória nos flancos (quebram o "cone liso" e a silhueta de pirâmide), meio enterrados
   { const out = [], n = low ? 22 : 34; for (let k = 0; k < n * 4 && out.length < n; k++) { const a = hash(k, 1, 201) * 6.28, r = V.crater * 2.3 + hash(k, 2, 202) ** .7 * (V.r * .92 - V.crater * 2.3), x = V.x + Math.cos(a) * r, z = V.z + Math.sin(a) * r;
       if (Math.hypot(x - GATE2.x, z - GATE2.z) < 30) continue; out.push({ x, z, a, r, s: (6 + hash(k, 3, 203) * 12) * (1.2 - r / V.r * .5) }); }
@@ -384,12 +385,41 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
 
   /* ---------------- entrada subterrânea no sopé, anel de basalto e terras de cinza ---------------- */
   const basalt = new T.MeshStandardMaterial({ color: 0x45403c, roughness: .95, map: detail });
-  { const G = GATE2, gy = height(G.x, G.z), gate = new T.Group(); gate.position.set(G.x, gy, G.z); gate.rotation.y = G.face; gate.name = 'jornada-entrada-vulcao'; root.add(gate);
-    for (const sx of [-1, 1]) { const p = new T.Mesh(new T.CylinderGeometry(1.1, 1.5, 8.5, 7), basalt); p.position.set(sx * 3.4, 3.9, 0); gate.add(p); addSolid({ x: G.x, z: G.z + sx * 3.4, r: 1.4, top: gy + 8.2 }); }
-    const lintel = new T.Mesh(new T.BoxGeometry(9.2, 1.4, 2.2), basalt); lintel.position.y = 8.2; lintel.rotation.z = .05; gate.add(lintel);
-    const mouth = new T.Mesh(new T.PlaneGeometry(5.6, 7.2), new T.MeshBasicMaterial({ color: 0x060302 })); mouth.position.set(0, 3.6, -.3); gate.add(mouth);
-    const ember = new T.Sprite(new T.SpriteMaterial({ map: smokeTex, color: 0xff5a14, transparent: true, opacity: .45, depthWrite: false, blending: T.AdditiveBlending })); ember.position.set(0, 1.4, -.6); ember.scale.setScalar(6); gate.add(ember);
-    const hood = new T.Mesh(rockGeo, basalt); hood.scale.set(7.5, 5, 4.5); hood.position.set(0, 8.4, -3.6); gate.add(hood); }
+  /* Mod 327 — boca de caverna escondida no flanco SUL, já atrás do cone (antes: pilares + lintel + plano negro na frente da
+   * cidade, lido como "portal"). Garganta escavada com volume (tubo irregular, visto por dentro, que escurece até o breu),
+   * maciço de basalto em volta (ombreiras, verga, domo que se funde à encosta), chão recortado na MESMA altura da física
+   * (journeyHeight/caveCarve), calor fraco no fundo, fumaça rala, rocha gasta na soleira e pegadas na cinza pela trilha. */
+  const caveFx = []; let caveGate = null;
+  { const M = CAVE2.mouth, ca = Math.cos(CAVE2.a), sa = Math.sin(CAVE2.a), gy = height(M.x, M.z), gate = new T.Group(); gate.position.set(M.x, gy, M.z); gate.rotation.y = GATE2.face; gate.name = 'jornada-boca-caverna-vulcao'; root.add(gate); caveGate = gate;
+    const W = (lx, lz) => ({ x: M.x + ca * lz - sa * lx, z: M.z + sa * lz + ca * lx }); // local (lx ao longo do flanco, lz para fora) → mundo
+    { const L = 10, N = low ? 7 : 10, A = low ? 10 : 16, F = 3, pos = [], col = [], idx = [], ring = A + 1 + F;
+      for (let k = 0; k <= N; k++) { const t = k / N, lz = .7 - t * L, hw = 2.55 - .55 * t, ht = 3.9 - 1.15 * t, fy = .03 + .06 * Math.min(0, lz), dark = Math.pow(1 - t, 1.7);
+        const put = (x, y, floor) => { const n = fbm2(x * .9 + k * .7, y * .9 + lz * .3, 2, 333) - .5; pos.push(x * (1 + n * .35), y + (floor ? 0 : n * .45), lz + n * .4); const w = floor ? .55 : .42 + .25 * (fbm2(x * 2.1, y * 2.1 + lz, 2, 337)); col.push(Math.pow(w * dark + .05 * t * t * (floor ? 1 : .2), 2.2), Math.pow(w * .92 * dark + .012 * t * t, 2.2), Math.pow(w * .86 * dark, 2.2)); };
+        for (let j = 0; j <= A; j++) { const a = j / A * Math.PI; put(Math.cos(a) * hw, fy + Math.sin(a) * ht, false); } // arco (direita → topo → esquerda)
+        for (let j = 1; j <= F; j++) put(-hw + 2 * hw * j / (F + 1), fy, true); }                                  // chão (esquerda → direita)
+      for (let k = 0; k < N; k++) for (let j = 0; j < ring; j++) { const a = k * ring + j, b = k * ring + (j + 1) % ring, c = a + ring, d = b + ring; idx.push(a, c, b, b, c, d); }
+      const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+      const throat = new T.Mesh(g, new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: T.DoubleSide, map: detail })); throat.name = 'jornada-garganta-caverna'; gate.add(throat);
+      const cap = new T.Mesh(new T.CircleGeometry(3.2, 10), new T.MeshBasicMaterial({ color: 0x020101 })); cap.position.set(0, 1.2, .7 - L + .3); gate.add(cap); }
+    const rocks = [], rock = (lx, lz, y, sx, sy, sz, ry = 0, rx = 0, solid = true) => { rocks.push([-lx, y, lz, sx, sy, sz, ry, rx]); if (solid) { const w = W(lx, lz); addSolid({ x: w.x, z: w.z, r: Math.min(sx, sz) * .85, top: gy + y + sy }); } }; // (instanciadas: 1 draw)
+    /* grupo girado por GATE2.face: +z local aponta para fora do cone; lx do mundo (W) corresponde a −x local */
+    rock(-4.3, -.9, -.4, 2.2, 4.6, 3.2, .3); rock(4.5, -1.3, -.5, 2.5, 5.2, 3.4, -.4);         // ombreiras no lábio
+    rock(.2, -1.5, 3.45, 4.3, 1.9, 2.4, .1, .08, false); rock(0, -4.6, 3.05, 4.6, 2.2, 3, -.2, 0, false); rock(.4, -7.8, 2.55, 4.2, 2.4, 3.2, .5, 0, false); // verga e teto da garganta
+    rock(0, -17.5, -1.5, 9.5, 8, 8.5, .7, 0, false);                                                 // domo que se funde à encosta (atrás do fundo)
+    rock(-7.2, -4.5, -.8, 3.4, 4.2, 4.8, 1.1); rock(7.6, -5.2, -.9, 3.6, 3.8, 4.4, -.9);          // flancos
+    rock(-6.4, 1.6, -.15, 1.4, 1, 1.2, .6); rock(6.1, 2.2, -.15, 1.1, .8, 1, 2.1);               // blocos soltos fora
+    { const im = new T.InstancedMesh(rockGeo, basalt, rocks.length); rocks.forEach(([x, y, z, sx, sy, sz, ry, rx], i) => { mx.position.set(x, y, z); mx.rotation.set(rx, ry, 0); mx.scale.set(sx, sy, sz); mx.updateMatrix(); im.setMatrixAt(i, mx.matrix); }); im.castShadow = !low; im.receiveShadow = true; im.name = 'jornada-macico-caverna'; gate.add(im); }
+    const sill = new T.Mesh(rockGeo, new T.MeshStandardMaterial({ color: 0x6d655e, roughness: .8, map: detail })); sill.scale.set(2.3, .22, 1.5); sill.position.set(-.1, -.12, 1.4); sill.receiveShadow = true; gate.add(sill); // soleira gasta (mais clara, polida pelos pés)
+    // marca de calor na soleira e brilho fraco lá no fundo (só visível pela abertura)
+    if (smokeTex) { const scorch = new T.Mesh(new T.PlaneGeometry(6.5, 7).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: smokeTex, color: 0x170b06, transparent: true, opacity: .7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 })); scorch.position.set(0, .05, .6); gate.add(scorch);
+      const heat = new T.Sprite(new T.SpriteMaterial({ map: smokeTex, color: 0xff5a18, transparent: true, opacity: .2, depthWrite: false, blending: T.AdditiveBlending })); heat.position.set(0, .7, -6.2); heat.scale.set(3.6, 2.2, 1); gate.add(heat); heat.userData.heat = true; caveFx.push(heat);
+      for (let k = 0; k < (low ? 2 : 3); k++) { const w = W((k - 1) * 1.6, -1.5 - k), sm = new T.Sprite(new T.SpriteMaterial({ map: smokeTex, color: 0xbab2aa, transparent: true, opacity: 0, depthWrite: false })); sm.userData = { x: w.x, z: w.z, y: gy + 4.2, t: k / 3 }; root.add(sm); caveFx.push(sm); } }
+    // pegadas na cinza: trilha PARCIAL (trechos por ruído) e contínua só nos últimos ~55 m antes da boca
+    { const steps = [], cum = [0]; for (let i = 1; i < TRAIL2.length; i++) cum.push(cum[i - 1] + Math.hypot(TRAIL2[i][0] - TRAIL2[i - 1][0], TRAIL2[i][1] - TRAIL2[i - 1][1])); const total = cum[cum.length - 2];
+      for (let sd = 6, i = 0, side = 1; sd < total - 1; sd += .78, side = -side) { while (cum[i + 1] < sd) i++; const u = (sd - cum[i]) / (cum[i + 1] - cum[i]), a = TRAIL2[i], b = TRAIL2[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz), x = a[0] + dx * u - dz / l * side * .17, z = a[1] + dz * u + dx / l * side * .17;
+        if (total - sd > 55 && fbm2(sd * .02, 3, 2, 341) < .5) continue; if (low && (steps.length & 1)) continue; steps.push({ x, z, a: Math.atan2(dx, dz) + (hash(steps.length, 1, 343) - .5) * .3 }); }
+      const fg = new T.CircleGeometry(.12, 7).rotateX(-Math.PI / 2); fg.scale(1, 1, 2); const im = new T.InstancedMesh(fg, new T.MeshBasicMaterial({ color: 0x1d1916, transparent: true, opacity: .55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), steps.length);
+      steps.forEach((f, i) => { mx.position.set(f.x, height(f.x, f.z) + .03, f.z); mx.rotation.set(0, f.a, 0); mx.scale.setScalar(1); mx.updateMatrix(); im.setMatrixAt(i, mx.matrix); }); im.name = 'jornada-pegadas-cinza'; root.add(im); } }
   { const ring = [], n = 26; for (let i = 0; i < n; i++) { const a = -.95 + i / (n - 1) * 1.9, r = V.block + 4 + hash(i, 1, 101) * 7, x = V.x + Math.cos(a) * r, z = V.z + Math.sin(a) * r; if (Math.hypot(x - GATE2.x, z - GATE2.z) < 9) continue; ring.push({ x, z, s: 1.1 + hash(i, 2, 102) * 1.7 }); }
     const im = new T.InstancedMesh(rockGeo, basalt, ring.length); ring.forEach((b, i) => { const y = height(b.x, b.z); mx.position.set(b.x, y - b.s * .15, b.z); mx.rotation.set((hash(i, 3, 103) - .5) * .6, hash(i, 4, 104) * 6.28, (hash(i, 5, 105) - .5) * .5); mx.scale.set(b.s * 1.3, b.s * 1.1, b.s); mx.updateMatrix(); im.setMatrixAt(i, mx.matrix); addSolid({ x: b.x, z: b.z, r: b.s * 1.1, top: y + b.s * 1.2 }); });
     im.castShadow = !low; im.name = 'jornada-basalto-sope'; root.add(im); }
@@ -398,12 +428,12 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
   { const blade = (() => { const g = new T.CylinderGeometry(.18, 1, 1, 5, 4), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = .75 + .5 * fbm2(x * 3 + y * 2, z * 3, 2, 171); p.setXYZ(i, x * k * (1.4 - (y + .5) * .5), y, z * k * .7); } g.translate(0, .5, 0); g.computeVertexNormals(); return g; })();
     const list = [], pools = [];
     for (let k = 0; k < 420 && list.length < (low ? 34 : 56); k++) { const x = -980 - hash(k, 1, 181) * 640, z = -260 + hash(k, 2, 182) * 400, vr = Math.hypot(x - V.x, z - V.z), cd = Math.hypot(x - CITY2.x, z - CITY2.z);
-      if (!inJourney(x, z) || cd < CITY2.r + 16 || vr < V.block - 6 || onRoad(x, z, 9) || fbm2(x * .018, z * .018, 2, 183) < .48 || Math.hypot(x - GATE2.x, z - GATE2.z) < 26) continue;
+      if (!inJourney(x, z) || cd < CITY2.r + 16 || vr < V.block - 6 || onRoad(x, z, 9) || trailDistance(x, z) < 9 || fbm2(x * .018, z * .018, 2, 183) < .48 || Math.hypot(x - GATE2.x, z - GATE2.z) < 26) continue;
       const b = journeyBoundary(x, z), hgt = (b > 6 ? 7 : 3) + hash(k, 3, 184) * (b > 6 ? 13 : 6); list.push({ x, z, h: hgt, w: .9 + hash(k, 4, 185) * 1.6, a: hash(k, 5, 186) * 6.28, lean: (hash(k, 6, 187) - .5) * .5, solid: b < 6 }); }
     const im = new T.InstancedMesh(blade, basaltBlade, list.length); list.forEach((L, i) => { const y = height(L.x, L.z) - .6; mx.position.set(L.x, y, L.z); mx.rotation.set(L.lean, L.a, L.lean * .6); mx.scale.set(L.w, L.h, L.w); mx.updateMatrix(); im.setMatrixAt(i, mx.matrix); if (L.solid) addSolid({ x: L.x, z: L.z, r: L.w * .9, top: y + L.h }); });
     im.castShadow = !low; im.name = 'jornada-laminas-basalto'; root.add(im);
     for (let k = 0; k < 200 && pools.length < (low ? 6 : 10); k++) { const x = -1010 - hash(k, 7, 188) * 560, z = -230 + hash(k, 8, 189) * 330, cd = Math.hypot(x - CITY2.x, z - CITY2.z);
-      if (!inJourney(x, z) || cd < CITY2.r + 20 || onRoad(x, z, 12) || journeyBoundary(x, z) > 30 || Math.hypot(x - V.x, z - V.z) < V.block - 10 || list.some(L => Math.hypot(L.x - x, L.z - z) < 6)) continue; pools.push({ x, z, r: 2.2 + hash(k, 9, 190) * 3.5 }); }
+      if (!inJourney(x, z) || cd < CITY2.r + 20 || onRoad(x, z, 12) || trailDistance(x, z) < 12 || journeyBoundary(x, z) > 30 || Math.hypot(x - V.x, z - V.z) < V.block - 10 || list.some(L => Math.hypot(L.x - x, L.z - z) < 6)) continue; pools.push({ x, z, r: 2.2 + hash(k, 9, 190) * 3.5 }); }
     for (const P of pools) lavaSpec.pools.push({ x: P.x, z: P.z, r: P.r * .85, seed: P.x * .37 + P.z * .11 }); // Mod 326: contorno irregular, fluida, com dano (não é mais um sólido)
   }
   // fendas no chão de cinza: rachas escuras e poucas com brilho de magma; respiradouros de vapor
@@ -411,7 +441,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
   { const crack = [], glow = []; for (let k = 0; k < 70; k++) { const x = -960 - hash(k, 1, 111) * 330, z = -150 + hash(k, 2, 112) * 180; if (!inJourney(x, z) || onRoad(x, z, 3.5) || Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 6 || journeyBoundary(x, z) > 3) continue; const L = 3 + hash(k, 3, 113) * 9, a = hash(k, 4, 114) * 3.14; crack.push({ x, z, L, a, w: .25 + hash(k, 5, 115) * .4 }); if (hash(k, 6, 116) < .35 && x < -1000) glow.push({ x, z, L: L * .8, a, w: .12 }); }
     /* Mod 326: as antigas "fendas" (caixas pretas retas e faixas laranja aditivas) viraram canais de lava de verdade:
        nascem num respiradouro, descem o relevo com meandro e largura variável, crosta que corre e borda de basalto. */
-    const avoid = (x, z) => !inJourney(x, z) || onRoad(x, z, 4.5) || Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 8 || journeyBoundary(x, z) > 4 || Math.hypot(x - GATE2.x, z - GATE2.z) < 22;
+    const avoid = (x, z) => !inJourney(x, z) || onRoad(x, z, 4.5) || trailDistance(x, z) < 5 || Math.hypot(x - CITY2.x, z - CITY2.z) < CITY2.r + 8 || journeyBoundary(x, z) > 4 || Math.hypot(x - GATE2.x, z - GATE2.z) < 22;
     for (const c of glow.slice(0, low ? 3 : 5)) { const ch = lavaChannelPath(height, c.x, c.z, { steps: low ? 18 : 26, step: 1.6, w0: 1.3 + (c.L % 1) * .9, seed: c.a * 3 + c.x * .01, avoid }); if (ch.pts.length > 5) lavaSpec.channels.push(ch); }
     if (smokeTex) for (let k = 0; k < (low ? 3 : 6); k++) { const c = glow[k * 2 % Math.max(1, glow.length)] || crack[k]; if (!c) break; const s = new T.Sprite(new T.SpriteMaterial({ map: smokeTex, color: 0xcfc8c0, transparent: true, opacity: 0, depthWrite: false })); s.userData = { x: c.x, z: c.z, y: height(c.x, c.z), t: k / 6 }; root.add(s); vents.push(s); } }
 
@@ -459,10 +489,17 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
     inst(box, beamM, lists.beam, 'cinzaria-madeira'); inst(box, plankM, lists.plank, 'cinzaria-tabuado'); inst(roofGeo, roofM, lists.roof, 'cinzaria-telhados'); inst(box, doorM, lists.door, 'cinzaria-portas', false); lit.wins = inst(box, winM, lists.win, 'cinzaria-janelas', false); inst(box, stoneM, lists.chim, 'cinzaria-chamines'); inst(box, shutM, lists.shut, 'cinzaria-venezianas', false);
     // praça: fonte, bancas, postes de lanterna e a torre do sino
     const P = CITY_PROPS, fy = height(P.fountain.x, P.fountain.z);
-    const basin = new T.Mesh(new T.CylinderGeometry(P.fountain.r, P.fountain.r + .2, .8, 28, 1, true), stoneM); basin.position.set(P.fountain.x, fy + .4, P.fountain.z); city.add(basin);
-    const rim = new T.Mesh(new T.TorusGeometry(P.fountain.r, .22, 6, 32).rotateX(Math.PI / 2), stoneM); rim.position.set(P.fountain.x, fy + .8, P.fountain.z); city.add(rim);
-    const fw = new T.Mesh(new T.CircleGeometry(P.fountain.r - .1, 24).rotateX(-Math.PI / 2), water); fw.position.set(P.fountain.x, fy + .55, P.fountain.z); city.add(fw);
-    const col = new T.Mesh(new T.CylinderGeometry(.35, .5, 2.6, 8), stoneM); col.position.set(P.fountain.x, fy + 1.3, P.fountain.z); city.add(col); addSolid({ x: P.fountain.x, z: P.fountain.z, r: P.fountain.r + .3, city: 1, top: fy + .85 });
+    /* Mod 327 — fonte inequívoca (antes: aro de toro + cilindro aberto + coluna lisa = "portal" de longe). Um só torno de
+     * pedra (bacia baixa de borda larga, pedestal, taça superior e pináculo: silhueta clássica de chafariz, 1 draw),
+     * espelho d'água na bacia e na taça e oito bicas caindo da taça para a bacia (1 draw instanciado). */
+    { const R = P.fountain.r, v = (r, y) => new T.Vector2(r, y), prof = [v(R + .25, 0), v(R + .25, .52), v(R + .32, .6), v(R + .3, .7), v(R - .18, .7), v(R - .22, .2), v(.78, .18), v(.62, .34), v(.46, 1.05), v(.4, 1.32), v(.72, 1.44), v(1.12, 1.6), v(1.18, 1.72), v(1.06, 1.76), v(.96, 1.66), v(.32, 1.62), v(.24, 1.72), v(.17, 2.08), v(.3, 2.28), v(.13, 2.5), v(0, 2.62)];
+      const ft = new T.Mesh(new T.LatheGeometry(prof, low ? 12 : 20), stoneM); ft.position.set(P.fountain.x, fy, P.fountain.z); ft.castShadow = !low; ft.receiveShadow = true; ft.name = 'cinzaria-fonte'; city.add(ft);
+      const fw = new T.Mesh(new T.CircleGeometry(R - .2, 24).rotateX(-Math.PI / 2), water); fw.position.set(P.fountain.x, fy + .55, P.fountain.z); city.add(fw);
+      const bw = new T.Mesh(new T.CircleGeometry(.98, 14).rotateX(-Math.PI / 2), water); bw.position.set(P.fountain.x, fy + 1.69, P.fountain.z); city.add(bw);
+      const arc = new T.TubeGeometry(new T.QuadraticBezierCurve3(new T.Vector3(1.15, 1.72, 0), new T.Vector3(1.75, 1.7, 0), new T.Vector3(2.05, .55, 0)), 10, .04, 4, false);
+      const jets = new T.InstancedMesh(arc, new T.MeshStandardMaterial({ color: 0xd8ecf6, emissive: 0x30424c, roughness: .1, transparent: true, opacity: .62, depthWrite: false }), 8);
+      for (let i = 0; i < 8; i++) { mx.position.set(P.fountain.x, fy, P.fountain.z); mx.rotation.set(0, i / 8 * Math.PI * 2 + .2, 0); mx.scale.setScalar(1); mx.updateMatrix(); jets.setMatrixAt(i, mx.matrix); } jets.name = 'cinzaria-fonte-bicas'; city.add(jets);
+      addSolid({ x: P.fountain.x, z: P.fountain.z, r: R + .35, city: 1, top: fy + .72 }); }
     const cloth = [0x8a2a24, 0x2e5a6a, 0xa07a2a, 0x5a3a6a, 0x7a3a22];
     { const parts = { counter: [], post: [], can: [] }; P.stalls.forEach(([x, z, ry], i) => { const y = height(x, z), c = Math.cos(ry), sn = Math.sin(ry), at = (lx, lz) => [x + lx * c + lz * sn, z - lx * sn + lz * c];
         parts.counter.push({ x, y: y + .45, z, sx: 2.4, sy: .9, sz: 1, ry }); for (const sx of [-1.1, 1.1]) for (const sz of [-.45, .45]) { const [px, pz] = at(sx, sz); parts.post.push({ x: px, y: y + 1.15, z: pz, sx: .1, sy: 2.3, sz: .1, ry }); }
@@ -498,7 +535,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
       if (hidden) return;
       if (near2) streamTiles(px, pz, 1);
       { const dB = Math.hypot(px - (BRIDGE.x0 + BRIDGE.x1) / 2, pz - BRIDGE.z), dC = Math.hypot(px - CITY2.x, pz - CITY2.z), dF = Math.hypot(px - WATERFALL.x, pz - WATERFALL.z);
-        gBridge.visible = dB < 420; gAbyss.visible = dB < 520; gFall.visible = dF < 380; city.visible = dC < 460 && !cityGone; /* a cidade destruída no Ato II continua oculta */ for (const s of vents) s.visible = dC < 330; }
+        gBridge.visible = dB < 420; gAbyss.visible = dB < 520; gFall.visible = dF < 380; city.visible = dC < 460 && !cityGone; /* a cidade destruída no Ato II continua oculta */ for (const s of vents) s.visible = dC < 330; const dM = Math.hypot(px - CAVE2.mouth.x, pz - CAVE2.mouth.z); caveGate.visible = dM < 280; for (const s of caveFx) s.visible = dM < 240; }
       vegWait -= dt; if (near2 && vegWait <= 0 && (vegDirty || Math.hypot(px - vegAt[0], pz - vegAt[1]) > 24)) { vegDirty = false; vegWait = .35; vegAt = [px, pz]; fillInstances(px, pz); fillTreesAndRocks(px, pz); }
       if (scene.fog) coneFog.value.set(scene.fog.near, scene.fog.far);
       if (fog) { for (const m of fogLayers) m.material.uniforms.uC.value.copy(fog).lerp(C.setRGB(.86, .9, .96), .18 * (1 - night)).multiplyScalar(m.userData.shade * (1 - night * .35)); hazeU.value.copy(fog); }
@@ -507,6 +544,7 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
           s.position.set(CF.x + Math.sin(k * 5 + o * 9) * (6 + 30 * k) + k * k * 160, craterTop.y + 4 + rise * 260, CF.z + Math.cos(k * 4 + o * 7) * (5 + 22 * k) + k * k * 40);
           s.scale.setScalar(34 + 260 * k ** .8); s.material.opacity = (.62 - .25 * k) * Math.min(1, k * 7) * (1 - smooth(.75, 1, k)); s.material.rotation += dt * (.02 + o * .03);
           s.material.color.setRGB(.36 + (1 - k) * .5 * lit * (1 - smooth(0, .35, k)) * 1.4, .32 + (1 - k) * .18 * lit * (1 - smooth(0, .35, k)), .3).multiplyScalar(.75 + .25 * (1 - night)); } }
+      for (const s of caveFx) { const u = s.userData; if (!s.visible) continue; if (u.heat) { s.material.opacity = .16 + .06 * Math.sin(lavaT.value * 2.3) + .03 * Math.sin(lavaT.value * 7.1); continue; } u.t = (u.t + dt * .07) % 1; s.position.set(u.x + u.t * 1.5, u.y + u.t * 9, u.z); s.scale.setScalar(1.2 + u.t * 4.5); s.material.opacity = .14 * Math.sin(Math.PI * u.t); } // Mod 327: fumaça rala e calor da boca
       for (const s of vents) { const u = s.userData; u.t = (u.t + dt * .12) % 1; s.position.set(u.x + u.t * 2, u.y + .5 + u.t * 7, u.z); s.scale.setScalar(1.5 + u.t * 5); s.material.opacity = .22 * Math.sin(Math.PI * u.t); }
       { const wd = Math.max(riverDepth(px, pz), fallParts.lvl !== undefined && Math.hypot(px - FALL_POOL.x, pz - FALL_POOL.z) < FALL_POOL.r + 3 ? fallParts.lvl - height(px, pz) : 0), mv = Math.hypot(px - simLast[0], pz - simLast[1]) / Math.max(dt, 1e-3); simLast[0] = px; simLast[1] = pz;
         if (!hidden && (wd > .06 || gFall.visible)) { sim.follow(px, pz); const wy = height(px, pz) + wd;
