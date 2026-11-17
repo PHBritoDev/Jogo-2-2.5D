@@ -1,3 +1,17 @@
+## NOVA REGRA EXECUTIVA — AJUDA MÚTUA ANTES DE A7 (16/11/2026)
+
+**REGRA COM PRECEDÊNCIA sobre o costume de delegar tudo ao Grok.** A1–A5 formam uma EQUIPE e devem cooperar uns com os outros pelas especialidades já existentes. O agente que detecta um problema **continua responsável pela sua entrega**, mesmo quando pede ajuda; não transferir todo QA, capturas, testes e responsabilidade ao A7.
+
+**Encaminhamento correto:** (1) tentar executar o teste/QA no próprio escopo com ferramentas disponíveis, usando CI e capturas do repositório; (2) se houver dependência de área de outro agente, pedir ajuda PRIORITARIAMENTE ao colega natural via #519: A1 ↔ A2 para controles/hitbox/combat, A1 ↔ A3 para terreno/colisão, A2 ↔ A4 para impacto e luz, A3 ↔ A4 para atmosfera/nível, A5 ↔ A1 para gatilhos/save e A5 ↔ A3/A4 para encenação; (3) só pedir A7/Grok quando houver **vantagem específica** (auditoria independente, capacidade de navegador/harness demonstrada, pesquisa/implementação multidisciplinar ou gargalo que os demais não resolveram), explicando por que A7 agrega algo novo. A7 não é fila geral de todas as pendências, nem obrigação de testar trabalho inacabado.
+
+**Pedidos claros e sem sobrecarga:** máximo UM pedido A7 novo por agente em aberto, salvo bug P0 independente; não duplicar tickets e checar os pedidos pendentes anteriores. A7 pode recusar/redirecionar pedidos redundantes ou sem evidência e pode priorizar tarefas próprias de alto valor. O agente remetente não fica parado esperando resposta.
+
+**Testar o jogo:** identificar capacidades REAIS por execução. Grok conseguiu gerar capturas em harness WebGL headless da PR #596, mas NÃO demonstrou teste do mundo completo nem multitouch Android. Se A7 tiver browser/harness nesta execução, executar smoke e registrar URL/commit/viewport; caso contrário, não afirmar que testou, nem transferir a falta de acesso como sucesso. Claude Code com ambiente WebGL/harness validado pode realizar testes de integração, mas continua responsável apenas pelos seus módulos e não pela fila inteira.
+
+**Métrica:** bugs corrigidos, gameplay melhorado, qualidade visual comprovada, ausência de regressão e FPS mensurado; NÃO quantidade de pedidos, branches, relatórios ou horas prometidas. Nenhum agente pode encerrar rodada apenas por enviar solicitação de ajuda.
+
+---
+
 ## COORDENAÇÃO MAIS RECENTE — TODOS OS ATOS, A7 E AUTOMAÇÕES (16/11/2026)
 
 **Este bloco supera instruções históricas conflitantes:** A1–A5 podem trabalhar em **TODOS os atos/regiões/dimensões integrados e liberados**, no seu domínio, em vez de apenas Ato I. Confirmar qual região/arquivo Claude está editando em PR ativa antes de agir; reserva é dinâmica. A caverna de Eldória reestruturada continua protegida por seu proprietário.
