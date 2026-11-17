@@ -3,7 +3,10 @@
  * false = restaura todos os poderes originais, sem apagar implementações.
  * IMPORTANTE: não usar esta configuração como balanceamento final.
  */
-export const TEMP_MELEE_ONLY_TEST = true;
+// O jogo público mantém modo de esgrima; testes legados Node verificam o kit original.
+// QA de combate completo em navegador usa ?fullCombatQA=1 para não falsificar regressões.
+export const TEMP_MELEE_ONLY_TEST = typeof window !== 'undefined' &&
+  !new URLSearchParams(window.location.search).has('fullCombatQA');
 export const meleeOnlyProfile = p => TEMP_MELEE_ONLY_TEST && [
   'vhazrael', 'fallen1', 'vorgazhek', 'fallen2', 'zarkhael', 'fallen3',
   'veraxion', 'fallen4', 'greed1', 'greed2', 'greed3',
