@@ -7084,11 +7084,11 @@ function addMat(color,op){return new THREE.MeshBasicMaterial({color,transparent:
 function endBossUlt(){if(bossUlt.kind==='cosmic')stopCosmicUlt();if(bossUlt.kind==='zarkhael6')stopZarkUlt();const f=bossUlt.fx;if(f){scene.remove(f.g);f.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}bossUlt.fx=null;bossUlt.kind=null;ultCam.want=0;ultDim(0,.8);}
 function tickTransientFx(dt){for(let i=ultFx.length-1;i>=0;i--){const f=ultFx[i];f.t+=dt;if(f.tick(f.t,dt)===false)ultFx.splice(i,1);}}
 function updateBossUltimates(dt,now){
- if(meleeOnlyProfile(encounterProfile)){if(bossUlt.kind)endBossUlt();return;}
  tickTransientFx(dt);
  // MOD 238: na esquadra Enemy1/Enemy2 o ultimate genérico do kit antigo ("Ritual"/"Furacão Infernal") disparava pelos
  // limiares de vida do procurador do foco, junto com os poderes novos. A esquadra usa só o próprio kit.
  if(squadOn){if(bossUlt.kind)endBossUlt();return;}
+ if(meleeOnlyProfile(encounterProfile)){if(bossUlt.kind)endBossUlt();return;}
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
  if(bossUlt.kind){if(!live||cineActive){endBossUlt();return;}bossUlt.t+=dt;(bossUlt.kind==='kit'?tickKitUlt:bossUlt.kind==='cosmic'?tickCosmicUlt:bossUlt.kind==='zarkhael6'?tickZarkUlt:tickSupernova)(dt,now);return;}
