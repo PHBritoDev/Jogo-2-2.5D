@@ -112,7 +112,7 @@ export function vhazraelBrain(sq, a, dt, t) {
     S.guard += (t.blocking ? 1 : 0) * dt; S.aggr += (t.attacking && d < 3.5 ? 1 : 0) * dt; S.far += (d > 7 ? 1 : 0) * dt; S.near += (d < 3 ? 1 : 0) * dt; S.cast += (t.casting ? 1 : 0) * dt; S.samples += dt;
     // adaptação dentro de limites (nunca infalível): mais defesa contra quem ataca muito, espinhos que cortam o lado preferido
     const aggr = clamp(S.aggr / 4, 0, 1), guard = clamp(S.guard / 4, 0, 1);
-    a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
+    a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = VHAZRAEL_SWORD_ONLY_TEST ? 0 : clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
     a.T.thorns.bias = clamp(S.side, -1, 1) * clamp(S.dash / 3, 0, 1); a.T.thorns.delay = clamp(S.dash / 4, 0, 1) * .35; a.T.throne.guardBreak = guard > .35;
     // quem foge e mantém distância: dash de aproximação emendando o golpe (com recarga própria)
     if (!VHAZRAEL_SWORD_ONLY_TEST && !a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
