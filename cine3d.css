@@ -96,3 +96,9 @@ body.cinematic #hint,body.cinematic #objective-arrow,body.cinematic #enemy-hud,b
 @keyframes rmPulse{50%{box-shadow:0 0 34px #ff2a2acc}}
 
 #cine-continue{pointer-events:auto;position:static;width:auto;min-height:44px;padding:8px 20px;color:#ffe9ac;background:#292017;border:1px solid #c5a566;border-radius:6px;float:right}
+
+/* MOD 326 — queimadura da lava: selo no HUD + brasa nas bordas da tela (sem pós-processamento) */
+#burn-chip{position:fixed;left:calc(env(safe-area-inset-left) + 12px);top:calc(env(safe-area-inset-top) + 196px);z-index:6;display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:10px;background:#2a0a04d9;border:1px solid #ff8a3d99;color:#ffe2c8;font:600 11px system-ui,sans-serif;pointer-events:none}
+#burn-chip[hidden]{display:none}
+#burn-chip b{font-size:12px;letter-spacing:.2em;color:#ffb070}
+#burn-veil{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .25s;box-shadow:inset 0 0 90px 30px #ff4a0ccc,inset 0 0 220px 40px #b0200066}
