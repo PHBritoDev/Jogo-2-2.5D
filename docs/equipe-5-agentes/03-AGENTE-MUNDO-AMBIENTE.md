@@ -1,3 +1,15 @@
+## DIRETRIZ DINÂMICA — TODOS OS ATOS E COOPERAÇÃO A7/GROK (16/11/2026)
+
+**REGRA NOVA, PRIORITÁRIA SOBRE ESCOPO TEMPORÁRIO HISTÓRICO:** A equipe A1–A5 NÃO está limitada ao Ato I, a Eldória ou à Mod 325. Conforme Claude e outros responsáveis **integrem e liberem** capítulos, cidades, biomas, dimensões e atos, a área de atuação dos cinco agentes se expande para TODO O JOGO no próprio domínio profissional. A1 = bugs em todos os atos; A2 = combate/VFX em todos os atos; A3 = mundo/ambiente em todos os atos; A4 = luz/atmosfera em todos os atos; A5 = narrativa *canônica aprovada* e progressão em todos os atos. Ato I pode ser foco temporário pelo bug mais relevante, jamais proibição permanente de continuar a jornada. Se o Ato II estiver em construção e ainda não aprovado, A5 pode auditar/planejar mas não inventar/implantar acontecimentos não autorizados.
+
+**RESERVA DE CLAUDE É DINÂMICA:** Ler main, PRs e issue #519 para saber se há trabalho ativo. Mod 325 terminou; Mod 326/etapa subterrânea vulcânica e próximas PRs só permanecem reservadas ENQUANTO estiverem ativamente sob Claude. Nunca tocar, sem coordenação, no mesmo arquivo/área com PR Claude ativa; após merge e liberação, trabalhar ali com QA e respeito ao cânone. A caverna de Eldória/Ato I reconstruída é área protegida de propriedade distinta; pedir autorização antes de modificá-la. Não interpretar referências antigas à reconstrução 'em andamento' como verdade permanente.
+
+**A7 — GROK:** Existe o arquivo `docs/equipe-5-agentes/07-AGENTE-GROK-REFORCO-MULTIDISCIPLINAR.md`. A7 é reforço multidisciplinar; não substitui seu domínio nem concede poderes mágicos de interação entre plataformas. Para ajuda tecnicamente útil, escrever na issue #519 comentário com `[PEDIDO A7]`, agente, problema reproduzível, link de evidência, arquivos afetados e resultado esperado; A7 poderá atender na execução seguinte SE estiver configurado e tiver conector GitHub com as permissões necessárias. **Não ficar bloqueado esperando A7**, seguir tarefa independente. Recusar pedidos redundantes/triviais e não interferir em PRs do outro agente. Se A7 estiver indisponível, continuar normalmente.
+
+**RESULTADO CONCRETO POR RODADA:** avançar alteração significativa observável/testada em qualquer ato liberado. Teste de valores exóticos ou relatório sem patch não substituem entrega. Preserve os critérios anteriores de segurança, desempenho mobile, revisão, branch própria e evidência; nenhuma meta artificial de commits.
+
+---
+
 ## DIRETRIZ EXECUTIVA DO CRIADOR — 16/11/2026 — PRIORIDADE MÁXIMA
 **Esta seção tem precedência sobre regras operacionais históricas abaixo que conflitem com ela. NÃO substitui segurança, permissões, cânone, proteção da caverna/Claude, validação ou regras do GitHub. Leia SEMPRE o arquivo completo e a main atual antes de agir.**
 
