@@ -48,3 +48,15 @@ test('Remanso: casca real apoia anéis afunilados no chão, sem fresta de 4–10
     }
   }
 });
+
+
+test('Remanso: centros das tampas acompanham o raio de cada extremidade', () => {
+  const ground = 2.5;
+  for (const radius of [.32, .38]) {
+    for (const deformation of [.95, 1, 1.05]) {
+      const center = remansoBarkVertexY(ground, 0, 0, deformation, radius * deformation);
+      const edgeMid = remansoBarkVertexY(ground, radius, 0, deformation);
+      assert.ok(Math.abs(center - edgeMid) < 1e-10, 'centro e borda média da tampa devem compartilhar altura');
+    }
+  }
+});
