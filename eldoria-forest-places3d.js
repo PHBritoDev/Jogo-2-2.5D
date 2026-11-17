@@ -25,6 +25,11 @@ export function planRemansoLog(ground, { x, z, yaw = .6, length = 3.6, radius = 
   return { a, b, center: point(.5), length, yaw, radius, point };
 }
 
+/** Altura de um vértice do tronco: geratriz inferior tangente ao terreno. */
+export function remansoBarkVertexY(terrainY, ringRadius, radialY, deformation, capRadius = .42) {
+  return terrainY + (ringRadius > .01 ? ringRadius * deformation : capRadius) + radialY * deformation;
+}
+
 export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = false } = {}) {
   const group = new THREE.Group(); group.name = 'lugares-floresta-mod316';
   const by = id => FOREST_CLEARINGS.find(c => c.id === id);
@@ -84,7 +89,7 @@ export function buildForestPlaces(THREE, { ground, obstacles = [], lowSpec = fal
     const worldZ = logPlan.center.z + axial * alongZ + sideways * acrossZ;
     // Seguir o relevo em cada anel elimina o vão sob as extremidades.
     // Usar o raio REAL de cada anel (0.32–0.38), não 0.42 fixo:\n    // a geratriz inferior toca o chão, inclusive após a deformação da casca.
-    const worldY = ground(worldX, worldZ) + (radius > .01 ? radius * k : logPlan.radius) + radialY * k;
+    const worldY = remansoBarkVertexY(ground(worldX, worldZ), radius, radialY, k, logPlan.radius);
     barkPos.setXYZ(i, worldX - logPlan.center.x, worldY, worldZ - logPlan.center.z);
     const shade = .78 + .16 * Math.sin(angle * 9 + along * 15) + .07 * Math.sin(along * 37);
     barkColors[i * 3] = .35 * shade;
