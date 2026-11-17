@@ -8,7 +8,7 @@
  */
 import { FRONTIER_LINE, CAVE_MOUTH, insidePoly, fbm, hash2 } from './ascension-layout.js';
 
-export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, registerCull, lowSpec = false, prepareBaked } = {}) {
+export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, registerCull, lowSpec = false, prepareBaked, keepSpot = null } = {}) {
   const group = new THREE.Group(); group.name = 'fronteira-serra'; scene.add(group);
   const m = CAVE_MOUTH, gapHalf = m.scale * .9;
   // ---------- penhasco contínuo (malha facetada, cor por vértice) ----------
@@ -104,6 +104,7 @@ export function buildFrontier(THREE, { scene, groundHeightAt, GLTFLoader, regist
       const s = 22 + 16 * hash2(i, 9, 829), [nx, nz] = inward[i], back = s * .62 + 3;
       spots.push({ x: x + nx * back, z: z + nz * back, s, yaw: hash2(i, 10, 830) * 6.283, lift: .18 });
     }
+    if (keepSpot) for (let i = spots.length - 1; i >= 0; i--) if (!keepSpot(spots[i].x, spots[i].z, spots[i].s * .75)) spots.splice(i, 1); // Mod 326: fora do vale da jornada
     const inst = new THREE.InstancedMesh(mm.geometry, mm.material, spots.length), o = new THREE.Object3D();
     spots.forEach((p, i) => { o.position.set(p.x, groundHeightAt(p.x, p.z) - p.s * (p.lift || .12), p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(p.s, p.s * (.78 + .3 * hash2(i, 4, 824)), p.s); o.updateMatrix(); inst.setMatrixAt(i, o.matrix); });
     inst.name = 'macicos-fronteira'; inst.castShadow = false; inst.receiveShadow = true; inst.instanceMatrix.needsUpdate = true; group.add(inst);

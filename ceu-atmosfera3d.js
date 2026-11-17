@@ -2,6 +2,7 @@
  * Mod 323 — atmosfera do céu para o mundo aberto (Eldória, jornada, Cinzária e o vulcão por fora):
  *  • brilho do sol baixo: halo quente em volta do sol e faixa laranja/rosa no horizonte do lado do sol no amanhecer e
  *    no fim de tarde (o lado oposto continua azul-lilás); some ao meio-dia e à noite, sem pintar a tela de amarelo;
+ *  • (Mod 326: + coroa zenital — cortinas cruzando a abóbada acima do herói)
  *  • aurora de verdade NO CÉU: cortinas violeta/rosa/azuis suspensas entre ~14° e ~60° de elevação, numa faixa de
  *    azimute limitada (não é um anel em volta do mapa), com raios verticais que ondulam devagar; a base da cortina fica
  *    sempre acima das serras e a intensidade acompanha a noite e o céu aberto (nuvens e chuva apagam).
@@ -48,6 +49,22 @@ void main(){
       vec3 c = mix(vec3(.95, .36, .82), vec3(.56, .34, 1.), smoothstep(base, base + .25, el));
       c = mix(c, vec3(.34, .56, 1.), smoothstep(base + .25, base + .6, el) * .6);
       col += c * k * .8;
+    }
+    // Mod 326 — coroa ZENITAL: cortinas que cruzam a abóbada bem acima do herói (plano do céu projetado, perspectiva
+    // converge no zênite), base mais viva e raios subindo; dobras em várias escalas que correm devagar.
+    if (d.y > .22) {
+      vec2 q = d.xz / d.y, r = vec2(dot(q, ad), dot(q, vec2(-ad.y, ad.x)));
+      for (int j = 0; j < 2; j++) {
+        float fj = float(j), cx = -.15 + fj * .55 + .12 * sin(uT * .013 + fj * 2.);
+        float line = cx + .32 * sin(r.x * 1.15 + uT * .045 + fj * 1.7) + .12 * sin(r.x * 3.3 - uT * .07 + fj) + .05 * n1(r.x * 6. + uT * .05 + fj * 9.);
+        float dd = r.y - line;                                   // > 0: "acima" da base da cortina
+        float body = smoothstep(-.035, .02, dd) * exp(-max(dd, 0.) * (4.5 + 2. * fj));
+        float rays = n1(r.x * (26. + fj * 7.) + dd * 2. + uT * .07) * .6 + n1(r.x * 61. - uT * .11 + fj * 4.) * .4; rays = .35 + .65 * pow(rays, 1.4);
+        float breath = .75 + .25 * sin(uT * .17 + r.x * .9 + fj * 2.3);
+        float kz = body * rays * breath * uAur * smoothstep(.22, .5, d.y) * (fj > .5 ? .7 : 1.);
+        vec3 cz = mix(vec3(.98, .4, .85), vec3(.55, .36, 1.), smoothstep(0., .25, dd)); cz = mix(cz, vec3(.32, .55, 1.), smoothstep(.25, .6, dd) * .6);
+        col += cz * kz * .7;
+      }
     }
   }
   gl_FragColor = vec4(col, a);

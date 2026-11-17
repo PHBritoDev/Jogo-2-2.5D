@@ -68,9 +68,9 @@ const smin = (a, b, k) => { const h = clamp(.5 + .5 * (b - a) / k, 0, 1); return
 
 /** A jornada ocupa o oeste; o canto sudoeste (x > -240, z < -175) continua da Ascensão/Fronteira. */
 export const JOURNEY_BOUNDS = Object.freeze({ x0: -1760, x1: -112, z0: -420, z1: 300 });
-export function inJourney(x, z) { return x < JOURNEY_BOUNDS.x1 && x > JOURNEY_BOUNDS.x0 && z < JOURNEY_BOUNDS.z1 && z > JOURNEY_BOUNDS.z0 && (z > -175 || x < -240); }
+export function inJourney(x, z) { return x < JOURNEY_BOUNDS.x1 && x > JOURNEY_BOUNDS.x0 && z < JOURNEY_BOUNDS.z1 && z > JOURNEY_BOUNDS.z0 && (z > -175 || x < -240 || (x < -150 && z > -240)); } // Mod 326: a jornada cobre também o pé da serra sul (x −240…−150, z −240…−175) — antes o vale (≈5 m) encostava no relevo antigo (≈90 m) num degrau vertical
 /** Recortes que a malha antiga do mundo deve deixar para a malha em blocos da jornada. */
-export const JOURNEY_HOLES = Object.freeze([{ x0: -4000, x1: -118, z0: -175, z1: 4000 }, { x0: -4000, x1: -240, z0: -4000, z1: -175 }]);
+export const JOURNEY_HOLES = Object.freeze([{ x0: -4000, x1: -118, z0: -175, z1: 4000 }, { x0: -4000, x1: -240, z0: -4000, z1: -175 }, { x0: -240, x1: -150, z0: -240, z1: -175 }]);
 /** Borda recortada do abismo (paredes irregulares); as pontas da ponte ficam sempre em rocha firme. */
 export const abyssEdge = (z, side) => 9 * (fbm2(z * .045 + side * 17, side * 3.1, 3, 77) - .5) * sstep(6, 30, Math.abs(z - BRIDGE.z));
 export function inAbyss(x, z) { return z > ABYSS.z0 && z < ABYSS.z1 && x < ABYSS.x1 + abyssEdge(z, 1) && x > ABYSS.x0 + abyssEdge(z, -1); }
