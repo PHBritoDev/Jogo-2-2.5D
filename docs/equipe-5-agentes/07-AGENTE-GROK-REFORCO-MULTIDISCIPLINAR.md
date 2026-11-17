@@ -1,3 +1,49 @@
+## DIREÇÃO ARTÍSTICA VINCULANTE — REVISADA PELO DIRETOR (16/11/2026)
+
+**LEITURA ADICIONAL OBRIGATÓRIA:** `docs/VISAO-MESTRA-QUALIDADE-VISUAL-E-GAMEPLAY.md` INTEGRALMENTE; consultar `PROMPT_MESTRE_DO_JOGO.md`, contratos e PRs recentes. O documento Visão Mestra é o referencial permanente do CRIADOR para arte/VFX/gameplay. Este complemento traduz seus princípios; não substitui nem rebaixa a fonte. Ao receber fotos anexadas à automação Grok, distinguir claramente **A = screenshot atual do jogo/BUG**, **B = referência de resultado desejado**. Só afirmar que viu foto se recebeu e abriu.
+
+### Identidade que NÃO pode ser perdida
+- **RPG 3D de ação, fantasia sombria/celestial com narrativa espiritual original e sete pecados capitais.** Atmosfera misteriosa, épica, nostálgica e ocasionalmente assustadora; contraste entre paisagens belas/acolhedoras e lugares ameaçadores/hostis. NÃO tornar tudo marrom, obscuro ou cinza; não transformar fantasia em realismo fotográfico sem personalidade.
+- **Gráficos estilizados cinematográficos com materiais 3D convincentes**, não low-poly cru, blocos repetidos, terreno liso, textura lavada ou sprites/planos óbvios. Personagens e armas GLB reais, proporção/rig corretos, PBR coerente: pedra, basalto, madeira, metal, tecido, água e lava distinguíveis por superfície, rugosidade, relevo, iluminação e reação física. Contraste e exposição que preservem volumes, detalhes e silhuetas.
+- Cada região precisa de **composição autoral reconhecível e uma jornada coerente**: trilhas orgânicas e largas, clareiras para lutas, marcos visuais, árvores variadas, vegetação densa mas sem repetição, rochas ancoradas, profundidade, distância, horizontes sem buracos, rota e colisão sólidas. O jogador precisa querer explorar e lembrar de cada lugar.
+- **Emoções intencionais:** nostalgia no amanhecer e no fim da tarde, ansiedade/tensão antes dos chefes, imponência celestial, tristeza onde a história já aprovada exige, ameaça nos territórios demoníacos. A arte deve comunicar pelo percurso, escala, luz, som e enquadramento, não por partículas e ícones aleatórios.
+
+### Iluminação e atmosfera: alvo detalhado
+- **Manhã nostálgica:** sol baixo suave, temperatura amena, neblina leve nas depressões, volumes de árvores legíveis; cores naturais, sem cinza morto.
+- **Tarde dourada:** iluminação âmbar lateral e sombras longas cuidadosas, profundidade atmosférica, céu e paisagem respondendo à hora; contraste sem clipping branco/pretos sem informação.
+- **Crepúsculo:** transição quente→fria, silhuetas cinematográficas de árvores/torres/montanhas, céu laranja/rosa com nuvens coerentes, sem salto de exposição.
+- **Noite:** escura o suficiente para mistério, mas caminhos, NPCs, materiais, inimigos e controles permanecem visíveis; lua, estrelas, lanternas/fogueiras com influência local perceptível, sem 50 luzes dinâmicas.
+- **Aurora quando presente:** acima do protagonista, cortinas amplas com animação orgânica violeta/rosa/azul, iluminação indireta artisticamente sutil mas visível em água, rochas, terra e vegetação. Não anel artificial escondido nas bordas nem pintar tudo de roxo; só em cenas e horários apropriados.
+- **Sombras/névoa:** sombras de contato críveis e coerentes com fonte, profundidade por densidade atmosférica, não névoa que esconde bugs. Resposta de PBR/tone mapping/coloração do mundo deve variar com clima/bioma; não simplesmente aumentar saturação e bloom.
+- **Regiões vulcânicas/interiores:** basalto/escória com relevo, magma visualmente FLUIDO e perigoso, brilho laranja incidindo em paredes/piso/arma, fumaça quente em escalas diferentes, cavidades vastas e passarelas; contraluz controlada sem apagar o personagem. **Água, cachoeira e lava devem ser dinâmicas e convincentes em movimento e gameplay**, não placas planas com cor/textura scrolling usadas como entrega final.
+
+### Referências artísticas autorizadas — PRINCÍPIOS, NUNCA CÓPIA
+1. **Genshin Impact**: legibilidade do terreno, panoramas memoráveis, beleza natural, hierarquia de cor, sensação de descoberta e ritmo de exploração. **Não** copiar shader, mapa ou personagens.
+2. **Elden Ring**: escala monumental, distância ameaçadora, paisagens sombrias e silhuetas de castelos/rochas. Evitar importar seu nível de escuridão para todas as regiões.
+3. **Zelda: Breath of the Wild**: pistas visuais de navegação, skylines reconhecíveis, regiões com personalidade e conexões caminháveis.
+4. **Ghost of Tsushima**: luz dourada, vento/gramado, neblina e composição atmosférica com movimento discreto.
+5. **Honkai: Star Rail / RPGs de ação e animes de fantasia**: direção de habilidades com intenção, antecipação, silhueta, energia controlada, clímax/impacto e dissipação. Consultar a Visão Mestra e o vídeo-referência de VFX `Doublecats — 2024 Realtime VFX Portfolio Showreel` apenas se de fato puder assistir; não afirmar que viu.
+6. **Fotografias e vídeos reais** de cachoeiras, rios, lagoas, magma viscoso, crateras e auroras: física visual do fluxo, erosão, luz e clima. Referência real não exige simulação CFD cara nem impõe fotorealismo à identidade stylized.
+
+### Combate e qualidade 3D — padrão mínimo do criador
+- VFX não genérico em todos os ataques, jamais copiar mesma esfera, cilindro, explosão ou partículas recoloridas. Habilidades existentes têm identidade própria: animação/peso/telegraph, emissão na arma/mão/chão certos, movimento/colisão, impacto sincronizado, reação inimiga, resíduos temporários e limpeza.
+- O protagonista precisa ter andar/correr/dash/pular/combos naturais, animação misturada ao movimento, espada não flutuante; 1ª e 3ª pessoa coerentes; combos responsivos. Chefes e minibosses não devem parecer inimigos comuns recoloridos.
+- **Android é prioridade**: referência aspiracional de 30 FPS estáveis em aparelhos intermediários e 60 onde possível, sem alegar garantia de FPS antes de medir. Evitar travadas de 1–5 FPS mesmo que o número médio pareça bom. Otimizar código por culling, instancing, pooling, streaming, GPU texture compression (KTX2 quando compatível), shader compilation, bateladas e LOD SEM reduzir drasticamente os gráficos.
+- Toda mudança visual precisa de **ANTES/DEPOIS com câmera, hora, resolução e preset equivalentes**, vídeo quando fluido/animação, prova de jogabilidade e regressão/perf. Uma captura bonita não é física nem bug corrigido. Se o Grok não tiver Playwright/browser, não fingir testes nem simplesmente elevar custo visual e declarar aprovado.
+
+### Como avaliar e trabalhar fotos enviadas pelo criador
+- Recebeu screenshots de **fendas brancas e pretas em montanhas**? São bugs e prioridade técnica; não cobrir com folhagem.
+- Recebeu foto de **água turquesa chapada, cachoeira tipo cortina ou lava em disco/triângulo**? Reprovar visual mesmo que o material tenha transparência; exigir fluxo contínuo, interação, contorno geológico e dano/queimadura da lava.
+- Recebeu referência de **aurora cobrindo céu violeta**? Busque cortinas amplas zenitais e efeito sutil no ambiente, preservando noite legível.
+- Recebeu referências de **caverna vulcânica monumental**? Guiar pedra, calor, rios e luz; **não** construir outra caverna em paralelo se Claude ainda trabalhar nessa área. Fazer revisão útil na issue #519.
+- Toda recomendação precisa citar: cenário, falha ou meta, arquivo do código correspondente, impacto esperado, risco mobile, validação objetiva e dono do escopo. Se uma ideia é apenas cosmética e cara, recuse ou proponha alternativa melhor.
+- Antes de trabalhar sobre imagens, pergunte se são **ATUAL / DESEJADO** quando não estiver claro, e compare com a `main` atual — bugs de prints antigos não significam que continuam no código.
+
+### Pesquisa profissional, sem buzzwords
+Usar a documentação oficial Three.js `https://threejs.org/docs/`, manual de otimização `https://threejs.org/manual/pages/optimize-lots-of-objects.html`, `https://threejs.org/docs/pages/KTX2Loader.html`, e fontes autorizadas de técnicas artísticas. Verifique versão/engine, custo real e licença. Técnicas novas de 2026 só entram se renderizáveis em WebGL/browser Android e testadas comparativamente.
+
+---
+
 # A7 — GROK | Reforço multidisciplinar, pesquisa, execução e auditoria do RPG
 
 **Projeto:** `PHBritoDev/Jogo-2-2.5D` — *A Batalha Contra os 7 Pecados Capitais*. **Dono das decisões finais:** criador; coordenação pela issue GitHub [#519](https://github.com/PHBritoDev/Jogo-2-2.5D/issues/519). Leia este documento INTEGRALMENTE a cada execução e a versão atual da `main`; não confiar em resumos antigos.
