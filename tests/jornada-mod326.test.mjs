@@ -58,8 +58,8 @@ test('lava: o dano segue o contorno VISÍVEL (irregular), canais descem o relevo
 test('lava no jogo: dano por tick no caminho de dano real + queimadura com duração, selo e brasa; sem lava sólida', () => {
   assert.ok(/const LAVA_RULES=\{contact:38,contactEvery:600,burnTick:7,burnEvery:500,burnFor:5000\}/.test(m));
   assert.ok(/damagePlayerFromEnemyAttack\(LAVA_RULES\.contact,\{kind:'lava'\}\)/.test(m), 'i-frames, escudo, defesa e morte do jogo');
-  assert.ok(/journeyWorld\.lavaHeat\(P\.x,P\.z\)>0/.test(m) && /lavaHeat\(x, z\) \{ return lavaSys\.heatAt\(x, z\); \}/.test(w));
-  assert.ok(/if\(playerHP<=0\|\|cineActive\|\|voidMode\)\{lavaBurn\.until=0/.test(m), 'morte/retorno apagam a queimadura');
+  assert.ok(/journeyWorld\.lavaHeat\(P\.x,P\.z\)/.test(m) && /onLava=playerHP>0&&!cineActive&&grounded&&heat>0/.test(m) && /volcanoArena\.refs\.lavaHeat\(P\.x-voidSpec\.x,P\.z-voidSpec\.z\)/.test(m) && /lavaHeat\(x, z\) \{ return lavaSys\.heatAt\(x, z\); \}/.test(w));
+  assert.ok(/if\(playerHP<=0\|\|cineActive\|\|\(voidMode&&!inVolc\)\)\{lavaBurn\.until=0/.test(m), 'morte/retorno apagam a queimadura');
   assert.ok(!/addSolid\(\{ x: P\.x, z: P\.z, r: P\.r \* 1\.05 \}\)/.test(w), 'a lava não é mais parede invisível');
   assert.ok(!/BoxGeometry\(1, \.05, 1\), fissureGlow/.test(w), 'sem faixas retas aditivas fingindo magma');
   const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8'); assert.ok(html.includes('id="burn-chip"') && html.includes('id="burn-veil"'));
