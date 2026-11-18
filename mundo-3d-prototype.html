@@ -309,5 +309,47 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
   document.addEventListener('touchstart', enterOnFirstTouch, {capture:true, passive:true});
 })();
 </script>
+<script>
+/* Botão de QA/ADM — TP para a entrada segura da caverna do Ato 2.
+   Usa a transição oficial da zona, não teleporte bruto para coordenadas. */
+(function () {
+  const attach = () => {
+    const panel = document.querySelector('#dim-test-panel, #admin-panel, #adm-panel');
+    if (!panel || panel.querySelector('#admin-tp-caverna-ato2')) return false;
+    const button = document.createElement('button');
+    button.id = 'admin-tp-caverna-ato2';
+    button.type = 'button';
+    button.textContent = 'TP · Caverna Ato 2';
+    button.title = 'Entrar na caverna pela posição segura de início';
+    button.style.cssText = 'min-height:36px;padding:8px 12px;margin:5px;border:1px solid #caa76b;border-radius:8px;background:#211d2c;color:#fff2d3;font:600 12px system-ui;cursor:pointer;touch-action:manipulation';
+    button.addEventListener('click', async () => {
+      const api = window.SevenSinsDebug3D;
+      if (typeof api?.ascension !== 'function') {
+        button.textContent = 'TP indisponível (ative debug3d)';
+        return;
+      }
+      button.disabled = true;
+      try {
+        if (typeof api.freeRoam === 'function') api.freeRoam();
+        const state = await api.ascension('cave');
+        if (state?.key !== 'cave') throw new Error('A caverna não foi ativada');
+        button.textContent = '✓ Caverna Ato 2';
+        setTimeout(() => { button.textContent = 'TP · Caverna Ato 2'; }, 1400);
+      } catch (error) {
+        button.textContent = 'Falha no TP · tentar novamente';
+        console.error('[ADM] TP caverna Ato 2:', error);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    panel.appendChild(button);
+    return true;
+  };
+  if (!attach()) {
+    const watch = new MutationObserver(() => { if (attach()) watch.disconnect(); });
+    watch.observe(document.body, { childList: true, subtree: true });
+  }
+})();
+</script>
 </body>
 </html>
