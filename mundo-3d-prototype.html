@@ -310,45 +310,51 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
 })();
 </script>
 <script>
-/* Botão de QA/ADM — TP para a entrada segura da caverna do Ato 2.
-   Usa a transição oficial da zona, não teleporte bruto para coordenadas. */
-(function () {
-  const attach = () => {
-    const panel = document.querySelector('#dim-test-panel, #admin-panel, #adm-panel');
-    if (!panel || panel.querySelector('#admin-tp-caverna-ato2')) return false;
-    const button = document.createElement('button');
-    button.id = 'admin-tp-caverna-ato2';
-    button.type = 'button';
-    button.textContent = 'TP · Caverna Ato 2';
-    button.title = 'Entrar na caverna pela posição segura de início';
-    button.style.cssText = 'min-height:36px;padding:8px 12px;margin:5px;border:1px solid #caa76b;border-radius:8px;background:#211d2c;color:#fff2d3;font:600 12px system-ui;cursor:pointer;touch-action:manipulation';
-    button.addEventListener('click', async () => {
-      const api = window.SevenSinsDebug3D;
-      if (typeof api?.ascension !== 'function') {
-        button.textContent = 'TP indisponível (ative debug3d)';
-        return;
-      }
-      button.disabled = true;
-      try {
-        if (typeof api.freeRoam === 'function') api.freeRoam();
-        const state = await api.ascension('cave');
-        if (state?.key !== 'cave') throw new Error('A caverna não foi ativada');
-        button.textContent = '✓ Caverna Ato 2';
-        setTimeout(() => { button.textContent = 'TP · Caverna Ato 2'; }, 1400);
-      } catch (error) {
-        button.textContent = 'Falha no TP · tentar novamente';
-        console.error('[ADM] TP caverna Ato 2:', error);
-      } finally {
-        button.disabled = false;
-      }
-    });
-    panel.appendChild(button);
-    return true;
-  };
-  if (!attach()) {
-    const watch = new MutationObserver(() => { if (attach()) watch.disconnect(); });
-    watch.observe(document.body, { childList: true, subtree: true });
+/* ADM/QA: acesso direto à caverna subterrânea do vulcão (Ato II).
+   Não confundir com ascension('cave'), que é a caverna da serra.
+   O roteiro do jogo usa act2(12,0) para entrar na caverna do vulcão. */
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(!p.has('debug3d')) return;
+  const label = 'TP · Caverna do Ato 2';
+  async function enter(button){
+    const api = window.SevenSinsDebug3D;
+    if(typeof api?.act2 !== 'function'){
+      button.textContent='Carregando ADM…';
+      setTimeout(()=>{button.textContent=label;},1600);
+      return;
+    }
+    button.disabled=true;
+    try{
+      if(typeof api.freeRoam==='function')api.freeRoam();
+      await api.act2(12,0);
+      button.textContent='✓ TP Ato 2 ativado';
+      setTimeout(()=>{button.textContent=label;},1800);
+    }catch(err){
+      console.error('[ADM] TP caverna do vulcão Ato II',err);
+      button.textContent='Falha no TP — tentar novamente';
+    }finally{button.disabled=false;}
   }
+  function makeButton(id){
+    const b=document.createElement('button');
+    b.id=id;b.type='button';b.textContent=label;
+    b.title='Ir à caverna subterrânea do vulcão (Ato II)';
+    b.style.cssText='cursor:pointer;min-height:38px;padding:7px 11px;border:1px solid #c5a36d;border-radius:9px;background:#241727;color:#fff2dc;font:700 12px system-ui;touch-action:manipulation;pointer-events:auto';
+    b.addEventListener('click',()=>enter(b));
+    return b;
+  }
+  const quick=makeButton('adm-tp-vulcao-ato2-quick');
+  quick.style.cssText+=';position:fixed;top:64px;right:12px;z-index:350;max-width:190px;box-shadow:0 4px 16px #0009';
+  document.body.appendChild(quick);
+  function attach(){
+    const panel=document.querySelector('#dim-test-panel,#admin-panel,#adm-panel');
+    if(panel&&!panel.querySelector('#adm-tp-vulcao-ato2')){
+      panel.appendChild(makeButton('adm-tp-vulcao-ato2'));
+    }
+  }
+  attach();
+  const observer=new MutationObserver(attach);
+  observer.observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body>
