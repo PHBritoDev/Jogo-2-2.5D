@@ -338,7 +338,7 @@ export function colorTerrain(terrain, positions, normals) {
           rgb.every(v => Number.isFinite(v) && v >= 0 && v <= 1));
       const tA = validTint ? e.tint[0] : [.27, .22, .17];
       const tB = validTint ? e.tint[1] : [.36, .3, .24];
-      const strength = Number.isFinite(e.tintStrength) && e.tintStrength > 0 && e.tintStrength <= 1
+      const strength = Number.isFinite(e.tintStrength) && e.tintStrength >= 0 && e.tintStrength <= 1
         ? e.tintStrength : .9;
       if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * strength);
     }
