@@ -315,7 +315,7 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
    O roteiro do jogo usa act2(12,0) para entrar na caverna do vulcão. */
 (function(){
   const p = new URLSearchParams(location.search);
-  if(!p.has('debug3d')) return;
+  if(!p.has('debug3d') && p.get('adm')!=='1') return;
   const label = 'TP · Caverna do Ato 2';
   async function enter(button){
     const api = window.SevenSinsDebug3D;
