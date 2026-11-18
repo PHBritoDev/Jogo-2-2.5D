@@ -37,7 +37,7 @@ export const VZ_TIME = Object.freeze({ jump: { from: 1.45, speed: 1.25 }, dash: 
 export const VZ_MOVES = [
   { id: 'Trono_Duplo', clip: 'vz_double', label: 'Corte Duplo', hits: [.63, 1.2], duration: 1.78, advance: 1.1, glide: true, weight: 1.2, opener: true },
   { id: 'Trono_Queda', clip: 'vz_fall', label: 'Queda do Trono', hits: [1.07], duration: 1.72, advance: .55, heavy: true, guardBreak: true, weight: .8 },
-  { id: 'Trono_Moinho', clip: 'vz_spin', label: 'Moinho Abissal', hits: [.9, 1.03], duration: 1.55, advance: .15, spin: true, weight: .7 },
+  { id: 'Trono_Moinho', clip: 'vz_spin', label: 'Moinho Abissal', hits: [.96] /* CLAUDE (P3): os dois picos (.90/.03) caíam no MESMO arco (janelas sobrepostas = dano dobrado); um contato */, duration: 1.55, advance: .15, spin: true, weight: .7 },
   { id: 'Trono_Riposta', clip: 'vz_riposte', label: 'Riposta do Condenado', hits: [.43], duration: .86, advance: .55, fast: true, weight: .9 },
   { id: 'Trono_Triplo', clip: 'vz_triple', label: 'Sentença Tripla', hits: [.77, 1.5, 2.23], duration: 2.72, advance: 1.45, glide: true, minPhase: 1, weight: 1 },
   { id: 'Trono_Danca', clip: 'vz_dance', label: 'Dança do Ceifador', hits: [.53, 1.27, 2.23], duration: 2.66, advance: 1.25, glide: true, minPhase: 2, weight: 1 },

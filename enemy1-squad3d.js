@@ -1,5 +1,7 @@
 import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
 import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
+/** CLAUDE (P3): pausa entre golpes de chefe — cadeia de 3–4 golpes quase colados, depois uma respiração tática curta. */
+export function bossGap(a){a.bossChain=(a.bossChain||0)+1;if(a.bossChain>=3+((a.bossChain*7+(a.id||'').length)%2)){a.bossChain=0;return .85;}return .12;}
 import { EnergyShield, SHIELD_SPECS } from './combat-defense3d.js';
 import { MOBILITY } from './combat-mobility3d.js';
 import { DEMON1_MOVES, DEMON1_COMBOS, DEMON1_LEAP, DEMON1_SHIELD, clawReaches } from './demon1-combat3d.js';
@@ -35,7 +37,7 @@ export function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6
 
 const COMMON = {
   hp: 180, radius: .42, height: 1.85, poise: 14, stamina: 100, leash: 34, sight: 26,
-  speed: { walk: 1.65, run: 3.4, strafe: 1.3, back: 1.9, turn: 8 },
+  /* CLAUDE: andar 30 % mais ágil */ speed: { walk: 2.15, run: 3.4, strafe: 1.3, back: 1.9, turn: 8 },
   melee: { max: 2.5, reach: 2.4, arc: .34, windup: .46, hits: [.46], dur: 1.02, dmg: 10, cd: 1.7, knock: .55 },
   dash: { speed: 8.5, time: .32, cd: 3.4 },
   block: { chance: .2, dur: .8, cd: 2.6, cost: 24, reduce: .7 },
@@ -52,7 +54,7 @@ const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: T
   kit: TEMP_MELEE_ONLY_TEST ? [] : undefined, counter: { ...COMMON.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : COMMON.counter.chance } };
 const WARDEN = {
   ...COMMON, hp: 480, radius: .55, height: 2.25, poise: 32, leash: 40,
-  speed: { walk: 1.75, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
+  speed: { walk: 2.27, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
   melee: { max: 1.45, reach: 1.8, arc: -.05, windup: .5, hits: [.5, .92], dur: 1.6, dmg: 15, cd: 2.3, knock: 1 },
   block: { chance: .3, dur: .85, cd: 2.4, cost: 16, reduce: .75 },
   dodge: { chance: .3, cd: 3 },
@@ -299,7 +301,7 @@ export class Enemy1Squad {
     if(BOSS_MOVES[a.kind]){
       const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range&&!((m.minPhase||0)>(a.vzPhase||0))),move=pool.find(m=>m.id===forcedMove)||(a.T.pickMove&&a.T.pickMove(this,a,t,near))||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1; // Mod 320: espécie pode escolher o golpe (VHAZRAEL: fase, anti-repetição, situação)
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
-      a.vx=a.vz=0;if(move.aim)a.yaw=Math.atan2(t.x-a.x,t.z-a.z); /* Mod 320: estocada trava a direção no alvo ao começar (telegrafada, sem leitura de input depois) */a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
+      a.vx=a.vz=0;if(move.aim)a.yaw=Math.atan2(t.x-a.x,t.z-a.z); /* Mod 320: estocada trava a direção no alvo ao começar (telegrafada, sem leitura de input depois) */a.cds.melee=move.rate?(move.duration/move.rate+bossGap(a))*a.cdMul:(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
     if (a.T.native) return this.startNative(a, t, forcedMove);
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
@@ -354,7 +356,7 @@ export class Enemy1Squad {
     this.event('cast', { actor: a, skill, target: t.id });
   }
   stepAction(a, dt, t) {
-    const act = a.act, previous=act.t; act.t += dt;
+    const act = a.act, previous=act.t; act.t += dt * (act.move?.rate || 1); // CLAUDE (P3): golpe de chefe com cadência própria — tudo (janelas, traço, avanço, clipe) anda no tempo do clipe
     if (act.type === 'dodge') { const s = a.T.dash.speed * (1 - act.t / act.dur * .4); this.move(a, act.dx * s * dt, act.dz * s * dt); }
     if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
     if(act.move){

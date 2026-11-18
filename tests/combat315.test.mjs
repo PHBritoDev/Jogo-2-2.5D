@@ -68,15 +68,16 @@ test('Mod 315: magia em área drena por tiques deduplicados — o mesmo total a 
   const s = new EnergyShield(SHIELD_SPECS.hero); s.activate(0); s.absorb({ dmg: 6, kind: 'area', source: 'A' }, 0); const k = s.absorb({ dmg: 6, kind: 'area', source: 'B' }, .01); assert.equal(k.ignored, false, 'fontes diferentes contam separado');
 });
 
-test('Mod 315: espada + onda acertam o mesmo alvo uma vez por golpe; onda acerta sem toque físico', () => {
+test('Mod 315 + P4: só lâmina e rastro colado acertam, uma vez por golpe; a onda (sistema dos poderes) segue testada à parte', () => {
   const target = { id: 'e1', x: 0, y: .9, z: 4.2, radius: .45, height: 1.8, alive: true };
-  const def = protaMoveDef('ground', 0); assert.ok(def.energy && def.hit === 'hybrid', 'Fenda diagonal agora solta onda');
-  for (const blade of [{ base: { x: 0, y: 1.1, z: 3.5 }, tip: { x: 0, y: 1.2, z: 4.4 } }, { base: { x: 0, y: 1.1, z: .4 }, tip: { x: 0, y: 1.2, z: 1.1 } }]) {
+  // briefing combate/câmera (P4): o golpe básico não solta mais onda — só a lâmina e o rastro colado dão dano
+  const def = protaMoveDef('ground', 0); assert.ok(def.energy === null && def.hit === 'physical', 'Fenda diagonal sem onda projetada');
+  for (const [blade, want] of [[{ base: { x: 0, y: 1.1, z: 3.5 }, tip: { x: 0, y: 1.2, z: 4.4 } }, 1], [{ base: { x: 0, y: 1.1, z: .4 }, tip: { x: 0, y: 1.2, z: 1.1 } }, 0]]) {
     const hits = [];
     const r = new SwordRites({ choreography: true, moveset: (s, m, st) => protaMoveDef(m, st), drive: () => {}, pose: () => blade, hit: (d, id, k) => hits.push([id, k]), blocked: () => false });
     r.attack('prota', { damage: 20, yaw: 0, target, mode: 'ground' });
     for (let i = 0; i < 120; i++) r.update(1 / 60, { valid: true, grounded: true, from: { x: 0, y: 0, z: 0 }, target, sword: 'prota' });
-    assert.equal(hits.filter(h => h[0] === 'e1').length, 1, 'um só dano por golpe');
+    assert.equal(hits.filter(h => h[0] === 'e1').length, want, 'um só dano por golpe; lâmina longe não acerta');
   }
   // alturas: a onda passa a 1,0 m; alvo voando a 4 m não é atingido; alvo no chão à frente sim; atrás nunca
   const e = makeEnergy({ kind: 'wave', roll: .2, radius: 1.2, speed: 20, range: 6, band: .7, life: .4 }, { x: 0, y: 1, z: 0 }, 0, 0);

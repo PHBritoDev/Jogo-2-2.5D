@@ -170,7 +170,7 @@ test('fauna: semente estável por célula (o mesmo bicho mora no mesmo lugar) e 
 test('fauna no jogo: controlador único, lazy por habitat, sem bicho em interior/caverna, canto dos grilos ponderado', () => {
   assert.equal((m.match(/createFauna\(/g) || []).length, 1);
   assert.ok(/fauna\.update\(dt,\{px:P\.x,pz:P\.z,hour:gameClock\.hour,camera,hidden:voidMode\|\|caveWalk\}\)/.test(m));
-  assert.ok(/worldAudio\.update\(dt,\{insects:faunaInsects,/.test(m));
+  assert.ok(/worldAudio\.update\(dt,\{[^}]*insects:faunaInsects,/.test(m));
   const au = fs.readFileSync(new URL('../audio3d.js', import.meta.url), 'utf8'); assert.ok(/const ins = s\.insects \?\? \(night > \.4 \? 1 : 0\)/.test(au));
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
   assert.ok(/if \(list\.length && !assets\[kind\] && !loading\)/.test(src), 'um GLB por vez, só com habitat no raio');

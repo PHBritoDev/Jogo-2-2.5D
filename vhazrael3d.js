@@ -65,7 +65,7 @@ export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, 
 export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
 const VHAZ = {
   ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
-  speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
+  speed: { walk: 2.86, run: 5.63, strafe: 2.86, back: 3.5, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
   dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? 0 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
@@ -77,7 +77,11 @@ const VHAZ = {
 /* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
    mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
 BOSS_MOVES.vhazrael = (VHAZRAEL_SWORD_ONLY_TEST ? VZ_MOVES.filter(m => !m.range) : VZ_MOVES).map(m => ({ ...m, patterns: ['diagonal'] }));
-for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
+/* CLAUDE (P3) — esgrima mais rápida e contínua, por golpe (não acelerar tudo igual): leves ~0,6 s, médios ~1,1 s,
+   pesados ~1,4 s em tempo real. A janela de dano, o traço da lâmina, o avanço e o clipe andam juntos no tempo do clipe
+   (enemy1-squad3d.stepAction × rate), então o telegraph continua legível (1º impacto ≥ 0,33 s). */
+const VZ_RATE = { Trono_Duplo: 1.55, Trono_Queda: 1.2, Trono_Moinho: 1.35, Trono_Riposta: 1.3, Trono_Triplo: 1.6, Trono_Danca: 1.6, Trono_Estocada: 1.15 };
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.rate = VZ_RATE[m.id] || 1; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
 /** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
     abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
 export function vhazraelPickMove(sq, a, t, pool) {

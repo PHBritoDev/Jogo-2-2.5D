@@ -1,6 +1,6 @@
 'use strict';
 /* Mod 315 — QA real do combate no jogo integrado (celular 844x390 com toque, WebGL/SwiftShader), com vídeo e capturas.
-   Verifica: onda da espada acertando sem toque físico, dash 0,5 s, 2 saltos sem terceiro, escudo do herói 2,7 s + 8 s,
+   Verifica: golpe básico sem projétil (longe não acerta; lâmina + rastro colado acertam), dash 0,5 s, 2 saltos sem terceiro, escudo do herói 2,7 s + 8 s,
    ruptura com dano integral, escudo/garras/salto predatório do Demônio1, erros de console/404 e custo de desenho. */
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat315'),base=process.env.VISUAL_BASE_URL||'http://127.0.0.1:4176';fs.mkdirSync(out,{recursive:true});
@@ -17,9 +17,12 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   await E(()=>{for(const id of ['vfx-lab','quest-hud','status'])document.getElementById(id)&&(document.getElementById(id).style.display='none');});
   await E(()=>{const D=SevenSinsDebug3D;D.setHour&&D.setHour(10);D.squadLab('1');});
   await p.waitForFunction(()=>SevenSinsDebug3D.squadState().on&&SevenSinsDebug3D.combat315().enemies.length===1,null,{timeout:120000});
-  // 1) onda acerta sem toque físico: inimigo parado a 4,6 m (fora do alcance da lâmina)
-  report.steps.wave=await E(()=>{const D=SevenSinsDebug3D;D.teleport(-5,16,Math.PI);D.squadPose('e1',-5,11.4,0,true);D.squadPause(true);D.view(.7,.16,6);D.combatStep(.4,{fps:30,draw:false});const h0=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.3,{fps:60,draw:true});const mid=D.combat315();D.combatStep(.6,{fps:60,draw:false});return {h0,h1:D.squadState().enemyHP,vfx:mid.slash,report:D.protaReport().move};});
-  assert.ok(report.steps.wave.h1<report.steps.wave.h0,'a onda acertou sem a lâmina tocar');assert.ok(report.steps.wave.vfx.slashes+report.steps.wave.vfx.waves>0,'VFX do golpe visível');
+  // 1) briefing combate/câmera (P4): golpe básico SEM projétil — a 4,6 m (fora da lâmina+rastro) não dá dano;
+  //    encostado, a lâmina + rastro colado acerta uma vez, com VFX de corte visível
+  report.steps.wave=await E(()=>{const D=SevenSinsDebug3D;D.teleport(-5,16,Math.PI);D.squadPose('e1',-5,11.4,0,true);D.squadPause(true);D.view(.7,.16,6);D.combatStep(.4,{fps:30,draw:false});const h0=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.3,{fps:60,draw:true});const mid=D.combat315();D.combatStep(.9,{fps:60,draw:false});const h1=D.squadState().enemyHP;
+   D.squadPose('e1',-5,14.9,0,true);D.combatStep(.5,{fps:30,draw:false});const h2=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.9,{fps:60,draw:false});return {h0,h1,h2,h3:D.squadState().enemyHP,vfx:mid.slash,report:D.protaReport().move};});
+  assert.equal(report.steps.wave.h1,report.steps.wave.h0,'longe: nada sai voando para acertar');assert.ok(report.steps.wave.vfx.slashes>0,'VFX do corte colado à lâmina visível');
+  assert.ok(report.steps.wave.h3<report.steps.wave.h2,'perto: lâmina + rastro acertam');
   await E(()=>{const D=SevenSinsDebug3D;D.combatAction('attack');D.combatStep(.28,{fps:60,draw:true});});await shot('01-onda-espada');
   // 2) dash: recarga de 0,50 s desde a ativação
   report.steps.dash=await E(()=>{const D=SevenSinsDebug3D;D.combatStep(1,{fps:30,draw:false});D.setJoy(1,0);D.combatAction('dash');const a=D.combat315().mob.dashLeft;D.combatStep(.3,{fps:60,draw:false});const pos=D.heroState().p;D.combatAction('dash');const b2=D.combat315().mob.dashLeft;D.combatStep(.21,{fps:60,draw:false});D.combatAction('dash');const c=D.combat315().mob.dashLeft;D.setJoy(0,0);D.combatStep(.4,{fps:30,draw:true});return {a,b:b2,c,pos};});

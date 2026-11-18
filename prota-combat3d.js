@@ -9,7 +9,9 @@ import { MOBILITY } from './combat-mobility3d.js';
  *  - Os golpes vêm de trechos dos clipes de arma com o PICO de velocidade da ponta da espada (empunhadura no eixo
  *    dos nós dos dedos, +X da mão): janela ativa = trecho com > 45 % do pico.
  */
-export const PROTA_LOCO = Object.freeze({ walk: 2.2, run: 6.8, walkNatural: 1.63, runNatural: 5.48, idleBelow: .3, guard: 1.6 });
+/* CLAUDE combate/movimento: andar mais ágil (2,2 → 2,8 m/s, cadência do clipe 1,72× — passada rápida, sem patinar);
+ * correr continua só com CORRER/Shift a 6,8 m/s. */
+export const PROTA_LOCO = Object.freeze({ walk: 2.8, run: 6.8, walkNatural: 1.63, runNatural: 5.48, idleBelow: .3, guard: 1.6 });
 /** Salto proporcional ao corpo (1,9 m): ~1,18 m de altura e ~0,65 s no ar (mesmo valor do PR #468, aplicado UMA vez:
  *  ápice v²/2g). O clipe Jump_Over_Obstacle_2 é esticado para o tempo real de voo (fase aérea = arco balístico). */
 export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 7.2, clip: 'Jump_Over_Obstacle_2', takeoff: .10, airFrom: .20, airTo: .52, land: .60, landEnd: .80, recover: .16 });
@@ -57,11 +59,16 @@ export const PROTA_MOVES = Object.freeze({
     energy: { kind: 'sector', at: .30, span: Math.PI * 2, roll: 0, r0: .8, r1: 3.6, speed: 16, band: 1, half: .5, life: .35 }, ref: '0240a0f0 0:03 impacto no chão com estouro · acf4e763 0:22' },
 });
 export function protaMove(mode = 'ground', step = 0) { const m = PROTA_MOVES[mode] || PROTA_MOVES.ground; return Array.isArray(m) ? m[step % m.length] : m; }
+/** CLAUDE combate (P4): alcance do rastro visível além da ponta da espada (m). */
+export const BASIC_TRAIL = .3;
 /** Definição usada pelo SwordRites (api.moveset): janelas startup/ativo/follow-through/recuperação e buffer. */
 export function protaMoveDef(mode = 'ground', step = 0) {
   const list = PROTA_MOVES[mode] || PROTA_MOVES.ground, count = Array.isArray(list) ? list.length : 1, i = step % count, m = Array.isArray(list) ? list[i] : list;
   const duration = m.end - m.start;
-  return { ...m, id: `Prota302_${PROTA_MOVES[mode] ? mode : 'ground'}_${i}`, step: i, count, duration, multiplier: m.dmg,
+  /* CLAUDE combate (P4): golpe BÁSICO = lâmina + rastro colado a ela. A onda/setor projetado (energy) saiu da trilha
+   * normal — o dano vem da varredura da lâmina estendida até a borda do rastro visível (trail, m além da ponta),
+   * uma vez por janela. Os dados antigos ficam em `projected` só como referência das habilidades futuras. */
+  return { ...m, energy: null, projected: m.energy || null, hit: 'physical', trail: BASIC_TRAIL, id: `Prota302_${PROTA_MOVES[mode] ? mode : 'ground'}_${i}`, step: i, count, duration, multiplier: m.dmg,
     buffer: Math.max(.05, m.open * .5), cancelAt: Math.min(duration - .04, Math.max(m.close + .13, m.energy ? m.energy.at + .06 : 0)), chain: .5, drive: true,
     pattern: m.launcher ? 'rise' : m.finisher ? 'finish' : mode === 'plunge' ? 'plunge' : 'slash' };
 }
