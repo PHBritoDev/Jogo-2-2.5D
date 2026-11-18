@@ -77,7 +77,11 @@ const VHAZ = {
 /* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
    mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
 BOSS_MOVES.vhazrael = (VHAZRAEL_SWORD_ONLY_TEST ? VZ_MOVES.filter(m => !m.range) : VZ_MOVES).map(m => ({ ...m, patterns: ['diagonal'] }));
-for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
+/* CLAUDE (P3) — esgrima mais rápida e contínua, por golpe (não acelerar tudo igual): leves ~0,6 s, médios ~1,1 s,
+   pesados ~1,4 s em tempo real. A janela de dano, o traço da lâmina, o avanço e o clipe andam juntos no tempo do clipe
+   (enemy1-squad3d.stepAction × rate), então o telegraph continua legível (1º impacto ≥ 0,33 s). */
+const VZ_RATE = { Trono_Duplo: 1.55, Trono_Queda: 1.2, Trono_Moinho: 1.35, Trono_Riposta: 1.3, Trono_Triplo: 1.6, Trono_Danca: 1.6, Trono_Estocada: 1.15 };
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.rate = VZ_RATE[m.id] || 1; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
 /** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
     abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
 export function vhazraelPickMove(sq, a, t, pool) {
