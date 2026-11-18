@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'world3d-terrain.js'
+      - 'tests/a3-terrain-axis-uniform.test.mjs'
+      - 'tests/a3-terrain-color-invalid-regions.test.mjs'
       - 'tests/a3-terrain-patch-bounds.test.mjs'
       - 'tests/a3-foothill-route-clearance.test.mjs'
       - 'tests/a3-forest-invalid-boundary.test.mjs'
@@ -22,4 +24,4 @@ jobs:
       - name: Validar sintaxe do terreno
         run: node --check world3d-terrain.js
       - name: Executar regressões A3 reais do repositório
-        run: node --test tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs tests/a3-forest-invalid-boundary.test.mjs
+        run: node --test tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs tests/a3-forest-invalid-boundary.test.mjs tests/a3-terrain-axis-uniform.test.mjs tests/a3-terrain-color-invalid-regions.test.mjs
