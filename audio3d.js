@@ -4,6 +4,7 @@
  * espada, impacto, dano, magias). Inicia só após o primeiro toque/tecla (política de autoplay
  * do celular), pausa quando a aba some e guarda os volumes do jogador.
  */
+import { createSampleBank } from './audio-banco3d.js';
 const STORE_KEY = 'seven-sins-3d-audio';
 
 export function createWorldAudio() {
@@ -13,6 +14,7 @@ export function createWorldAudio() {
   const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
   const layers = {};
+  let bank = null; // missão combate/áudio: banco de amostras reais (audio-banco3d.js); o procedural fica só de reserva
   let insectTimer = 0, birdTimer = 2, gustTimer = 0, stepDistance = 0, lastStepAt = 0, dripTimer = 1, caveVerb = null, caveSend = null;
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(settings)); } catch (_) {} }
@@ -46,6 +48,7 @@ export function createWorldAudio() {
     ambBus = ctx.createGain(); sfxBus = ctx.createGain(); ambBus.connect(comp); sfxBus.connect(comp);
     musicBus = ctx.createGain(); musicBus.connect(comp); music = createMusic();
     noiseBuf = makeNoise();
+    try { bank = createSampleBank(ctx); bank.preload((ev, a) => a.categoria !== 'ambiente' && a.categoria !== 'clima'); } catch (_) { bank = null; }
     layers.wind = loopNoise('lowpass', 240, .35, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
     layers.water = loopNoise('lowpass', 900, .3, ambBus);
@@ -155,7 +158,9 @@ export function createWorldAudio() {
       stepDistance += s.speed * dt;
       if (stepDistance > .66 && performance.now() - lastStepAt > 180) {
         stepDistance = 0; lastStepAt = performance.now();
-        if (s.surface === 'path') burst('bandpass', 1500 + Math.random() * 400, 1.1, .12, .07);
+        const sk = s.surface === 'path' || s.surface === 'stone' ? 'step:path' : s.surface === 'water' ? 'step:water' : s.biome === 'cinzas' || s.biome === 'vulcao' ? 'step:ash' : 'step:grass';
+        if (bank && bank.play(sk, sfxBus, { gain: s.speed > 5 ? .55 : .38, rate: s.speed > 5 ? 1.06 : 1 })) {} // passos reais por superfície (corrida um pouco mais forte)
+        else if (s.surface === 'path') burst('bandpass', 1500 + Math.random() * 400, 1.1, .12, .07);
         else if (s.surface === 'water') burst('lowpass', 900, .6, .14, .16);
         else burst('lowpass', 650 + Math.random() * 200, .7, .1, .09);
       }
@@ -189,6 +194,23 @@ export function createWorldAudio() {
       layers.portal.g.gain.setTargetAtTime(.09 * Math.max(0, 1 - (s.portalDistance || 99) / 30) * (s.portalReady ? 1.6 : 1), t, .5);
       // Caverna C4: sem pássaros, grilos nem folhas; eco pelo tamanho da câmara, gotas perto das poças, corrente de ar na boca.
       const cv = s.cave || null;
+      // missão combate/áudio — ambientes REAIS por bioma (loops gerados, audio/amb), calando o procedural equivalente
+      // assim que a amostra está tocando; dimensões têm paisagem própria (VHAZRAEL: salão do trono).
+      let sampledBirds = false, sampledCrickets = false;
+      if (bank && bank.ready) {
+        const b = s.biome || null, dim = s.dimension || null, open = cv ? 0 : 1, outdoor = !dim;
+        const green = outdoor && (b === 'vale' || b === 'prado' || b === 'floresta') ? 1 : 0, L = (ev, lv) => bank.loop(ev, ambBus, lv);
+        sampledBirds = L('amb:forestDay', .5 * green * (1 - night) * open); sampledCrickets = L('amb:forestNight', .45 * green * night * open * Math.max(.4, s.insects ?? 1));
+        const windOn = L('amb:wind', outdoor ? (b === 'serra' ? .45 : b === 'abismo' ? .22 : .12) * open : 0), riverOn = L('amb:river', .55 * river), fallsOn = L('amb:falls', .7 * falls);
+        L('amb:volcano', outdoor && b === 'vulcao' ? .5 * open : 0); L('amb:ash', outdoor && b === 'cinzas' ? .4 * open : 0);
+        L('amb:village', outdoor && b === 'cidade' ? .35 * (1 - .6 * night) * open : 0); L('amb:abyss', outdoor && b === 'abismo' ? .45 : 0);
+        const caveOn = L('amb:cave', cv ? .5 + .2 * (cv.room || 0) : 0); L('amb:dim:bishop1', dim === 'bishop1' ? .5 : 0);
+        if (windOn) layers.wind.g.gain.setTargetAtTime(0, t, .5);
+        if (sampledBirds || sampledCrickets) layers.leaves.g.gain.setTargetAtTime(0, t, .5);
+        if (riverOn) { layers.river.g.gain.setTargetAtTime(0, t, .5); layers.riffle.g.gain.setTargetAtTime(0, t, .5); }
+        if (fallsOn) { layers.falls.g.gain.setTargetAtTime(0, t, .5); layers.fallsHi.g.gain.setTargetAtTime(0, t, .5); }
+        if (caveOn && layers.cave) layers.cave.g.gain.setTargetAtTime(0, t, .5);
+      }
       if (layers.cave) layers.cave.g.gain.setTargetAtTime(cv ? .05 + .04 * cv.room : 0, t, .8);
       if (caveSend) caveSend.gain.setTargetAtTime(cv ? .16 + .34 * cv.room : 0, t, .5);
       if (cv) { layers.leaves.g.gain.setTargetAtTime(0, t, .4); layers.wind.g.gain.setTargetAtTime(.012 + .03 * (cv.draft || 0), t, .8);
@@ -197,18 +219,19 @@ export function createWorldAudio() {
         return stepsOnly(dt, s); }
       // Mod 327: grilos só do anoitecer à madrugada e só onde há habitat (fauna3d.insectLevel); coro intermitente com pausas, baixo
       const ins = s.insects ?? (night > .4 ? 1 : 0);
-      if (night > .4 && ins > .05) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = (.3 + Math.random() * 1.1) / Math.max(.35, ins) + (Math.random() < .14 ? 2.5 + Math.random() * 4 : 0); cricket(night * (.35 + .5 * ins)); } }
+      if (sampledBirds || sampledCrickets) { /* o loop real já traz pássaros/grilos */ }
+      else if (night > .4 && ins > .05) { insectTimer -= dt; if (insectTimer <= 0) { insectTimer = (.3 + Math.random() * 1.1) / Math.max(.35, ins) + (Math.random() < .14 ? 2.5 + Math.random() * 4 : 0); cricket(night * (.35 + .5 * ins)); } }
       else { birdTimer -= dt; if (birdTimer <= 0) { birdTimer = (2.5 + Math.random() * 7) * (1 - .35 * forest); bird(1 - night); } }
       stepsOnly(dt, s);
     },
-    swing(step=0, sword='') { if (!ready) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
+    swing(step=0, sword='') { if (!ready) return; if (bank && bank.play('swing:' + (Math.abs(step) % 3), sfxBus, { gain: .85, rate: sword === 'aurora' ? .9 : 1 })) return; const n=Math.abs(step)%3, dark=sword==='aurora'?.82:1; burst('bandpass', [700,920,540][n]*dark, 1.4, [.16,.13,.20][n], .2, sfxBus, [2600,3100,2100][n]*dark); },
     /** Mod 316 — bando de pássaros passando (chamado pelo sistema de pássaros quando um bando cruza perto). */
     flock(level = 1) { if (!ready) return; const f = 2600 + Math.random() * 900; for (let i = 0; i < 5; i++) tone('sine', f * (1 + Math.random() * .2), f * (1.3 + Math.random() * .3), .016 * level, .07, ambBus, i * .09 + Math.random() * .05); burst('bandpass', 1800, 1.2, .025 * level, .35, ambBus); },
-    hit() { if (!ready) return; tone('sine', 150, 48, .38, .18); burst('lowpass', 1800, .7, .22, .08); },
+    hit() { if (!ready) return; if (bank && bank.play('hit', sfxBus)) return; tone('sine', 150, 48, .38, .18); burst('lowpass', 1800, .7, .22, .08); },
     energyImpact(strength=1) { if(!ready)return;const k=Math.max(.2,Math.min(1,strength));tone('sine',90,32,.28*k,.4);burst('lowpass',850,.65,.18*k,.22,sfxBus,180); },
-    hurt() { if (!ready) return; tone('triangle', 110, 70, .26, .22); burst('bandpass', 500, .9, .16, .14); },
-    whoosh() { if (!ready) return; burst('bandpass', 400, .8, .12, .26, sfxBus, 1300); },
-    land() { if (!ready) return; burst('lowpass', 420, .6, .16, .12); },
+    hurt() { if (!ready) return; if (bank && bank.play('hurt', sfxBus)) return; tone('triangle', 110, 70, .26, .22); burst('bandpass', 500, .9, .16, .14); },
+    whoosh() { if (!ready) return; if (bank && bank.play('whoosh', sfxBus, { gain: .8 })) return; burst('bandpass', 400, .8, .12, .26, sfxBus, 1300); },
+    land() { if (!ready) return; if (bank && bank.play('land', sfxBus, { gain: .7 })) return; burst('lowpass', 420, .6, .16, .12); },
     magic(kind) {
       if (!ready) return;
       const roots = { magic: 523.3, magic2: 440, magic3: 349.2, ultimate: 261.6 }, r = roots[kind] || 440;
@@ -220,27 +243,33 @@ export function createWorldAudio() {
     pause(on) { pausedByGame=!!on; if (!ctx) return; if (pausedByGame || document.hidden) ctx.suspend(); else ctx.resume(); },
     portalEnter() { if (!ready) return; tone('sine', 220, 55, .2, 1.4); burst('bandpass', 300, .6, .18, 1.3, sfxBus, 3000); },
     shieldUp() { if (!ready) return; tone('sine', 660, 990, .05, .18); },
-    block() { if (!ready) return; tone('triangle', 320, 180, .2, .16); burst('bandpass', 2400, 2, .14, .1); },
-    parry() { if (!ready) return; [1318, 1760, 2637].forEach((f, i) => tone('sine', f, f * 1.02, .11, .5, sfxBus, i * .03)); burst('highpass', 5000, .7, .12, .25); },
-    lockOn() { if (!ready) return; tone('sine', 880, 1320, .06, .12); },
+    block() { if (!ready) return; if (bank && bank.play('block', sfxBus)) return; tone('triangle', 320, 180, .2, .16); burst('bandpass', 2400, 2, .14, .1); },
+    parry() { if (!ready) return; if (bank && bank.play('parry', sfxBus)) return; [1318, 1760, 2637].forEach((f, i) => tone('sine', f, f * 1.02, .11, .5, sfxBus, i * .03)); burst('highpass', 5000, .7, .12, .25); },
+    lockOn() { if (!ready) return; if (bank && bank.play('lockOn', sfxBus, { gain: .35 })) return; tone('sine', 880, 1320, .06, .12); },
+    /* missão combate/áudio: eventos novos com amostra própria (sem procedural antigo correspondente) */
+    jump() { if (!ready) return; if (!(bank && bank.play('jump', sfxBus, { gain: .7 }))) burst('bandpass', 400, .8, .12, .26, sfxBus, 1300); },
+    bodyFall() { if (ready && bank) bank.play('death', sfxBus, { gain: .8 }); },
+    bossSwing(heavy = false) { if (ready && bank) bank.play(heavy ? 'vz:heavy' : 'vz:light', sfxBus, { gain: .9 }); },
+    bossHit() { if (!ready) return; if (!(bank && bank.play('vz:hit', sfxBus))) tone('sine', 120, 40, .4, .2); },
+    bankStats() { return bank ? bank.stats() : null; },
     /** Chuva do Ato II (0..1): chiado agudo + rumor grave. */
     /** MOD 208 — torcida do coliseu (0..1): murmúrio contínuo; roar() é a explosão de gritos pedindo morte. */
     /** MOD 291 — carroça de Teren: rolamento grave das rodas e rangido de madeira (0 = parada). */
     setCart(level) { if (!ready || !layers.cart) return; const t = ctx.currentTime, k = Math.max(0, Math.min(1, level)); layers.cart.g.gain.setTargetAtTime(.34 * k, t, .5); layers.cartHi.g.gain.setTargetAtTime(.05 * k, t, .6); if (k > 0) layers.cartHi.f.frequency.setTargetAtTime(760 + Math.random() * 260, t, .3); },
     setCrowd(level) { if (!ready || !layers.crowd) return; const t = ctx.currentTime; layers.crowd.g.gain.setTargetAtTime(.26 * level, t, .6); layers.crowdHi.g.gain.setTargetAtTime(.09 * level, t, .6); layers.crowd.f.frequency.setTargetAtTime(560 + Math.random() * 160, t, .5); },
     roar() { if (!ready) return; burst('bandpass', 700, .5, .3, 1.8, ambBus, 260); burst('bandpass', 1400, .9, .14, 1.5, ambBus, 500); [0, .35, .7].forEach(d => tone('sawtooth', 140 + Math.random() * 30, 120, .03, .3, ambBus, d)); },
-    setRain(level) { if (!ready) return; const t = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(.2 * level, t, .8); layers.rainLow.g.gain.setTargetAtTime(.14 * level, t, .8); },
-    thunder() { if (!ready) return; const t = ctx.currentTime + .4 + Math.random() * 1.2; const src = ctx.createBufferSource(); src.buffer = noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(380, t); f.frequency.exponentialRampToValueAtTime(70, t + 2.6); const g = ctx.createGain(); src.connect(f); f.connect(g); g.connect(ambBus); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.55, t + .08); g.gain.exponentialRampToValueAtTime(0.0001, t + 3); src.loop = true; src.start(t); src.stop(t + 3.1); },
+    setRain(level) { if (!ready) return; if (bank && bank.loop('amb:rain', ambBus, .6 * Math.max(0, level))) { const tt = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(0, tt, .5); layers.rainLow.g.gain.setTargetAtTime(0, tt, .5); return; } const t = ctx.currentTime; layers.rain.g.gain.setTargetAtTime(.2 * level, t, .8); layers.rainLow.g.gain.setTargetAtTime(.14 * level, t, .8); },
+    thunder() { if (!ready) return; if (bank && bank.play('thunder', sfxBus, { gain: .9, when: .4 + Math.random() * 1.2 })) return; const t = ctx.currentTime + .4 + Math.random() * 1.2; const src = ctx.createBufferSource(); src.buffer = noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(380, t); f.frequency.exponentialRampToValueAtTime(70, t + 2.6); const g = ctx.createGain(); src.connect(f); f.connect(g); g.connect(ambBus); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.55, t + .08); g.gain.exponentialRampToValueAtTime(0.0001, t + 3); src.loop = true; src.start(t); src.stop(t + 3.1); },
     /** MOD 203 — coro celeste (acorde maior com leve desafinação) para o prólogo no céu. */
     celestial() { if (!ready) return; [[261.6, 0], [329.6, .4], [392, .8], [523.3, 1.4], [659.3, 2.2]].forEach(([f, d]) => { pad(f, .045, 1.6, 4.5, 3, d); pad(f * 1.003, .03, 1.8, 4.5, 3, d + .05, 'triangle', 6); }); },
     /** Asas que se desfazem: brilho descendente. */
-    dissolve() { if (!ready) return; for (let i = 0; i < 9; i++) tone('sine', 2093 - i * 140, 1046 - i * 60, .035, .9, sfxBus, i * .12); burst('highpass', 6000, .5, .05, 2.2); },
+    dissolve() { if (!ready) return; if (bank && bank.play('dissolve', sfxBus, { gain: .8 })) return; for (let i = 0; i < 9; i++) tone('sine', 2093 - i * 140, 1046 - i * 60, .035, .9, sfxBus, i * .12); burst('highpass', 6000, .5, .05, 2.2); },
     /** Novo capítulo ("Ato 1"): tambor grave, acorde que cresce e um brilho no fim. */
     chapter() { if (!ready) return; tone('sine', 110, 42, .5, 1.6); burst('lowpass', 180, .8, .35, 1.4); [146.8, 220, 293.7, 440].forEach((f, i) => pad(f, .06, 1.1, 1.2, 1.6, .15 + i * .05, i % 2 ? 'triangle' : 'sine')); [1174.7, 1568, 2349].forEach((f, i) => tone('sine', f, 0, .04, 1.2, sfxBus, 1.3 + i * .08)); },
     /** MOD 204 — som de descoberta/conquista (chegada a uma cidade, algo novo): fanfarra curta de metais e sino. */
     discovery() { if (!ready) return; [[392, 0], [523.3, .18], [659.3, .36], [784, .54]].forEach(([f, d]) => { tone('sawtooth', f, f * 1.002, .035, .55, sfxBus, d); tone('sine', f * 2, 0, .03, .7, sfxBus, d); }); pad(523.3, .05, .5, .9, 1.4, .7); pad(659.3, .04, .5, .9, 1.4, .72, 'triangle'); pad(784, .035, .5, .9, 1.4, .74); tone('sine', 1568, 0, .05, 1.8, sfxBus, 1.1); },
     /** Saco de moedas trocando de mão. */
-    coins() { if (!ready) return; for (let i = 0; i < 7; i++) tone('triangle', 2600 + Math.random() * 1400, 0, .03, .12, sfxBus, i * .06 + Math.random() * .03); burst('bandpass', 3400, 2, .05, .25); },
+    coins() { if (!ready) return; if (bank && bank.play('coins', sfxBus, { gain: .7 })) return; for (let i = 0; i < 7; i++) tone('triangle', 2600 + Math.random() * 1400, 0, .03, .12, sfxBus, i * .06 + Math.random() * .03); burst('bandpass', 3400, 2, .05, .25); },
     /** Choro de criança ao longe (soluços em glissando, abafados). */
     sob() { if (!ready) return; for (let i = 0; i < 4; i++) { const f = 520 + Math.random() * 80; tone('triangle', f, f * .72, .025, .45, ambBus, i * .55 + Math.random() * .15); } },
     /** Clarão de transformação/possessão: grave descendente e chiado. */

@@ -53,3 +53,38 @@ test('P5: andar mais ágil (corrida só com comando) e 2º salto mais alto; 1º 
   assert.ok(PROTA_LOCO.walk >= 2.8 && PROTA_LOCO.walk <= 3.5 && PROTA_LOCO.run >= 6 && PROTA_LOCO.run <= 7.5);
   assert.ok(MOBILITY.airJumpK ** 2 / .92 ** 2 >= 1.25 && MOBILITY.airJumpK ** 2 / .92 ** 2 <= 1.45 && MOBILITY.maxJumps === 2);
 });
+
+/* ---------- P6: áudio real (ElevenLabs, fallback autorizado) no lugar do procedural genérico ---------- */
+import { indexManifest, pickVariant, createSampleBank, BANK_LIMITS } from '../audio-banco3d.js';
+const man = JSON.parse(fs.readFileSync(new URL('../audio/audio-manifest.json', import.meta.url), 'utf8'));
+test('P6: manifesto rastreável — arquivo existe, hash confere, custo e origem registrados, um resultado por chamada', async () => {
+  const { createHash } = await import('node:crypto');
+  assert.ok(man.assets.length >= 35 && man.gasto_total_creditos > 0);
+  for (const a of man.assets) {
+    const buf = fs.readFileSync(new URL('../' + a.arquivo, import.meta.url)); assert.equal(createHash('sha256').update(buf).digest('hex'), a.sha256, a.assetId);
+    assert.ok(a.custo_creditos_confirmado > 0 && /1 resultado por chamada/.test(a.origem) && a.prompt && a.evento);
+    assert.ok(a.pico_dbfs <= 0 && a.pico_dbfs >= -3 || a.loop, a.assetId + ': pico normalizado'); assert.ok(a.media_db > -30, a.assetId + ': não é arquivo mudo');
+    assert.ok(buf.length < 200 * 1024, a.assetId + ': leve para o celular');
+  }
+  for (const ev of ['swing:0', 'swing:1', 'swing:2', 'hit', 'block', 'parry', 'hurt', 'vz:light', 'vz:heavy', 'vz:hit', 'whoosh', 'jump', 'land', 'step:grass', 'step:path', 'step:water', 'step:ash', 'thunder', 'amb:forestDay', 'amb:forestNight', 'amb:rain', 'amb:river', 'amb:falls', 'amb:cave', 'amb:dim:bishop1'])
+    assert.ok(indexManifest(man).has(ev), 'evento coberto: ' + ev);
+  assert.ok(!man.assets.some(a => /ganancia|greed|buraco negro|black hole/i.test(a.assetId + a.prompt)), 'sem sons da Ganância nem dos poderes futuros do protagonista');
+});
+test('P6: banco — variação sem repetir, carregamento preguiçoso com fallback, limite de vozes', async () => {
+  const idx = indexManifest(man), list = idx.get('swing:0').concat(idx.get('swing:1')); let last = null;
+  for (let i = 0; i < 20; i++) { const a = pickVariant(list, last); assert.notEqual(a.assetId, last); last = a.assetId; }
+  const decoded = []; const ctx = { state: 'running', currentTime: 0, decodeAudioData: (ab, ok) => { decoded.push(ab); ok({ duration: 1 }); },
+    createBufferSource: () => ({ playbackRate: { value: 1 }, connect() {}, start() {}, stop() {} }), createGain: () => ({ gain: { value: 1, setTargetAtTime() {} }, connect() {} }) };
+  const bank = createSampleBank(ctx, { fetchFn: async (u) => u.endsWith('.json') ? { ok: true, json: async () => man } : { arrayBuffer: async () => new ArrayBuffer(8) } });
+  await bank.init; assert.equal(bank.play('hit', {}), false, '1º pedido: ainda carregando → o chamador usa o procedural');
+  await new Promise(r => setTimeout(r, 10)); assert.equal(bank.play('hit', {}), true, 'depois: só a amostra');
+  for (let i = 0; i < 30; i++) bank.play('hit', {}); assert.ok(bank.stats().vozes <= BANK_LIMITS.voices);
+  assert.equal(bank.play('nao-existe', {}), false);
+});
+test('P6: audio3d usa as amostras nos eventos cobertos (procedural só de reserva); ambiente por bioma/dimensão', () => {
+  const au = fs.readFileSync(new URL('../audio3d.js', import.meta.url), 'utf8');
+  for (const ev of ["'hit'", "'hurt'", "'block'", "'parry'", "'whoosh'", "'land'", "'thunder'", "'swing:'"]) assert.ok(au.includes('bank.play(' + ev), ev);
+  assert.ok(/bank\.loop\('amb:rain'/.test(au) && /L\('amb:dim:bishop1'/.test(au) && /layers\.wind\.g\.gain\.setTargetAtTime\(0, t, \.5\)/.test(au), 'loop real cala o procedural equivalente');
+  assert.ok(/case 'windup':if\(a\?\.kind==='vhazrael'\)/.test(m) && /worldAudio\.bossHit\(\)/.test(m), 'VHAZRAEL com vush no corte e impacto próprio');
+  assert.ok(/biome:audioBiome\(\),dimension:voidMode\?\(dimKey\|\|'void'\):null/.test(m));
+});
