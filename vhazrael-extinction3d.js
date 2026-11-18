@@ -253,7 +253,7 @@ export function createExtinctionVFX(T, kit) {
     draw(s, boss, target, head) { const T0 = s.T, ph = s.phase; info = { phase: ph, t: s.t, s };
       if (ph === 'awaken' && boss) drawAwaken(s, T0, boss, head, target);
       else if (ph === 'orbit' || (ph === 'entry' && s.t < T0.entry * .5)) shot = spaceShot(s, T0);
-      else drawArena(s, T0, target, boss, head); },
+      else { if (ph !== 'entry') shot = null; /* fase jogável (queda/impacto): câmera 100% do jogador, sem resto de tomada */ drawArena(s, T0, target, boss, head); } },
     end() { blades.count = bn; blades.instanceMatrix.needsUpdate = true; blades.geometry.attributes.aP.needsUpdate = true; inkG.setDrawRange(0, iq * 6); inkG.attributes.position.needsUpdate = inkG.attributes.aColor.needsUpdate = true; },
     clear() { shot = null; tint = 0; info = null; aura.visible = shadow.visible = core.visible = shock.visible = false; blades.count = 0; inkG.setDrawRange(0, 0); mArena.set(null, up, 1, 0, false); },
     dispose() { for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); }
