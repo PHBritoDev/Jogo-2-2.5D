@@ -48,7 +48,7 @@ export function createWorldAudio() {
     ambBus = ctx.createGain(); sfxBus = ctx.createGain(); ambBus.connect(comp); sfxBus.connect(comp);
     musicBus = ctx.createGain(); musicBus.connect(comp); music = createMusic();
     noiseBuf = makeNoise();
-    try { bank = createSampleBank(ctx); bank.preload((ev, a) => a.categoria !== 'ambiente' && a.categoria !== 'clima'); } catch (_) { bank = null; }
+    try { bank = createSampleBank(ctx); bank.preload((ev, a) => a.categoria !== 'ambiente' && a.categoria !== 'clima' && a.categoria !== 'musica'); } catch (_) { bank = null; }
     layers.wind = loopNoise('lowpass', 240, .35, ambBus);
     layers.leaves = loopNoise('highpass', 3200, .4, ambBus);
     layers.water = loopNoise('lowpass', 900, .3, ambBus);
@@ -179,7 +179,7 @@ export function createWorldAudio() {
       const t = ctx.currentTime, night = s.night || 0;
       // missão áudio: trilha REAL de batalha por dimensão de Bispo (audio/musica); onde existe, a música sintética se cala
       let realMusic = false;
-      if (bank && bank.ready) for (const k of ['bishop1', 'bishop2', 'bishop3', 'bishop4']) { const on = s.dimension === k; if (bank.has('mus:' + k) && bank.loop('mus:' + k, musicBus, on ? .9 : 0) && on) realMusic = true; }
+      if (bank && bank.ready) for (const k of ['bishop1', 'bishop2', 'bishop3', 'bishop4']) { const on = s.dimension === k; if (bank.has('mus:' + k) && bank.loop('mus:' + k, musicBus, on ? .9 : 0, { release: true }) && on) realMusic = true; }
       if (music) { music.set(realMusic ? 'silent' : (s.music || 'explore'), night); music.tick(dt, night); }
       gustTimer -= dt; if (gustTimer <= 0) { gustTimer = 3 + Math.random() * 6; layers.wind.f.frequency.setTargetAtTime(180 + Math.random() * 140, t, 1.4); }
       const height = Math.max(0, s.altitude || 0);

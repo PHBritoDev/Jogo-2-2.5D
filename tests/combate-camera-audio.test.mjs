@@ -66,7 +66,7 @@ test('P6: manifesto rastreável — arquivo existe, hash confere, custo e origem
     assert.ok(a.pico_dbfs <= 0 && a.pico_dbfs >= -3 || a.loop, a.assetId + ': pico normalizado'); assert.ok(a.media_db > -30, a.assetId + ': não é arquivo mudo');
     assert.ok(buf.length < (a.categoria === 'musica' ? 1.6 * 1024 * 1024 : 200 * 1024), a.assetId + ': leve para o celular');
   }
-  for (const ev of ['swing:0', 'swing:1', 'swing:2', 'hit', 'block', 'parry', 'hurt', 'vz:light', 'vz:heavy', 'vz:hit', 'whoosh', 'jump', 'land', 'step:grass', 'step:path', 'step:water', 'step:ash', 'thunder', 'amb:forestDay', 'amb:forestNight', 'amb:rain', 'amb:river', 'amb:falls', 'amb:cave', 'amb:dim:bishop1', 'mus:bishop1'])
+  for (const ev of ['swing:0', 'swing:1', 'swing:2', 'hit', 'block', 'parry', 'hurt', 'vz:light', 'vz:heavy', 'vz:hit', 'whoosh', 'jump', 'land', 'step:grass', 'step:path', 'step:water', 'step:ash', 'thunder', 'amb:forestDay', 'amb:forestNight', 'amb:rain', 'amb:river', 'amb:falls', 'amb:cave', 'amb:dim:bishop1', 'mus:bishop1', 'mus:bishop2', 'mus:bishop3', 'mus:bishop4'])
     assert.ok(indexManifest(man).has(ev), 'evento coberto: ' + ev);
   assert.ok(!man.assets.some(a => /ganancia|greed|buraco negro|black hole/i.test(a.assetId + a.prompt)), 'sem sons da Ganância nem dos poderes futuros do protagonista');
 });
@@ -74,12 +74,26 @@ test('P6: banco — variação sem repetir, carregamento preguiçoso com fallbac
   const idx = indexManifest(man), list = idx.get('swing:0').concat(idx.get('swing:1')); let last = null;
   for (let i = 0; i < 20; i++) { const a = pickVariant(list, last); assert.notEqual(a.assetId, last); last = a.assetId; }
   const decoded = []; const ctx = { state: 'running', currentTime: 0, decodeAudioData: (ab, ok) => { decoded.push(ab); ok({ duration: 1 }); },
-    createBufferSource: () => ({ playbackRate: { value: 1 }, connect() {}, start() {}, stop() {} }), createGain: () => ({ gain: { value: 1, setTargetAtTime() {} }, connect() {} }) };
+    createBufferSource: () => ({ playbackRate: { value: 1 }, connect() {}, start() {}, stop() {} }), createGain: () => ({ gain: { value: 1, setTargetAtTime(v) { this.value = v; } }, connect() {} }) };
   const bank = createSampleBank(ctx, { fetchFn: async (u) => u.endsWith('.json') ? { ok: true, json: async () => man } : { arrayBuffer: async () => new ArrayBuffer(8) } });
   await bank.init; assert.equal(bank.play('hit', {}), false, '1º pedido: ainda carregando → o chamador usa o procedural');
   await new Promise(r => setTimeout(r, 10)); assert.equal(bank.play('hit', {}), true, 'depois: só a amostra');
   for (let i = 0; i < 30; i++) bank.play('hit', {}); assert.ok(bank.stats().vozes <= BANK_LIMITS.voices);
   assert.equal(bank.play('nao-existe', {}), false);
+  const mus = createSampleBank(ctx, { fetchFn: async (u) => u.endsWith('.json') ? { ok: true, json: async () => man } : { arrayBuffer: async () => new ArrayBuffer(8) } });
+  await mus.init; assert.equal(mus.loop('mus:bishop2', {}, .9, { release: true }), false, 'música só baixa ao entrar na dimensão');
+  await new Promise(r => setTimeout(r, 10)); assert.equal(mus.loop('mus:bishop2', {}, .9, { release: true }), true);
+  assert.equal(mus.stats().decodificados, 1); mus.loop('mus:bishop2', {}, 0, { release: true });
+  assert.equal(mus.stats().decodificados, 1, 'ainda em fade-out: não libera');
+  mus.loop('mus:bishop2', {}, 0, { release: true }); assert.equal(mus.stats().decodificados, 0, 'depois do fade-out a faixa sai da memória'); assert.equal(mus.stats().loops, 0);
+});
+test('P6: trilhas originais por dimensão dos 4 Bispos, custo medido, sem pré-carregar música no celular', () => {
+  const mus = man.assets.filter(a => a.categoria === 'musica'); assert.equal(mus.length, 4);
+  assert.deepEqual(mus.map(a => a.evento).sort(), ['mus:bishop1', 'mus:bishop2', 'mus:bishop3', 'mus:bishop4']);
+  for (const a of mus) { assert.ok(/no vocals, no lyrics/i.test(a.prompt) && /^Original instrumental/.test(a.prompt), a.assetId); assert.ok(!/shadow fight|anime|naruto|zelda|dark souls/i.test(a.prompt), a.assetId + ': sem pedir imitação'); }
+  assert.ok(mus.filter(a => a.custo_creditos_confirmado > 0).length >= 3);
+  const au = fs.readFileSync(new URL('../audio3d.js', import.meta.url), 'utf8');
+  assert.ok(/a\.categoria !== 'musica'\)/.test(au) && /\{ release: true \}/.test(au), 'música baixada ao entrar e liberada depois do fade');
 });
 test('P6: audio3d usa as amostras nos eventos cobertos (procedural só de reserva); ambiente por bioma/dimensão', () => {
   const au = fs.readFileSync(new URL('../audio3d.js', import.meta.url), 'utf8');
@@ -87,5 +101,5 @@ test('P6: audio3d usa as amostras nos eventos cobertos (procedural só de reserv
   assert.ok(/bank\.loop\('amb:rain'/.test(au) && /L\('amb:dim:bishop1'/.test(au) && /layers\.wind\.g\.gain\.setTargetAtTime\(0, t, \.5\)/.test(au), 'loop real cala o procedural equivalente');
   assert.ok(/case 'windup':if\(a\?\.kind==='vhazrael'\)/.test(m) && /worldAudio\.bossHit\(\)/.test(m), 'VHAZRAEL com vush no corte e impacto próprio');
   assert.ok(/biome:audioBiome\(\),dimension:voidMode\?\(dimKey\|\|'void'\):null/.test(m));
-  assert.ok(/bank\.loop\('mus:' \+ k, musicBus, on \? \.9 : 0\)/.test(au) && /music\.set\(realMusic \? 'silent'/.test(au), 'trilha real da dimensão cala a música sintética');
+  assert.ok(/bank\.loop\('mus:' \+ k, musicBus, on \? \.9 : 0, \{ release: true \}\)/.test(au) && /music\.set\(realMusic \? 'silent'/.test(au), 'trilha real da dimensão cala a música sintética');
 });

@@ -5,7 +5,8 @@
  *  - Carregamento preguiçoso com cache: o 1º pedido de um evento ainda não decodificado devolve false (o chamador toca o
  *    procedural antigo daquela vez) e o arquivo é baixado/decodificado em segundo plano; a partir daí só a amostra.
  *  - Limite de vozes (one-shots) para não saturar o celular; loops de ambiente com nível suave (setTargetAtTime),
- *    criados uma vez e silenciados quando não usados (sem criar/destruir fonte a cada quadro).
+ *    criados uma vez e silenciados quando não usados (sem criar/destruir fonte a cada quadro). Músicas longas (release)
+ *    são baixadas só ao entrar na dimensão e liberadas da memória depois do fade-out (≈30 MB decodificados por faixa).
  *  - Sem rede/arquivo: tudo continua funcionando com o procedural (nunca silêncio por falha de carregamento).
  */
 export const BANK_LIMITS = Object.freeze({ voices: 12, pitchJitter: .04 });
@@ -49,12 +50,13 @@ export function createSampleBank(ctx, { base = './', manifestUrl = './audio/audi
       return true;
     },
     /** Loop de ambiente: cria uma vez e ajusta o nível; retorna true se a amostra está ativa (para calar o procedural). */
-    loop(ev, out, level) {
+    loop(ev, out, level, { release = false } = {}) {
       if (!ready) return false; let L = loops.get(ev);
+      if (L && release && level <= .001 && L.g.gain.value < .002) { try { L.src.stop(); } catch (_) {} loops.delete(ev); for (const a of byEvent.get(ev) || []) buffers.delete(a.assetId); return false; }
       if (!L) { const list = byEvent.get(ev); if (!list) return false; const a = list[0]; if (!buffers.has(a.assetId)) { if (level > .001) load(a); return false; }
         const src = ctx.createBufferSource(); src.buffer = buffers.get(a.assetId); src.loop = true; const g = ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, Math.random() * src.buffer.duration); L = { src, g }; loops.set(ev, L); }
       L.g.gain.setTargetAtTime(Math.max(0, level), ctx.currentTime, .9); return level > .001 || L.g.gain.value > .01;
     },
-    stats() { return { ready, eventos: byEvent.size, decodificados: buffers.size, vozes: voices.length, loops: loops.size }; }
+    stats() { return { ready, eventos: byEvent.size, decodificados: buffers.size, vozes: voices.length, loops: loops.size, audiveis: [...loops].filter(([, L]) => L.g.gain.value > .05).map(([k]) => k) }; }
   };
 }

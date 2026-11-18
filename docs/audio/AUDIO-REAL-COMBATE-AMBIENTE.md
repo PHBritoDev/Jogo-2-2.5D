@@ -10,7 +10,8 @@
 2. **Fallback oficial autorizado:** ElevenLabs Sound Effects API (`POST /v1/sound-generation`), **1 resultado por chamada**.
    Custo real medido no cabeçalho `Character-Cost`: **10 créditos por segundo** gerado.
    Gasto total: ver `audio/audio-manifest.json` (`gasto_total_creditos`, por arquivo em `custo_creditos_confirmado`).
-   A chave não tem `user_read` (saldo não consultável) nem `music_generation` (Music API bloqueada).
+   Permissões completas liberadas pelo criador em 18/11; saldo consultado em `/v1/user/subscription` (plano Starter,
+   7.583 de 40.000 créditos usados após a missão, sem extensão paga possível).
 
 ## Pós-produção (objetiva, sem "escuta" simulada)
 - Efeitos: corte de silêncio no início/fim (fade de 6 ms só na cauda), pico −1 dBFS, mono 96 kbps.
@@ -30,10 +31,15 @@
   serra, chuva, rio, cachoeira, vulcão, cinzas, vila, abismo, caverna, salão do trono do VHAZRAEL.
 - **Não gerados (regra do criador):** Ganância e poderes futuros do protagonista (buraco negro/ultimate/espada).
 
-## Música de batalha por dimensão
-- Permissão `music_generation` liberada pelo criador em 18/11 e confirmada sem custo (`POST /v1/music/plan` → 200).
-- `audio/musica/mus_batalha_vhazrael.mp3`: 1 composição original instrumental (Music API, 90 s gerados; 3,6 s de silêncio
-  final cortados; loop com fade), tocando só na dimensão do VHAZRAEL (`mus:bishop1`); lá a música sintética se cala.
-- **Custo da música não medível pela sessão:** a Music API não devolve `Character-Cost` e a chave não tem `user_read`.
-  Por isso as trilhas dos Bispos 2, 3 e 4 não foram geradas (o briefing proíbe gastar sem conhecer o custo real).
-  **Permissão que falta: `user_read`** (ou o criador informar o saldo antes/depois desta trilha).
+## Música de batalha por dimensão (Music API, composições originais instrumentais)
+- Uma faixa por Bispo, tocando só na dimensão dele (`mus:bishop1..4`, bus de música); lá a música sintética se cala.
+  VHAZRAEL (salão dourado, 150 bpm), VORGAZHEK (vazio de olhos vermelhos e lua sorridente, caixinha de música + tambores,
+  145 bpm), ZARKHAEL (floresta de cogumelos com olhos, percussão tribal + sinos celestes, 150 bpm), VERAXION (salão de
+  mármore torcido, órgão + orquestra, 160 bpm). Prompts sem citar jogos/obras; sem vocais.
+- **Custo real medido pelo saldo:** 1.125 créditos por faixa de 90 s (12,5/s). A 1ª faixa do VORGAZHEK saiu com
+  identidade errada (vulcânica) e foi refeita: 4 chamadas nesta etapa = 4.500 créditos. A faixa do VHAZRAEL (gerada
+  antes do `user_read`) tem custo estimado pela mesma tarifa.
+- Pós-produção: corte do silêncio final, fade de loop, média ≈ −16,5 dB, pico ≤ −2 dBFS, 128 kbps (≈1,4 MB por faixa).
+- Celular: música **não** é pré-carregada; baixa e decodifica ao entrar na dimensão (o sintético cobre os 1–2 s
+  iniciais) e é liberada da memória depois do fade-out ao sair (≈30 MB decodificados por faixa).
+- QA no navegador (SwiftShader): em cada dimensão só a faixa do Bispo correspondente fica audível.
