@@ -28,8 +28,11 @@ export function addCinematicStage(parent,W,H){
  const stone=material('#716971',.22,.92),iron=material('#332b26',.76,.58),edge=material('#8e8272',.4,.75);
  stone.flatShading=true;
  const archY=x=>H*(.30-.28*Math.pow(x/(W*.49),2));
+ // Beveled, chipped voussoirs catch rim light instead of reading as a flat ribbon.
+ const blockShape=new T.Shape();blockShape.moveTo(-1,-.85);blockShape.lineTo(-.82,-1);blockShape.lineTo(.80,-1);blockShape.lineTo(1,-.63);blockShape.lineTo(1,.80);blockShape.lineTo(.72,1);blockShape.lineTo(-.80,1);blockShape.lineTo(-1,.64);blockShape.closePath();
+ const archBlock=new T.ExtrudeGeometry(blockShape,{depth:1.4,bevelEnabled:true,bevelThickness:.13,bevelSize:.12,bevelSegments:1,steps:1});archBlock.translate(0,0,-.7);
  // Individually fractured blocks follow a shallow, broken vault (no luminous cable).
- batch(group,new T.BoxGeometry(2,2,2),stone,68,(o,i)=>{const x=(i/67-.5)*W*.95;o.position.set(x,archY(x),-55);o.scale.set(W*.011,H*.018,17);o.rotation.set(.1,noise(i)*.2,-x/W*.8);if(Math.abs(x)<W*.055)o.scale.setScalar(0);});
+ batch(group,archBlock,stone,68,(o,i)=>{const x=(i/67-.5)*W*.95;o.position.set(x,archY(x),-55);o.scale.set(W*.011,H*.018,17);o.rotation.set(.1,noise(i)*.2,-x/W*.8);if(Math.abs(x)<W*.055)o.scale.setScalar(0);});
  batch(group,new T.BoxGeometry(1,1,1),edge,54,(o,i)=>{const x=(i/53-.5)*W*.94;o.position.set(x,archY(x)+H*.018,-51);o.scale.set(W*.014,H*.005,14);o.rotation.z=-x/W*.8;if(Math.abs(x)<W*.06)o.scale.setScalar(0);});
  // Recessed metal bands and worn quatrefoil relief break up the masonry silhouette.
  const bronze=material('#62503c',.68,.62);
@@ -41,9 +44,9 @@ export function addCinematicStage(parent,W,H){
  const dummy=new T.Object3D();
  function alignChains(planets,width,height){let k=0;
   for(const p of planets){for(const sign of [-1,1]){
-   const r=p.userData.screenRadius,x=p.position.x+sign*r*.4,y=p.position.y+r*.80;
+   const scaleRatio=p.userData.screenScale&&p.scale?p.scale.x/p.userData.screenScale:1,r=p.userData.screenRadius*scaleRatio,x=p.position.x+sign*r*.4,y=p.position.y+(p.userData.artRelief?.position.y||0)*(p.scale?.y||1)+r*.80;
    const rawAnchor=x+sign*r*.18,ax=Math.abs(rawAnchor)<width*.065?Math.sign(rawAnchor||sign)*width*.065:rawAnchor,ay=height*(.30-.28*Math.pow(ax/(width*.49),2));
-   for(let i=0;i<28;i++){const t=i/27;dummy.position.set(ax+(x-ax)*t,ay+(y-ay)*t,-3);dummy.rotation.set(0,i%2?1.05:.12,Math.atan2(x-ax,ay-y));dummy.scale.setScalar(Math.max(1.2,height*.0034));dummy.updateMatrix();links.setMatrixAt(k++,dummy.matrix);}
+   for(let i=0;i<28;i++){const t=i/27;dummy.position.set(ax+(x-ax)*t,ay+(y-ay)*t,-32+(47+r*.45)*t);dummy.rotation.set(0,i%2?1.05:.12,Math.atan2(x-ax,ay-y));dummy.scale.setScalar(Math.max(1.2,height*.0034));dummy.updateMatrix();links.setMatrixAt(k++,dummy.matrix);}
   }}links.instanceMatrix.needsUpdate=true;
  }
  // Layered cliffs and distant gothic ruins, with pale falls instead of lava floor.
@@ -92,5 +95,5 @@ export function addCinematicStage(parent,W,H){
  const feather=new T.SphereGeometry(1,8,6),pearl=material('#abb4bd',.18,.7);
  const wings=new T.Group();wings.position.set(-W*.30,H*.29,-80);wings.name='menu-wings-fallback';group.add(wings);
  batch(wings,feather,pearl,94,(o,i)=>{const side=i%2?-1:1,j=Math.floor(i/2),t=j/46;const a=side*(.30+t*1.0);o.position.set(side*H*(.035+t*.17),H*(.02+Math.sin(t*2.9)*.085),-t*12);o.rotation.z=-a;o.scale.set(H*(.008-t*.003),H*(.10-t*.04),H*.004);});
- return {hero,group,rocks,stone,alignChains,resize:(w,h)=>{group.scale.set(w/W,h/H,1);},update:t=>{cape.update(t);flags.forEach((f,i)=>f.update(t-i*.3));fallMat.uniforms.time.value=t;wings.rotation.z=Math.sin(t*.36)*.003;}};
+ return {hero,group,links,rocks,stone,alignChains,resize:(w,h)=>{group.scale.set(w/W,h/H,1);},update:t=>{cape.update(t);flags.forEach((f,i)=>f.update(t-i*.3));fallMat.uniforms.time.value=t;wings.rotation.z=Math.sin(t*.36)*.003;}};
 }

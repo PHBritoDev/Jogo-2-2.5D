@@ -100,8 +100,8 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     chains += '<path class="gx-chain' + (breaking ? ' breaking' : broken ? ' broken' : '') + '" d="M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y + '"/>';
   }
   svg.innerHTML = chains;
-  let selected = 1, readinessTimer, enterTimer, celebrationTimer, sceneHandle, closed = false;
-  const close = () => { closed = true; clearTimeout(readinessTimer); clearTimeout(enterTimer); clearTimeout(celebrationTimer); sceneHandle?.stop(); root.remove(); };
+  let selected = 1, readinessTimer, enterTimer, celebrationTimer, sceneHandle, fallbackObserver, closed = false;
+  const close = () => { closed = true; clearTimeout(readinessTimer); clearTimeout(enterTimer); clearTimeout(celebrationTimer); fallbackObserver?.disconnect(); sceneHandle?.stop(); root.remove(); };
   function renderDetail() {
     if (closed) return;
     clearTimeout(readinessTimer);
@@ -134,6 +134,22 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   });
   renderDetail();
   document.body.appendChild(root);
+  // The same authored layers remain interactive when WebGL is unavailable.
+  Promise.all(['environment.webp','worlds-hero.webp'].map(file=>new Promise((resolve,reject)=>{
+    const image=new Image();image.onload=resolve;image.onerror=reject;image.src=new URL('./assets/ui/menu/cinematic/'+file,import.meta.url).href;
+  }))).then(()=>{if(!closed&&root.isConnected)root.classList.add('gx-cinematic-ready');}).catch(()=>{});
+  const alignFallbackChains=()=>{
+    const bounds=root.getBoundingClientRect(),W=bounds.width,H=bounds.height;if(!W||!H)return;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    let lines='';
+    for(const orb of orbs.children){const b=orb.getBoundingClientRect(),r=Math.min(b.width,b.height)*.47,cx=b.left+b.width/2-bounds.left,cy=b.top+b.height/2-bounds.top;
+      for(const sign of [-1,1]){const x=cx+sign*r*.4,y=cy-r*.8,raw=x-W/2+sign*r*.18,ax=Math.abs(raw)<W*.065?Math.sign(raw||sign)*W*.065:raw,ay=H*(.20+.28*Math.pow(ax/(W*.49),2));
+        lines+=`<path d="M${ax+W/2} ${ay} L${x} ${y}" fill="none" stroke="#4e4031" stroke-width="2" stroke-dasharray="3 2"/>`;
+      }
+    }svg.innerHTML=lines;
+  };
+  fallbackObserver=new ResizeObserver(alignFallbackChains);fallbackObserver.observe(root);alignFallbackChains();
+
   // Cenário e planetas Three.js vivos com geometria procedural e assets locais.
   // SVG autoral continua disponível apenas em caso de WebGL indisponível.
   // Importação sob demanda: testes Node de progresso não precisam de WebGL nem 'three'.

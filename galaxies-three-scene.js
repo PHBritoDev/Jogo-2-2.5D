@@ -5,6 +5,7 @@
  * WebGL é opcional; se falhar, SVG existente permanece disponível.
  */
 import * as THREE from 'three';
+import {attachCinematicArt} from './galaxies-cinematic-art.js';
 import {addCinematicStage} from './galaxies-cinematic-stage.js';
 import {attachScannedScenery} from './galaxies-scanned-scenery.js';
 import {attachCinematicModels} from './galaxies-cinematic-models.js';
@@ -35,7 +36,7 @@ function proceduralTexture(id){
   [[239,248,254],[126,164,210],[31,50,79]],
   [[179,57,72],[93,12,33],[23,4,11]],
   [[255,99,29],[96,33,20],[14,13,17]],
-  [[250,151,208],[134,52,114],[37,14,54]]
+  [[157,101,205],[61,25,99],[10,5,22]]
  ][id-1];
  const hash=(x,y)=>{
   let k=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(id,2147483647);
@@ -78,12 +79,12 @@ function castle(parent,r,ice=false){
  // Cidadela instanciada: mantém todas as torres, janelas e pináculos,
  // reduzindo chamadas de desenho no celular.
  const stone=mat(ice?'#728cab':'#b47a32',.58,.45,ice?.08:.15);
- const roofs=mat(ice?'#c9e7fa':'#ffce70',.43,.43,ice?.14:.25);
+ const roofs=mat(ice?'#99bed3':'#88602f',.64,.51,ice?.05:.035);
  const windows=new THREE.MeshBasicMaterial({color:ice?'#e4f6ff':'#ffe49b'});
  mesh(new THREE.BoxGeometry(r*1.43,r*.105,r*.14),stone,parent,0,r*.23,r*1.02);
  const n=ice?15:18,d=new THREE.Object3D();
  const towers=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),stone,n);
- const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,5),roofs,n);
+ const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,8),roofs,n);
  const panes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),windows,n);
  for(let i=0;i<n;i++){
   const t=i/(n-1),x=(t-.5)*r*1.4,random=rand(i*8+19);
@@ -92,7 +93,7 @@ function castle(parent,r,ice=false){
   d.rotation.set(0,0,0);d.position.set(x,y+h*.33,z);
   d.scale.set(r*(.08+random*.07),h*.68,r*.16);d.updateMatrix();towers.setMatrixAt(i,d.matrix);
   d.position.set(x,y+h*.85,z);
-  d.scale.set(r*(.09+random*.055),h*.38,r*(.09+random*.055));d.updateMatrix();tips.setMatrixAt(i,d.matrix);
+  d.scale.set(r*(.065+random*.035),h*.55,r*(.065+random*.035));d.updateMatrix();tips.setMatrixAt(i,d.matrix);
   d.position.set(x,y+h*.39,z+r*.087);
   d.scale.set(r*.028,r*.07,r*.006);d.updateMatrix();panes.setMatrixAt(i,d.matrix);
   if(i%3===0){
@@ -107,7 +108,7 @@ function castle(parent,r,ice=false){
  // Geometria única por parte, preserva a leitura gótica mesmo em 100px.
  const mid=r*(ice?1.05:1.14);
  const nave=mesh(new THREE.BoxGeometry(r*.38,r*.62,r*.25),stone,parent,0,r*.62,mid);
- const roof=mesh(new THREE.ConeGeometry(r*.245,r*.48,8),roofs,parent,0,r*1.13,mid);
+ const roof=mesh(new THREE.ConeGeometry(r*.19,r*.62,8),roofs,parent,0,r*1.18,mid);
  const needle=mesh(new THREE.CylinderGeometry(r*.012,r*.014,r*.29,6),roofs,parent,0,r*1.48,mid);
  ball(parent,r*.023,ice?'#f2ffff':'#ffdf8d',0,r*1.66,mid);
  const glass=new THREE.MeshBasicMaterial({color:ice?'#c4ecff':'#ffb944',transparent:true,opacity:.85});
@@ -129,7 +130,12 @@ function goldenIsland(parent,r){
   const size=r*(.215+rand(i+92)*.055);d.rotateZ(rand(i+13)*3);d.scale.set(size,size*(.7+rand(i+21)*.4),r*.085);d.updateMatrix();plates.setMatrixAt(i,d.matrix);
   plates.setColorAt(i,new THREE.Color().setHSL(.08,.12,.65+rand(i+70)*.20));
  }
- plates.instanceMatrix.needsUpdate=true;parent.add(plates);
+ plates.name='gold-crust-plates';plates.instanceMatrix.needsUpdate=true;parent.add(plates);
+ // Heavy seams of molten gold descend from the fractured crust.
+ const gold=mat('#be7d24',.72,.32,.28),drips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,7),gold,9);
+ for(let i=0;i<9;i++){const x=(i/8-.5+rand(i+17)*.035)*r*1.35,h=r*(.07+rand(i+311)*.48);d.position.set(x,-Math.sqrt(r*r-x*x)-h*.35,r*.23);d.rotation.set(0,0,Math.PI);d.scale.set(r*(.008+rand(i+42)*.007),h,r*.012);d.updateMatrix();drips.setMatrixAt(i,d.matrix);}
+ drips.instanceMatrix.needsUpdate=true;parent.add(drips);
+
 }
 
 function celestialFalls(parent,r,ice=false){
@@ -344,7 +350,7 @@ function makePlanet(id,r){
  if(id===3){treasure(group,r);}
  if(id===4){glacialMountains(group,r);castle(group,r,true);celestialFalls(group,r,true);}
  if(id===5){maw(group,r);}
- if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
+ if(id===6){ring(group,r*1.025,r*.006,'#ff430e',.3,-.18,0,.25);}
  if(id===7){roseField(group,r,7);}
  const halo=ring(group,r*1.03,r*.003,colors[id-1],.31,.1,-r*.06,.14);halo.name='orbital';
  group.userData={globe,halo,id};
@@ -372,7 +378,7 @@ function sky(parent,W,H){
  const material=new THREE.ShaderMaterial({
   uniforms:{uTime:{value:0},uClouds:{value:null},uHasClouds:{value:0}},depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:"uniform sampler2D uClouds;uniform float uHasClouds;uniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float f=0.,a=.54;for(int i=0;i<4;i++){f+=a*n(p);p*=2.03;a*=.49;}return f;}\nvoid main(){\n vec2 uv=vUv,wind=vec2(uTime*.0032,uTime*.0007);\n vec2 p=uv*vec2(5.9,3.9);\n float warp=fbm(p*.68+wind);\n float c1=fbm(p+vec2(warp,-warp)*1.17+wind);\n float c2=fbm(p*1.82-vec2(warp*.58)+wind*.5);\n float formation=smoothstep(.39,.67,c1*.76+c2*.37);\n float den=smoothstep(.34,.64,c1*.91+c2*.22);\n float fiery=exp(-length((uv-vec2(.82,.72))*vec2(1.33,1.6))*2.75);\n float blue=exp(-length((uv-vec2(.17,.79))*vec2(1.9,1.65))*3.6);\n float redRight=smoothstep(.35,.93,uv.x)*(.24+fiery*.83);\n float horizon=pow(1.-uv.y,2.6);\n vec3 sky=vec3(.006,.010,.021);\n sky+=vec3(.11,.013,.023)*formation*redRight*1.40;\n sky+=vec3(.12,.016,.027)*den*fiery*1.18;\n sky+=vec3(.063,.098,.165)*blue*(.38+formation*.9);\n sky+=vec3(.11,.10,.13)*horizon*(.26+den*.9);\n float ironCloud=smoothstep(.21,.62,fbm(p*.8+vec2(2.4,1.2)+wind));\n sky=mix(sky,sky*.37,ironCloud*.42);\n float rim=exp(-length((uv-vec2(.745,.76))*vec2(2.4,2.2))*4.4);\n sky+=vec3(.23,.026,.011)*rim*(.12+formation);\n sky*=.86;\n if(uHasClouds>.5){vec3 clouds=texture2D(uClouds,vec2(.12+uv.x*.38+uTime*.00015,.53+uv.y*.36)).rgb;float lum=clamp(dot(clouds,vec3(.2126,.7152,.0722))*.4,0.,1.);vec3 tint=mix(vec3(.36,.38,.44),vec3(.26,.035,.052),smoothstep(.32,.87,uv.x));sky=mix(sky,tint*(.08+lum*.9),.84); }\n gl_FragColor=vec4(sky,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"
+  fragmentShader:"uniform sampler2D uClouds;uniform float uHasClouds;uniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float f=0.,a=.54;for(int i=0;i<4;i++){f+=a*n(p);p*=2.03;a*=.49;}return f;}\nvoid main(){\n vec2 uv=vUv,wind=vec2(uTime*.0032,uTime*.0007);\n vec2 p=uv*vec2(5.9,3.9);\n float warp=fbm(p*.68+wind);\n float c1=fbm(p+vec2(warp,-warp)*1.17+wind);\n float c2=fbm(p*1.82-vec2(warp*.58)+wind*.5);\n float formation=smoothstep(.39,.67,c1*.76+c2*.37);\n float den=smoothstep(.34,.64,c1*.91+c2*.22);\n float fiery=exp(-length((uv-vec2(.82,.72))*vec2(1.33,1.6))*2.75);\n float blue=exp(-length((uv-vec2(.17,.79))*vec2(1.9,1.65))*3.6);\n float redRight=smoothstep(.35,.93,uv.x)*(.24+fiery*.83);\n float horizon=pow(1.-uv.y,2.6);\n vec3 sky=vec3(.006,.010,.021);\n sky+=vec3(.11,.013,.023)*formation*redRight*1.40;\n sky+=vec3(.12,.016,.027)*den*fiery*1.18;\n sky+=vec3(.063,.098,.165)*blue*(.38+formation*.9);\n sky+=vec3(.11,.10,.13)*horizon*(.26+den*.9);\n float ironCloud=smoothstep(.21,.62,fbm(p*.8+vec2(2.4,1.2)+wind));\n sky=mix(sky,sky*.37,ironCloud*.42);\n float rim=exp(-length((uv-vec2(.745,.76))*vec2(2.4,2.2))*4.4);\n sky+=vec3(.23,.026,.011)*rim*(.12+formation);\n sky*=.86;\n if(uHasClouds>.5){vec3 clouds=texture2D(uClouds,vec2(.12+uv.x*.38+uTime*.00015,.53+uv.y*.36)).rgb;float lum=clamp(dot(clouds,vec3(.2126,.7152,.0722))*.4,0.,1.);vec3 tint=mix(vec3(.36,.38,.44),vec3(.26,.035,.052),smoothstep(.32,.87,uv.x));sky=mix(sky,tint*(.03+pow(lum,1.4)*.7),.60);sky*=.65+.35*formation; }\n vec2 haloDelta=(uv-vec2(.20,.86))*vec2(1.78,1.);float haloDist=length(haloDelta);float haloAngle=atan(haloDelta.y,haloDelta.x);float rays=pow(abs(sin(haloAngle*7.+.3)),24.)*.10+pow(abs(sin(haloAngle*11.)),32.)*.055;sky+=vec3(.54,.58,.68)*(exp(-haloDist*32.)*.7+exp(-haloDist*11.)*rays);\n gl_FragColor=vec4(sky,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"
  });
  mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
@@ -412,8 +418,8 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const canvas=renderer.domElement;canvas.className='gx-three-canvas';canvas.setAttribute('aria-hidden','true');root.prepend(canvas);
  const scene=new THREE.Scene(),W=root.clientWidth,H=root.clientHeight;
  const camera=new THREE.OrthographicCamera(-W/2,W/2,H/2,-H/2,.1,2000);camera.position.set(0,0,400);
- scene.add(new THREE.AmbientLight('#b3b8cd',.55));
- const key=new THREE.DirectionalLight('#e6e0d7',2.3);key.position.set(-130,220,220);scene.add(key);
+ scene.add(new THREE.AmbientLight('#9ba9c6',.32));
+ const key=new THREE.DirectionalLight('#f2e6d7',2.7);key.position.set(-280,250,120);scene.add(key);
  const red=new THREE.PointLight('#b52c20',2,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
@@ -431,9 +437,19 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   }));
  selectionHalo.renderOrder=-1;scene.add(selectionHalo);
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
- const cinematic=attachCinematicModels({root,environment,planets:groups,detail:details,screenWidth:W,screenHeight:H,hero:stage.hero});
- const scanned=attachScannedScenery({root,scene,renderer,stage,planets:groups,sky:shader,width:W,height:H});
- Promise.all([cinematic.ready,scanned.ready]).then(()=>{if(root.isConnected)root.dataset.gxModelsReady='true';});
+ let sceneReady=false;
+ let cinematic={resize(){},update(){},stop(){}},scanned={restore(){},stop(){}};
+ const art=attachCinematicArt({root,scene,environment,stage,planets:groups,width:W,height:H});
+ art.ready.then(async loaded=>{
+  if(!running||!root.isConnected)return;
+  if(!loaded){
+   root.dataset.gxArtMode='geometry-reserve';
+   cinematic=attachCinematicModels({root,environment,planets:groups,detail:details,screenWidth:W,screenHeight:H,hero:stage.hero});
+   scanned=attachScannedScenery({root,scene,renderer,stage,planets:groups,sky:shader,width:W,height:H});
+   await Promise.all([cinematic.ready,scanned.ready]);
+  }
+  if(running&&root.isConnected){sceneReady=true;root.dataset.gxModelsReady='true';if(!contextLost)root.classList.add('gx-three-on');}
+ });
  // Prioriza nitidez no celular, limitando a área renderizada para não
  // desperdiçar GPU. Na tela 975x450 do A55, alvo ~2,08 DPR.
  const lowQuality=matchMedia('(pointer:coarse)').matches||W<950||(navigator.deviceMemory||8)<=4;
@@ -443,7 +459,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   const dpr=Math.min(window.devicePixelRatio||1,lowQuality?1.65:2.4,Math.max(.75,Math.sqrt((lowQuality?1000000:1900000)/(width*height))));
   if(Math.abs(renderer.getPixelRatio()-dpr)>.03)renderer.setPixelRatio(dpr);
   updateCoordinates(root,scene,camera,groups,details,{renderer});
-  cinematic.resize(height);stage.resize(width,height);stage.alignChains(groups,width,height);environment.scale.set(width/W,height/H,1);
+  cinematic.resize(height);art.resize(width,height);stage.resize(width,height);stage.alignChains(groups,width,height);environment.scale.set(width/W,height/H,1);
  };
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);
@@ -460,14 +476,14 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  const tick=ms=>{
   if(!running||!root.isConnected||document.hidden||contextLost)return;
   id=requestAnimationFrame(tick);
-  if(document.hidden||root.classList.contains('leaving'))return;
+  if(!sceneReady||document.hidden||root.classList.contains('leaving'))return;
   // Calcular delta apenas quando renderizar: evita animação em meia velocidade
   // em telas de 60 Hz com limitador de 30 FPS.
   const mobile=coarsePointer||root.clientWidth<950;
   if(ms-frame<(reduced?1000:(mobile?32:16)))return;
   const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=reduced?0:dt;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
-  stage.update(elapsed);cinematic.update(reduced?0:dt,elapsed);
+  stage.update(elapsed);cinematic.update(reduced?0:dt,elapsed);art.update(elapsed);
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
    environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
@@ -486,6 +502,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
    const target=g.userData.screenScale*(i+1===now?1.055:1);
    g.scale.setScalar(g.scale.x+(target-g.scale.x)*Math.min(1,dt*9));
   });
+  stage.alignChains(groups,root.clientWidth,root.clientHeight);
   const active=groups[now-1];
   if(active){
    selectionHalo.position.set(active.position.x,active.position.y,active.position.z-23);
@@ -497,6 +514,7 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   // Telemetria sem alocação por frame para auditoria do custo real na GPU.
   if(ms-lastTelemetry>1200){
    lastTelemetry=ms;root.dataset.gxTelemetryAt=String(ms);
+   root.dataset.gxArtYaw=String(art.pose().yaw);root.dataset.gxArtTime=String(art.pose().time);
    root.dataset.gxDrawCalls=String(renderer.info.render.calls);
    root.dataset.gxTriangles=String(renderer.info.render.triangles);
    root.dataset.gxTextures=String(renderer.info.memory.textures);
@@ -506,11 +524,11 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  function resume(){cancelAnimationFrame(id);prev=0;if(running&&!document.hidden&&!contextLost)id=requestAnimationFrame(tick);}
  document.addEventListener('visibilitychange',resume);
  function lost(e){e.preventDefault();contextLost=true;cancelAnimationFrame(id);root.classList.remove('gx-three-on');}
- function restored(){if(running&&root.isConnected){contextLost=false;scanned.restore();root.classList.add('gx-three-on');resume();}}
+ function restored(){if(running&&root.isConnected){contextLost=false;scanned.restore();if(sceneReady)root.classList.add('gx-three-on');resume();}}
  canvas.addEventListener('webglcontextlost',lost,{passive:false});canvas.addEventListener('webglcontextrestored',restored);
- root.classList.add('gx-three-on');size();id=requestAnimationFrame(tick);
+ size();id=requestAnimationFrame(tick);
  const stop=()=>{
-  if(!running)return;running=false;rmo.disconnect();document.removeEventListener('visibilitychange',resume);cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);cinematic.stop();scanned.stop();canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
+  if(!running)return;running=false;rmo.disconnect();document.removeEventListener('visibilitychange',resume);cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);cinematic.stop();scanned.stop();art.stop();canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
   const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
   scene.traverse(v=>{if(v.skeleton)skeletons.add(v.skeleton);if(v.geometry)geometries.add(v.geometry);for(const m of (Array.isArray(v.material)?v.material:[v.material]))if(m?.isMaterial)materials.add(m);});
   materials.forEach(m=>{Object.values(m).forEach(v=>{if(v?.isTexture)textures.add(v);});Object.values(m.uniforms||{}).forEach(v=>{if(v.value?.isTexture)textures.add(v.value);});m.dispose();});

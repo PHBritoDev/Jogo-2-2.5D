@@ -7,6 +7,7 @@ on:
       - "galaxies-three-scene.js"
       - "galaxies-cinematic-models.js"
       - "galaxies-cinematic-stage.js"
+      - "galaxies-cinematic-art.js"
       - "galaxies-scanned-scenery.js"
       - "assets/ui/menu/**"
       - "galaxies-living-inferno.js"
@@ -34,6 +35,7 @@ jobs:
           node --check galaxies-three-scene.js
           node --check galaxies-cinematic-models.js
           node --check galaxies-cinematic-stage.js
+          node --check galaxies-cinematic-art.js
           node --check galaxies-scanned-scenery.js
           node --check galaxies-living-inferno.js
           node --check galaxies-gothic-depth.js

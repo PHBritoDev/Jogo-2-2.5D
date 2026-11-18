@@ -42,9 +42,15 @@ async function capture(page,file){
 
    const readyAt=await page.evaluate(()=>performance.now());
    await page.waitForFunction(t=>Number(document.querySelector('#galaxy-screen')?.dataset.gxTelemetryAt)>t,readyAt,{timeout:15000});
-   const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{guardian:root.dataset.gxGuardianModel,wings:root.dataset.gxWingsModel,lust:root.dataset.gxLustModel,hero:root.dataset.gxHeroModel,storm:root.dataset.gxStormModel,rock:root.dataset.gxScannedRock,fort:root.dataset.gxScannedFort,environment:root.dataset.gxEnvironment},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});
-   assert.equal(info.canvasCount,1);assert.equal(info.glError,0);assert.ok(Object.values(info.models).every(Boolean),'all models loaded');
+   const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{art:root.dataset.gxArtMode,worlds:+root.dataset.gxWorldReliefs,sources:+root.dataset.gxArtSources,depth:+root.dataset.gxReliefDepth},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});
+   assert.equal(info.canvasCount,1);assert.equal(info.glError,0);assert.equal(info.models.art,'relief');assert.equal(info.models.worlds,7);assert.equal(info.models.sources,2);assert.ok(info.models.depth>20,'world geometry has real depth');
+   await page.evaluate(()=>document.fonts.ready);
+   const poseBefore=await page.evaluate(()=>Number(document.querySelector('#galaxy-screen').dataset.gxArtYaw));
+   await page.waitForTimeout(1400);
+   const poseAfter=await page.evaluate(()=>Number(document.querySelector('#galaxy-screen').dataset.gxArtYaw));
+   if(view.reduced)assert.equal(poseAfter,0);else assert.notEqual(poseAfter,poseBefore,'relief meshes rotate in 3D');
    assert.equal(await page.locator('.gx-nav button').count(),5);assert.equal(await page.locator('.gx-nav button:disabled').count(),3);
+   if(view.width<900){assert.ok((await page.locator('.gx-enter').boundingBox()).height>=44);assert.ok((await page.locator('.gx-nav-settings').boundingBox()).height>=44);}
    // One before/after image per required size; narrow is functional QA only.
    if(!view.reduced)await capture(page,path.join(output,view.name+'.png'));
    const planets=[];
@@ -87,13 +93,25 @@ async function capture(page,file){
   const fallback=await browser.newContext({viewport:{width:1536,height:864}}),page=await fallback.newPage();
   await page.addInitScript(()=>{const native=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/i.test(type)?null:native.call(this,type,...args);};});
   await page.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
-  await page.waitForSelector('.gx-enter');await page.waitForTimeout(500);
+  await page.waitForSelector('.gx-enter');await page.waitForSelector('#galaxy-screen.gx-cinematic-ready');await page.evaluate(()=>document.fonts.ready);
   assert.equal(await page.locator('#galaxy-screen.gx-three-on').count(),0);
   await page.locator('.gx-orb[data-id="2"]').click();assert.ok(await page.locator('.gx-access').isVisible());
   await page.locator('.gx-orb[data-id="1"]').click();
   await capture(page,path.join(output,'fallback-webgl-unavailable.png'));
   await page.locator('.gx-enter').click();await page.waitForFunction(()=>window.menuQA.opened===1);
   await fallback.close();reports.push({view:{name:'WebGL unavailable'},fallback:true,entered:true});
+  // A failed art request must retain the fully independent GLB/scanned 3D reserve.
+  const reserve=await browser.newContext({viewport:{width:852,height:393}}),rp=await reserve.newPage(),reserveErrors=[];
+  await rp.route('**/assets/ui/menu/cinematic/*',route=>route.abort());
+  rp.on('pageerror',e=>reserveErrors.push(e.message));
+  rp.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))reserveErrors.push(m.text());});
+  await rp.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
+  await rp.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',null,{timeout:90000});
+  const reserveModels=await rp.evaluate(()=>{const d=document.querySelector('#galaxy-screen').dataset;return {mode:d.gxArtMode,guardian:d.gxGuardianModel,storm:d.gxStormModel,hero:d.gxHeroModel,rock:d.gxScannedRock};});
+  assert.equal(reserveModels.mode,'geometry-reserve');assert.ok(Object.values(reserveModels).every(Boolean));assert.deepEqual(reserveErrors,[]);
+  await capture(rp,path.join(output,'fallback-art-unavailable.png'));
+  await rp.locator('.gx-enter').click();await rp.waitForFunction(()=>window.menuQA.opened===1);await reserve.close();
+  reports.push({view:{name:'Art unavailable'},models:reserveModels,errors:reserveErrors,entered:true});
  }finally{await browser.close();}
  fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({environment:'Chromium/SwiftShader; mobile viewport emulation, not physical Android',reports},null,2));
 })().catch(e=>{console.error(e);fs.writeFileSync(path.join(output,'failure.txt'),e.stack||String(e));process.exitCode=1;});

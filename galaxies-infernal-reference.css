@@ -1,3 +1,4 @@
+@font-face{font-family:"Cinzel Menu";src:url("assets/ui/menu/fonts/cinzel-latin.woff2") format("woff2");font-style:normal;font-weight:400 900;font-display:swap}
 /* Cinematic composition. Menu-only; canonical IDs and gameplay styles are unchanged. */
 #galaxy-screen{--nav-w:14%;background:#100e18;color:#e8d7b9;isolation:isolate;overflow:hidden}
 #galaxy-screen::before,#galaxy-screen::after{display:none}
@@ -5,13 +6,13 @@
 #galaxy-screen .gx-backdrop svg{width:100%;height:100%;object-fit:cover}
 #galaxy-screen .gx-stars,#galaxy-screen .gx-spiral,#galaxy-screen .gx-sigil,#galaxy-screen .gx-head p,#galaxy-screen .gx-foot{display:none}
 #galaxy-screen .gx-head{position:absolute;left:35%;top:5.2%;width:34%;display:block;text-align:center;z-index:3;transform:none}
-#galaxy-screen .gx-kicker{font:400 clamp(9px,2.7vh,23px)/1.1 Georgia,serif;letter-spacing:.12em;color:#e8decc}
-#galaxy-screen .gx-head h1{margin:0;white-space:nowrap;font:400 clamp(18px,4.8vh,43px)/1.12 Georgia,serif;letter-spacing:-.025em;color:#ddd2be;background:none;text-shadow:0 2px 2px #000,1px 0 #87786b}
+#galaxy-screen .gx-kicker{font:400 clamp(9px,2.7vh,23px)/1.1 "Cinzel Menu",Georgia,serif;letter-spacing:.12em;color:#e8decc}
+#galaxy-screen .gx-head h1{margin:0;white-space:nowrap;font:400 clamp(18px,4.8vh,43px)/1.12 "Cinzel Menu",Georgia,serif;letter-spacing:-.025em;color:#ddd2be;background:none;text-shadow:0 2px 2px #000,1px 0 #87786b}
 #galaxy-screen .gx-head h1 span{font-size:1.65em;color:#af211c;text-shadow:1px 1px #f99576,-1px -1px #4a0603}
 #galaxy-screen .gx-head:after{content:"";display:block;height:1px;width:70%;margin:4px auto;background:linear-gradient(90deg,transparent,#bc7142,transparent)}
 #galaxy-screen .gx-wallet{z-index:4;top:max(8px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));background:#100c10b8;border:1px solid #755941;border-radius:2px;padding:3px 10px;font-size:12px}
 #galaxy-screen .gx-nav{display:block;position:absolute;left:0;top:29%;width:var(--nav-w);z-index:4;background:linear-gradient(90deg,#0a090bd9,#0a090b85,transparent);border:0;border-radius:0;box-shadow:none}
-#galaxy-screen .gx-nav button{min-height:7.3vh;padding:4px 1.4vw;gap:.8vw;border:0;border-bottom:1px solid #a9895240;background:none;color:#d9c4a1;font:400 clamp(9px,1.7vh,16px)/1.15 Georgia,serif;letter-spacing:0;text-align:left}
+#galaxy-screen .gx-nav button{min-height:7.3vh;padding:4px 1.4vw;gap:.8vw;border:0;border-bottom:1px solid #a9895240;background:none;color:#d9c4a1;font:400 clamp(9px,1.7vh,16px)/1.15 "Cinzel Menu",Georgia,serif;letter-spacing:0;text-align:left}
 #galaxy-screen .gx-nav button i{width:3.5vh;height:3.5vh;min-width:18px;min-height:18px;border:0;border-radius:0;background-size:contain;background-position:center;background-repeat:no-repeat}
 #galaxy-screen .gx-nav button.on{background:linear-gradient(90deg,#77150b90,transparent);box-shadow:inset 0 -1px #d1412180;color:#ffecd1}
 #galaxy-screen .gx-nav button:disabled{opacity:.76;cursor:not-allowed}
@@ -22,7 +23,7 @@
 #galaxy-screen .gx-orb[data-id="1"]{width:32vh!important;height:32vh!important}
 #galaxy-screen .gx-core{inset:0;animation:none;filter:drop-shadow(0 0 6px #000)}
 #galaxy-screen .gx-label{top:104%;gap:2px;white-space:nowrap}
-#galaxy-screen .gx-label b{color:#e1cfab;font:400 clamp(10px,2.2vh,20px)/1.1 Georgia,serif;letter-spacing:.025em;text-shadow:0 2px 3px #000,0 0 6px #000}
+#galaxy-screen .gx-label b{color:#e1cfab;font:400 clamp(10px,2.2vh,20px)/1.1 "Cinzel Menu",Georgia,serif;letter-spacing:.025em;text-shadow:0 2px 3px #000,0 0 6px #000}
 #galaxy-screen .gx-label small{display:none}
 #galaxy-screen .gx-orb[data-id="1"] .gx-label{display:none}
 #galaxy-screen .gx-orb.sel .gx-label b{color:#fff2cf}
@@ -31,21 +32,21 @@
 #galaxy-screen .gx-detail:before{top:-14px}#galaxy-screen .gx-detail:after{bottom:-12px}
 #galaxy-screen .gx-art{display:none}
 #galaxy-screen .gx-info{height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:.7vh}
-#galaxy-screen .gx-detail h2{order:-2;margin:0;color:#e4c79a;background:none;font:400 clamp(21px,4.9vh,45px)/1 Georgia,serif;letter-spacing:.055em;text-shadow:0 1px #000}
-#galaxy-screen .gx-num{order:-1;font:400 clamp(9px,1.9vh,17px)/1.1 Georgia,serif;letter-spacing:.05em;color:#e8d3ad;background:linear-gradient(90deg,transparent,#65170d8a,transparent)}
-#galaxy-screen .gx-tag{border:0;margin:.7vh 0;font:400 clamp(8px,1.7vh,16px)/1.35 Georgia,serif;color:#dac7a4;letter-spacing:.025em}
+#galaxy-screen .gx-detail h2{order:-2;margin:0;color:#e4c79a;background:none;font:400 clamp(21px,4.9vh,45px)/1 "Cinzel Menu",Georgia,serif;letter-spacing:.055em;text-shadow:0 1px #000}
+#galaxy-screen .gx-num{order:-1;font:400 clamp(9px,1.9vh,17px)/1.1 "Cinzel Menu",Georgia,serif;letter-spacing:.05em;color:#e8d3ad;background:linear-gradient(90deg,transparent,#65170d8a,transparent)}
+#galaxy-screen .gx-tag{border:0;margin:.7vh 0;font:400 clamp(8px,1.7vh,16px)/1.35 "Cinzel Menu",Georgia,serif;color:#dac7a4;letter-spacing:.025em}
 #galaxy-screen .gx-info p{display:none}
-#galaxy-screen .gx-pcap{text-align:left;margin-top:.3vh;font:400 clamp(8px,1.6vh,14px)/1.1 Georgia,serif;letter-spacing:0;color:#dccba9}
+#galaxy-screen .gx-pcap{text-align:left;margin-top:.3vh;font:400 clamp(8px,1.6vh,14px)/1.1 "Cinzel Menu",Georgia,serif;letter-spacing:0;color:#dccba9}
 #galaxy-screen .gx-bar{height:1.1vh;min-height:5px;margin:0 0 1vh;border:1px solid #8b714c;background:#050608;border-radius:12px;overflow:visible}
 #galaxy-screen .gx-bar i{background:linear-gradient(#fff6c1,#d49b20);box-shadow:0 0 4px #af792e}
-#galaxy-screen .gx-bar em{top:-2.4vh;right:0;font:400 clamp(9px,1.6vh,14px)/1 Georgia;color:#e8d3ad}
-#galaxy-screen .gx-enter{position:relative;width:100%!important;max-width:none;height:6.2vh!important;min-height:30px;flex-shrink:0;margin:0!important;padding:0!important;color:#f4dfbd!important;border:1px solid #cb8345!important;border-radius:2px!important;background:linear-gradient(#661b0b,#270405 53%,#66150a)!important;box-shadow:inset 0 0 0 2px #230907,inset 0 0 10px #d53c2040!important;font:400 clamp(17px,3.7vh,33px)/1 Georgia,serif!important;letter-spacing:.08em!important;clip-path:polygon(0 50%,5% 0,95% 0,100% 50%,95% 100%,5% 100%);transition:filter .2s}
+#galaxy-screen .gx-bar em{top:-2.4vh;right:0;font:400 clamp(9px,1.6vh,14px)/1 "Cinzel Menu",Georgia;color:#e8d3ad}
+#galaxy-screen .gx-enter{position:relative;width:100%!important;max-width:none;height:6.2vh!important;min-height:30px;flex-shrink:0;margin:0!important;padding:0!important;color:#f4dfbd!important;border:1px solid #cb8345!important;border-radius:2px!important;background:linear-gradient(#661b0b,#270405 53%,#66150a)!important;box-shadow:inset 0 0 0 2px #230907,inset 0 0 10px #d53c2040!important;font:400 clamp(17px,3.7vh,33px)/1 "Cinzel Menu",Georgia,serif!important;letter-spacing:.08em!important;clip-path:polygon(0 50%,5% 0,95% 0,100% 50%,95% 100%,5% 100%);transition:filter .2s}
 #galaxy-screen .gx-enter:hover{filter:brightness(1.2)}
 #galaxy-screen .gx-enter:disabled{opacity:.55}
 #galaxy-screen .gx-access{display:none}
 #galaxy-screen .gx-detail.is-locked .gx-info{height:auto;gap:.3vh}
 #galaxy-screen .gx-detail.is-locked .gx-tag{display:none}
-#galaxy-screen .gx-detail.is-locked .gx-access{display:block;border:0;padding:.5vh 0;height:auto;background:none;font:400 clamp(9px,1.5vh,13px)/1.4 Georgia,serif;color:#cdbb9b}
+#galaxy-screen .gx-detail.is-locked .gx-access{display:block;border:0;padding:.5vh 0;height:auto;background:none;font:400 clamp(9px,1.5vh,13px)/1.4 "Cinzel Menu",Georgia,serif;color:#cdbb9b}
 #galaxy-screen .gx-access strong{font:inherit;letter-spacing:.02em}
 #galaxy-screen .gx-access ul{padding-left:1em;margin:.4vh 0;font:inherit}
 #galaxy-screen .gx-access blockquote,#galaxy-screen .gx-lock-ic{display:none}
@@ -74,3 +75,26 @@
 #galaxy-screen .gx-nav button:nth-child(3) i{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 11H28L25 28H7ZM11 13V8A5 5 0 0 1 21 8V13' stroke='%23f8ab56' stroke-width='2' fill='none'/%3E%3C/svg%3E")}
 #galaxy-screen .gx-nav button:nth-child(4) i{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 5H28V28H4ZM10 10H22M10 16H22M10 22H17' fill='none' stroke='%23f8ab56' stroke-width='2'/%3E%3C/svg%3E")}
 #galaxy-screen .gx-nav button:nth-child(5) i{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2V7M16 25V30M2 16H7M25 16H30M6 6L10 10M22 22L26 26M26 6L22 10M10 22L6 26' stroke='%23f8ab56' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23f8ab56' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='none' stroke='%23f8ab56' stroke-width='2'/%3E%3C/svg%3E")}
+
+/* Authored art remains a set of separate objects in the non-WebGL reserve. */
+#galaxy-screen.gx-cinematic-ready .gx-backdrop>svg{visibility:hidden}
+#galaxy-screen.gx-cinematic-ready .gx-backdrop:before{content:"";position:absolute;inset:0;background:url("assets/ui/menu/cinematic/environment.webp") center/100% 100% no-repeat}
+#galaxy-screen.gx-cinematic-ready .gx-backdrop:after{content:"";position:absolute;left:calc(50% - 22.4vh);bottom:3.1vh;width:33.8vh;height:33.8vh;background:url("assets/ui/menu/cinematic/worlds-hero.webp") 100% 100%/400% 200% no-repeat}
+#galaxy-screen.gx-cinematic-ready .gx-core{border:0;background:none;box-shadow:none;overflow:visible;filter:none}
+#galaxy-screen.gx-cinematic-ready .gx-core>svg{visibility:hidden}
+#galaxy-screen.gx-cinematic-ready .gx-core:after{content:"";position:absolute;inset:-2%;background-image:url("assets/ui/menu/cinematic/worlds-hero.webp");background-size:400% 200%;background-position:var(--atlas-x) var(--atlas-y);background-repeat:no-repeat}
+#galaxy-screen .gx-orb[data-id="1"]{--atlas-x:0%;--atlas-y:0%}
+#galaxy-screen .gx-orb[data-id="2"]{--atlas-x:33.333333%;--atlas-y:0%}
+#galaxy-screen .gx-orb[data-id="3"]{--atlas-x:66.666667%;--atlas-y:0%}
+#galaxy-screen .gx-orb[data-id="4"]{--atlas-x:100%;--atlas-y:0%}
+#galaxy-screen .gx-orb[data-id="5"]{--atlas-x:0%;--atlas-y:100%}
+#galaxy-screen .gx-orb[data-id="6"]{--atlas-x:33.333333%;--atlas-y:100%}
+#galaxy-screen .gx-orb[data-id="7"]{--atlas-x:66.666667%;--atlas-y:100%}
+#galaxy-screen.gx-cinematic-ready .gx-chains{display:block;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#galaxy-screen.gx-three-on .gx-chains{display:none}
+
+@media(max-height:500px) and (min-aspect-ratio:1/1){
+ #galaxy-screen .gx-nav button{min-height:44px}
+ #galaxy-screen .gx-detail{height:35%}
+ #galaxy-screen .gx-enter{min-height:44px;height:44px!important}
+}
