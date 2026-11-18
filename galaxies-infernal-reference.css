@@ -98,3 +98,13 @@
  #galaxy-screen .gx-detail{height:35%}
  #galaxy-screen .gx-enter{min-height:44px;height:44px!important}
 }
+
+/* Prevent the Android/Chromium blue tap rectangle on the menu controls.
+ * Keep :focus-visible outline above for real keyboard/accessibility focus. */
+#galaxy-screen :is(button, .gx-orb, .gx-enter, a) {
+  -webkit-tap-highlight-color: transparent;
+}
+#galaxy-screen :is(button, .gx-orb, .gx-enter) {
+  -webkit-user-select: none;
+  user-select: none;
+}
