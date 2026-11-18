@@ -30,6 +30,10 @@
   serra, chuva, rio, cachoeira, vulcão, cinzas, vila, abismo, caverna, salão do trono do VHAZRAEL.
 - **Não gerados (regra do criador):** Ganância e poderes futuros do protagonista (buraco negro/ultimate/espada).
 
-## Pendente (bloqueio de permissão)
-- **Música de batalha por dimensão:** a Sound Effects API não é serviço de trilha; a Music API exige a permissão
-  `music_generation` na chave. A música procedural atual fica até liberar a permissão (não foi trocada por silêncio).
+## Música de batalha por dimensão
+- Permissão `music_generation` liberada pelo criador em 18/11 e confirmada sem custo (`POST /v1/music/plan` → 200).
+- `audio/musica/mus_batalha_vhazrael.mp3`: 1 composição original instrumental (Music API, 90 s gerados; 3,6 s de silêncio
+  final cortados; loop com fade), tocando só na dimensão do VHAZRAEL (`mus:bishop1`); lá a música sintética se cala.
+- **Custo da música não medível pela sessão:** a Music API não devolve `Character-Cost` e a chave não tem `user_read`.
+  Por isso as trilhas dos Bispos 2, 3 e 4 não foram geradas (o briefing proíbe gastar sem conhecer o custo real).
+  **Permissão que falta: `user_read`** (ou o criador informar o saldo antes/depois desta trilha).

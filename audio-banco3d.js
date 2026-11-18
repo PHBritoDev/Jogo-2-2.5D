@@ -53,7 +53,7 @@ export function createSampleBank(ctx, { base = './', manifestUrl = './audio/audi
       if (!ready) return false; let L = loops.get(ev);
       if (!L) { const list = byEvent.get(ev); if (!list) return false; const a = list[0]; if (!buffers.has(a.assetId)) { if (level > .001) load(a); return false; }
         const src = ctx.createBufferSource(); src.buffer = buffers.get(a.assetId); src.loop = true; const g = ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(out); src.start(0, Math.random() * src.buffer.duration); L = { src, g }; loops.set(ev, L); }
-      L.g.gain.setTargetAtTime(Math.max(0, level), ctx.currentTime, .9); return true;
+      L.g.gain.setTargetAtTime(Math.max(0, level), ctx.currentTime, .9); return level > .001 || L.g.gain.value > .01;
     },
     stats() { return { ready, eventos: byEvent.size, decodificados: buffers.size, vozes: voices.length, loops: loops.size }; }
   };

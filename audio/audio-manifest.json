@@ -1,7 +1,7 @@
 {
  "versao": 1,
  "gasto_total_creditos": 1774,
- "observacao": "inclui 2 chamadas de teste (whoosh 1 s = 10, loop 6 s = 60) e 1 refeita (floresta noturna v1 = 120)",
+ "observacao": "inclui 2 chamadas de teste (whoosh 1 s = 10, loop 6 s = 60) e 1 refeita (floresta noturna v1 = 120); música: 1 trilha (VHAZRAEL) com custo não informado pela API",
  "assets": [
   {
    "assetId": "prota_corte_1",
@@ -704,6 +704,25 @@
    "gerado_em": "2026-11-18T10:05:41Z",
    "licenca": "Gerado na conta do criador (ElevenLabs); uso conforme os termos do plano da conta — confirmar uso comercial no plano",
    "aprovacao": "auditoria objetiva (pico/silêncio/duração); escuta no aparelho pendente"
+  },
+  {
+   "assetId": "mus_batalha_vhazrael",
+   "arquivo": "audio/musica/mus_batalha_vhazrael.mp3",
+   "evento": "mus:bishop1",
+   "categoria": "musica",
+   "loop": true,
+   "prompt": "Original instrumental boss battle music for a dark fantasy action game: duel against a cursed knight-bishop in a golden throne hall. Fast driving war drums and taiko, aggressive low string ostinato, staccato brass stabs, gothic choir pads without words, tense and heroic, 150 bpm, constant energy, builds intensity, ends on a sustained note suitable for looping. No vocals, no lyrics.",
+   "duracao_s": 86.39,
+   "pico_dbfs": -2.2,
+   "media_db": -16.2,
+   "bytes": 1382653,
+   "sha256": "f698566eef5a396e1a76ed848f730f181e0b12c20378785d02cb4f903b89e5b8",
+   "origem": "ElevenLabs Music API (/v1/music, force_instrumental, 1 resultado por chamada; Song-Id dfR0YSINrykMFzMrmFd0)",
+   "custo_creditos_confirmado": null,
+   "custo_observacao": "a Music API não devolve Character-Cost e a chave não tem user_read: custo não medível pela sessão",
+   "gerado_em": "2026-11-18T10:45:00Z",
+   "licenca": "Gerado na conta do criador (ElevenLabs Music); composição original, sem referência a obras existentes — confirmar uso comercial no plano",
+   "aprovacao": "auditoria objetiva (90 s gerados, 3,6 s finais de silêncio cortados, loop com fade); escuta no aparelho pendente"
   }
  ]
 }

@@ -62,11 +62,11 @@ test('P6: manifesto rastreável — arquivo existe, hash confere, custo e origem
   assert.ok(man.assets.length >= 35 && man.gasto_total_creditos > 0);
   for (const a of man.assets) {
     const buf = fs.readFileSync(new URL('../' + a.arquivo, import.meta.url)); assert.equal(createHash('sha256').update(buf).digest('hex'), a.sha256, a.assetId);
-    assert.ok(a.custo_creditos_confirmado > 0 && /1 resultado por chamada/.test(a.origem) && a.prompt && a.evento);
+    assert.ok((a.custo_creditos_confirmado > 0 || a.custo_observacao) && /1 resultado por chamada/.test(a.origem) && a.prompt && a.evento);
     assert.ok(a.pico_dbfs <= 0 && a.pico_dbfs >= -3 || a.loop, a.assetId + ': pico normalizado'); assert.ok(a.media_db > -30, a.assetId + ': não é arquivo mudo');
-    assert.ok(buf.length < 200 * 1024, a.assetId + ': leve para o celular');
+    assert.ok(buf.length < (a.categoria === 'musica' ? 1.6 * 1024 * 1024 : 200 * 1024), a.assetId + ': leve para o celular');
   }
-  for (const ev of ['swing:0', 'swing:1', 'swing:2', 'hit', 'block', 'parry', 'hurt', 'vz:light', 'vz:heavy', 'vz:hit', 'whoosh', 'jump', 'land', 'step:grass', 'step:path', 'step:water', 'step:ash', 'thunder', 'amb:forestDay', 'amb:forestNight', 'amb:rain', 'amb:river', 'amb:falls', 'amb:cave', 'amb:dim:bishop1'])
+  for (const ev of ['swing:0', 'swing:1', 'swing:2', 'hit', 'block', 'parry', 'hurt', 'vz:light', 'vz:heavy', 'vz:hit', 'whoosh', 'jump', 'land', 'step:grass', 'step:path', 'step:water', 'step:ash', 'thunder', 'amb:forestDay', 'amb:forestNight', 'amb:rain', 'amb:river', 'amb:falls', 'amb:cave', 'amb:dim:bishop1', 'mus:bishop1'])
     assert.ok(indexManifest(man).has(ev), 'evento coberto: ' + ev);
   assert.ok(!man.assets.some(a => /ganancia|greed|buraco negro|black hole/i.test(a.assetId + a.prompt)), 'sem sons da Ganância nem dos poderes futuros do protagonista');
 });
@@ -87,4 +87,5 @@ test('P6: audio3d usa as amostras nos eventos cobertos (procedural só de reserv
   assert.ok(/bank\.loop\('amb:rain'/.test(au) && /L\('amb:dim:bishop1'/.test(au) && /layers\.wind\.g\.gain\.setTargetAtTime\(0, t, \.5\)/.test(au), 'loop real cala o procedural equivalente');
   assert.ok(/case 'windup':if\(a\?\.kind==='vhazrael'\)/.test(m) && /worldAudio\.bossHit\(\)/.test(m), 'VHAZRAEL com vush no corte e impacto próprio');
   assert.ok(/biome:audioBiome\(\),dimension:voidMode\?\(dimKey\|\|'void'\):null/.test(m));
+  assert.ok(/bank\.loop\('mus:' \+ k, musicBus, on \? \.9 : 0\)/.test(au) && /music\.set\(realMusic \? 'silent'/.test(au), 'trilha real da dimensão cala a música sintética');
 });
