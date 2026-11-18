@@ -84,5 +84,6 @@ test('Interrupção, IA e integração — some limpo, IA usa a Skill 2 à dist�
   const vfx = fs.readFileSync(new URL('./zarkhael-blackflame3d.js', import.meta.url), 'utf8'); assert.ok(vfx.includes('moonComet.update(seq,ctx)') && vfx.includes('travelingGrowth(s.ft,s.big)'), 'lua e fogo progressivo ligados ao VFX');
   assert.ok(BF.shots===10 && BF.bigScale>BF.smallScale*2.9, 'dez chamas e uma colossal preservadas');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles|BOSS_POWERS\.zarkhael/.test(src), 'Mods 264/267 preservadas');
-  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'));
+  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8');
+  assert.ok(lab.includes('data-dim="bishop3"') && lab.includes("params.set('testeDimensao',key)"), 'laboratório abre Dimensão do Bispo 3 pela rota atual');
 });

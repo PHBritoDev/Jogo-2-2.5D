@@ -356,27 +356,63 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   let s = seed >>> 0;
   const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
   const area = terrain.area, specs = [];
+  // Invalid primary bounds must not reverse the forest span or poison sampling.
+  if (![area?.cx, area?.cz, area?.hx, area?.hz].every(Number.isFinite) || area.hx < 0 || area.hz < 0) return specs;
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
-  for (const e of terrain.extraAreas || []) {
-    span.x0 = Math.min(span.x0, e.cx - e.hx - 70); span.x1 = Math.max(span.x1, e.cx + e.hx + 70);
-    span.z0 = Math.min(span.z0, e.cz - e.hz - 70); span.z1 = Math.max(span.z1, e.cz + e.hz + 70);
+  // Optional regions may come from restored/generated map data; malformed containers
+  // must not crash forest generation or erase the valid primary region.
+  const forestExtras = Array.isArray(terrain.extraAreas) ? terrain.extraAreas : [];
+  for (const e of forestExtras) {
+    // A corrupt optional region must not poison the entire forest sampling span.
+    if (![e?.cx, e?.cz, e?.hx, e?.hz].every(Number.isFinite) || e.hx < 0 || e.hz < 0) continue;
+    const x0 = e.cx - e.hx - 70, x1 = e.cx + e.hx + 70;
+    const z0 = e.cz - e.hz - 70, z1 = e.cz + e.hz + 70;
+    if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) continue;
+    // A distant but individually representable optional region can make the
+    // combined extent overflow Float32. Ignore only that region: the playable
+    // base forest must not disappear because of unrelated map data.
+    const next = {
+      x0: Math.min(span.x0, x0), x1: Math.max(span.x1, x1),
+      z0: Math.min(span.z0, z0), z1: Math.max(span.z1, z1),
+    };
+    if (![next.x1 - next.x0, next.z1 - next.z0].every(v => Number.isFinite(Math.fround(v)))) continue;
+    Object.assign(span, next);
   }
-  const total = lowSpec ? Math.round(attempts * .6) : attempts;
+  // Endpoints can be representable while their difference overflows Float32.
+  // A non-representable span would generate unstable world coordinates on mobile.
+  if (![span.x0, span.x1, span.z0, span.z1, span.x1 - span.x0, span.z1 - span.z0].every(v => Number.isFinite(Math.fround(v)))) return specs;
+  // A malformed or unbounded sample budget must never stall the mobile main thread.
+  // Normal gameplay budgets (2600, or 60% on low spec) are unchanged.
+  const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : 2600;
+  const total = lowSpec ? Math.round(budget * .6) : budget;
   for (let i = 0; i < total; i++) {
     const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);
     const d = terrain.boundaryDistance(x, z);
+    // Invalid boundary samples must not classify a cell as a walkable forest slope.
+    if (!Number.isFinite(d)) continue;
     const density = fbm(x * .028 + 31, z * .028 - 17, 3, 61);
     if (d < -11) {
       // Vale: bosques em manchas, com clareiras naturais.
       if (rnd() > smoothstep(.34, .62, density) * .95) continue;
-      if (!isFree(x, z) || terrain.waterDepth(x, z) > -.25) continue;
+      if (!isFree(x, z)) continue;
+      const water = terrain.waterDepth(x, z);
+      if (!Number.isFinite(water) || water > -.25) continue;
+      // Valley tree placement also depends on terrain elevation downstream.
+      // Reject invalid height samples before producing a world-space instance.
+      if (!Number.isFinite(Math.fround(terrain.height(x, z)))) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
     } else if (d > 5 && d < 62) {
       // Encostas: coníferas rareando com a altitude (linha das árvores). A faixa do contraforte
       // fica aberta (pedras e capim) para a câmera não ficar presa dentro da mata no limite.
       const y = terrain.height(x, z);
-      if (y > 38 + density * 12) continue;
+      // Keep the same route/mission clearance on the foothills as in the valley.
+      // Previously the hillside branch bypassed isFree and could spawn trees
+      // over reserved exterior paths despite having collision disabled.
+      if (!isFree(x, z)) continue;
+      const water = terrain.waterDepth(x, z);
+      if (!Number.isFinite(water) || water > -.25) continue;
+      if (!Number.isFinite(Math.fround(y)) || y > 38 + density * 12) continue;
       if (rnd() > (.78 - smoothstep(10, 46, y) * .7) * smoothstep(.22, .5, density + .12)) continue;
       specs.push({ x, z, kind: 'conifer', s: .85 + rnd() * .9, rot: rnd() * Math.PI * 2, tint: rnd(), collide: false });
     }

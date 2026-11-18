@@ -163,3 +163,85 @@ test('cronômetro de corações não mostra NaN, Infinity nem valores negativos'
   assert.equal(formatTimer(0), '0:00');
   assert.equal(formatTimer(1001), '0:02', 'segundos parciais arredondam para cima');
 });
+
+test('estado de corações corrompido em memória não contamina HUD ou regeneração', () => {
+  const now = 1000000;
+  for (const hearts of [NaN, Infinity, -Infinity, undefined, -3, 11, 2.9]) {
+    const state = tickHearts({ hearts, since: now }, now);
+    assert.ok(Number.isInteger(state.hearts) && state.hearts >= 0 && state.hearts <= HEARTS.max);
+    assert.ok(Number.isFinite(msToNextHeart(state, now)));
+    assert.ok(Number.isInteger(loseHeart(state, now).hearts));
+  }
+  assert.equal(tickHearts({ hearts: 2.9, since: now }, now).hearts, 2);
+  assert.equal(tickHearts({ hearts: -3, since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: NaN, since: now }, now).hearts, HEARTS.max);
+});
+
+
+test('estado bruto inválido não permite iniciar desafio de Bispo', () => {
+  for (const hearts of [NaN, Infinity, -Infinity, -1, 0, 0.5, 11, '1', undefined]) {
+    assert.equal(canChallengeBishop({ hearts }), false, `estado inválido ${String(hearts)}`);
+  }
+  assert.equal(canChallengeBishop(null), false);
+  for (const hearts of [1, 5, HEARTS.max]) assert.equal(canChallengeBishop({ hearts }), true);
+});
+
+
+test('estado runtime com coração ausente não vira zero por coerção implícita', () => {
+  const now = 1000000;
+  for (const hearts of [null, '', '  ', false, [], {}]) {
+    const state = tickHearts({ hearts, since: now }, now);
+    assert.equal(state.hearts, HEARTS.max, 'valor ausente ou tipo inválido não deve zerar vidas');
+    assert.equal(canChallengeBishop(state), true);
+  }
+  assert.equal(tickHearts({ hearts: 0, since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: '0', since: now }, now).hearts, 0);
+  assert.equal(tickHearts({ hearts: '4', since: now }, now).hearts, 4);
+});
+
+
+test('HUD de regeneração respeita corações brutos inválidos e saves legados', () => {
+  const now = 1000000;
+  for (const hearts of [NaN, Infinity, -Infinity, null, '', '  ', false, [], {}, undefined]) {
+    assert.equal(msToNextHeart({ hearts, since: now }, now), 0,
+      'estado ausente/corrompido é restaurado como cheio, sem timer fictício');
+  }
+  assert.equal(msToNextHeart({ hearts: '10', since: now }, now), 0,
+    'save legado com dez corações já está cheio');
+  assert.equal(msToNextHeart({ hearts: '4', since: now - 5000 }, now), HEARTS.regenMs - 5000);
+  assert.equal(msToNextHeart({ hearts: 0, since: now }, now), HEARTS.regenMs);
+  assert.equal(msToNextHeart(null, now), 0);
+});
+
+
+test('estado ausente na regeneração não derruba a sessão ou o HUD', () => {
+  const now = 1000000;
+  for (const invalid of [null, undefined, false, 'corrompido']) {
+    const recovered = tickHearts(invalid, now);
+    assert.equal(recovered.hearts, HEARTS.max);
+    assert.equal(recovered.since, now);
+    assert.equal(msToNextHeart(recovered, now), 0);
+    assert.equal(loseHeart(invalid, now).hearts, HEARTS.max - 1);
+  }
+});
+
+test('arrays de saves e runtime não podem virar corações por coerção implícita', () => {
+  const now = 1000000;
+  for (const hearts of [[4], [0], ['4'], new Number(4)]) {
+    assert.equal(normalizeHearts({ hearts, since: now }, now).hearts, HEARTS.max);
+    assert.equal(tickHearts({ hearts, since: now }, now).hearts, HEARTS.max);
+    assert.equal(msToNextHeart({ hearts, since: now }, now), 0);
+    assert.equal(canChallengeBishop({ hearts }), false);
+  }
+  assert.equal(normalizeHearts({ hearts: '4', since: now }, now).hearts, 4);
+});
+
+test('timestamp textual legado preserva regeneração parcial em runtime e HUD', () => {
+  const now = HEARTS.regenMs * 2 + 30000;
+  const state = { hearts: 3, since: '0' };
+  const updated = tickHearts(state, now);
+  assert.equal(updated.hearts, 5);
+  assert.equal(updated.since, HEARTS.regenMs * 2);
+  assert.equal(msToNextHeart(state, now), HEARTS.regenMs - 30000);
+  assert.equal(msToNextHeart({ hearts: 3, since: '' }, now), HEARTS.regenMs);
+});

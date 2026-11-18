@@ -3,11 +3,11 @@
 <div id="info"></div><footer><button data-k="thorns">ESPINHOS</button><button data-k="bombard">BOMBARDEIO</button><button data-k="throne">RUPTURA</button><button data-k="orbital">EXTINÇÃO</button><button data-k="melee">GOLPE</button><button id="q">QUALIDADE</button></footer>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
-/* MOD 247 — prévia/QA isolada do VHAZRAEL: o MESMO runtime da esquadra do jogo com o Bispo1-lod.glb real (clipes in-place como
+/* MOD 247 (Mod 320: corpo VHAZRAEL.glb) — prévia/QA isolada do VHAZRAEL: o MESMO runtime da esquadra do jogo com o VHAZRAEL.glb real (clipes in-place como
    no loadRig), a Lâmina do Trono, a Ninhada procedural e o VFX. ?k=poder&t=segundos congela num instante (evidência) e
    window.__qa mede a postura do esqueleto (inclinação do tronco, altura do quadril, escala) quadro a quadro. */
 import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {clone as skClone} from 'three/addons/utils/SkeletonUtils.js';
-import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';
+import {createEnemy1SquadRuntime} from './enemy1-squad-runtime3d.js';import {VZ_FILE,VZ_ROLES,VZ_IN_PLACE,inPlaceClip} from './vhazrael-rig3d.js';
 const qs=new URLSearchParams(location.search);let kind=qs.get('k')||'thorns',quality=qs.has('low')?0:1;const freezeAt=qs.has('t')?+qs.get('t'):null,camMode=qs.get('cam')||'auto';
 const scene=new T.Scene();scene.background=new T.Color('#1b1a26');scene.fog=new T.Fog('#1b1a26',45,140);const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,4000);
 const renderer=new T.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=T.ACESFilmicToneMapping;renderer.outputColorSpace=T.SRGBColorSpace;document.body.appendChild(renderer.domElement);
@@ -16,9 +16,9 @@ const floor=new T.Mesh(new T.PlaneGeometry(260,260),new T.MeshStandardMaterial({
 for(let i=0;i<30;i++){const a=i/30*6.283,r=26+(i%3)*6,tr=new T.Mesh(new T.ConeGeometry(1.7,8,7),new T.MeshStandardMaterial({color:0x1f3424,roughness:1}));tr.position.set(Math.cos(a)*r,4,Math.sin(a)*r);scene.add(tr);}
 const ground=()=>0;const heroM=new T.Mesh(new T.CapsuleGeometry(.32,1.1,6,12),new T.MeshStandardMaterial({color:0xe8e2d0}));heroM.position.y=.87;scene.add(heroM);
 const hero={id:'hero',team:'hero',x:0,y:0,z:0,vx:0,vz:0,radius:.42,height:1.8,alive:true,priority:1,iframes:false,air:0};
-const ROLES={idle:'Idle',walk:'Walk',attack:'Sword Aerial Combo',cast:'Sword Regular B',death:'Hit Knockback Root Motion'},IN_PLACE=['attack','cast','death'];
-let rig=null;async function load(){if(rig)return rig;const g=await new GLTFLoader().loadAsync('./Bispo1-lod.glb');const model=g.scene,mixer=new T.AnimationMixer(model),actions={};
- const inPlace=c=>{const k=c.clone();for(const t of k.tracks){if(!/hips[^.]*\.position$/i.test(t.name))continue;const v=t.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return k;};
+const ROLES=VZ_ROLES,IN_PLACE=VZ_IN_PLACE; // Mod 320: mesmos papéis/clipes do jogo
+let rig=null;async function load(){if(rig)return rig;const g=await new GLTFLoader().loadAsync(VZ_FILE);const model=g.scene,mixer=new T.AnimationMixer(model),actions={};
+ const inPlace=c=>inPlaceClip(c);
  for(const [role,name] of Object.entries(ROLES)){const c=g.animations.find(a=>a.name===name);if(c)actions[role]=mixer.clipAction(IN_PLACE.includes(role)?inPlace(c):c);}return rig={model,actions};}
 let rt=null,time=0,heroHp=0,info=document.getElementById('info');const qa={tilt:0,lift:0,sink:0,scale:[9,0],frames:0};
 async function start(){await load();if(rt)rt.dispose();heroHp=0;time=0;hero.x=0;hero.z=0;

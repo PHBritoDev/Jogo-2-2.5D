@@ -16,8 +16,23 @@ export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 7.2, clip: 'Jump
 /** Dash da referência 3900: some em fumaça vertical na origem, atravessa invisível e reaparece adiante
  *  num rastro horizontal escuro que se fecha no corpo. Curto, imediato, com i-frames e recarga. */
 /* Mod 315: recarga ÚNICA de 0,50 s contada desde a ativação (combat-mobility3d.MOBILITY.dashCooldown) — o jogo usa a mesma. */
-export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: MOBILITY.dashCooldown, recover: .14 });
+export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: MOBILITY.dashCooldown, recover: .14,
+  /* Mod 327: chegada = amortecimento do pouso (quadril de frente, ±15°). Antes era a cauda do Quick_Step_and_Spin_Dodge
+   * (.82–1.16 s), que começa no MEIO do giro com o quadril a −131° (postura −52°): o herói reaparecia de lado e girava. */
+  arrive: Object.freeze({ clip: 'Jump_Over_Obstacle_2', start: .62, end: .86 }) });
 
+/**
+ * Mod 327 — onde o dash termina. `soft(x,z)`: o herói não pode PARAR ali (corpo, NPC, água funda + tudo de `hard`);
+ * `hard(x,z)`: parede que o dash nunca atravessa. 1) segue em frente até sair de um corpo, sem cruzar parede;
+ * 2) senão recua pelo PRÓPRIO trajeto varrido (pontos já validados, [x0,z0,x1,z1,…]); 3) por fim, a origem.
+ * Nunca empurra às cegas para trás (antes recuava 2,8 m em linha reta e podia entrar numa parede lateral).
+ */
+export function dashSettle(p, dir, trail, from, soft, hard, step = .07) {
+  for (let i = 0; i < 30 && soft(p.x, p.z); i++) { const nx = p.x + dir.x * step, nz = p.z + dir.z * step; if (hard(nx, nz)) break; p.x = nx; p.z = nz; }
+  for (let i = trail.length - 2; i >= 0 && soft(p.x, p.z); i -= 2) { p.x = trail[i]; p.z = trail[i + 1]; }
+  if (soft(p.x, p.z) && from && !hard(from.x, from.z)) { p.x = from.x; p.z = from.z; }
+  return p;
+}
 /** Trechos [início, fim] dos clipes (segundos) e janelas relativas ao trecho. hit: physical | energy | hybrid. */
 export const PROTA_MOVES = Object.freeze({
   ground: [
@@ -56,7 +71,7 @@ export function protaSegments() {
   for (const [mode, list] of Object.entries(PROTA_MOVES)) (Array.isArray(list) ? list : [list]).forEach((m, i) => out.push({ id: `Prota302_${mode}_${i}`, clip: m.clip, start: m.start, end: m.end }));
   out.push({ id: 'Prota302_jump', clip: PROTA_JUMP.clip, start: PROTA_JUMP.takeoff, end: PROTA_JUMP.airTo, vertical: true });
   out.push({ id: 'Prota302_land', clip: PROTA_JUMP.clip, start: PROTA_JUMP.land, end: PROTA_JUMP.landEnd, vertical: true });
-  out.push({ id: 'Prota302_arrive', clip: 'Quick_Step_and_Spin_Dodge', start: .82, end: 1.16, vertical: true });
+  out.push({ id: 'Prota302_arrive', clip: PROTA_DASH.arrive.clip, start: PROTA_DASH.arrive.start, end: PROTA_DASH.arrive.end, vertical: true });
   return out;
 }
 export function moveDuration(m) { return m.end - m.start; }

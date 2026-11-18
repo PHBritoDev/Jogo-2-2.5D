@@ -1,3 +1,4 @@
+import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
 import { registerKind, registerSkill, E1, SKILLS } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 /**
@@ -43,7 +44,7 @@ const COMMON3 = {
   block: { chance: .22, dur: .8, cd: 2.6, cost: 22, reduce: .7 },
   dodge: { chance: .3, cd: 3 },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  decide: [.28, .42], gap: .85, spellGap: 3.6, maxBig: 2, kit: ['nadir', 'barrage', 'singularity'], interrupt: false,
+  decide: [.28, .42], gap: .85, spellGap: 3.6, maxBig: 2, kit: TEMP_MELEE_ONLY_TEST ? [] : ['nadir', 'barrage', 'singularity'], interrupt: false,
   nadir: NADIR, barrage: BARRAGE, singularity: SINGULARITY
 };
 const BOSS3 = {

@@ -1,3 +1,8 @@
+/** Prefer the real blade contact point for impact VFX; scripted hits retain their target fallback. */
+export function swordImpactPoint(e){
+ const p=e?.p;
+ return p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z)?p:e?.target;
+}
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
  */
@@ -47,7 +52,7 @@ export function createSwordRitesVFX(T,scene){
    if(e.final)cut(p,'prota',2,roll+Math.PI/2,n*.91,.38);
    burst(p,'prota',e.final?24:4);
   }
-  else if(type==='impact'){const p=e.target;burst(p,e.sword,e.final?32:15);cut(p,e.sword,e.final?.9:.52,Math.PI*.5,time*3,.19);}
+  else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;burst(p,e.sword,e.final?32:15);cut(p,e.sword,e.final?.9:.52,Math.PI*.5,time*3,.19);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
   else if(type==='cancel')clear();
  }

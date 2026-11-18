@@ -35,8 +35,9 @@ export const ACT1 = {
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
 
 export function sanitizePlayerName(raw) {
-  // Não transformar quebras de linha coladas em espaços: o nome deve ocupar uma única linha.
-  if (/[\r\n\u2028\u2029]/.test(String(raw ?? ''))) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
+  // Rejeitar controles invisíveis (inclusive tab e NUL), sem transformá-los em espaços.
+  // Isso mantém nomes de HUD, legendas e saves em uma única linha previsível.
+  if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(String(raw ?? ''))) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
   const name = String(raw || '').replace(/\s+/g, ' ').trim();
   if (name.length < 3 || name.length > 12) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
   if (!/^[\p{L}][\p{L} '\-.]{2,11}$/u.test(name)) {
@@ -95,7 +96,8 @@ export function progressionFields(raw, questStep) {
   }
   const stats = {};
   for (const k of STAT_KEYS) stats[k] = clampInt(r.stats && r.stats[k], 0, Number.MAX_SAFE_INTEGER, 0);
-  const list = v => (Array.isArray(v) ? v.filter(x => typeof x === 'string').slice(0, 64) : []);
+  // IDs de conquistas e bestiário representam registros únicos; saves antigos podem conter duplicatas.
+  const list = v => (Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string'))].slice(0, 64) : []);
   return {
     xp: clampInt(r.xp, 0, Number.MAX_SAFE_INTEGER, 0),
     owned: [...new Set(owned)],
@@ -108,7 +110,7 @@ export function progressionFields(raw, questStep) {
     playSeconds: clampInt(r.playSeconds, 0, Number.MAX_SAFE_INTEGER, 0),
     ledgersFound: Array.isArray(r.ledgersFound) ? [...new Set(r.ledgersFound.filter(i => Number.isInteger(i) && i >= 0 && i < 3))] : [],
     vorgazhekRewardClaimed: !!r.vorgazhekRewardClaimed,
-    lateFound: Array.isArray(r.lateFound) ? r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8) : [],
+    lateFound: Array.isArray(r.lateFound) ? [...new Set(r.lateFound.filter(i => Number.isInteger(i) && i >= 0 && i < 8))] : [],
     lateFoundStep: clampInt(r.lateFoundStep, 0, Number.MAX_SAFE_INTEGER, 0),
     lateFightIndex: clampInt(r.lateFightIndex, 0, 5, 0),
     lateBossClaimed: { zarkhael: !!(r.lateBossClaimed && r.lateBossClaimed.zarkhael), veraxion: !!(r.lateBossClaimed && r.lateBossClaimed.veraxion) },
@@ -146,7 +148,9 @@ export function migrateProgress(raw) {
   if (!raw || typeof raw !== 'object') return base;
   raw = migrateBishopOneName(raw);
   // Saves corrompidos podem conter Infinity/NaN: nunca propagar moedas não finitas ao HUD/loja.
-  const rawCoins = Number(raw.coins);
+  // Somente escalares numéricos legados: Number([40]) e Number(true) não são moedas ganhas.
+  const scalarCoins = typeof raw.coins === 'number' || (typeof raw.coins === 'string' && raw.coins.trim() !== '');
+  const rawCoins = scalarCoins ? Number(raw.coins) : NaN;
   const coins = Number.isFinite(rawCoins) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(rawCoins))) : 0;
   // Preserva nomes de saves antigos (2–16 caracteres) sem permitir novos nomes fora do limite atual.
   const named = sanitizePlayerName(raw.playerName || '');
@@ -218,10 +222,12 @@ export function questPresentation(step, sub = 0) {
       ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
       : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
     2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
-    3: sub >= 1
-      ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
-      : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
-    4: [['ATO I · OS ESGOTOS', 'Siga a trilha da montanha rumo aos esgotos'],
+    3: sub >= 2
+      ? ['ATO I · O AMANHECER', 'A luta terminou. Recupere o fôlego e escute o Anjo-Guia']
+      : sub >= 1
+        ? ['ATO I · RECEPTÁCULOS', 'Derrote as crianças possuídas pelos demônios']
+        : ['ATO I · A CHAVE', 'Abra a gaiola com a chave dos Seguidores'],
+    4: [['ATO I · GRITOS NA TRILHA', 'Investigue os gritos dos moradores na trilha da montanha'],
       ['ATO I · A PISTA', 'Siga a pista até a entrada da caverna, na encosta'],
       ['ATO I · OS ESGOTOS', 'Avance pelo esgoto seguindo os rastros de sangue'],
       ['ATO I · O BURACO', 'Investigue o buraco no fundo do esgoto']][clampInt(sub, 0, 3, 0)],

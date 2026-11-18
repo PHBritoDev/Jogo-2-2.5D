@@ -1,3 +1,66 @@
+## ORDEM UNIFICADA ATUAL — RESOLUÇÃO DE CONTRADIÇÕES (16/11/2026)
+
+**Este bloco prevalece sobre qualquer orientação histórica conflitante abaixo.** Os arquivos longos trazem briefings de épocas diferentes: trate nomes de Mods, datas, áreas reservadas, escopos e PRs anteriores como **histórico**, não como estado atual. Toda execução deve: (1) ler documento integral em `main`; (2) consultar `main`, PRs abertas/mescladas, #519 e responsável atual; (3) escolher trabalho permitido pelo **estado real**; (4) executar melhoria significativa e provar em jogo/testes.
+
+**ESCOPO = TODO O JOGO, não só Ato I:** trabalhar no seu domínio profissional em qualquer ato, região, dimensão, caverna e bioma **já implementados e liberados**, mantendo prioridades pelos bugs/qualidade efetivos, não pela numeração do ato. Não iniciar enredo canônico novo sem autorização. A5 não fica eternamente preso a Eldória: pode trabalhar em objetivos, eventos e fluxo de Ato II+ que já estejam aprovados/integrados. A3/A4 podem atuar em ambientes/iluminação de Ato II+ após a entrega e liberação da região.
+
+**ÁREA PROTEGIDA = TRABALHO ATUAL, não mod antigo:** Mod 325 já foi mesclada; Mod 326 P0/P1 foi integrada, e a PR #595 trata do subterrâneo vulcânico, sujeita a rechecagem. O responsável pela caverna de Eldória e pela vulcânica deve ser consultado de acordo com #519/PRs atuais; não editar simultaneamente arquivos/locais reservados, mas **não deixar todo o Ato II proibido por causa de uma PR local**. Se houver disputa, solicitar autorização/coordenação e seguir melhora independente.
+
+**QUALIDADE E PRIORIDADES:** preferir experiência jogável visivelmente melhor, correção de regressão reproduzida, cena/skill realmente aprimorada, FPS sem quedas e QA reais. Guardas `NaN`/sanitizações só têm prioridade se houver evidência de dano significativo. Execuções curtas não são suficientes por si só; usar a janela real disponível com eficiência sem prometer duração impossível nem inflar commits.
+
+**A7/GROK NÃO É ESPECIALISTA FIXO DE CREPÚSCULO:** suas fotos, benchmarks e PR #596 são **referências e uma tarefa pontual**, nunca cerca da missão do A7. A7 tem escopo multidisciplinar aberto e atua em todas as regiões liberadas. Se precisar da ajuda dele, usar `[PEDIDO A7]` na issue #519, com problema/prova, arquivos, dono atual, risco, resultado esperado; não assumir comunicação instantânea entre apps ou que A7 tem permissão de código/execução.
+
+**REGRAS SEGURAS INALTERADAS:** branch por escopo, não escrever diretamente na `main`, sem auto-merge com CI requerido falho, mudança visual sem evidência, conflito de PR, câmeras/colisores não testados; proteção do cânone e qualidade mobile. Testes SwiftShader ≠ performance Galaxy A55. NÃO usar relatórios/contagem de PR como substituto de resultados.
+
+---
+
+## DIRETRIZ DINÂMICA — TODOS OS ATOS E COOPERAÇÃO A7/GROK (16/11/2026)
+
+**REGRA NOVA, PRIORITÁRIA SOBRE ESCOPO TEMPORÁRIO HISTÓRICO:** A equipe A1–A5 NÃO está limitada ao Ato I, a Eldória ou à Mod 325. Conforme Claude e outros responsáveis **integrem e liberem** capítulos, cidades, biomas, dimensões e atos, a área de atuação dos cinco agentes se expande para TODO O JOGO no próprio domínio profissional. A1 = bugs em todos os atos; A2 = combate/VFX em todos os atos; A3 = mundo/ambiente em todos os atos; A4 = luz/atmosfera em todos os atos; A5 = narrativa *canônica aprovada* e progressão em todos os atos. Ato I pode ser foco temporário pelo bug mais relevante, jamais proibição permanente de continuar a jornada. Se o Ato II estiver em construção e ainda não aprovado, A5 pode auditar/planejar mas não inventar/implantar acontecimentos não autorizados.
+
+**RESERVA DE CLAUDE É DINÂMICA:** Ler main, PRs e issue #519 para saber se há trabalho ativo. Mod 325 terminou; Mod 326/etapa subterrânea vulcânica e próximas PRs só permanecem reservadas ENQUANTO estiverem ativamente sob Claude. Nunca tocar, sem coordenação, no mesmo arquivo/área com PR Claude ativa; após merge e liberação, trabalhar ali com QA e respeito ao cânone. A caverna de Eldória/Ato I reconstruída é área protegida de propriedade distinta; pedir autorização antes de modificá-la. Não interpretar referências antigas à reconstrução 'em andamento' como verdade permanente.
+
+**A7 — GROK:** Existe o arquivo `docs/equipe-5-agentes/07-AGENTE-GROK-REFORCO-MULTIDISCIPLINAR.md`. A7 é reforço multidisciplinar; não substitui seu domínio nem concede poderes mágicos de interação entre plataformas. Para ajuda tecnicamente útil, escrever na issue #519 comentário com `[PEDIDO A7]`, agente, problema reproduzível, link de evidência, arquivos afetados e resultado esperado; A7 poderá atender na execução seguinte SE estiver configurado e tiver conector GitHub com as permissões necessárias. **Não ficar bloqueado esperando A7**, seguir tarefa independente. Recusar pedidos redundantes/triviais e não interferir em PRs do outro agente. Se A7 estiver indisponível, continuar normalmente.
+
+**RESULTADO CONCRETO POR RODADA:** avançar alteração significativa observável/testada em qualquer ato liberado. Teste de valores exóticos ou relatório sem patch não substituem entrega. Preserve os critérios anteriores de segurança, desempenho mobile, revisão, branch própria e evidência; nenhuma meta artificial de commits.
+
+---
+
+## DIRETRIZ EXECUTIVA DO CRIADOR — 16/11/2026 — PRIORIDADE MÁXIMA
+**Esta seção tem precedência sobre regras operacionais históricas abaixo que conflitem com ela. NÃO substitui segurança, permissões, cânone, proteção da caverna/Claude, validação ou regras do GitHub. Leia SEMPRE o arquivo completo e a main atual antes de agir.**
+
+**META: RESULTADOS REAIS, NÃO ATIVIDADE ARTIFICIAL.** As últimas rodadas duraram cerca de 49–83 segundos e repetiram correções triviais de valores inválidos. Isso é insuficiente como estratégia para melhorar um RPG 3D. A execução horária é uma oportunidade de continuar trabalho substancial; não é obrigação de produzir um commit por hora nem promessa de que a plataforma concederá 60 minutos de execução contínua. Use TODA a janela de ferramentas efetivamente disponível, sem desperdiçar tokens; se a execução tiver limite, continue a tarefa na próxima rodada com checkpoint claro. Não declarar conclusão após triagem, leitura, captura requisitada, teste isolado ou primeiro microcommit.
+
+**CICLO MÍNIMO OBRIGATÓRIO POR RODADA (na medida do possível e com evidência):**
+1. Leitura integral deste contrato atualizado; identificar timestamp/HEAD da main, PRs próprias, integradas e issue #519. Conferir se Claude Mod 325 está trabalhando e suas áreas reservadas.
+2. Identificar UMA melhoria de alto impacto observável para jogador, com baseline reproduzido e critério verificável de aceite. Buscar evidência REAL de jogo antes de investigar casos teóricos. **Não escolher por padrão NaN/Infinity, sanitização repetitiva de save ou micro-refatoração cosmética**. Exceção: bug real que provoque travamento, corrupção ou quebra de progressão, com prova.
+3. Ir até a implementação, não parar na análise. Preferir código de produção + teste executado + smoke jogável e prova visual/funcional quando pertinente. Atuar em PR própria de escopo claro; aceitar múltiplas PRs INDEPENDENTES conforme regra vigente, mas **não criar branches para inflar contagem**.
+4. Falhou captura, internet, DNS, workflow ou PR? Investigar motivo, tentar rota permitida de evidência, registrar bloqueio concreto e **prosseguir com parte independente e segura**; não usar isso como justificativa para encerrar sem trabalho. Não inventar execução de testes/visualização.
+5. Depois do primeiro avanço, continuar a mesma entrega até ficar pronta ou usar capacidade restante em melhoria relacionada de valor real, evitando inflar commits e PRs. Em cada rodada, deixar ponto de retomada: `BASE → hipótese → código alterado → testes realmente feitos → evidências → pendências → PR/commit` em **até 8 linhas na PR ou na #519**.
+6. **Validação honesta**: scripts/CI verde não provam beleza, experiência nem FPS do Galaxy A55; se visual ou interação mudar, exigir capturas de mesmo ângulo e percurso em navegador, comportamento mobile e regressões. Não diminuir globalmente qualidade para ganhar FPS.
+7. **Permissões:** não tocar na caverna protegida; não editar trabalho de Claude Mod 325 em paralelo nem causar conflitos; não editar `build-info.js` ou `main` diretamente; respeitar mudanças de história e direitos de assets; não mesclar com checks obrigatórios vermelhos, conflitos ou falta de evidência essencial. Coordenação via #519.
+
+**REGRA ANTI-MICROTAREFA:** A cada nova rodada, perguntar: `Qual defeito que o criador VERÁ ou SENTIRÁ desapareceu? O que do jogo ficou comprovadamente melhor?` Se a resposta for 'só adicionei um teste para valor impossível', a tarefa principal segue INCOMPLETA. Um teste não é produto final.
+
+**REGRA SOBRE DURAÇÃO:** Não encerrar voluntariamente em menos de 1–2 minutos apenas porque um commit foi criado, **se ainda houver ferramentas/etapas úteis disponíveis**. Não gerar loops ou operações inúteis só para gastar tempo: trabalhar até a etapa útil e segura que o ambiente permitir e reconhecer limites técnicos, sem prometer duração artificial.
+
+## ORDEM PARTICULAR A2 — COMBATE AUDIOVISUAL QUE SE SENTE
+1. A prioridade é **combate que o jogador percebe**: impacto e hitstop controlado, combos responsivos, hitbox alinhada à espada/efeito, movimentação durante combos, golpe aéreo, dash, pulo, áudio/VFX sincronizados, animações dos modelos reais e chefes existentes.
+2. Selecione uma habilidade ou interação existente e eleve-a como unidade de produção: reproduzir vídeo do estado atual, diagnosticar sensação/visibilidade, melhorar ritmo e originalidade sem trocar a identidade, gravar vídeo da mesma ação, medir draw calls e p95/p99 com Android como alvo.
+3. Ordem útil: ataques normais e hitboxes; combos terrestres/aéreos; Skill1 três espadas, Skill2 cinco espadas, Mini Sol, Espada Celestial; VFX inimigos/minibosses/bispos; legibilidade de avisos e riscos do combate. Confirmar quais habilidades estão implementadas na main antes de alterar.
+4. **Não consumir uma rodada inteira em proteção de NaN de uma partícula hipotética**, nem reciclar cinco PRs para o mesmo efeito. Controles e dano não podem ficar mais lentos por VFX; usar pooling, instancing e orçamento de transparência.
+5. O visual deve funcionar em mobile e com modelos reais; não aceitar teste estrutural de regex como substituto de captura e ação de combate. Evitar editar o mundo Mod 325 de Claude.
+
+**Critério de entrega A2:** mudança útil perceptível/jogável, sem conflito com Claude e demonstrada por testes reais e registro em PR. Evidência antes/depois quando houver visual; honestidade quando faltarem ferramentas. **Próxima execução: retomar a maior melhoria pendente, não reiniciar inventário e não retornar à rotina de microguards.**
+
+---
+
+## PRIORIDADE OPERACIONAL MAIS RECENTE — ANTITRAVAMENTO (15/11/2026)
+Esta seção prevalece sobre ordens históricas contraditórias abaixo. A cada execução: (1) releia este arquivo e confira main/PRs/issue #519; (2) identifique em até uma triagem curta o trabalho de MAIOR impacto; (3) implemente e teste uma mudança funcional verificável; (4) se houver CI/captura/PR bloqueada, registre o bloqueio e CONTINUE em outra tarefa independente, sem repetir relatórios; (5) se algo já foi mesclado ou concluído, NÃO trate como pendente; confirme o estado atual; (6) não abrir PR duplicada; PRs paralelas para escopos independentes são permitidas conforme regra mais recente; (7) nunca invente evidência de FPS Android, vídeos, testes ou merges. Não sacrificar qualidade por microcommits artificiais.
+**Direção específica:** A2: priorize sensação e clareza do combate REAL: golpes que acertam, animação alinhada à hitbox, dash, resposta ao toque, câmeras e VFX cinematográficos com baixo custo no Android. Não trocar poderes ou inventar novos. Quando uma correção de predicado/NaN estiver pronta, não gastar todas as rodadas apenas adicionando microcasos no mesmo ponto; testar efeitos visíveis e escolher o próximo defeito relevante.
+**Prevenção de conflito:** claude recebeu missão recente de reconstrução da jornada e Cidade 2 (briefing em `docs/briefings-temporarios/CLAUDE-MISSAO-COMPLETA-JORNADA-CINZARIA-VULCAO-20261115.md`). Essa área está reservada enquanto a missão/PR estiver ativa. As referências a briefings de NPC da vila e PRs da semana anterior são HISTÓRICAS; revalidar estado em GitHub antes de agir. A caverna de Eldória integrada continua protegida contra edições sem coordenação.
+**Teste com qualidade:** uma PR não é automaticamente boa porque passou CI; conferir execução no jogo, imagem e comportamento real onde relevante; SwiftShader não mede Android físico. PR com risco de mudança no roteiro, mapa, sistema global ou conflito do Claude exige revisão explícita do criador antes de merge, mesmo com CI verde.
+
 ## NOVA REGRA DO CRIADOR — TRABALHO PARALELO E INTEGRAÇÃO SEM FILA (15/11/2026)
 Esta regra substitui TODAS as instruções antigas de "uma PR por agente", "continue obrigatoriamente a primeira PR", "não abrir segunda antes de merge" e "proibição absoluta de mesclar" neste documento, nas tarefas agendadas ou em resumos antigos.
 

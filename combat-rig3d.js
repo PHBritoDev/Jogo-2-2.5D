@@ -16,8 +16,8 @@ export function bakeCombatClips(T,root,clone,idle,moves=Object.values(COMBAT_MOV
  function ik(a,b,c,target,pole){world(a,p);world(b,p1);world(c,p2);const l1=p.distanceTo(p1),l2=p1.distanceTo(p2);origin.copy(p);d.copy(target).sub(origin);const len=Math.min(l1+l2-.002,Math.max(.01,d.length()));d.normalize();side.copy(pole).sub(origin).addScaledVector(d,-side.copy(pole).sub(origin).dot(d)).normalize();const along=(l1*l1-l2*l2+len*len)/(2*len);elbow.copy(origin).addScaledVector(d,along).addScaledVector(side,Math.sqrt(Math.max(0,l1*l1-along*along)));aim(a,b,elbow);aim(b,c,target);}
  const up=new T.Vector3(0,1,0),right=new T.Vector3(1,0,0),tar=v(),pole=v(),localAxis=v(),handQ=new T.Quaternion();bones.RightHand.getWorldQuaternion(handQ);localAxis.set(0,1,0).applyQuaternion(handQ.clone().invert());
  // Protagonist sword is calibrated to hand +Y. Generic rigs use their palm-to-middle-finger direction.
- if(bones.RightHand.name.includes('mixamorig'))localAxis.set(0,1,0);else{const child=bones.RightHand.children.find(b=>/MiddleProximal/.test(b.name));if(child){world(child,p1);world(bones.RightHand,p);localAxis.subVectors(p1,p).normalize().applyQuaternion(handQ.clone().invert());}}
- localAxis.set(0,1,0);
+ if(bones.RightHand.name.includes('mixamorig'))localAxis.set(0,1,0);else{const child=bones.RightHand.children.find(b=>/MiddleProximal/.test(b.name));if(child){world(child,p1);world(bones.RightHand,p);const fingerAxis=p1.clone().sub(p);if(Number.isFinite(fingerAxis.lengthSq())&&fingerAxis.lengthSq()>1e-8)localAxis.copy(fingerAxis.normalize()).applyQuaternion(handQ.clone().invert());}}
+ // Preserve the calibrated hand-to-blade axis; resetting it to +Y breaks non-Mixamo rigs.
  const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
  const clips={};for(const move of moves){const N=Math.ceil(move.duration*30),times=[],frames=[],rot=rest.map(()=>[]),hips=[];
   for(let i=0;i<=N;i++){const t=move.duration*i/N,a=poseAt(move,t);times.push(t);reset();const hip=hip0.clone();hip.y-=a.dip*scale;bones.Hips.position.copy(bones.Hips.parent.worldToLocal(hip));rig.updateMatrixWorld(true);

@@ -1,0 +1,91 @@
+{
+ "ambiente": "SwiftShader (CPU), Chromium headless, 800x360 mobile low-spec; NÃO mede o Galaxy A55",
+ "antes_main_f098ce0": {
+  "vale-dia": {
+   "p50": 14.9,
+   "p95": 19,
+   "calls": 56,
+   "tris": 263448,
+   "heapMB": 175
+  },
+  "vale-noite-aurora": {
+   "p50": 18.1,
+   "p95": 23.3,
+   "calls": 62,
+   "tris": 359122,
+   "heapMB": 164
+  },
+  "poco-noite": {
+   "p50": 15.2,
+   "p95": 17.7,
+   "calls": 57,
+   "tris": 326728,
+   "heapMB": 169
+  },
+  "praca-cinzaria": {
+   "p50": 22.1,
+   "p95": 33.7,
+   "calls": 96,
+   "tris": 352467,
+   "heapMB": 192
+  },
+  "boca-caverna": {
+   "p50": 16.5,
+   "p95": 21.3,
+   "calls": 40,
+   "tris": 131996,
+   "heapMB": 173
+  },
+  "eldoria-campo": {
+   "p50": 14.2,
+   "p95": 24.7,
+   "calls": 190,
+   "tris": 613286,
+   "heapMB": 176
+  }
+ },
+ "depois": {
+  "vale-dia": {
+   "p50": 16.6,
+   "p95": 25.1,
+   "calls": 55,
+   "tris": 252618,
+   "heapMB": 179
+  },
+  "vale-noite-aurora": {
+   "p50": 15.9,
+   "p95": 20.5,
+   "calls": 60,
+   "tris": 354002,
+   "heapMB": 167
+  },
+  "poco-noite": {
+   "p50": 19.4,
+   "p95": 29.1,
+   "calls": 53,
+   "tris": 312462,
+   "heapMB": 173
+  },
+  "praca-cinzaria": {
+   "p50": 17.8,
+   "p95": 21.9,
+   "calls": 95,
+   "tris": 355275,
+   "heapMB": 179
+  },
+  "boca-caverna": {
+   "p50": 24,
+   "p95": 25.4,
+   "calls": 47,
+   "tris": 130554,
+   "heapMB": 175
+  },
+  "eldoria-campo": {
+   "p50": 18.5,
+   "p95": 28.4,
+   "calls": 190,
+   "tris": 612104,
+   "heapMB": 178
+  }
+ }
+}

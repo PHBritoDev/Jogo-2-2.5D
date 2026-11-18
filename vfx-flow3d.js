@@ -105,8 +105,26 @@ export function energyBody(T,parent,preset,options={}){
   // FLOW_NOISE weights are .72 and .28*detail; at low quality detail=.65.
   // Above that ceiling every fragment is discarded, so avoid a wasted draw.
   const dissolveCeiling=quality===0?.72+.28*.65:1;
-  mesh.visible=Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;if(position)mesh.position.set(position.x,position.y,position.z);if(dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&direction.set(dir.x,dir.y??0,dir.z??0).lengthSq()>.0001)mesh.quaternion.setFromUnitVectors(axis,direction.normalize());mesh.scale.set(radius,radius,length);
-  material.uniforms.time.value=time;material.uniforms.alpha.value=alpha;material.uniforms.detail.value=quality===0?.65:1;material.uniforms.dissolve.value=dissolve;
+  const validPosition=position===undefined||(position!==null&&typeof position==='object'&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
+  // Explicitly malformed directions must not reuse a pooled projectile's old heading.
+  // Omitted direction retains the orientation chosen by its controller.
+  const validDirection=dir===undefined||(dir!==null&&typeof dir==='object'&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&Number.isFinite(Math.hypot(dir.x,dir.y??0,dir.z??0))&&Math.hypot(dir.x,dir.y??0,dir.z??0)>.01);
+  // A malformed impact must not poison the object's transform or render a stale effect.
+  mesh.visible=validPosition&&validDirection&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
+  if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);
+  if(dir!==undefined&&validDirection){
+   // Copy the requested heading before normalizing; the reusable scratch vector
+   // otherwise remains zero and all projectiles inherit an undefined rotation.
+   direction.set(dir.x,dir.y??0,dir.z??0).normalize();
+   mesh.quaternion.setFromUnitVectors(axis,direction);
+  }
+  // An invalid frame must not corrupt the matrix or shader state retained by the pooled mesh.
+  // Keep the last valid transform until the next valid update; the draw is already hidden.
+  if(Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0)mesh.scale.set(radius,radius,length);
+  if(Number.isFinite(time))material.uniforms.time.value=time;
+  if(Number.isFinite(alpha))material.uniforms.alpha.value=alpha;
+  material.uniforms.detail.value=quality===0?.65:1;
+  if(Number.isFinite(dissolve))material.uniforms.dissolve.value=dissolve;
  },dispose(){parent.remove(mesh);geometry.dispose();material.dispose();}};
 }
 

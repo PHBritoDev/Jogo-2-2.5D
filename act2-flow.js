@@ -1,3 +1,4 @@
+import { CITY2, GATE2, GUARDS2, VOLCANO2, CAVE2, cinzariaLayout } from './jornada3d.js';
 /**
  * MOD 205 — Marco 3: Ato II como no roteiro original do autor (docs/roteiro/M3-ATO2.md). Dados e transições puras;
  * as cenas são passos do diretor (cutscenes3d.js). Passos continuam a numeração do Ato I (8 = Ato I concluído).
@@ -16,51 +17,37 @@ export const ACT2 = {
   enemy2Hp: 150, minibossHp: 480, rivalHp: 220, bossHp: 520, reward: 60, xp: 260, bribe: 10
 };
 
-export const DISTRICT = { cx: -152, cz: -62, hx: 44, hz: 40 };
+/* Mod 321 — a Cidade 2 antiga (distrito a 150 m de Eldória, beco dos bandidos, mina e canal) foi SUBSTITUÍDA pela
+   jornada longa até a nova Cinzária (jornada3d.js). As coordenadas abaixo mantêm os nomes usados pelo mundo, mas agora
+   apontam para a nova cidade e para o sopé do novo vulcão. A narrativa nova do Ato II será escrita depois: o fluxo
+   jogável provisório pula as cenas do beco/desconhecido (dependiam do cenário antigo) e segue para a entrada do vulcão. */
+export const DISTRICT = { cx: CITY2.x, cz: CITY2.z, hx: CITY2.r, hz: CITY2.r };
 export const PASS_RADIUS = 13;
 export const DISTRICT_PASS = [[-72, -60], [-90, -57], [-104, -62], [-114, -62]];
 export const DISTRICT_SPOTS = {
-  gate: { x: -112, z: -62 },
-  plaza: { x: -150, z: -62 },
-  // MOD 217 — os bandidos esperam no fim de um beco sem saída ao sul da rua principal (antes atacavam na entrada).
-  ambush: { x: -131, z: -76 },
-  alley: { x: -131, z0: -66, z1: -80, half: 2.3 },
-  rival: { x: -156, z: -58 },
-  // MOD 217 — a entrada fica no pé do cone (antes os guardas esperavam longe dela, no meio do caminho).
-  volcanoGate: { x: -189.5, z: -64 },
-  volcanoGuards: [{ x: -186.5, z: -61.2 }, { x: -186.5, z: -66.8 }],
-  volcanoApproach: { cx: -184, cz: -64, hx: 9, hz: 7, round: 4, wobble: 1, tint: [[.3, .24, .2], [.4, .3, .24]], tintStrength: .5 },
-  volcano: { x: -228, z: -64 },
-  note: { x: -121, z: -62 },
-  // Pontos da versão anterior do Ato II (o cenário antigo ainda os usa; a missão não).
-  family: { x: -138, z: -50 }, seal: { x: -160, z: -70 }, arena: { x: -158, z: -66 },
-  ledgers: [{ x: -176, z: -42, where: 'mina' }, { x: -132, z: -84, where: 'armazém' }, { x: -168, z: -88, where: 'canal' }]
+  gate: { x: -1206, z: -64 },
+  plaza: { x: CITY2.x, z: CITY2.z },
+  volcanoGate: { x: GATE2.x, z: GATE2.z },
+  volcanoExit: { x: GATE2.out.x, z: GATE2.out.z }, // Mod 327: saída do interior / abortos voltam para FORA da boca (flanco sul)
+  volcanoGuardFuture: { x: CAVE2.futureGuard.x, z: CAVE2.futureGuard.z }, // reservado (sem NPC)
+  volcanoGuards: GUARDS2.map(p => ({ x: p.x, z: p.z })),
+  volcano: { x: VOLCANO2.x, z: VOLCANO2.z },
+  note: { x: CITY2.x + 8, z: CITY2.z + 4 }
 };
-/** MOD 217 — Cinzária: ruas, praça e o beco sem saída. Casas: [x, z, largura (x), fundo (z), altura, frente (+1 = +z)]. */
-export function cityLayout() {
-  const out = [], rnd = (() => { let s = 2171; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-  const row = (x0, x1, zc, face) => { let x = x0; while (x - 4.4 > x1) { const w = Math.min(5.2 + rnd() * 2.4, x - x1); const cx = x - w / 2; if (!(face > 0 && x - w < -121 && x > -141)) out.push([cx, zc, w - .5, 6 + rnd() * 1.5, 3.6 + Math.floor(rnd() * 3) * 1.6, face]); x -= w + .4 + rnd() * 1.2; } };
-  row(-116, -137, -52.5, -1); row(-163, -186, -52.5, -1);   // lado norte da rua principal (z = -62)
-  row(-116, -137, -71.5, 1); row(-163, -186, -71.5, 1);     // lado sul (o beco abre um vão em x = -131)
-  row(-118, -142, -40.5, -1);                                 // segunda fileira ao norte, numa rua de trás
-  out.push([-150, -45.5, 12, 8, 8.6, -1]);                     // casa da guilda, de frente para a praça
-  out.push([-168.5, -81, 6, 6, 5.2, 1], [-150, -80, 6.5, 6, 6.8, 1]);
-  for (const [z, sx] of [[-69.8, -1], [-69.8, 1], [-75, -1], [-75, 1], [-80.2, -1], [-80.2, 1]]) out.push([-131 - sx * 6.2, z, 7.6, 4.8, 4.2 + (z < -77 ? 3.2 : z < -72 ? 1.6 : 0), 0, sx]);   // casas do beco, de frente para ele
-  return out;
-}
-export function inAlley(x, z) { const A = DISTRICT_SPOTS.alley; return Math.abs(x - A.x) < A.half && z < A.z0 - 2 && z > A.z1; }
-
-export const DISTRICT_CANAL = [[-188, -96], [-170, -82], [-156, -84], [-140, -98], [-128, -100]];
+/** Casas da nova Cinzária (formato da jornada: [x, z, largura, fundo, andares, rotação, bairro]). */
+export function cityLayout() { return cinzariaLayout(); }
 export const CITY_NAME = 'Cinzária';
+/** Mod 321 — saves antigos parados no beco/desconhecido (passo 10) seguem direto para a entrada do vulcão. */
+export function migrateAct2Step(step, sub = 0) { return step === ACT2.city ? { step: ACT2.gate, sub: 0, migrated: true } : { step, sub, migrated: false }; }
 
 export function act2Presentation(step, sub = 0) {
   const vol = [['ATO II · DENTRO DO VULCÃO', 'Desça pelo vulcão'], ['ATO II · A CHAVE', 'Procure o lugar escondido que a chave abre'],
     ['ATO II · MAIS FUNDO', 'O Anjo sente algo perto. Siga mais fundo'], ['ATO II · A GALERIA', 'Siga o corredor até a sala secreta'], ['ATO II · A SALA DO TRONO', 'Enfrente o guardião do trono']];
   const pages = {
     8: ['ATO I · CONCLUÍDO', 'Uma longa jornada começa'],
-    9: ['ATO II · A CIDADE DO VULCÃO', 'Atravesse a Garganta, a oeste, até a cidade do vulcão'],
-    10: sub >= 1 ? ['ATO II · O DESCONHECIDO', 'Alguém na praça diz saber onde está o Segundo Bispo'] : ['ATO II · ' + CITY_NAME.toUpperCase(), 'Atravesse a cidade e procure pistas do Segundo Bispo'],
-    11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois Demônios guardam a entrada do vulcão, a oeste da cidade'],
+    9: ['ATO II · A JORNADA', 'Siga a estrada a oeste: o vale, a serra e a ponte do abismo levam à cidade do vulcão'],
+    10: ['ATO II · ' + CITY_NAME.toUpperCase(), 'Saia pelo sudoeste da cidade e siga as pegadas na cinza que contornam o vulcão'],
+    11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois guardas vigiam a caverna escondida no flanco sul do vulcão'],
     12: vol[Math.max(0, Math.min(4, sub))],
     13: ['ATO II · VORGAZHEK', 'Entre no portal do Segundo Bispo'],
     14: ['ATO II · CONCLUÍDO', 'Vá à cidade de neve']

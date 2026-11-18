@@ -1,0 +1,221 @@
+{
+ "walk:saida-eldoria": {
+  "from": [
+   -60,
+   -60
+  ],
+  "to": [
+   -65.01,
+   -60
+  ],
+  "y": 0,
+  "moved": 5,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:vale-1": {
+  "from": [
+   -150,
+   -70
+  ],
+  "to": [
+   -156.07,
+   -68.5
+  ],
+  "y": 0.409,
+  "moved": 6.3,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:vale-rio": {
+  "from": [
+   -300,
+   -62
+  ],
+  "to": [
+   -304.33,
+   -64.52
+  ],
+  "y": 1.383,
+  "moved": 5,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:subida": {
+  "from": [
+   -650,
+   -78
+  ],
+  "to": [
+   -655.31,
+   -74.69
+  ],
+  "y": 9.393,
+  "moved": 6.3,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:ponte": {
+  "from": [
+   -800,
+   -50
+  ],
+  "to": [
+   -808.75,
+   -50
+  ],
+  "y": 61.902,
+  "moved": 8.8,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:cinzas": {
+  "from": [
+   -940,
+   -50
+  ],
+  "to": [
+   -945.73,
+   -47.48
+  ],
+  "y": 62.514,
+  "moved": 6.3,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:cidade-rua": {
+  "from": [
+   -1206,
+   -64
+  ],
+  "to": [
+   -1213.5,
+   -64.23
+  ],
+  "y": 24,
+  "moved": 7.5,
+  "grounded": true,
+  "hp": 500
+ },
+ "walk:ao-portao": {
+  "from": [
+   -1300,
+   -66
+  ],
+  "to": [
+   -1303.14,
+   -66
+  ],
+  "y": 24,
+  "moved": 3.1,
+  "grounded": true,
+  "hp": 500
+ },
+ "house": [
+  {
+   "center": true,
+   "stopAt": 3.35,
+   "half": 3.14
+  },
+  {
+   "center": true,
+   "stopAt": 3.6,
+   "half": 3.4
+  },
+  {
+   "center": true,
+   "stopAt": 3.95,
+   "half": 3.75
+  }
+ ],
+ "rail": {
+  "z": -48.67,
+  "y": 60.629,
+  "grounded": true
+ },
+ "fall": {
+  "cp": [
+   -797,
+   -50
+  ],
+  "ys": [
+   60.1,
+   57.7,
+   53.7,
+   48.1,
+   41,
+   32.3,
+   22,
+   10.2,
+   -3.2,
+   -18.2,
+   -34.7,
+   -52.8,
+   -72.5,
+   -93.7
+  ],
+  "hpAtBottom": 0,
+  "after": [
+   -797,
+   61.954,
+   -50
+  ],
+  "hp": 500,
+  "stats": false
+ },
+ "tp": {
+  "a": [
+   [
+    2,
+    -1222,
+    24,
+    -66,
+    true
+   ],
+   [
+    1,
+    -4.6,
+    0.22,
+    -33.5,
+    true
+   ],
+   [
+    2,
+    -1222,
+    24,
+    -66,
+    true
+   ],
+   [
+    1,
+    -4.6,
+    0.22,
+    -33.5,
+    true
+   ]
+  ],
+  "panel": true,
+  "buttons": [
+   "TP Cidade 1 — Eldória",
+   "TP Cidade 2 — Cinzária"
+  ]
+ },
+ "guards": {
+  "pack": {
+   "n": 2,
+   "profile": "demon2",
+   "rig": "enemy2"
+  },
+  "enemy": true,
+  "quest": 11,
+  "enemyPos": [
+   -1318.5,
+   -62.6
+  ],
+  "player": [
+   -1313,
+   -66
+  ]
+ },
+ "_nota": "SwiftShader headless (Playwright); FPS não representa Android real."
+}

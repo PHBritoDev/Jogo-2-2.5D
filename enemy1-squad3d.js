@@ -1,3 +1,4 @@
+import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
 import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
 import { EnergyShield, SHIELD_SPECS } from './combat-defense3d.js';
 import { MOBILITY } from './combat-mobility3d.js';
@@ -47,7 +48,8 @@ const COMMON = {
 };
 /** Mod 315: o Demônio1 (Enemy1 comum) luta com GARRAS — clipes nativos recortados, salto predatório (2 saltos + dash aéreo)
     e escudo próprio. Só ele: as outras espécies que herdam o tuning base não ganham estes campos. */
-const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: DEMON1_LEAP, shield: SHIELD_SPECS.demon1 };
+const DEMON1 = { ...COMMON, native: DEMON1_MOVES, combos: DEMON1_COMBOS, leap: TEMP_MELEE_ONLY_TEST ? null : DEMON1_LEAP, shield: TEMP_MELEE_ONLY_TEST ? null : SHIELD_SPECS.demon1,
+  kit: TEMP_MELEE_ONLY_TEST ? [] : undefined, counter: { ...COMMON.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : COMMON.counter.chance } };
 const WARDEN = {
   ...COMMON, hp: 480, radius: .55, height: 2.25, poise: 32, leash: 40,
   speed: { walk: 1.75, run: 3.7, strafe: 1.45, back: 2.1, turn: 7 },
@@ -58,7 +60,9 @@ const WARDEN = {
   spiral: { ...COMMON.spiral, r: .8, speed: 12, dmg: 21, knock: 2, cd: 6.5 },
   judgment: { ...COMMON.judgment, r: 3.4, dmg: 32, edge: 12, prep: 1.2, cd: 13 },
   counter: { ...COMMON.counter, chance: .42, cd: 7, power: 22, r: .6 },
-  gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], reap: 'claws', feint: 'spiral'
+  gap: .6, phase2: .5, boss: true, pref: [.95, 1.5], kit: TEMP_MELEE_ONLY_TEST ? [] : undefined,
+  counter: { ...COMMON.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : .42, cd: 7, power: 22, r: .6 },
+  reap: TEMP_MELEE_ONLY_TEST ? null : 'claws', feint: TEMP_MELEE_ONLY_TEST ? null : 'spiral'
 };
 export const E1 = Object.freeze({ common: COMMON, demon1: DEMON1, warden: WARDEN, step: STEP, ccImmune: 3.5, escapeAfter: .3 });
 /** MOD 238 — espécies e poderes registráveis: outra espécie (Enemy2) entra com tuning e kit próprios sem tocar no
@@ -164,6 +168,7 @@ export class Enemy1Squad {
   /* ---------------- ator ---------------- */
   stepActor(a, dt) {
     if (!a.alive) { a.deadT += dt; return; }
+    if (a.pendingDeath) { a.vx = a.vz = 0; a.react = null; if (!a.act || !a.act.held) { a.anim = { role: 'block', once: false, speed: .6, rev: a.anim.rev + 1 }; a.act = { type: 'held', held: true, t: 0, dur: 1e9 }; } if (a.act) a.act.t += dt; return; } // Mod 320: morte pendente — presente só para concluir a ultimate, sem decidir nem atacar
     for (const k in a.cds) if ((a.cds[k] -= dt) <= 0) delete a.cds[k];
     a.stamina = Math.min(a.T.stamina, a.stamina + dt * 14); if ((a.poiseT -= dt) <= 0) a.poise = a.T.poise;
     if (a.alert > 0) a.alert -= dt;
@@ -198,9 +203,10 @@ export class Enemy1Squad {
   perceive(a, t) {
     const d = Math.hypot(t.x - a.x, t.z - a.z), st = this.study(t.id).rates;
     // Mod 315: escudo — vale defender contra golpe começando perto ou magia/projétil vindo; nunca em spam
-    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < DEMON1_SHIELD.maxGap)) && d > DEMON1_SHIELD.minGap) {
-      const k = t.casting ? DEMON1_SHIELD.chanceVsCast : DEMON1_SHIELD.chanceVsMelee * (d < 3.4 ? 1 : .4);
-      a.cds.shieldGap = 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: DEMON1_SHIELD.react + this.rand() * .12 }; return; }
+    const SA = a.T.shieldAI || DEMON1_SHIELD; // Mod 320: cada espécie com escudo decide com a própria regra
+    if (a.shield && !a.act && a.shield.canActivate(this.time) && !a.cds.shieldGap && ((t.attacking && d < 4.6) || (t.casting && d < SA.maxGap)) && d > SA.minGap) {
+      const k = t.casting ? SA.chanceVsCast : SA.chanceVsMelee * (d < 3.4 ? 1 : .4);
+      a.cds.shieldGap = SA.gap || 1.2; if (this.rand() < k * (a.hp < a.maxHp * .5 ? 1.3 : 1)) { a.react = { type: 'shield', t: SA.react + this.rand() * .12 }; return; }
     }
     if (t.attacking && !a.sawAttack && d < 3.4 && !a.cds.guard) {
       a.sawAttack = true;
@@ -291,9 +297,9 @@ export class Enemy1Squad {
   }
   startMelee(a, t, forcedMove) {
     if(BOSS_MOVES[a.kind]){
-      const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range),move=pool.find(m=>m.id===forcedMove)||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1;
+      const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range&&!((m.minPhase||0)>(a.vzPhase||0))),move=pool.find(m=>m.id===forcedMove)||(a.T.pickMove&&a.T.pickMove(this,a,t,near))||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1; // Mod 320: espécie pode escolher o golpe (VHAZRAEL: fase, anti-repetição, situação)
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
-      a.vx=a.vz=0;a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
+      a.vx=a.vz=0;if(move.aim)a.yaw=Math.atan2(t.x-a.x,t.z-a.z); /* Mod 320: estocada trava a direção no alvo ao começar (telegrafada, sem leitura de input depois) */a.cds.melee=(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
     if (a.T.native) return this.startNative(a, t, forcedMove);
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
@@ -353,7 +359,7 @@ export class Enemy1Squad {
     if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
     if(act.move){
       const m=act.move;act.phase=act.t<m.open?'windup':act.t<=m.close?'active':'recovery';
-      const travel=bossTravel(m,act.t)-bossTravel(m,previous);this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);
+      let travel=bossTravel(m,act.t)-bossTravel(m,previous);if(t&&travel>0){const room=Math.hypot(t.x-a.x,t.z-a.z)-(a.radius||.5)-(t.radius||.4)-.05;travel=Math.max(0,Math.min(travel,room));} /* Mod 320: avanço longo (Estocada) para no contato, nunca atravessa o alvo */this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);
       for(let n=0;n<m.hits.length;n++){
         const open=m.hits[n]-.10,close=m.hits[n]+.11;
         if(previous<=close&&act.t>=open&&!act.contacts.has(n)&&t&&this.los(a.x,a.z,t.x,t.z)&&this.meleeTrace(a,act,t,Math.max(previous,open),Math.min(act.t,close))){
@@ -473,6 +479,7 @@ export class Enemy1Squad {
   /** opts: { x, z (origem), kind: 'melee'|'spell'|'area', knock, crit }. Retorna o dano aplicado. */
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
+    if (a.pendingDeath) return 0; // Mod 320: HP já em 0 aguardando a resolução da ultimate
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
     // Mod 315: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)
     if (a.shield && a.shield.active) { const ox = (opts.x ?? a.x) - a.x, oz = (opts.z ?? a.z) - a.z, ol = Math.hypot(ox, oz) || 1;
@@ -487,6 +494,8 @@ export class Enemy1Squad {
     a.hp = Math.max(0, a.hp - dmg); if (opts.by) a.hitBy = opts.by;
     const unstoppable = !!(a.act && a.act.unstoppable);
     if (opts.knock && !a.T.boss && !unstoppable) { a.kx -= ox / ol * opts.knock * 4; a.kz -= oz / ol * opts.knock * 4; }
+    // Mod 320: vida zerada com a ULTIMATE do próprio chefe em curso → morte pendente (barra em 0, sem recompensa, sem novos ataques)
+    if (a.hp === 0 && a.T.holdDeath && a.T.holdDeath(this, a)) { a.pendingDeath = true; a.deathDue = false; a.guard = false; this.event('deathPending', { actor: a }); return dmg; }
     // vida zerada durante um ato incancelável: o golpe termina primeiro, a morte vem no fim do ato (uma vez só)
     if (a.hp === 0 && unstoppable) { a.hp = 1; if (!a.deathDue) { a.deathDue = true; this.event('deathDeferred', { actor: a }); } return dmg; }
     if (a.hp === 0) { this.kill(a); return dmg; }

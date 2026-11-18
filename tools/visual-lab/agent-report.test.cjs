@@ -40,7 +40,8 @@ test("cache e marcador numerico estao alinhados entre loader, HTML, pagina e lab
  assert.match(index,/import\('\.\/build-info\.js/);
  assert.match(index,/encodeURIComponent\(meta\.MOD\)/);
  assert.match(lab,/import\('\.\/build-info\.js/);
- assert.match(lab,/encodeURIComponent\(buildVersion\)/);
+  // O laboratório recente usa URLSearchParams, sem voltar aos botões antigos.
+  assert.match(lab,/(?:encodeURIComponent\(buildVersion\)|params\.set\('build',build\))/);
  assert.match(world,/syncBuildMarker\(document\.getElementById\('marker'\)\)/);
  assert.match(world,/sceneProbe\(\)\{/);
  const gate=world.indexOf("if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D=");

@@ -1,3 +1,29 @@
+## NOVA REGRA EXECUTIVA — AJUDA MÚTUA ANTES DE A7 (16/11/2026)
+
+**REGRA COM PRECEDÊNCIA sobre o costume de delegar tudo ao Grok.** A1–A5 formam uma EQUIPE e devem cooperar uns com os outros pelas especialidades já existentes. O agente que detecta um problema **continua responsável pela sua entrega**, mesmo quando pede ajuda; não transferir todo QA, capturas, testes e responsabilidade ao A7.
+
+**Encaminhamento correto:** (1) tentar executar o teste/QA no próprio escopo com ferramentas disponíveis, usando CI e capturas do repositório; (2) se houver dependência de área de outro agente, pedir ajuda PRIORITARIAMENTE ao colega natural via #519: A1 ↔ A2 para controles/hitbox/combat, A1 ↔ A3 para terreno/colisão, A2 ↔ A4 para impacto e luz, A3 ↔ A4 para atmosfera/nível, A5 ↔ A1 para gatilhos/save e A5 ↔ A3/A4 para encenação; (3) só pedir A7/Grok quando houver **vantagem específica** (auditoria independente, capacidade de navegador/harness demonstrada, pesquisa/implementação multidisciplinar ou gargalo que os demais não resolveram), explicando por que A7 agrega algo novo. A7 não é fila geral de todas as pendências, nem obrigação de testar trabalho inacabado.
+
+**Pedidos claros e sem sobrecarga:** máximo UM pedido A7 novo por agente em aberto, salvo bug P0 independente; não duplicar tickets e checar os pedidos pendentes anteriores. A7 pode recusar/redirecionar pedidos redundantes ou sem evidência e pode priorizar tarefas próprias de alto valor. O agente remetente não fica parado esperando resposta.
+
+**Testar o jogo:** identificar capacidades REAIS por execução. Grok conseguiu gerar capturas em harness WebGL headless da PR #596, mas NÃO demonstrou teste do mundo completo nem multitouch Android. Se A7 tiver browser/harness nesta execução, executar smoke e registrar URL/commit/viewport; caso contrário, não afirmar que testou, nem transferir a falta de acesso como sucesso. Claude Code com ambiente WebGL/harness validado pode realizar testes de integração, mas continua responsável apenas pelos seus módulos e não pela fila inteira.
+
+**Métrica:** bugs corrigidos, gameplay melhorado, qualidade visual comprovada, ausência de regressão e FPS mensurado; NÃO quantidade de pedidos, branches, relatórios ou horas prometidas. Nenhum agente pode encerrar rodada apenas por enviar solicitação de ajuda.
+
+---
+
+## COORDENAÇÃO MAIS RECENTE — TODOS OS ATOS, A7 E AUTOMAÇÕES (16/11/2026)
+
+**Este bloco supera instruções históricas conflitantes:** A1–A5 podem trabalhar em **TODOS os atos/regiões/dimensões integrados e liberados**, no seu domínio, em vez de apenas Ato I. Confirmar qual região/arquivo Claude está editando em PR ativa antes de agir; reserva é dinâmica. A caverna de Eldória reestruturada continua protegida por seu proprietário.
+
+**A7/Grok (ver `07-AGENTE-GROK-REFORCO-MULTIDISCIPLINAR.md`) é reforço de todas as disciplinas**, não um agente exclusivo das imagens do criador, nem de crepúsculo. Referências de fotos não devem substituir correção de bugs reais ou trabalho em combate, VFX, progressão, NPCs, FPS, mundo, UI e outros atos. Solicitar ajuda na issue #519 com `[PEDIDO A7]`, motivo e evidência; ler resposta em próxima rodada. Nenhum canal instantâneo automático entre ChatGPT e Grok está garantido.
+
+**A1 tem duas iniciativas DISTINTAS:** agente ChatGPT A1 com execução horária; workflow GitHub `a1-agente-autonomo-5min.yml` como **monitor de testes**, com Codex/Copilot apenas por ativação opt-in e custo potencial. Não interpretar um monitor verde como bug visual corrigido nem cron `*/5` como execução assegurada a cada cinco minutos. Auditoria em `tools/bug-agent/README.md`.
+
+**Não usar PRs/commits como métrica substituta de gameplay e arte.** Acompanhar qualidade, testes e evidências do código atual. Merges apenas com gates e conflitos revisados.
+
+---
+
 ## Atualização operacional — PRs paralelas (15/11/2026)
 Por autorização do criador, **A1–A5 podem manter várias PRs em paralelo**, cada uma em branch própria e escopo independente; commits e novos trabalhos não aguardam o merge da PR anterior. **A1–A5 podem mesclar suas próprias PRs de baixo risco** somente depois de CI obrigatório totalmente verde, revisão de conflito/integração, testes e evidências pertinentes confirmados, sem alterar áreas protegidas, sem depender de outro agente e com rastreio na #519. A6 continua podendo integrar PRs elegíveis. Não dar push direto à main nem mesclar pendências, testes falhos, alterações sensíveis ou cenas da caverna/Claude. Em choque com instrução antiga de uma PR ou proibição absoluta de auto-merge, prevalece esta regra mais recente.
 

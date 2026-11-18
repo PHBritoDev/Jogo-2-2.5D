@@ -187,10 +187,11 @@ test('energy body ignores non-finite aim vectors and recovers on the next valid 
   for(const dir of [{x:NaN,y:0,z:1},{x:1,y:Infinity,z:0},{x:1,y:0,z:NaN},{x:1,y:-Infinity,z:2}]) {
     fx.update(1,{dir,alpha:1});
     assert.equal(rotations,0,'invalid aim must preserve the last valid orientation');
-    assert.equal(fx.mesh.visible,true,'invalid aim alone must not hide the energy effect');
+    assert.equal(fx.mesh.visible,false,'invalid explicit aim must not draw a stale pooled projectile');
   }
   fx.update(2,{dir:{x:1,y:0,z:0},alpha:1});
   assert.equal(rotations,1,'valid aim restores orientation updates');
+  assert.equal(fx.mesh.visible,true,'valid aim must restore rendering');
   fx.dispose();
 });
 
@@ -211,5 +212,6 @@ test('energy body accepts planar aim vectors while rejecting non-finite componen
   assert.equal(orientations.length,2,'invalid x must not corrupt orientation');
   fx.update(5,{dir:{x:0,y:0,z:1}});
   assert.equal(orientations.length,3,'valid full 3D direction must still work');
+  assert.deepEqual(orientations[2],[0,0,1]);
   fx.dispose();
 });

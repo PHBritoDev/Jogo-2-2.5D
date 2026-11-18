@@ -95,5 +95,6 @@ test('Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ulti
   const abyssSource = fs.readFileSync(new URL('./vorgazhek-abyss-dimension3d.js', import.meta.url), 'utf8');
   assert.ok(arenaSource.includes('buildVorgazhekAbyss(THREE, g, spec, ctx)'), 'a arena da dimensão 2 usa o vazio de água negra');
   assert.ok(abyssSource.includes('VorgazhekMidnightWater') && abyssSource.includes('VeiledWatcher'), 'água e observadores autorais presentes');
-  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testSwordEclipse=1'));
+  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8');
+  assert.ok(lab.includes('data-dim="bishop2"') && lab.includes("params.set('testeDimensao',key)"), 'laboratório abre Dimensão do Bispo 2 pela rota atual');
 });

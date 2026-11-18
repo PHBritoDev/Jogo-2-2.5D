@@ -5,7 +5,7 @@ on:
     branches: [main]
 jobs:
   combat315:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +17,7 @@ jobs:
           COMBAT_THREE_DIR: /tmp/combat-deps/node_modules/three
         run: node --test tests/combat315.test.mjs tests/prota-combat302.test.mjs enemy1-squad.test.mjs sword-rites3d.test.mjs
   evidence:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

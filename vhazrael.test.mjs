@@ -50,22 +50,15 @@ test('IA: variedade (não repete o mesmo poder em sequência), ultimate só depo
   const moves = log.filter(e => ['dodge', 'guard', 'lunge', 'vzClose', 'windup'].includes(e.type)).map(e => e.type); assert.ok(new Set(moves).size >= 2, 'move-se e defende: ' + [...new Set(moves)]);
 });
 
-test('Extinção Orbital: ~17 s, sem ponto seguro; resposta decide o dano (guarda, duelo, nada); ninguém ataca durante; sem fraqueza depois', () => {
-  const R = resp => { const { sq, log, dmg } = world(); const h = hero({ x: 30 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']);
-    cast(sq, a, h, 'orbital'); let t = 0, attacks = 0;
-    run(sq, 18.5, 1 / 60, tt => { t = tt; const s = orbitalSpell(sq); if (s && s.phase === 'choice') { h.blocking = resp === 'shield'; h.ultimate = resp === 'duel'; } if (s && s.phase !== 'after') attacks += dmg.filter(d => d.kind !== 'orbital').length; });
-    return { a, log, dmg, hits: dmg.filter(d => d.kind === 'orbital'), attacks, phases: log.filter(e => e.type.startsWith('orbital_')).map(e => e.type), res: log.find(e => e.type === 'orbitalResult') };
-  };
-  const none = R('none'), shield = R('shield'), duel = R('duel');
-  assert.deepEqual(none.phases, ['orbital_orbit', 'orbital_entry', 'orbital_arrival', 'orbital_choice', 'orbital_impact', 'orbital_after']);
-  assert.ok(shield.log.some(e => e.type === 'orbitalGuard'), 'a guarda firme é confirmada antes do impacto'); assert.ok(shield.log.findIndex(e => e.type === 'orbitalGuard') < shield.log.findIndex(e => e.type === 'orbital_impact'));
-  assert.ok(!none.log.some(e => e.type === 'orbitalGuard'));
-  assert.equal(none.res.result, 'none'); assert.equal(none.hits[0].n, 95, 'longe (x=30) e sem resposta: dano massivo — não existe ponto seguro');
-  assert.equal(shield.res.result, 'shield'); assert.ok(shield.hits[0].n < 20 && shield.hits[0].shieldBreak);
-  assert.equal(duel.res.result, 'duel'); assert.equal(duel.hits.length, 0);
-  assert.equal(none.attacks, 0, 'nada ataca durante a cinematografia');
-  assert.ok(none.a.alive && none.a.ultUsed && !none.a.act, 'retoma sem exaustão');
-  { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'bombard']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1); }
+test('Mod 320 — Extinção Orbital: tomadas longas + queda jogável; dano só por contato; ninguém ataca durante; sem fraqueza depois', () => {
+  const { sq, log, dmg } = world(); const h = hero({ x: 0, z: 0 }); sq.setTargets([h]); const a = boss(sq, 12); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']);
+  cast(sq, a, h, 'orbital'); let attacks = 0;
+  run(sq, 21, 1 / 60, () => { const s = orbitalSpell(sq); if (s && s.phase !== 'after') attacks += dmg.filter(d => !/^orbital/.test(d.kind)).length; });
+  assert.deepEqual(log.filter(e => e.type.startsWith('orbital_')).map(e => e.type), ['orbital_orbit', 'orbital_entry', 'orbital_fall', 'orbital_impact', 'orbital_after']);
+  assert.deepEqual(dmg.map(d => d.kind), ['orbitalMeteor', 'orbitalBlast'], 'parado na marca: corpo do meteoro + explosão, uma vez cada');
+  assert.equal(attacks, 0, 'nada ataca durante a ultimate');
+  assert.ok(a.alive && a.ultUsed, 'retoma sem exaustão'); assert.equal(log.filter(e => e.type === 'orbitalResult').length, 1);
+  { const { sq, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 0; a.used = new Set(['throne', 'thorns', 'bombard']); run(sq, 40); assert.ok(log.filter(e => e.type === 'orbital').length <= 1, 'uma por encontro'); }
 });
 
 test('Mod 252 — Ruptura: coreografia completa, feixe para no alvo, núcleo e choque ancorados, sem dano duplicado', () => {
@@ -124,8 +117,26 @@ test('Mod 252: hit imediato no feixe, contato único e choque depois no MESMO po
   run(sq, 1.4);
   assert.equal(log.filter(e => e.type === 'throneShockwave').length, 1);
   assert.equal(log.filter(e => e.type === 'throneBlast').length, 1);
-  assert.equal(dmg.filter(d => d.id === 'hero').length, 1,
-    'um único dano por jogador, sem segunda bomba');
+  // Mod 320: a SEGUNDA explosão nasce no MESMO epicentro e tem dano próprio, telegrafado; parado no centro, o herói a recebe uma vez.
+  assert.deepEqual(dmg.filter(d => d.id === 'hero').map(d => d.kind), ['throne', 'throneSecond'], 'corte + segunda explosão (sem ghost hit, sem repetir)');
+  const sec = dmg.find(d => d.kind === 'throneSecond'); assert.ok(Math.hypot(sec.x - impact.spell.ix, sec.z - impact.spell.iz) < 1e-6, 'segunda explosão no MESMO epicentro');
+  run(sq, 4); assert.equal(dmg.filter(d => d.id === 'hero').length, 2, 'nada depois');
+});
+
+test('Mod 320: segunda explosão da Ruptura — atraso legível, escapável correndo, pulando ou com dash; no máximo 1 acerto', () => {
+  const THRONE = VZ.boss.throne; assert.ok(THRONE.blast >= .35 && THRONE.blast <= .75, 'segunda detonação .35–.75 s depois da primeira');
+  for (const how of ['corre', 'pula', 'dash', 'parado']) {
+    const { sq, dmg, log } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq, 16); a.alert = a.decideT = 1e9; cast(sq, a, h, 'throne');
+    run(sq, 5.22); assert.ok(log.some(e => e.type === 'throneImpact'));
+    const sp = log.find(e => e.type === 'throneImpact').spell;
+    run(sq, .3); // reação dentro da janela do telegraph (anel no chão desde o impacto)
+    if (how === 'corre') { h.x = sp.ix + THRONE.second.r + h.radius + .3; h.z = sp.iz; }
+    if (how === 'pula') h.air = THRONE.second.h + .5;
+    if (how === 'dash') h.iframes = true;
+    run(sq, .9); h.air = 0; h.iframes = false; run(sq, 3);
+    const n = dmg.filter(d => d.kind === 'throneSecond').length;
+    assert.equal(n, how === 'parado' ? 1 : 0, how);
+  }
 });
 
 test('Mod 252: obstáculo encerra feixe antes do jogador e i-frames respeitam esquiva', () => {
@@ -214,30 +225,33 @@ test('Determinismo do VHAZRAEL a 30/60/144 FPS e limpeza após ciclos', () => {
   assert.equal(sig(30), sig(60)); assert.equal(sig(60), sig(144));
 });
 
-test('Mod 247b: golpes do VHAZRAEL são cortes nativos estáveis (sem o clipe acrobático), contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
-  const { BOSS_MOVES } = await import('./boss-choreography3d.js');
-  assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), ['Trono_Corte', 'Trono_Estocada', 'Trono_Queda']);
+test('Mod 320 (era 247b): golpes do VHAZRAEL são os clipes nativos do VHAZRAEL.glb, contato só pela lâmina; poderes conjurados sobre o Idle', async () => {
+  const { BOSS_MOVES } = await import('./boss-choreography3d.js'), { VZ_MOVES } = await import('./vhazrael-rig3d.js');
+  assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), VZ_MOVES.map(m => m.id)); assert.ok(BOSS_MOVES.vhazrael.length >= 6);
   for (const k of ['throne', 'thorns', 'bombard', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
   for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
-    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius); }
-  { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Corte'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
+    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius, m.id + " z=" + a.z.toFixed(2)); }
+  { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Duplo'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
 });
 
-test('Mod 253 — Extinção Orbital: storyboard de 7 fases na mesma linha do tempo, silhueta no despertar, DEF jogável e cleanup', async () => {
+test('Mod 320 (era 253) — Extinção Orbital: 3 tomadas longas travadas, queda jogável, luz devolvida, PULAR não pula a lógica', async () => {
   const { ORBITAL, ORBITAL_PHASES } = await import('./vhazrael3d.js');
-  assert.deepEqual(ORBITAL_PHASES, ['awaken', 'orbit', 'entry', 'arrival', 'choice', 'impact', 'after']);
-  assert.ok(ORBITAL.choice >= 2, 'janela jogável de defesa com pelo menos 2 s'); assert.equal(ORBITAL.guard, .35);
-  assert.ok(Math.abs(ORBITAL.cast - (ORBITAL.awaken + ORBITAL.orbit + ORBITAL.entry + ORBITAL.arrival + ORBITAL.choice + ORBITAL.impact)) < .01, 'o ato do bispo dura até o fim do impacto');
-  const { sq, log } = world(); const h = hero({ x: 12 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']); cast(sq, a, h, 'orbital');
-  const dims = {}; run(sq, 19, 1 / 60, () => { const s = orbitalSpell(sq); if (s) dims[s.phase] = Math.max(dims[s.phase] || 0, s.dim || 0); });
-  assert.ok(dims.awaken > .5, 'luz da arena cai no despertar (silhueta)'); assert.ok((dims.after || 0) === 0, 'luz devolvida no fim');
+  assert.deepEqual(ORBITAL_PHASES, ['awaken', 'orbit', 'entry', 'fall', 'impact', 'after']);
+  assert.ok(ORBITAL.awaken >= 2 && ORBITAL.awaken <= 4, 'tomada A 2–4 s'); assert.ok(ORBITAL.orbit >= 5 && ORBITAL.orbit <= 8, 'tomada B 5–8 s contínua');
+  assert.ok(ORBITAL.fall >= 3, 'queda jogável com tempo para reagir'); assert.ok(Math.abs(ORBITAL.cast - (ORBITAL.awaken + ORBITAL.orbit + ORBITAL.entry + ORBITAL.fall + ORBITAL.impact)) < .01);
+  const { sq, log } = world(); const h = hero({ x: 20 }); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']); cast(sq, a, h, 'orbital');
+  const dims = {}; run(sq, 21, 1 / 60, () => { const s = orbitalSpell(sq); if (s) dims[s.phase] = Math.max(dims[s.phase] || 0, s.dim || 0); });
+  assert.ok(dims.awaken > .5, 'luz da arena cai na tomada A'); assert.ok((dims.after || 0) === 0, 'luz devolvida no fim');
   assert.ok(!orbitalSpell(sq), 'nenhum meteoro fantasma depois'); assert.equal(log.filter(e => e.type === 'orbitalResult').length, 1);
+  { const { sq, dmg } = world(); const h = hero(); sq.setTargets([h]); const a = boss(sq); a.alert = 1e9; a.decideT = 1e9; a.used = new Set(['throne', 'thorns', 'bombard']); cast(sq, a, h, 'orbital');
+    run(sq, .5); const s = orbitalSpell(sq); s.phase = 'fall'; s.t = 0; // PULAR: direto para a queda, alvo travado no mesmo tick, dano inteiro pela trajetória
+    run(sq, ORBITAL.fall + ORBITAL.impact + 1); assert.ok(s.path, 'alvo travado'); assert.deepEqual(dmg.map(d => d.kind), ['orbitalMeteor', 'orbitalBlast']); }
   const fs = await import('node:fs'), src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8'), vfx = fs.readFileSync(new URL('./vhazrael-vfx3d.js', import.meta.url), 'utf8');
-  assert.ok(/vzSkip\(\)\{[^\n]*awaken\|orbit\|entry\|arrival/.test(src), 'PULAR cobre todas as tomadas travadas');
-  assert.ok(src.includes("body.vz-choice #actions>button:not(#defend):not(#ultimate)"), 'na janela só DEF e ULTIMATE ficam na tela');
-  assert.ok(/lock=!!o&&\/\^\(awaken\|orbit\|entry\|arrival\)\$\//.test(src), 'controles travados só nas tomadas, nunca na escolha');
+  assert.ok(/vzSkip\(\)\{[^\n]*awaken\|orbit\|entry\)/.test(src), 'PULAR cobre as tomadas travadas');
+  assert.ok(src.includes("lock=!!o&&/^(awaken|orbit|entry)$/.test(o.phase)"), 'controles travados só nas tomadas, nunca na queda');
+  assert.ok(!src.includes('body.vz-choice #actions>button'), 'na queda nenhum botão é escondido');
   assert.ok(src.includes('vzApplyShot(sh)') && src.includes('vzCamRestore()'), 'tomada aplicada só no quadro desenhado');
-  assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod"), 'módulo novo da Extinção com cache versionado');
+  assert.ok(vfx.includes("vhazrael-extinction3d.js?v=mod"), 'módulo da Extinção com cache versionado');
 });
 
 

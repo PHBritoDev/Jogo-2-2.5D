@@ -96,7 +96,8 @@ test('Gate 7 — vila: vendedor atrás do balcão de frente para o comprador; á
 });
 
 test('Gate 8 — abrigos: poucos, plataforma ritual autoral caminhável, registro no centro, saves antigos migrados', () => {
-  assert.deepEqual(WAYSTONES.map(w => w.id), ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);
+  // Mod 321: os três de Eldória continuam; a jornada ganha um por macro-região (vale, antes da ponte, Cinzária)
+  assert.deepEqual(WAYSTONES.map(w => w.id), ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna', 'abrigo-vale', 'abrigo-serra', 'abrigo-cinzaria']);
   const st = createMapState({ waystones: ['abrigo-sope', 'abrigo-vila'] }); assert.ok(st.waystones.has('abrigo-mata') && st.waystones.has('abrigo-vila'), 'save antigo preservado');
   assert.equal(WAYSTONE_ALIASES['abrigo-sope'], 'abrigo-mata');
   const w = createWalkables(); const shelter = read('eldoria-shelter3d.js');

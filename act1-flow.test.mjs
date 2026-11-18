@@ -17,6 +17,11 @@ test('aceita nomes próprios e recusa lixo', () => {
   assert.equal(sanitizePlayerName('Ana\nMaria').ok, false);
   assert.equal(sanitizePlayerName('Ana\rMaria').ok, false);
   assert.equal(sanitizePlayerName('Ana\u2028Maria').ok, false);
+  assert.equal(sanitizePlayerName('Ana\tMaria').ok, false);
+  assert.equal(sanitizePlayerName('Ana\u0000Maria').ok, false);
+  assert.equal(sanitizePlayerName('Ana\u007fMaria').ok, false);
+  assert.equal(sanitizePlayerName('Ana\u0085Maria').ok, false);
+  assert.equal(sanitizePlayerName('Ana\u2029Maria').ok, false);
   assert.equal(sanitizePlayerName('Ana Maria').ok, true);
   assert.equal(sanitizePlayerName('Nome Com Número 1').ok, false);
   assert.equal(sanitizePlayerName('porra').ok, false);
@@ -56,6 +61,31 @@ test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
   assert.match(questPresentation(4, 2).objective, /esgoto/);
   for (const s of [2, 3, 4, 5]) assert.equal(combatStep(s), true);
   for (const s of [0, 1, 6, 7, 8]) assert.equal(combatStep(s), false);
+});
+
+test('objetivos acompanham os eventos jogáveis do resgate até os esgotos', () => {
+  // No runtime, childrenCleared() avança para (3,2) e playFaint() é disparado em seguida.
+  // Depois do desmaio, (4,0) marca MASSACRE_SPOT e dispara massacreScene(),
+  // não a entrada do esgoto; a entrada só é liberada após massacreCleared().
+  assert.match(questPresentation(3, 0).objective, /gaiola/i);
+  assert.match(questPresentation(3, 1).objective, /Derrote/i);
+  assert.match(questPresentation(3, 2).objective, /Anjo-Guia/i);
+  assert.doesNotMatch(questPresentation(3, 2).objective, /Derrote/i);
+  assert.match(questPresentation(4, 0).objective, /moradores/i);
+  assert.doesNotMatch(questPresentation(4, 0).objective, /esgoto/i);
+  assert.match(questPresentation(4, 1).objective, /caverna/i);
+  assert.match(questPresentation(4, 2).objective, /esgoto/i);
+});
+
+test('ao terminar o desmaio, o status imediato aponta para os moradores e não antecipa o esgoto', async () => {
+  // Confere o call-site real: a mensagem de status não pode divergir do objetivo do HUD.
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const scene = source.match(/function playFaint\(\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(scene, 'gatilho do desmaio presente no runtime');
+  assert.match(scene[1], /act1Advance\(4,0\)/);
+  assert.match(scene[1], /status\.textContent=questPresentation\(4,0\)\.objective/);
+  assert.match(questPresentation(4, 0).objective, /moradores/i);
 });
 
 test('floresta: 1 Seguidor, depois mais 2 (3 no total), e a chave', () => {
@@ -146,4 +176,42 @@ test('Mod 247: save anterior ao nome VHAZRAEL migra a recompensa e o bestiário 
   assert.deepEqual(m.bestiary, ['captor', 'vhazrael']); assert.deepEqual(m.bestiaryRewarded, ['vhazrael']);
   const p = migrateProgress(legacy); assert.equal(p.vhazraelRewardClaimed, true); assert.equal(p.coins, 55);
   const fresh = migrateBishopOneName({ vorgazhekRewardClaimed: true, bestiary: ['veraxion'] }); assert.equal(fresh.vhazraelRewardClaimed, undefined); assert.deepEqual(fresh.bestiary, ['veraxion']);
+});
+
+
+test('save dos atos finais restaura cada pista uma vez, descartando ids inválidos', () => {
+  const input = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 22, lateFound: [0, 2, 2, 7, 0, -1, 8, 1.5, '3', null, NaN] };
+  const restored = migrateProgress(input);
+  assert.deepEqual(restored.lateFound, [0, 2, 7]);
+  assert.deepEqual(migrateProgress(restored).lateFound, [0, 2, 7]);
+  assert.deepEqual(migrateProgress({ ...input, lateFound: null }).lateFound, []);
+  assert.deepEqual(input.lateFound.slice(0, 5), [0, 2, 2, 7, 0]);
+});
+
+test('restauração de bestiário mantém IDs únicos sem alterar o save nem recompensar novamente', () => {
+  const saved = { version: ACT1.version, act1Rev: ACT1.rev, questStep: 8,
+    bestiary: ['captor', 'captor', 'warden', 'warden', 'vhazrael'],
+    bestiaryRewarded: ['captor', 'captor', 'warden'],
+    achievementsClaimed: ['first_win', 'first_win'] };
+  const restored = migrateProgress(saved);
+  assert.deepEqual(restored.bestiary, ['captor', 'warden', 'vhazrael']);
+  assert.deepEqual(restored.bestiaryRewarded, ['captor', 'warden']);
+  assert.deepEqual(restored.achievementsClaimed, ['first_win']);
+  assert.equal(saved.bestiary.length, 5);
+  assert.deepEqual(migrateProgress(restored).bestiaryRewarded, ['captor', 'warden']);
+});
+
+
+test('save não converte arrays, booleanos ou objetos em moedas gratuitas', () => {
+  for (const coins of [[40], [], true, false, { value: 40 }, null, '', '   ', Infinity, NaN]) {
+    for (const version of [4, 5, ACT1.version]) {
+      assert.equal(migrateProgress({ version, questStep: 0, coins }).coins, 0);
+    }
+  }
+  for (const coins of [40, '40', '40.9']) {
+    assert.equal(migrateProgress({ version: ACT1.version, coins }).coins, 40);
+  }
+  const original = { version: ACT1.version, coins: [40] };
+  assert.equal(migrateProgress(original).coins, 0);
+  assert.deepEqual(original.coins, [40]);
 });

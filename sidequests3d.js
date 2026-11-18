@@ -46,11 +46,24 @@ export const SIDE_QUESTS = [
   }
 ];
 
+// Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
+function safeSideCount(value, max) {
+  // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
+  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(max, Math.max(0, Math.floor(n)));
+}
+
 export function createSideState(saved) {
   const out = {};
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
-    out[q.id] = { state: ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked', progress: Math.max(0, Math.floor(Number(s && s.progress) || 0)) };
+    const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
+    const progress = state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count);
+    // Um save corrompido não pode entregar recompensa sem cumprir a meta.
+    // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
+    out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };
   }
   return out;
 }
@@ -59,9 +72,19 @@ export function createSideState(saved) {
 export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
-    if (s.state === 'locked' && ctx.questStep >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active' && Number.isFinite(ctx.waystones)) {
-      s.progress = Math.min(q.goal.count, Math.max(s.progress, Math.max(0, Math.floor(ctx.waystones))));
+    // Um estado ready restaurado/adulterado sem progresso suficiente não deve
+    // instruir o jogador a entregar uma missão que turnInSide recusará.
+    if (['active', 'ready'].includes(s.state) && (!Number.isFinite(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
+      s.progress = safeSideCount(s.progress, q.goal.count);
+    }
+    if (s.state === 'ready' && s.progress < q.goal.count) {
+      s.state = 'active';
+    }
+    const rawStep = ctx?.questStep;
+    const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
+    if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
+    if (q.goal.type === 'waystones' && s.state === 'active' && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
+      s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }
@@ -80,7 +103,7 @@ export function collectSide(state, item) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     if (q.goal.type === 'collect' && q.goal.item === item && s.state === 'active') {
-      s.progress = Math.min(q.goal.count, s.progress + 1);
+      s.progress = Math.min(q.goal.count, safeSideCount(s.progress, q.goal.count) + 1);
       if (s.progress >= q.goal.count) s.state = 'ready';
       return q;
     }
@@ -91,7 +114,7 @@ export function collectSide(state, item) {
 /** Entrega: devolve a recompensa uma única vez. */
 export function turnInSide(state, id) {
   const q = SIDE_QUESTS.find(x => x.id === id), s = state[id];
-  if (!q || !s || s.state !== 'ready') return null;
+  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress < q.goal.count) return null;
   s.state = 'done';
   return q.reward;
 }
@@ -103,6 +126,9 @@ export function questForGiver(state, giver) {
 export function activeSideLines(state) {
   return SIDE_QUESTS.filter(q => ['active', 'ready'].includes(state[q.id].state)).map(q => {
     const s = state[q.id];
-    return s.state === 'ready' ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0] : q.title + ' · ' + s.progress + '/' + q.goal.count;
+    const progress = safeSideCount(s.progress, q.goal.count);
+    return s.state === 'ready' && progress >= q.goal.count
+      ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0]
+      : q.title + ' · ' + progress + '/' + q.goal.count;
   });
 }

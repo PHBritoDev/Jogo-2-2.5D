@@ -1,0 +1,35 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bispo 2 — referência fiel GLB 360°</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#1d2027}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as T from 'three';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const q=new URLSearchParams(location.search);const angle=(+q.get('angle')||0)*Math.PI/180;const scene=new T.Scene();scene.background=new T.Color('#20232a');
+const camera=new T.PerspectiveCamera(36,innerWidth/innerHeight,.01,100);
+const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.55;document.body.appendChild(renderer.domElement);
+scene.add(new T.HemisphereLight(0xf4f6ff,0x44404a,2.3));
+const key=new T.DirectionalLight(0xffffff,3.0);key.position.set(4,7,8);scene.add(key);
+const rim=new T.DirectionalLight(0xaab9ff,2.5);rim.position.set(-5,5,-6);scene.add(rim);
+const ground=new T.Mesh(new T.CircleGeometry(5,64),new T.MeshStandardMaterial({color:0x343740,roughness:.92}));ground.rotation.x=-Math.PI/2;ground.position.y=-.015;scene.add(ground);
+const loader=new GLTFLoader();
+try{
+ const gltf=await loader.loadAsync('../../Bispo2-lod.glb');
+ const model=gltf.scene;model.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.castShadow=false;o.material.side=T.DoubleSide;}});
+ const idle=gltf.animations.find(c=>c.name==='Swim Idle');if(idle){const mixer=new T.AnimationMixer(model);mixer.clipAction(idle).play();mixer.update(.1);}
+ model.updateMatrixWorld(true);
+ const rawBox=new T.Box3().setFromObject(model,true),rawSize=rawBox.getSize(new T.Vector3()),rawCenter=rawBox.getCenter(new T.Vector3());
+ if(!Number.isFinite(rawSize.y)||rawSize.y<=0)throw Error('GLB sem altura valida');
+ // Escalar PAI (nao substituir escala original da cena) e recentrar pelo bounding box efetivo.
+ const holder=new T.Group();holder.add(model);scene.add(holder);
+ const scale=3.4/rawSize.y;holder.scale.setScalar(scale);
+ holder.position.set(-rawCenter.x*scale,-rawBox.min.y*scale,-rawCenter.z*scale);
+ holder.updateMatrixWorld(true);
+ const finalBox=new T.Box3().setFromObject(holder,true),finalSize=finalBox.getSize(new T.Vector3()),finalCenter=finalBox.getCenter(new T.Vector3());
+ // A câmera orbita o centro calculado da geometria renderizada.
+ const radius=Math.max(8,finalSize.length()*2.7),target=finalCenter.clone();target.y=finalBox.min.y+finalSize.y*.53;
+ camera.position.set(target.x+radius*Math.sin(angle),target.y+finalSize.y*.15,target.z+radius*Math.cos(angle));
+ camera.lookAt(target);camera.near=.01;camera.far=radius*5;camera.updateProjectionMatrix();
+ renderer.render(scene,camera);
+ window.__BISPO2_CAPTURE__={ready:true,source:'Bispo2-lod.glb',angle:+q.get('angle')||0,rawSize:rawSize.toArray(),rawCenter:rawCenter.toArray(),finalSize:finalSize.toArray(),finalCenter:finalCenter.toArray(),radius,animations:gltf.animations.map(x=>x.name)};
+
+}catch(err){window.__BISPO2_CAPTURE__={ready:false,error:String(err)};console.error(err)}
+</script></html>

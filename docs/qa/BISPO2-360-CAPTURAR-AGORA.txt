@@ -1,0 +1,3 @@
+Captura solicitada pelo criador em 17/11/2026. Fonte: Bispo2-lod.glb. Apenas fotos; sem modificacoes na aparencia, sem video. Esta alteracao aciona exatamente uma rodada de captura 360 graus.
+
+Rodada 2: corrigido o enquadramento do modelo com escala do GLB preservada.

@@ -1,0 +1,23 @@
+name: A2 — regressão de impactos aéreos
+on:
+  pull_request:
+    paths:
+      - 'vfx-impact3d.js'
+      - 'tests/a2-impact-airborne-dust.test.mjs'
+      - '.github/workflows/qa-a2-airborne-impacts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  aerial-impact-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse do VFX
+        run: node --check vfx-impact3d.js
+      - name: Contato de solo, posições inválidas e emissor de partículas
+        run: node --test tests/a2-impact-airborne-dust.test.mjs

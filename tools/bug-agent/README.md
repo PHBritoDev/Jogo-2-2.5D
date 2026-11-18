@@ -1,3 +1,20 @@
+## AUDITORIA OPERACIONAL DE 16/11/2026 — RESULTADO REAL, NÃO PROMESSA DE 5 MIN
+
+**Situação verificada no GitHub:** o workflow `.github/workflows/a1-agente-autonomo-5min.yml` tem cron `*/5 * * * *`, mas **cron não garante execução efetiva a cada cinco minutos**. Amostra das 1.000 execuções gerais mais recentes do repositório exibiu **três** execuções do monitor A1:
+- Run `43822527570` (2026-11-16 07:15 UTC), monitor `success`, `codex/copilot/pr` `skipped`;
+- Run `43915505704` (2026-11-16 17:10 UTC), monitor `success`, `codex/copilot/pr` `skipped`;
+- Run `43990840459` (2026-11-17 00:50 UTC), monitor `success`, `codex/copilot/pr` `skipped`.
+
+A amostra NÃO é histórico completo e não comprova motivo específico dos intervalos. Segundo a documentação oficial, agendamentos GitHub Actions podem atrasar e até perder eventos sob carga; não afirmar cinco minutos de trabalho contínuo. Ver histórico real: https://github.com/PHBritoDev/Jogo-2-2.5D/actions/workflows/a1-agente-autonomo-5min.yml.
+
+**RESULTADO ATUAL:** nos três runs inspecionados o monitor passou, mas não houve programação por modelo nem PR automática. Isso pode significar ausência de falha detectada e/ou a opção de reparo desabilitada; `skipped` sozinho não distingue essas causas. Busca por PRs de `agentes/a1/automatico*` não retornou nenhuma. Não chamar o robô de corretor autônomo comprovado. Ele testa um conjunto limitado de regressões; não explora o mapa 3D, não detecta automaticamente água/lava/aurora visualmente ruins e não avalia fluidez.
+
+**PONTOS A MELHORAR:** conferir na UI se o workflow está `Active`, inspecionar a série completa de eventos `schedule`, consumo/limites do Actions, permissões/atores e interrupções; não assumir bloqueio específico sem logs. Considerar redistribuir agendamentos longe do minuto 00 e reduzir custo, mas só alterar cron após verificar a causa. Para reparos com Codex/Copilot é necessária autorização explícita do dono e avaliação de custos; não habilitar variáveis nem colocar API key em código sem essa aprovação.
+
+**TESTES ATUAIS:** mapa/save, corações/HUD, fluxo Ato I, dimensões, terreno base, NPCs e fotógrafo. Ampliar para Ato II, joystick multitouch e travadas/streaming por testes novos reproduzíveis seria valioso; só adicionar checks verificáveis, não testes artificiais.
+
+---
+
 # A1 robô independente — monitor 5min + correção de bugs (15/11/2026)
 
 ## Já instalado na main

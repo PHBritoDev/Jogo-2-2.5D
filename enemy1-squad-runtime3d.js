@@ -15,6 +15,8 @@ import './vhazrael3d.js?v=mod276-trono-no-knock';
 import { createVhazraelVFX } from './vhazrael-vfx3d.js?v=mod276-feathered-wings';
 import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
+import { calibrateGrip, nativeMoveClips, inPlaceClip } from './vhazrael-rig3d.js';
+import { attachAfterimages, tickAfterimages, clearAfterimages, disposeAfterimages, afterimageStats } from './vhazrael-afterimage3d.js';
 import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
@@ -43,12 +45,13 @@ export function createEnemy1SquadRuntime(ctx) {
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
   const impacts = impactDirector(T, scene, ctx.ground, { capacity: 6 }), trails = [0, 1, 2].map(() => ({ trail: volumeTrail(T, scene, 'violet', { capacity: 32, life: .55, radius: .55 }), id: null }));
   const _tp = new T.Vector3();
-  const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m = new T.Matrix4(), _box = new T.Box3();
+  let vzSlashSerial = 0;
+const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m = new T.Matrix4(), _box = new T.Box3();
   let squad = null, bodies = new Map(), time = 0, orbit = null; const smooth01 = k => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); }; const measuredBy = new Map();
   function measureSource(src) {
     let measured = measuredBy.get(src.model); if (measured) return measured;
     const probe = ctx.clone(src.model); probe.position.set(0, 0, 0); probe.rotation.set(0, 0, 0); probe.scale.copy(src.model.scale); probe.updateMatrixWorld(true);
-    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /(HeadTop_End|HeadEnd)$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
+    const b = ctx.measure(probe); let top = null; probe.traverse(o => { if (top === null && o.isBone && /(HeadTop_End|HeadEnd|head_end)$/i.test(o.name)) top = o.getWorldPosition(new T.Vector3()).y; });
     // altura até o topo da cabeça (as asas do Enemy1 não contam)
     measured = { h: Math.max(.5, (top !== null && top > b.min.y + .3 ? top : b.max.y) - b.min.y), minY: b.min.y }; measuredBy.set(src.model, measured); return measured;
   }
@@ -76,11 +79,18 @@ export function createEnemy1SquadRuntime(ctx) {
     if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael')attachKatana(T,scene,b,a.kind);
     if(BOSS_MOVES[a.kind]){
       if(a.kind==='warden')attachClaws(b);
+      if(a.kind==='vhazrael'){ // Mod 320: VHAZRAEL.glb — golpes NATIVOS (clipes reais), empunhadura calibrada e traço da lâmina do mesmo clipe
+        const clipOf=r=>src.actions?.[r]?.getClip?.()||null;
+        if(!combatCache.has('vhazrael')){const grip=calibrateGrip(T,model,ctx.clone,clipOf('idle')),wt=b.weapon?[b.weapon.userData.tipA.toArray(),b.weapon.userData.tipB.toArray()]:undefined;
+          const clips=nativeMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.vhazrael,grip,wt);clips.__grip=grip;combatCache.set('vhazrael',clips);}
+        attachAfterimages(T,scene,b,ctx.clone); // Mod 320: rastro do dash
+        b.grip=combatCache.get('vhazrael').__grip;const jc=clipOf('jump');if(jc)acts.jump=mixer.clipAction(inPlaceClip(jc,{vertical:true})); // o salto sobe pela física (airY), não pelo clipe
+      }
       if(!combatCache.has(a.kind)){
         const ws=a.kind==='e3boss'?KATANA_SCALE:a.kind==='e4boss'?JAW_SCALE:a.kind==='vhazrael'?1:1.12,specs=a.kind==='warden'?['RightHand','LeftHand'].map(hand=>({hand,points:[[0,.08,0],[0,.53,0]]})):[{hand:'RightHand',points:[b.weapon.userData.tipA.toArray().map(x=>x*ws),b.weapon.userData.tipB.toArray().map(x=>x*ws)]}];
         combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'?katanaPose:bossPose,specs));
       }
-      for(const [id,clip]of Object.entries(combatCache.get(a.kind)))acts[id]=mixer.clipAction(clip);
+      for(const [id,clip]of Object.entries(combatCache.get(a.kind)))if(id!=='__grip')acts[id]=mixer.clipAction(clip);
       const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'?3:3.2;
       b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
@@ -200,6 +210,7 @@ export function createEnemy1SquadRuntime(ctx) {
     if (ctx.slash) { // Mod 315: impactos e ondas de garra do Demônio1
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'common') { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'demon', power: d.move === 'salto' ? .85 : .45 }); }
       if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
+      if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vhazrael') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vhazrael', power: m?.heavy ? .95 : m && d.n === m.hits.length ? .75 : .5 }); }
       if (type === 'leapStrike') { const a = d.actor; ctx.slash.impact({ x: a.x + Math.sin(a.yaw) * .8, y: a.y + .25, z: a.z + Math.cos(a.yaw) * .8 }, { x: 0, y: 1, z: 0 }, { style: 'demon', power: .7 }); }
       if (type === 'jump' && d.n === 2) { const a = d.actor; ctx.slash.impact({ x: a.x, y: a.y + .1, z: a.z }, { x: 0, y: -1, z: 0 }, { style: 'demon', power: .2 }); }
     }
@@ -207,7 +218,7 @@ export function createEnemy1SquadRuntime(ctx) {
     ctx.event(type, d);
   }
   function stop() {
-    for (const b of bodies.values()) { b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } if (b.proc) b.proc.dispose(); }
+    for (const b of bodies.values()) { ctx.ash?.cancel(b.holder); disposeAfterimages(b); b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } if (b.proc) b.proc.dispose(); }
     if (squad && ctx.shields) for (const a of squad.actors) ctx.shields.release(a.id);
     bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
@@ -218,7 +229,7 @@ export function createEnemy1SquadRuntime(ctx) {
     /** Escurecimento local pedido pela Tempestade de Nadir (0..1); o jogo aplica e restaura. */
     get dim() { return stormDim(squad); },
     /** Extinção Orbital em curso (fase, tempo, magia) — o jogo usa para câmera, cena orbital e bloqueio de controle. */
-    get orbit() { return orbit; }, vhazraelVFX: vzfx,
+    get orbit() { return orbit; }, vhazraelVFX: vzfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
@@ -243,9 +254,11 @@ export function createEnemy1SquadRuntime(ctx) {
           b.dead += dt; const nativeDeath = (E3K[a.kind] || b.hasDeath) && b.acts.death;
           if (nativeDeath) { if (!b.deathPlayed) { b.deathPlayed = true; play(b, 'death', true, 1, .12); } b.mixer.update(b.dead < 3 ? dt : 0); for (const [o, s] of b.scales) o.scale.copy(s); b.model.rotation.z = 0; }
           else { if (b.cur && b.dead < .05) b.cur.fadeOut(.2); b.model.rotation.x = -Math.min(1, (b.dead / .75) ** 2) * Math.PI / 2 * .92; }
-          if (a.shield && ctx.shields && b.dead < .1) { a.shield.end(squad.time, 'broken'); ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt); } else if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
-          if (b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
-          b.holder.visible = b.dead < 4.4; if (b.dead < 1 && !nativeDeath) b.mixer.update(dt * .5); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
+          if (a.shield && ctx.shields && b.dead < .1) { a.shield.end(squad.time, 'broken'); ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt); } else if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt);
+          // Mod 327: com ctx.ash, depois do clipe de morte o corpo vira cinza (uma vez) em vez de afundar no chão
+          if (ctx.ash && b.dead > 2.2 && !b.ashed) { b.ashed = true; ctx.ash.start(b.holder, BOSSES[a.kind] ? 'boss' : 'demon', { onDone: () => { b.ashDone = true; } }); }
+          if (!ctx.ash && b.dead > 2.6) b.holder.position.y = a.y - (b.dead - 2.6) * .55;
+          b.holder.visible = ctx.ash ? !b.ashDone && b.dead < 7 : b.dead < 4.4; if (b.dead < 1 && !nativeDeath) b.mixer.update(dt * .5); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else if (b.weaponRoot) poseScythe(b, a, dt);poseClaws(b);if(b.tell)b.tell.visible=false;continue;
         }
         if (a.anim.rev !== b.rev) { b.rev = a.anim.rev; play(b, a.anim.role, a.anim.once && a.anim.role !== 'idle', a.anim.speed, .1, a.anim.from || 0); } // Idle sempre em loop: base estável para as camadas procedurais longas
         else if (!a.anim.once && b.cur) b.cur.setEffectiveTimeScale((ROLE_SPEED[a.anim.role] || 1) * a.anim.speed);
@@ -262,7 +275,8 @@ export function createEnemy1SquadRuntime(ctx) {
           if (a.act && a.act.spellId && b.hand) { const s = squad.spells.find(x => x.id === a.act.spellId); if (s && s.type === 'singularity') { b.hand.getWorldPosition(_v); s.hand = s.hand || {}; s.hand.x = _v.x + Math.sin(a.yaw) * .18; s.hand.y = _v.y + .12; s.hand.z = _v.z + Math.cos(a.yaw) * .18; } }
         }
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
-        demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, 'abismo', dt);
+        if (b.after) tickAfterimages(b, a, dt, quality);
+        demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt);
         poseClaws(b);if(b.tell){b.tell.visible=!!a.act?.move&&a.act.phase==='windup';b.tell.position.y=.05-(a.y-ctx.ground(a.x,a.z));b.tell.material.opacity=.12+.18*(a.act?.t/(a.act?.move?.open||1));}
         const act = a.act;
         if (act && !act.released && (act.type === 'cast' || act.type === 'counter') && act.release > 0) {
@@ -271,7 +285,9 @@ export function createEnemy1SquadRuntime(ctx) {
           charges.push({ skill: act.skill || 'counter', k, x: (hp.x + lp.x) / 2 + Math.sin(a.yaw) * .25, y: (hp.y + lp.y) / 2, z: (hp.z + lp.z) / 2 + Math.cos(a.yaw) * .25, dx: Math.sin(a.yaw), dz: Math.cos(a.yaw), gx: tgt ? tgt.x : a.x, gz: tgt ? tgt.z : a.z, kind: a.kind });
         }
         if(b.claws&&act?.move&&act.move.hits.some(h=>Math.abs(act.t-h)<.12)){for(const c of b.claws){c.root.updateMatrixWorld(true);vfx.scythe(_v.set(0,.08,0).applyMatrix4(c.root.matrixWorld),_v2.set(0,.53,0).applyMatrix4(c.root.matrixWorld));}}
-        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss'); }
+        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); if (a.kind !== 'vhazrael') abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss');
+          if (a.kind === 'vhazrael' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // Mod 320: crescente carmesim que segue o arco VISÍVEL da lâmina, um rastro por golpe do combo
+            if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const fin = n === hs.length - 1 && hs.length > 1, heavy = !!act.move.heavy; ctx.slash.sample('vz' + act.vzKey + ':' + n, _v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), { style: 'vhazrael', gain: heavy || fin ? 1.15 : .95, extend: heavy ? 1.05 : .75, inner: .12 }); } } }
         else if (b.weapon && act && act.type === 'melee' && (act.move?act.move.hits.some(h=>Math.abs(act.t-h)<.12):act.t > .3 && act.t < act.hits[act.hits.length - 1] + .18)) {
           b.weapon.updateWorldMatrix(true, false); vfx.scythe(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld));
         }
