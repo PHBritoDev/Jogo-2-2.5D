@@ -51,3 +51,11 @@ test('malformed tint palettes and strengths cannot poison GPU vertex colors', ()
   assert.ok(valid.every(Number.isFinite));
   assert.notDeepEqual(valid, fallback);
 });
+
+test('explicit zero tint strength leaves original terrain colors untouched', () => {
+  const baseline = palette([]);
+  const region = { cx: 0, cz: 0, hx: 12, hz: 12,
+    tint: [[1, 0, 0], [0, 0, 1]], tintStrength: 0 };
+  assert.deepEqual(palette([region]), baseline);
+  assert.notDeepEqual(palette([{ ...region, tintStrength: 0.5 }]), baseline);
+});
