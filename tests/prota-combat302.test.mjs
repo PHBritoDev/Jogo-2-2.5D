@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {PROTA_MOVES,PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,makeEnergy,energyStep,energyTouches} from '../prota-combat3d.js';
+import {PROTA_MOVES,PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,makeEnergy,energyStep,energyTouches,BASIC_TRAIL} from '../prota-combat3d.js';
 import {SwordRites} from '../sword-rites3d.js';
 
 const target=(o={})=>({id:7,x:0,y:1,z:3,alive:true,radius:.48,height:1.7,...o});
@@ -22,7 +22,7 @@ test('Mod 302: cinco golpes de chão visualmente distintos, com fases e classifi
 
 test('Mod 302: locomoção explícita, salto proporcional e dash curto',()=>{
  assert(PROTA_LOCO.walk<PROTA_LOCO.run/2,'andar é bem mais lento que correr');
- assert(PROTA_LOCO.walk/PROTA_LOCO.walkNatural<1.45&&PROTA_LOCO.run/PROTA_LOCO.runNatural<1.3,'cadência do clipe perto da natural (sem patinar)');
+ assert(PROTA_LOCO.walk/PROTA_LOCO.walkNatural<1.8 /* briefing combate/movimento: andar mais ágil substitui o limite 1,45 */&&PROTA_LOCO.run/PROTA_LOCO.runNatural<1.3,'cadência do clipe perto da natural (sem patinar)');
  const apex=PROTA_JUMP.impulse**2/(2*PROTA_JUMP.gravity),air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;
  assert(apex>1&&apex<1.3,`altura do salto ${apex}`);assert(air>.55&&air<.75,`tempo no ar ${air}`); // Mod 317 (= PR #468): ápice ~1,18 m
  assert(PROTA_DASH.distance>=4&&PROTA_DASH.distance<=6.5&&PROTA_DASH.travel<.2&&PROTA_DASH.iframes>=PROTA_DASH.travel&&PROTA_DASH.cooldown>PROTA_DASH.iframes);
@@ -63,14 +63,18 @@ function rig({blocked=()=>false,pose}={}){
  const step=s=>{for(let i=0;i<Math.round(s*60);i++)r.update(1/60,{from,target:t,sword:'prota',grounded:true});};
  return{r,hits,events,t,step,from};
 }
-test('Mod 302: golpe de energia só causa dano pelo volume (lâmina fora do alcance)',()=>{
- const x=rig();x.r.attack('prota',{target:x.t,mode:'ground'});x.step(.6);x.r.lastEnd=x.r.time;x.r.next=1;
- x.hits.length=0;x.t.z=5;x.r.attack('prota',{target:x.t,mode:'ground'});assert.equal(x.r.active.def.hit,'energy');x.step(1.2);
- assert.equal(x.hits.length,1);const imp=x.events.filter(([k])=>k==='impact').at(-1)[1];assert.equal(imp.by,'energy');
+/* Briefing combate/câmera/áudio (P4) substitui a regra Mod 302 de "energia projetada nos golpes básicos":
+ * golpe básico = lâmina + rastro colado; nada sai voando; o rastro visível dá dano, uma vez por janela. */
+test('P4: golpe básico não projeta energia — alvo longe da lâmina não toma dano',()=>{
+ const x=rig();x.t.z=5;x.r.attack('prota',{target:x.t,mode:'ground'});assert.equal(x.r.active.def.hit,'physical');assert.equal(x.r.active.def.energy,null);x.step(1.2);
+ assert.equal(x.hits.length,0);assert.equal(x.r.energies.length,0);assert.ok(!x.events.some(([k])=>k==='energy'));
 });
-test('Mod 302: híbrido nunca dá dano dobrado (lâmina + energia = 1 acerto)',()=>{
- const x=rig({pose:()=>({base:{x:-1,y:1,z:3},tip:{x:1,y:1,z:3}})});x.r.next=4;x.r.lastEnd=0;x.r.time=.1;
- x.r.attack('prota',{target:x.t,mode:'ground'});assert.equal(x.r.active.def.hit,'hybrid');x.step(2);assert.equal(x.hits.length,1);
+test('P4: o rastro visível colado à lâmina dá dano (até BASIC_TRAIL além da ponta), um acerto por golpe',()=>{
+ // lâmina de 0,8 m varrendo de um lado ao outro; ponta em z=1,1. Alvo a 1,8 m: fora da lâmina (1,1+0,6), dentro do rastro (+0,3).
+ for(const [z,want] of [[1.8,1],[2.4,0]]){let k=0;
+  const x=rig({pose:()=>{k++;const sx=-1.4+((k*.05)%2.8);return{base:{x:sx*.4,y:1,z:.3},tip:{x:sx,y:1,z:1.1}};}});x.t.z=z;
+  x.r.attack('prota',{target:x.t,mode:'ground'});x.step(1.2);assert.ok(x.hits.length<=1,'nunca dobra');assert.equal(x.hits.length,want,'z='+z);}
+ assert.ok(BASIC_TRAIL>0&&BASIC_TRAIL<=.4,'rastro curto (não é projétil)');
 });
 test('Mod 302: parede bloqueia a onda de energia',()=>{
  const x=rig({blocked:p=>p.z>2&&p.z<2.2});x.t.z=6;x.r.attack('prota',{target:x.t,mode:'dash'});x.step(1.6);assert.equal(x.hits.length,0,JSON.stringify(x.events.filter(([k])=>k!=='blade').map(([k,e])=>[k,e.by,e.p])));assert.equal(x.r.energies.length,0);

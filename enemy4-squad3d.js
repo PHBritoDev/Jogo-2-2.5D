@@ -29,7 +29,7 @@ export const CAGE = { min: 4.5, max: 18, cast: 2.6, release: .4, cd: 17, anim: '
 
 const COMMON4 = {
   ...E1.common, hp: 260, radius: .46, height: 2, poise: 22, flinch: 11, sight: 30, leash: 40,
-  speed: { walk: 1.8, run: 3.9, strafe: 1.65, back: 2.2, turn: 9 },
+  /* CLAUDE: andar 30 % mais ágil */ speed: { walk: 2.34, run: 3.9, strafe: 1.65, back: 2.2, turn: 9 },
   // Enemy4.glb 'Attack' (2,8 s), corte ~1,3 s no clipe → acelerado para casar com a janela de 0,6 s
   melee: { max: 2.6, reach: 2.5, arc: .3, windup: .5, hits: [.6], dur: 1.25, dmg: 11, cd: 1.8, knock: .6, animSpeed: 2.2 },
   dash: { speed: 9, time: .32, cd: 2.8 }, block: { chance: .24, dur: .8, cd: 2.4, cost: 22, reduce: .7 }, dodge: { chance: .34, cd: 2.8 },
@@ -39,7 +39,7 @@ const COMMON4 = {
 };
 const BOSS4 = {
   ...COMMON4, hp: 760, radius: .62, height: 2.6, poise: 50, flinch: 99, boss: true, pref: [2, 2.9], phase2: .45, furyCd: .7, leash: 46,
-  speed: { walk: 2, run: 4.3, strafe: 1.85, back: 2.4, turn: 8 },
+  speed: { walk: 2.6, run: 4.3, strafe: 1.85, back: 2.4, turn: 8 },
   melee: { max: 2.9, reach: 3.1, arc: -.1, windup: .55, hits: [.55], dur: 1.4, dmg: 14, cd: 2.1, knock: 1.1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 }, dodge: { chance: .36, cd: 2.5 },
   gap: .6, spellGap: 2.6, kit: TEMP_MELEE_ONLY_TEST ? [] : ['sanctum', 'constellation', 'drill', 'cage'],

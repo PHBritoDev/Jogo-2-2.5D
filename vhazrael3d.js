@@ -65,7 +65,7 @@ export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, 
 export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
 const VHAZ = {
   ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
-  speed: { walk: 2.2, run: 4.9, strafe: 2.2, back: 2.8, turn: 10 },
+  speed: { walk: 2.86, run: 5.63, strafe: 2.86, back: 3.5, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
   dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? 0 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },

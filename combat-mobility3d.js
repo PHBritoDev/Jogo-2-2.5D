@@ -7,7 +7,7 @@
  *    "grounded" piscar sem pouso real não devolvem saltos (land exige queda/contato confirmado pelo host).
  *  - O salto não cancela um dash em andamento de forma abrupta: o host decide a transição (dashThenJump).
  */
-export const MOBILITY = Object.freeze({ dashCooldown: .5, maxJumps: 2, airJumpK: .92, coyote: .09 });
+export const MOBILITY = Object.freeze({ dashCooldown: .5, maxJumps: 2, airJumpK: 1.07 /* CLAUDE: 2º salto ~35 % mais alto que antes (altura ∝ v²: 1,07² ÷ 0,92² ≈ 1,35); o 1º não muda */, coyote: .09 });
 
 export class Mobility2 {
   constructor({ dashCooldown = MOBILITY.dashCooldown, maxJumps = MOBILITY.maxJumps } = {}) { this.dashCooldown = dashCooldown; this.maxJumps = maxJumps; this.reset(); }

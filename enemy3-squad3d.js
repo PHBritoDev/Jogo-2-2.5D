@@ -37,7 +37,7 @@ export const RIFT = { len: 6, speed: 13, w: .75, dmg: 12, fade: .9 };
 
 const COMMON3 = {
   ...E1.common, hp: 250, radius: .45, height: 1.95, poise: 20, flinch: 10, sight: 30, leash: 40,
-  speed: { walk: 1.75, run: 3.7, strafe: 1.55, back: 2.1, turn: 8.5 },
+  /* CLAUDE: andar 30 % mais ágil */ speed: { walk: 2.27, run: 3.7, strafe: 1.55, back: 2.1, turn: 8.5 },
   // Enemy3.glb 'Attack' (2,8 s): o corte do braço acontece ~1,26 s no clipe → acelerado para casar com a janela.
   melee: { max: 2.5, reach: 2.45, arc: .32, windup: .5, hits: [.58], dur: 1.2, dmg: 10, cd: 1.9, knock: .6, animSpeed: 2.15 },
   dash: { speed: 8.8, time: .32, cd: 3 },
@@ -49,7 +49,7 @@ const COMMON3 = {
 };
 const BOSS3 = {
   ...COMMON3, hp: 700, radius: .6, height: 2.45, poise: 44, flinch: 99, boss: true, pref: [1.9, 2.6], phase2: .4, furyCd: .72, leash: 46,
-  speed: { walk: 1.95, run: 4.2, strafe: 1.8, back: 2.4, turn: 8 },
+  speed: { walk: 2.54, run: 4.2, strafe: 1.8, back: 2.4, turn: 8 },
   melee: { max: 2.55, reach: 2.7, arc: -.1, windup: .5, hits: [.5], dur: 1.3, dmg: 13, cd: 2.1, knock: 1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 },
   dodge: { chance: .36, cd: 2.5 },

@@ -25,7 +25,7 @@ const TRINITY = { min: 3.5, max: 15, cast: .95, release: .72, cd: 15, anim: 'att
 const COLLAPSE = { min: 3, max: 16, cast: 1, release: .62, cd: 12, anim: 'attack', pose: 'slam', r: 3.2, fissure: 1.5, gather: 1, erupt: .6, implode: .25, wave: .7, waveH: .45, waveW: .55, core: 14, waveDmg: 15, fade: 1.3, pull: .9, lead: .7 };
 const COMMON2 = {
   ...E1.common, hp: 230, radius: .45, height: 1.9, poise: 18, flinch: 10, sight: 28, leash: 38,
-  speed: { walk: 1.8, run: 3.8, strafe: 1.5, back: 2.2, turn: 9 },
+  /* CLAUDE: andar 30 % mais ágil */ speed: { walk: 2.34, run: 3.8, strafe: 1.5, back: 2.2, turn: 9 },
   melee: { max: 2.6, reach: 2.5, arc: .3, windup: .38, hits: [.38, .72, 1.05], dur: 1.35, dmg: 8, cd: 2, knock: .5 },
   dash: { speed: 9, time: .3, cd: 2.8 },
   block: { chance: .26, dur: .75, cd: 2.4, cost: 22, reduce: .7 },
@@ -36,7 +36,7 @@ const COMMON2 = {
 };
 const BOSS2 = {
   ...COMMON2, hp: 620, radius: .6, height: 2.5, poise: 40, flinch: 99, boss: true, pref: [1.6, 2.35], phase2: .5, furyCd: .7, leash: 44,
-  speed: { walk: 1.9, run: 4, strafe: 1.6, back: 2.3, turn: 8 },
+  speed: { walk: 2.47, run: 4, strafe: 1.6, back: 2.3, turn: 8 },
   melee: { max: 2.45, reach: 2.65, arc: -.1, windup: .48, hits: [.46, .86, 1.24], dur: 1.75, dmg: 14, cd: 2.2, knock: 1.1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 },
   dodge: { chance: .34, cd: 2.6 },

@@ -162,7 +162,7 @@ const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.1,760);
 camera.position.set(0,3.2,10);
 const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));
-renderer.setSize(innerWidth,innerHeight);
+renderer.setSize(innerWidth,innerHeight,false); /* CLAUDE combate/câmera: o CSS (#scene 100%) manda no tamanho na tela; antes o estilo ficava preso nos px iniciais */
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -2178,11 +2178,17 @@ if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
 });
 const lookPointers=new Map();let lastPinchDistance=0;
 function pinchDistance(){const pts=Array.from(lookPointers.values());return pts.length<2?0:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}
-let mouseLookStart=null;lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType==='mouse')mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
+let mouseLookStart=null;lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{lookArea.requestPointerLock();}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
 lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
-const lookSensitivity=(firstPersonLook?.0022:.004)*userSettings.sensitivity;
-cameraYaw-=dx*lookSensitivity;
-cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*(firstPersonLook?.003:.004)*userSettings.sensitivity,-1.32,1.32);});
+if(mouseLocked&&e.pointerType==='mouse')return; // com o ponteiro travado o olhar vem do movementX/Y (sem limite da borda da tela)
+lookDelta(dx,dy);});
+/* CLAUDE combate/câmera — PC: antes o olhar era "arrastar" e parava na borda da janela (yaw limitado pela tela).
+   Clicar no mundo trava o ponteiro (Pointer Lock): yaw 360° contínuo pelo movementX, pitch limitado só para não
+   inverter (±1,32 rad), mesma sensibilidade em 1ª/3ª pessoa. Esc solta; diálogo/cena/pausa soltam sozinhos. */
+function lookDelta(dx,dy){const s=.004*userSettings.sensitivity;lastLookInputAt=performance.now();cameraYaw-=dx*s;cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*s,-1.32,1.32);}
+let mouseLocked=false;
+document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerLockElement===lookArea;document.body.classList.toggle('mouse-locked',mouseLocked);});
+document.addEventListener('mousemove',e=>{if(!mouseLocked)return;if(cineActive||dialogueOpen||namePromptOpen||gamePaused||menuGate){try{document.exitPointerLock();}catch(_){}return;}const dx=Math.max(-240,Math.min(240,e.movementX||0)),dy=Math.max(-240,Math.min(240,e.movementY||0));lookDelta(dx,dy);});
 function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
@@ -2469,7 +2475,7 @@ function protaLocomotion(sp){
  if(sp<PROTA_LOCO.idleBelow){if(actions.idle)play('idle',.2);return;}
  // corre só com CORRER/Shift; ao soltar, a passada de corrida só continua enquanto o corpo ainda está acima do ritmo de andar (frenagem)
  if(actions.run&&(isSprinting()&&sp>PROTA_LOCO.walk*1.15||sp>PROTA_LOCO.walk*1.45)){play('run',.16);actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.runNatural,.75,1.3));}
- else{play('walk',.2);actions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.walkNatural,.5,1.4));}
+ else{play('walk',.2);actions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.walkNatural,.5,1.8));}
 }
 /** Pouso/rematerialização em andamento (tempo de jogo), para a locomoção não atropelar o clipe curto. */
 function protaPoseBusy(){return prota302.clock<prota302.landT||prota302.clock<prota302.arriveT||prota302.hidden;}
@@ -2524,7 +2530,11 @@ const protaBlocked=(a,b)=>segmentBlocked({x:a.x,y:a.y,z:a.z},{x:b.x,y:b.y,z:b.z}
 function protaPick(){
  const intent=protaIntentYaw(),from={x:player.position.x,y:player.position.y+1,z:player.position.z},cands=protaCandidates();
  let t=null;if(lockOnActive){const cur=riteTarget();if(cur.alive)t=cands.find(c=>c.id===cur.id)||cur;}
- if(!t)t=pickTarget(from,intent.yaw,cands,{blocked:protaBlocked,range:8.5,cone:intent.input?1.0:1.35,current:prota302.lockId});
+ /* CLAUDE (P2) — trava SUAVE automática (sem botão MIRAR): o alvo atual fica enquanto vivo, visível, a ≤ 10 m e não
+    às costas da intenção do jogador (histerese: não troca nervoso); senão o melhor do cone (distância, frente, ameaça,
+    linha de visão). O analógico/mouse continuam mandando: pedir outra direção libera o alvo. */
+ if(!t&&prota302.lockId!=null){const cur=cands.find(c=>c.id===prota302.lockId);if(cur&&cur.alive){const dx=cur.x-from.x,dz=cur.z-from.z,d=Math.hypot(dx,dz),off=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-intent.yaw),Math.cos(Math.atan2(dx,dz)-intent.yaw)));if(d<10&&(!intent.input||off<1.35)&&!protaBlocked(from,{x:cur.x,y:cur.y,z:cur.z}))t=cur;}}
+ if(!t)t=pickTarget(from,intent.yaw,cands,{blocked:protaBlocked,range:9,cone:intent.input?1.0:1.45,current:prota302.lockId});
  if(t?.actor&&squadOn&&squadFocus!==t.actor){squadFocus=t.actor;}
  prota302.lockId=t?t.id:null;
  return{target:t,yaw:t?Math.atan2(t.x-player.position.x,t.z-player.position.z):intent.yaw};
@@ -3144,6 +3154,8 @@ function showCombatCallout(text){const el=document.getElementById('combat-callou
 const lockRing=new THREE.Mesh(new THREE.RingGeometry(.62,.72,4),new THREE.MeshBasicMaterial({color:0xffcf6a,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
 lockRing.rotation.x=-Math.PI/2;lockRing.visible=false;scene.add(lockRing);
 function lockTargetValid(){return enemy.visible&&enemyAlive&&combatStepNow()&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<24;}
+/* CLAUDE (P2): sem trava dura nem botão MIRAR — Q/Tab no PC só passa a trava suave para o próximo inimigo (a câmera não é presa). */
+function cycleSoftTarget(){if(squadOn&&squadCycleFocus()){prota302.lockId=squadFocus?.id??prota302.lockId;return;}const c=protaCandidates().filter(x=>x.alive&&x.id!==prota302.lockId).sort((a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0];if(c){prota302.lockId=c.id;worldAudio.lockOn();}}
 function toggleLockOn(){
  if(squadOn&&lockOnActive&&squadCycleFocus())return;// MOD 237: com vários inimigos, MIRAR alterna o alvo antes de soltar
  if(lockOnActive){lockOnActive=false;squadManual=false;}else if(lockTargetValid()){lockOnActive=true;squadManual=squadOn;squadCycleN=0;worldAudio.lockOn();}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
@@ -3161,8 +3173,8 @@ function updateLockOn(dt){
 (function initDefendAim(){
  const def=document.getElementById('defend');
  if(def){def.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{def.setPointerCapture(e.pointerId);}catch(_){}setDefending(true);});for(const t of ['pointerup','pointercancel','lostpointercapture'])def.addEventListener(t,()=>setDefending(false));}
- bindInstantTap(document.getElementById('aim'),toggleLockOn);
- addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();toggleLockOn();}});
+ /* CLAUDE (P2): botão MIRAR removido (trava suave automática em protaPick/riteFacing) */
+ addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();cycleSoftTarget();}});
  addEventListener('keyup',e=>{if(e.code==='KeyK')setDefending(false);});
  lookArea.addEventListener('contextmenu',e=>e.preventDefault());
  lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(true);});
@@ -8183,7 +8195,7 @@ function updateRiteLocomotion(dt){
  if(!clip)return;const next=mixer.clipAction(clip);if(next!==riteLower){if(riteLower)riteLower.fadeOut(.12);next.reset().setLoop(THREE.LoopRepeat,Infinity).setEffectiveWeight(1).fadeIn(.12).play();riteLower=next;}
  const backward=moveVX*Math.sin(playerYaw)+moveVZ*Math.cos(playerYaw)<-.1;next.setEffectiveTimeScale((backward?-1:1)*(role==='run'?Math.max(.6,speed/5.2):role==='walk'?Math.max(.45,speed/3.4):1));
 }
-function riteFacing(){return swordAim(player.position,cameraYaw+Math.PI,riteTarget(),p=>riteBlocked(p,false),{assist:lockOnActive,range:18,cone:.65});}
+function riteFacing(){return swordAim(player.position,cameraYaw+Math.PI,riteTarget(),p=>riteBlocked(p,false),{assist:true,range:lockOnActive?18:9,cone:lockOnActive?.65:.9});} // CLAUDE (P2): assistência suave sempre ligada (nunca golpeia o vazio/180° do alvo), sem prender a câmera
 function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movimentos da espada…';return;}if(dialogueOpen||namePromptOpen||awakeningActive||portalPull||cineActive||(activeAction===actions.hit&&performance.now()<actionUntil))return;
  if(newHero&&equippedSword==='prota'&&riteClips.Prota302_ground_0){protaAttack();return;}const mode=!grounded?(verticalVelocity<-.6?'plunge':'air'):dashRemaining>0?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>3?'run':'ground';rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:dashRemaining>0?Math.atan2(dashDirX,dashDirZ):riteFacing(),target:riteTarget(),mode});}
 /** MOD 302: modo do golpe (chão, corrida, saída do dash, aéreo, mergulho), alvo escolhido e aproximação travada nele. */
@@ -8672,8 +8684,10 @@ authoredTorchAsset.then(source=>adoptTorchSet(placeTorches(THREE,scene,source,RI
 // MOD 210 — luz da ultimate criada uma vez (intensidade 0): acender no golpe não recompila shaders.
 const ultLight=new THREE.PointLight(0xffe0a0,0,30,1.2);ultLight.castShadow=false;scene.add(ultLight);
 animate();
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();applyGraphics3D(graphics3DMode,graphics3DScale);}
-addEventListener('resize',resize);
+/* CLAUDE combate/câmera: antes o buffer só mudava quando a densidade de pixels mudava — ao redimensionar/zoom/girar,
+   o canvas ficava do tamanho antigo e aparecia uma faixa do fundo (#101b1c) embaixo/ao lado. */
+function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);}
+addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,120));if(window.visualViewport)visualViewport.addEventListener('resize',resize);
 
 
 /* MOD 200 — reinício da Galáxia 1 fica dentro do painel Configurações. */

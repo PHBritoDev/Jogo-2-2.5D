@@ -13,7 +13,7 @@ const B = E1.common;
 export const BANDIT = registerKind('bandit', {
   ...B,
   hp: 70, radius: .4, height: 1.8, poise: 10, flinch: 8, stamina: 90, leash: 30, sight: 24,
-  speed: { walk: 1.5, run: 3.3, strafe: 1.25, back: 1.8, turn: 7.5 },
+  /* CLAUDE: andar 30 % mais ágil */ speed: { walk: 1.95, run: 3.3, strafe: 1.25, back: 1.8, turn: 7.5 },
   melee: { max: 2.4, reach: 2.35, arc: .3, windup: .52, hits: [.44, .8], dur: 1.3, dmg: 7, cd: 1.9, knock: .45 },
   dash: { speed: 7.5, time: .3, cd: 3.8 },
   block: { chance: .18, dur: .7, cd: 3, cost: 26, reduce: .6 },
