@@ -172,9 +172,12 @@ export function createTerrain(opts = {}) {
 export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
   const out = [];
   const fineSteps = Math.round(fineHalf / fineCell);
-  for (let k = outerSteps; k >= 1; k--) out.push(-(fineHalf + fineCell * (Math.pow(growth, k) - 1) / (growth - 1)));
+  // Growth 1 defines an evenly spaced exterior; geometric-series division
+  // would otherwise yield 0/0 and send NaN positions to WebGL.
+  const outerOffset = k => growth === 1 ? fineCell * k : fineCell * (Math.pow(growth, k) - 1) / (growth - 1);
+  for (let k = outerSteps; k >= 1; k--) out.push(-(fineHalf + outerOffset(k)));
   for (let i = -fineSteps; i <= fineSteps; i++) out.push(i * fineCell);
-  for (let k = 1; k <= outerSteps; k++) out.push(fineHalf + fineCell * (Math.pow(growth, k) - 1) / (growth - 1));
+  for (let k = 1; k <= outerSteps; k++) out.push(fineHalf + outerOffset(k));
   return out;
 }
 
@@ -317,6 +320,19 @@ export function colorTerrain(terrain, positions, normals) {
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const grass = [.30, .41, .22], grassDark = [.19, .29, .17], moss = [.33, .38, .26], dirt = [.39, .33, .24];
   const rock = [.42, .41, .39], rockDark = [.27, .27, .28], rockWarm = [.47, .42, .36], snow = [.86, .89, .92];
+  // Keep valid regional tints, but ignore corrupted optional map data.
+  // Recompute the filter once, not for each terrain vertex.
+  const tintAreas = Array.isArray(terrain.extraAreas)
+    ? terrain.extraAreas.filter(e => e && [e.cx, e.cz, e.hx, e.hz].every(Number.isFinite) && e.hx >= 0 && e.hz >= 0)
+    : [];
+  const validColor = v => Array.isArray(v) && v.length === 3 && v.every(n => Number.isFinite(n) && n >= 0 && n <= 1);
+  const resolvedTints = tintAreas.map(e => {
+    const tint = Array.isArray(e.tint) && e.tint.length === 2 &&
+      e.tint.every(validColor) ? e.tint : [[.27, .22, .17], [.36, .3, .24]];
+    const strength = Number.isFinite(e.tintStrength) && e.tintStrength >= 0 && e.tintStrength <= 1
+      ? e.tintStrength : .9;
+    return { ...e, tint, strength };
+  });
   for (let k = 0; k < positions.length; k += 3) {
     const x = positions[k], y = positions[k + 1], z = positions[k + 2], ny = normals[k + 1];
     const slope = 1 - clamp(ny, 0, 1); // 0 plano, ~0.3 = 45°
@@ -325,10 +341,9 @@ export function colorTerrain(terrain, positions, normals) {
     c = mix(c, moss, smoothstep(.62, .82, n2) * .5);
     c = mix(c, dirt, smoothstep(.72, .9, n1) * .35);
     // Regiões extras (Distrito da Ferrugem): lama, pedra gasta e ferrugem no lugar da grama.
-    for (const e of terrain.extraAreas || []) {
+    for (const e of resolvedTints) {
       const qx = Math.abs(x - e.cx) - e.hx + 8, qz = Math.abs(z - e.cz) - e.hz + 8, inside = -Math.max(qx, qz);
-      const tA = e.tint ? e.tint[0] : [.27, .22, .17], tB = e.tint ? e.tint[1] : [.36, .3, .24];
-      if (inside > -10) c = mix(c, mix(tA, tB, n2), smoothstep(-10, 6, inside) * (e.tintStrength || .9));
+      if (inside > -10) c = mix(c, mix(e.tint[0], e.tint[1], n2), smoothstep(-10, 6, inside) * e.strength);
     }
     const wet = terrain.waterDepth ? terrain.waterDepth(x, z) : -1;
     if (wet > -.5) c = mix(c, [.33, .3, .22], smoothstep(-.5, .05, wet));
