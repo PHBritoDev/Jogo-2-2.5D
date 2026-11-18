@@ -88,6 +88,27 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     '<div class="gx-track"><svg class="gx-chains" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true"></svg><div class="gx-orbs"></div></div>' +
     '<div class="gx-detail"></div><footer class="gx-foot">7 GALÁXIAS · 7 PECADOS · 1 DESTINO</footer>';
   const svg = root.querySelector('.gx-chains'), orbs = root.querySelector('.gx-orbs'), detail = root.querySelector('.gx-detail');
+  // A quiet tactile acknowledgement: bronze engraving lights up once on interaction.
+  // Reuse existing DOM; no particles, added canvas, sound or recurring render loop.
+  const tapTimers = new WeakMap();
+  const tapFeedback = target => {
+    if (!target || target.disabled || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    target.classList.remove('gx-tapped');
+    void target.offsetWidth; // restart a single short CSS animation for repeated taps
+    target.classList.add('gx-tapped');
+    clearTimeout(tapTimers.get(target));
+    tapTimers.set(target, setTimeout(() => target.classList.remove('gx-tapped'), 360));
+  };
+  root.addEventListener('pointerdown', e => {
+    const target = e.target.closest?.('.gx-nav button, .gx-orb, .gx-enter');
+    if (target && root.contains(target)) tapFeedback(target);
+  });
+  // Keyboard activation must receive the same feedback without a fake pointer event.
+  root.addEventListener('click', e => {
+    if (e.detail !== 0) return;
+    const target = e.target.closest?.('.gx-nav button, .gx-orb, .gx-enter');
+    if (target && root.contains(target)) tapFeedback(target);
+  });
   const settingsBtn = root.querySelector('.gx-nav-settings');
   if (settingsBtn) settingsBtn.addEventListener('click', () => { if (typeof onSettings === 'function') onSettings(); });
   // Ordem visual da referência; índices continuam sendo os IDs canônicos.
