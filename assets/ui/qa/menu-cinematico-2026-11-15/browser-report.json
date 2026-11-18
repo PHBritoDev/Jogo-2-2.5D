@@ -7,22 +7,18 @@
         "width": 1536,
         "height": 864
       },
-      "loadMs": 4568,
+      "loadMs": 1889,
       "info": {
         "models": {
-          "guardian": "AnjoGuiador-otimizado.glb",
-          "wings": "Asas.glb",
-          "lust": "Misteriosa-rig.glb",
-          "hero": "hero-menu.glb",
-          "storm": "storm-effigy.glb",
-          "rock": "rock_face_02",
-          "fort": "modular_fort_01",
-          "environment": "CC0-clouds"
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
         },
         "gpu": {
-          "calls": 233,
-          "triangles": 380397,
-          "textures": 30
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
         },
         "canvasCount": 1,
         "glError": 0
@@ -78,22 +74,18 @@
         "width": 852,
         "height": 393
       },
-      "loadMs": 4050,
+      "loadMs": 1069,
       "info": {
         "models": {
-          "guardian": "AnjoGuiador-otimizado.glb",
-          "wings": "Asas.glb",
-          "lust": "Misteriosa-rig.glb",
-          "hero": "hero-menu.glb",
-          "storm": "storm-effigy.glb",
-          "rock": "rock_face_02",
-          "fort": "modular_fort_01",
-          "environment": "CC0-clouds"
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
         },
         "gpu": {
-          "calls": 229,
-          "triangles": 347285,
-          "textures": 30
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
         },
         "canvasCount": 1,
         "glError": 0
@@ -150,22 +142,18 @@
         "height": 375,
         "reduced": true
       },
-      "loadMs": 831,
+      "loadMs": 427,
       "info": {
         "models": {
-          "guardian": "AnjoGuiador-otimizado.glb",
-          "wings": "Asas.glb",
-          "lust": "Misteriosa-rig.glb",
-          "hero": "hero-menu.glb",
-          "storm": "storm-effigy.glb",
-          "rock": "rock_face_02",
-          "fort": "modular_fort_01",
-          "environment": "CC0-clouds"
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
         },
         "gpu": {
-          "calls": 229,
-          "triangles": 347285,
-          "textures": 30
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
         },
         "canvasCount": 1,
         "glError": 0
@@ -220,6 +208,20 @@
         "name": "WebGL unavailable"
       },
       "fallback": true,
+      "entered": true
+    },
+    {
+      "view": {
+        "name": "Art unavailable"
+      },
+      "models": {
+        "mode": "geometry-reserve",
+        "guardian": "AnjoGuiador-otimizado.glb",
+        "storm": "storm-effigy.glb",
+        "hero": "hero-menu.glb",
+        "rock": "rock_face_02"
+      },
+      "errors": [],
       "entered": true
     }
   ]

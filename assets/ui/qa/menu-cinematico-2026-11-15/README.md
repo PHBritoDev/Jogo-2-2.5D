@@ -1,40 +1,37 @@
 # Evidência real — menu cinematográfico
 
-Atualizado em 17/11/2026. Código: `ff36a23`; baseline: `2732e9d`. PNGs capturados no Chromium, abertos e inspecionados, nos mesmos 1536×864 e 852×393. Nenhum PNG faz parte do runtime.
+Atualizado em 17/11/2026. Implementação `ed0f2ee`, incluindo main `55e4e2a`; baseline visual `2732e9d`. As capturas abaixo vêm do Chromium 156/SwiftShader, foram abertas e inspecionadas, nas mesmas resoluções. Não são renders promocionais nem a imagem de referência.
 
 | Viewport | Antes | Depois |
 | --- | --- | --- |
-| Desktop | [captura](before-desktop.png) | [captura](after-desktop.png) |
-| Paisagem móvel emulada | [captura](before-mobile.png) | [captura](after-mobile.png) |
+| Desktop 1536×864 | [captura](before-desktop.png) | [captura](after-desktop.png) |
+| Paisagem móvel emulada 852×393 | [captura](before-mobile.png) | [captura](after-mobile.png) |
 
-[Fallback sem WebGL](fallback.png) · [mundo real após ENTRAR](world-after-enter.png)
+[Sem WebGL](fallback.png) · [Sem os assets de arte](fallback-art-unavailable.png) · [Mundo real após ENTRAR](world-after-enter.png)
 
-GPU desktop: 300 → 233 draw calls (−22,3%); 184.277 → 380.397 triângulos; 9 → 30 texturas. Mobile usa seis instâncias de rocha em vez de dez: 229 calls / 347.285 triângulos / 30 texturas. O refinamento PBR/CC0 **aumenta custo geométrico e texturas** em relação ao baseline e à primeira proposta. A redução das rochas para 28% removeu cerca de 197 mil triângulos do primeiro ensaio com fotogrametria. Todas as texturas CC0 de superfície são 512px; HDR 1K. A efígie estática agora conserva os mapas PBR 512px, com aproximadamente 972 KiB.
+A composição foi comparada visualmente com a referência da conversa: anjo pérola à esquerda, demônio orgânico na tempestade à direita, arco fraturado, sete mundos presos a correntes, Ganância maior no centro, herói de costas, ruínas e cachoeiras. A arte é original e sua geração foi autorizada pelo criador em 17/11. A UI mantém os valores reais; não fixa 3% de progresso.
 
-Tempo observado até modelos carregados: desktop 11.423 → 4.568 ms; móvel 5.979 → 4.050 ms. São execuções isoladas sujeitas a cache, CDN e concorrência, **não um benchmark de velocidade**. A telemetria só é lida após um frame posterior ao término das cargas (incluindo movimento reduzido). Não foi medido FPS em Samsung A55 ou outro aparelho físico.
+## Implementação e custo
 
-[Fontes CC0 e reprodução](../../menu/polyhaven/LICENSE-SOURCES.md): Rock Face 02, Modular Fort 01 e céu HDR da Poly Haven, usados como geometria, materiais PBR e iluminação. Downloads adicionais em runtime são locais ao repositório; não há serviço pago nem chamadas ao site de modelos. O anjo mantém os detalhes de sua textura original e o demônio usa uma derivação estática do GLB do projeto; originais preservados.
+[Origem e contrato das camadas](../../menu/cinematic/README.md). O cenário é arte 2.5D; os mundos são sete malhas curvas com UVs de um atlas, giro Y real limitado, flutuação independente e seleção interpolada. Correntes são instâncias 3D e acompanham a posição dos mundos. Só a região da capa recebe vento; corpo e espada não deformam. Não há afirmação de que a paisagem pintada seja um GLB completo. Não foi usado o bitmap da referência nem um screenshot com controles invisíveis.
 
-[QA navegador](browser-report.json): sete seleções por teclado/toque, bloqueios/requisitos, configurações, três destinos desabilitados, prontidão, moedas 1.234 e progresso 31% dinâmicos, contexto perdido/restaurado, aba oculta sem agendar rAF, fechamento, viewport 667×375 com movimento reduzido e WebGL indisponível. Sem erros JS, console ou rede nas três execuções WebGL.
+| Medição após frame posterior à carga | Baseline | Desktop final | Mobile final |
+| --- | ---: | ---: | ---: |
+| Draw calls | 300 | 14 | 14 |
+| Triângulos | 184.277 | 65.382 | 65.382 |
+| Texturas GPU | 9 | 3 | 3 |
+| Tempo observado até prontidão | 11.423 / 5.979 ms | 1.889 ms | 1.069 ms |
 
-[Integração](world-report.json): botão de produção libera o gate do mundo e preserva campanha de teste (quest 1, 47 moedas). Nenhum bypass freeRoam/teleporte foi usado. [Progresso](progress-tests.txt): 3 testes passaram. Sintaxe dos módulos alterados e `git diff --check` passaram.
+Tempos sujeitos a cache, rede e concorrência; não são benchmark de FPS. Não foi medido Android físico. A arte entregue soma cerca de 1,1 MiB; atlas compartilhado entre mundos/herói. GLBs/HDR da reserva só carregam se a arte falhar. Um canvas, nenhum novo passe de pós-processamento. A cena geométrica não é renderizada provisoriamente durante a carga da arte, evitando flash e upload de texturas desnecessárias.
 
-Problemas encontrados e corrigidos: seleção anterior mantinha polling de prontidão; fechamento podia duplicar entrada; ator angelical usava corrida; o contexto restaurado expôs descarte de um objeto que não era material; altura 375 gerava literal inteiro incompatível no shader; título colidia com a torre/asas nas primeiras composições.
+## Validação
 
-**Revisão artística pendente:** composição e interação foram implementadas, mas malhas, materiais e iluminação permanecem estilizados. A qualidade fotorealista da referência não foi igualada nem demonstrada. Não interpretar testes verdes como aprovação visual ou autorização de merge. A referência veio da conversa, não do antigo JPG do repositório; a comparação automática com aquele JPG foi retirada por medir a arte errada.
+[QA do navegador](browser-report.json): sete seleções por teclado/toque, requisitos e bloqueios, configurações, três destinos desabilitados, prontidão, moedas 1.234 e progresso 31% dinâmicos, relevo não plano e alteração real do giro Y, contexto WebGL perdido/restaurado, aba oculta sem rAF, fechamento e cargas tardias. Viewport 667×375 com movimento reduzido permanece sem giro. Botões móveis de entrada e configurações têm pelo menos 44px. Sem erros JS/console/rede nos três cenários normais.
 
-## Verificação no CI de 16/11
+Também testados: WebGL indisponível com a mesma composição e entrada funcional; falha deliberada dos dois assets de arte com carregamento da reserva independente GLB/CC0 e entrada funcional. Regressões das penas de reserva (94 instâncias, material válido, matrizes finitas) e das âncoras de correntes fora do vão do arco aprovadas. Corrigido acúmulo do shader de névoa em materiais compartilhados.
 
-O Chromium 156 do GitHub expôs um timeout ao capturar o menu em animação contínua por SwiftShader. O capturador agora suspende o menu pelo seu handler de visibilidade, fotografa o último frame realmente renderizado e retoma a animação em `finally`; não altera pixels ou geometria. Passou localmente com Chromium 154 e com a mesma versão do CI, Chromium 156.0.8078.4: [navegação/captura](chromium156-report.json), [entrada no mundo](chromium156-world-report.json).
+[Integração no mundo](world-report.json): entrada pelo botão de produção, liberação do gate e preservação de quest 1/47 moedas em perfil isolado, sem bypass freeRoam ou teleporte. [Progresso](progress-tests.txt): 3/3. [Integração após incorporar a main](integration-tests.txt): 51/51. Sintaxe e diff-check aprovados.
 
-O laboratório geral encontra **dois testes já falhando na main `f5c6de45bbcc8efbcf8dd34b768fc9259566aae8`**: `vorgazhek-eclipse-sword.test.mjs` exige `testSwordEclipse=1` no HTML; `zarkhael-blackflame.test.mjs` exige `testLuaNegra=1` e `testHidra=1`. A main substituiu esse laboratório por navegação via `data-dim`. Reprodução isolada da main: 13 testes, 11 passaram, os mesmos 2 falharam ([log](main-ci-baseline.txt)). Esta PR não modifica esses testes nem o laboratório de combate; não reintroduz controles removidos por outro trabalho.
+O antigo `main-ci-baseline.txt` registra uma falha histórica anterior desta rodada. Após incorporar `55e4e2a`, os 51 testes — inclusive os dois testes de URLs antigas — passam; o histórico não representa o estado final. Os JSONs `chromium156-*` são as execuções finais da mesma versão usada pelo CI.
 
-## Refinamento de enquadramento e pose
-
-Anjo ampliado com asas inclinadas e material pérola; silhueta desvanece na atmosfera sem invadir o título. Herói de costas usa derivação estática com PBR do protagonista atual, espada baixa e capa ampliada. Os exportadores agora selecionam explicitamente o idle nativo com sufixo de rig do Blender e desativam NLA: antes, o nome sem sufixo deixava Running ativo. A exportação falha se faltar o clipe. Originais preservados. Capturas finais inspecionadas no Chromium 156, com navegação, restauração de contexto e entrada real novamente aprovadas. O custo do novo herói está incluído nas métricas acima.
-
-## Arco e reserva de asas — 17/11
-
-As correntes centrais agora começam nas bordas de pedra, fora do vão do arco. Faixas de ferro e relevos compartilham duas malhas instanciadas (+2 calls). Corrigido argumento ausente no batch de penas de reserva: 94 instâncias recebem o material pérola. Regressões verificam material válido, matrizes finitas e âncoras fora do vão; executadas isoladamente no Chromium e incorporadas ao QA contínuo. Capturas desktop/mobile abertas e inspecionadas, fluxo e fallback aprovados.
-
-O [CI do menu no commit anterior](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/43997699638) passou; o laboratório geral mantém os mesmos dois testes de URLs antigas (log do run 43997699651), sem alterações nesses sistemas. Nenhum merge.
+O briefing temporário está removido nesta PR. O criador autorizou merge após a conclusão e validação na conversa; nenhuma mudança de gameplay, Eldória, saves, HUD ou versão foi criada por esta missão.

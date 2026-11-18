@@ -1,6 +1,6 @@
 {
   "baseline": "2732e9d",
-  "implementation": "ff36a2341a6c91f3fd45e6559e7e48edaf3f9a22",
+  "implementation": "ed0f2eedcd4481ac0d11213c01a78fe637b6c0ba",
   "baselineGPU": {
     "calls": 300,
     "triangles": 184277,
@@ -24,7 +24,8 @@
   ],
   "reference": "Imagem anexada à conversa do criador; inspeção visual, sem comparação pixel a pixel",
   "environment": "Chromium 156.0.8078.4 / SwiftShader / DPR 1, sem Android físico",
-  "visualApproval": "Pendente; resultado estilizado, equivalência ao realismo da referência não demonstrada",
+  "visualApproval": "Inspeção visual realizada com a referência da conversa; composição cinematográfica implementada em camadas 2.5D e relevos independentes, sem nota numérica de similaridade",
   "updated": "2026-11-17",
-  "sources": "../../menu/polyhaven/LICENSE-SOURCES.md"
+  "sources": "../../menu/cinematic/README.md",
+  "integratedMain": "55e4e2a"
 }

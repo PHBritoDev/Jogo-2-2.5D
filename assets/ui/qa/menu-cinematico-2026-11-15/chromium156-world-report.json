@@ -5,11 +5,11 @@
     "z": 4,
     "walkable": true,
     "edge": -27.500897004106672,
-    "calls": 204,
-    "triangles": 698924,
+    "calls": 173,
+    "triangles": 567009,
     "terrain": {
       "vertices": 77724,
-      "triangles": 151328,
+      "triangles": 118094,
       "patchTriangles": 13916,
       "extent": [
         -662.5130391947365,
@@ -18,14 +18,14 @@
     },
     "trees": 0,
     "fog": "c7d2cb",
-    "fogFar": 328.17206294649424,
+    "fogFar": 328.1731772448816,
     "night": 0,
     "quest": 1,
     "coins": 47,
     "dialogueOpen": false,
     "namePromptOpen": false,
     "awakeningActive": false,
-    "hp": 100,
+    "hp": 500,
     "enemy": {
       "hp": 100,
       "visible": false,
@@ -50,7 +50,7 @@
       "hour": 9,
       "enemyHP": 100,
       "enemyMaxHP": 100,
-      "hp": 100
+      "hp": 500
     }
   },
   "errors": [],
