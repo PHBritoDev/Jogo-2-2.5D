@@ -53,3 +53,23 @@ test('Mod 321 — a nova Cinzária, a garganta e a entrada do vulcão são alcan
   for (const [x, z] of DISTRICT_PASS) assert.ok(t.walkable(x, z), 'garganta bloqueada em ' + x + ',' + z);
   assert.equal(DISTRICT_SPOTS.volcanoGuards.length, 2, 'exatamente dois guardas');
 });
+
+
+test('save de Vorgazhek: contagem não finita não corrompe progresso e recompensa não duplica', () => {
+  for (const bad of [NaN, Infinity, -Infinity, -100, 'não numérico', null, undefined, 1e100]) {
+    const result = afterVorgazhek({ bishopsDefeated: bad });
+    assert.equal(result.bishopsDefeated, 2);
+    assert.equal(result.questStep, ACT2.done);
+  }
+  assert.equal(afterVorgazhek({ bishopsDefeated: 3 }).bishopsDefeated, 3);
+  assert.equal(afterVorgazhek({ bishopsDefeated: 99 }).bishopsDefeated, 4);
+  assert.equal(afterVorgazhek({ vorgazhekRewardClaimed: true }).coinsGained, 0);
+});
+
+test('objetivos do vulcão permanecem legíveis com subetapa de save inválida', () => {
+  const baseline = act2Presentation(ACT2.volcano, 0);
+  for (const bad of [NaN, Infinity, -Infinity, undefined, 'inválido', {}]) {
+    assert.deepEqual(act2Presentation(ACT2.volcano, bad), baseline);
+  }
+  assert.match(act2Presentation(ACT2.volcano, 4).objective, /guardião do trono/);
+});

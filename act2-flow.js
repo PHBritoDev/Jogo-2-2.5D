@@ -48,7 +48,7 @@ export function act2Presentation(step, sub = 0) {
     9: ['ATO II · A JORNADA', 'Siga a estrada a oeste: o vale, a serra e a ponte do abismo levam à cidade do vulcão'],
     10: ['ATO II · ' + CITY_NAME.toUpperCase(), 'Saia pelo sudoeste da cidade e siga as pegadas na cinza que contornam o vulcão'],
     11: ['ATO II · A ENTRADA DO VULCÃO', 'Dois guardas vigiam a caverna escondida no flanco sul do vulcão'],
-    12: vol[Math.max(0, Math.min(4, sub))],
+    12: vol[Number.isFinite(Number(sub)) ? Math.max(0, Math.min(4, Math.trunc(Number(sub)))) : 0],
     13: ['ATO II · VORGAZHEK', 'Entre no portal do Segundo Bispo'],
     14: ['ATO II · CONCLUÍDO', 'Vá à cidade de neve']
   };
@@ -63,7 +63,10 @@ export function isAct2BossStep(step) { return step === ACT2.boss; }
 export function afterVorgazhek(progress) {
   const p = progress || {};
   const first = !p.vorgazhekRewardClaimed;
-  return { questStep: ACT2.done, bishopsDefeated: Math.max(2, Math.floor(Number(p.bishopsDefeated) || 0)), vorgazhekRewardClaimed: true, coinsGained: first ? ACT2.reward : 0, xpGained: first ? ACT2.xp : 0 };
+  const rawCount = Number(p.bishopsDefeated);
+  // Avoid Infinity, negatives and overflow in saves; the second Bishop is defeated now.
+  const count = Number.isSafeInteger(rawCount) ? Math.max(0, rawCount) : 0;
+  return { questStep: ACT2.done, bishopsDefeated: Math.max(2, Math.min(4, count)), vorgazhekRewardClaimed: true, coinsGained: first ? ACT2.reward : 0, xpGained: first ? ACT2.xp : 0 };
 }
 
 /** Fase de fúria: anunciada uma vez, ao cruzar metade da vida. */
