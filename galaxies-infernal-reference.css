@@ -108,3 +108,44 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+
+/* Brief engraved-metal response: one gold reflection per touch, no persistent glow.
+   Does not disturb the camera/world meshes or run an animation loop. */
+#galaxy-screen .gx-orb{isolation:isolate}
+#galaxy-screen .gx-orb.gx-tapped::after{
+  content:"";position:absolute;inset:-3px;border:1px solid var(--g,#d9aa6a);
+  border-radius:50%;pointer-events:none;opacity:0;z-index:5;
+  animation:gx-world-touch .34s cubic-bezier(.18,.7,.2,1) both;
+}
+#galaxy-screen .gx-nav button{position:relative;overflow:hidden}
+#galaxy-screen .gx-nav button.gx-tapped::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:2px;
+  background:linear-gradient(90deg,transparent,#f2c786 47%,transparent);
+  pointer-events:none;transform-origin:left center;
+  animation:gx-menu-engrave .34s ease-out both;
+}
+#galaxy-screen .gx-enter{isolation:isolate}
+#galaxy-screen .gx-enter.gx-tapped::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(110deg,transparent 25%,#ffde9b65 50%,transparent 74%);
+  animation:gx-enter-glint .34s ease-out both;
+}
+@keyframes gx-world-touch{
+  0%{opacity:0;transform:scale(.82)}
+  32%{opacity:.8}
+  100%{opacity:0;transform:scale(1.12)}
+}
+@keyframes gx-menu-engrave{
+  0%{opacity:0;transform:scaleX(.08)}
+  38%{opacity:.85}
+  100%{opacity:0;transform:scaleX(1)}
+}
+@keyframes gx-enter-glint{
+  from{opacity:0;transform:translateX(-85%)}
+  35%{opacity:1}
+  to{opacity:0;transform:translateX(85%)}
+}
+@media(prefers-reduced-motion:reduce){
+  #galaxy-screen .gx-tapped::after{animation:none!important;display:none!important}
+}
