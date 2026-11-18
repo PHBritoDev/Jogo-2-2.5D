@@ -4,6 +4,9 @@ on:
     paths:
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
+      - 'act2-flow.js'
+      - 'act1-flow.test.mjs'
+      - 'act2-flow.test.mjs'
       - '.github/workflows/qa-a5-save-campaign.yml'
   workflow_dispatch:
 permissions:
@@ -18,6 +21,6 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar arquivo JS
-        run: node --check act1-flow.js
+        run: node --check act1-flow.js && node --check act2-flow.js
       - name: Executar teste específico e contrato base
-        run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs
+        run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
