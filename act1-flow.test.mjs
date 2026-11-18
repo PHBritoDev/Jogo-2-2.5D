@@ -215,3 +215,15 @@ test('save não converte arrays, booleanos ou objetos em moedas gratuitas', () =
   assert.equal(migrateProgress(original).coins, 0);
   assert.deepEqual(original.coins, [40]);
 });
+
+
+test('HUD não avança etapas por subetapa inválida restaurada de save', () => {
+  const base1 = questPresentation(1, 0);
+  const base3 = questPresentation(3, 0);
+  for (const bad of [NaN, Infinity, -Infinity, undefined, 'inválido', {}, null]) {
+    assert.deepEqual(questPresentation(1, bad), base1);
+    assert.deepEqual(questPresentation(3, bad), base3);
+  }
+  assert.match(questPresentation(1, 1).objective, /vendedor de frutas/);
+  assert.match(questPresentation(3, 2).objective, /luta terminou/);
+});
