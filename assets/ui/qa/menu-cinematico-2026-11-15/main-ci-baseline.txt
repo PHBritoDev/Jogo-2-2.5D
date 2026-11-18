@@ -1,0 +1,65 @@
+✔ Mod 261 — etapas e tempos: lua no 1º quadro, carga de 3,2 s em 4 estágios, golpe ≤ 2 s, colapso de 2,4 s (6.16459ms)
+✔ Mod 261 — corte: mira travada no lançamento, acerta parado, desvia correndo de lado e com dash; um acerto só (3.178669ms)
+✔ Mod 261 — sem túnel: corte rápido com passo grande ainda pega o herói; parede interrompe no ponto real (1.621698ms)
+✔ Mod 261 — interrupção (morte, saída, reset): some rápido, sem dano nem corte (0.549296ms)
+✔ Mod 261 — eclipse composto atrás/acima do bispo, do lado da espada, acima do chão e nunca atrás do fundo (0.38604ms)
+✔ Mod 261 — pose: espada erguida na carga, recuo na antecipação e golpe para a frente (1.652805ms)
+✖ Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ultimate seguem reservados; nada antigo voltou (16.4004ms)
+✔ Chamas Negras — exatamente 10 chamas em sequência (0,85 s) com antecipação, depois a colossal carregada e lançada (8.327481ms)
+✔ Skill 2 — Lua restaura imagem original do criador; 10+1 chamas preservadas (5.163935ms)
+✔ Chamas Negras — mira travada, colisão varrida, acerto direto x chão; durações exatas (9.870141ms)
+✔ Queimadura — uma só instância: recontato renova, a forte substitui a fraca, nunca soma ticks (0.768906ms)
+✔ Colossal — acerto direto dá dano grande e aura de 6 s; no chão vira incêndio de 7 s; dash evita (6.256587ms)
+✖ Interrupção, IA e integração — some limpo, IA usa a Skill 2 à distância e alterna com a Hidra; nada genérico voltou (14.632131ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.643585
+
+✖ failing tests:
+
+test at ../menu-ci-main/vorgazhek-eclipse-sword.test.mjs:80:1
+✖ Mod 261 — kit: slot da espada ativo com tipo próprio e alcance; s2/ultimate seguem reservados; nada antigo voltou (16.4004ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(lab.includes('testSwordEclipse=1'))
+
+      at TestContext.<anonymous> (file:///workspace/work/menu-ci-main/vorgazhek-eclipse-sword.test.mjs:98:104)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../menu-ci-main/zarkhael-blackflame.test.mjs:73:1
+✖ Interrupção, IA e integração — some limpo, IA usa a Skill 2 à distância e alterna com a Hidra; nada genérico voltou (14.632131ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+    assert.ok(lab.includes('testLuaNegra=1') && lab.includes('testHidra=1'))
+
+      at TestContext.<anonymous> (file:///workspace/work/menu-ci-main/zarkhael-blackflame.test.mjs:87:104)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

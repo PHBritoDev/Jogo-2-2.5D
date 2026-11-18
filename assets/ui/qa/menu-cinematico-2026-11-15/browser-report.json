@@ -1,0 +1,228 @@
+{
+  "environment": "Chromium/SwiftShader; mobile viewport emulation, not physical Android",
+  "reports": [
+    {
+      "view": {
+        "name": "desktop-1536x864",
+        "width": 1536,
+        "height": 864
+      },
+      "loadMs": 1889,
+      "info": {
+        "models": {
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
+        },
+        "gpu": {
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "mobile-emulated-852x393",
+        "width": 852,
+        "height": 393
+      },
+      "loadMs": 1069,
+      "info": {
+        "models": {
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
+        },
+        "gpu": {
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "narrow-667x375",
+        "width": 667,
+        "height": 375,
+        "reduced": true
+      },
+      "loadMs": 427,
+      "info": {
+        "models": {
+          "art": "relief",
+          "worlds": 7,
+          "sources": 2,
+          "depth": 30.72
+        },
+        "gpu": {
+          "calls": 14,
+          "triangles": 65382,
+          "textures": 3
+        },
+        "canvasCount": 1,
+        "glError": 0
+      },
+      "planets": [
+        {
+          "id": 1,
+          "selected": true,
+          "locked": false
+        },
+        {
+          "id": 2,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 3,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 4,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 5,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 6,
+          "selected": true,
+          "locked": true
+        },
+        {
+          "id": 7,
+          "selected": true,
+          "locked": true
+        }
+      ],
+      "settings": true,
+      "readiness": true,
+      "contextRestored": true,
+      "callbackAndTeardown": true,
+      "dynamicValues": true,
+      "errors": [],
+      "bad": []
+    },
+    {
+      "view": {
+        "name": "WebGL unavailable"
+      },
+      "fallback": true,
+      "entered": true
+    },
+    {
+      "view": {
+        "name": "Art unavailable"
+      },
+      "models": {
+        "mode": "geometry-reserve",
+        "guardian": "AnjoGuiador-otimizado.glb",
+        "storm": "storm-effigy.glb",
+        "hero": "hero-menu.glb",
+        "rock": "rock_face_02"
+      },
+      "errors": [],
+      "entered": true
+    }
+  ]
+}

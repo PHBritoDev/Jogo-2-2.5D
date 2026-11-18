@@ -1,65 +1,117 @@
 "use strict";
-// Agente de auditoria visual do menu Three.js — imagens reais do navegador.
-const {chromium}=require("playwright"),fs=require("node:fs"),path=require("node:path");
-const output=path.resolve("visual-lab-results/galaxy-menu-three");
+// Real browser evidence, never a screenshot of the supplied reference.
+const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const output=path.resolve(process.env.GALAXY_QA_OUTPUT||'visual-lab-results/galaxy-menu-three');
+const base=process.env.GALAXY_QA_BASE_URL||'http://127.0.0.1:4173';
 fs.mkdirSync(output,{recursive:true});
-function check(ok,msg){if(!ok)throw Error(msg);}
+// Capture the last genuinely rendered frame without racing the software GPU's next frame.
+// This pauses only the menu through its existing visibility handler; it does not redraw or edit pixels.
+async function capture(page,file){
+ await page.evaluate(()=>{window.__captureHidden=Object.getOwnPropertyDescriptor(document,'hidden');Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+ try{await page.screenshot({path:file,animations:'disabled',timeout:45000});}
+ finally{await page.evaluate(()=>{const saved=window.__captureHidden;if(saved)Object.defineProperty(document,'hidden',saved);else delete document.hidden;delete window.__captureHidden;document.dispatchEvent(new Event('visibilitychange'));});}
+}
 (async()=>{
- const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage","--enable-webgl","--enable-unsafe-swiftshader","--use-angle=swiftshader"]});
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const reports=[];
  try{
-  for(const view of [{name:"desktop-1536x864",width:1536,height:864},{name:"android-landscape-852x393",width:852,height:393}]){
-   const ctx=await browser.newContext({viewport:{width:view.width,height:view.height},deviceScaleFactor:1,hasTouch:view.name.startsWith("android"),isMobile:view.name.startsWith("android"),reducedMotion:"no-preference"});
-   const page=await ctx.newPage(),errors=[],bad=[];
-   page.on("pageerror",e=>errors.push(e.message));
-   page.on("response",r=>{if(r.status()>=400)bad.push([r.status(),r.url()]);});
-   await page.goto("http://127.0.0.1:4173/tools/visual-lab/galaxy-menu-preview.html",{waitUntil:"domcontentloaded"});
-   await page.waitForFunction(()=>window.menuQA?.ready,{timeout:20000});
-   await page.waitForSelector("#galaxy-screen.gx-three-on canvas.gx-three-canvas",{timeout:30000});
-   await page.waitForFunction(()=>document.querySelector("#galaxy-screen")?.dataset.gxModelsReady==="true",{timeout:65000});
-   await page.waitForTimeout(900);
-   const info=await page.evaluate(()=>{
-    const root=document.querySelector("#galaxy-screen"),c=root.querySelector("canvas.gx-three-canvas"),orbs=[...root.querySelectorAll(".gx-orb")];
-    const gl=c.getContext("webgl2")||c.getContext("webgl");
-    const models={guardian:root.dataset.gxGuardianModel,lust:root.dataset.gxLustModel};
-    return {models,three:root.classList.contains("gx-three-on"),canvas:{width:c.width,height:c.height},gl:!!gl,errors:gl?gl.getError():null,orbs:orbs.length,menu:root.querySelectorAll(".gx-nav button").length,
-      pixelImageShown:!!root.querySelector(".gx-exact-stage"),gpu:{drawCalls:Number(root.dataset.gxDrawCalls||0),triangles:Number(root.dataset.gxTriangles||0),textures:Number(root.dataset.gxTextures||0)},labels:orbs.map(o=>o.getAttribute("aria-label")),
-      enter:!!root.querySelector(".gx-enter"),detail:!!root.querySelector(".gx-detail")};
-   });
-   check(info.three&&info.gl,view.name+": canvas Three.js/WebGL nao funcionou");
-   check(info.models.guardian&&info.models.lust,view.name+": GLB real do Anjo ou da Misteriosa falhou: "+JSON.stringify(info.models));
-   check(info.orbs===7&&info.menu===5&&info.enter,view.name+": controles incompletos");
-   check(!info.pixelImageShown,view.name+": ainda esta exibindo imagem estática");
-   await page.screenshot({path:path.join(output,view.name+"-ganancia.png"),animations:"disabled"});
-   // Auditar TODOS os sete mundos, não somente Ganância e Luxúria.
-   const planetAudits=[];
-   for(let pid=1;pid<=7;pid++){
-    await page.locator('.gx-orb[data-id="'+pid+'"]').click();
-    await page.waitForTimeout(120);
-    const state=await page.evaluate(pid=>{
-     const root=document.querySelector('#galaxy-screen'),selected=root.querySelector('.gx-orb.sel');
-     const canvas=root.querySelector('canvas.gx-three-canvas');
-     const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
-     return {selected:selected?.dataset.id,glError:gl.getError(),canvasPixels:canvas.width*canvas.height};
-    },pid);
-    check(state.selected===String(pid),view.name+": falhou selecionar planeta "+pid);
-    check(state.glError===0,view.name+": erro WebGL no planeta "+pid+": "+state.glError);
-    planetAudits.push({id:pid,...state});
-    await page.screenshot({path:path.join(output,view.name+"-planeta-"+pid+".png"),animations:"disabled"});
+  for(const view of [{name:'desktop-1536x864',width:1536,height:864},{name:'mobile-emulated-852x393',width:852,height:393},{name:'narrow-667x375',width:667,height:375,reduced:true}]){
+   const context=await browser.newContext({viewport:{width:view.width,height:view.height},hasTouch:view.width<900,isMobile:view.width<900,deviceScaleFactor:1,reducedMotion:view.reduced?'reduce':'no-preference'});
+   const page=await context.newPage(),errors=[],bad=[];
+   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.location().url?.endsWith('favicon.ico')){errors.push(m.text());console.error(m.text());}});page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))bad.push([r.status(),r.url()]);});
+   const start=Date.now();await page.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
+   await page.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',null,{timeout:90000});
+   const loadMs=Date.now()-start;
+   // Regression: fallback feathers must have a material and finite instance transforms;
+   // central suspension must begin on masonry, not inside the broken arch's gap.
+   if(view.width===1536){
+    const contracts=await page.evaluate(async()=>{
+     const T=await import('three'),{addCinematicStage}=await import('../../galaxies-cinematic-stage.js');
+     const parent=new T.Group(),stage=addCinematicStage(parent,1536,864);
+     const feathers=stage.group.getObjectByName('menu-wings-fallback').children[0];
+     const validFeathers=feathers.count===94&&!!feathers.material?.isMaterial&&Array.from(feathers.instanceMatrix.array).every(Number.isFinite);
+     stage.alignChains([{position:new T.Vector3(0,0,0),userData:{screenRadius:150}}],1536,864);
+     const chain=parent.children.find(o=>o.isInstancedMesh),left=new T.Matrix4(),right=new T.Matrix4();chain.getMatrixAt(0,left);chain.getMatrixAt(28,right);
+     const anchored=Math.abs(left.elements[12])>=1536*.0649&&Math.abs(right.elements[12])>=1536*.0649;
+     const gs=new Set(),ms=new Set(),ts=new Set();parent.traverse(o=>{if(o.geometry)gs.add(o.geometry);if(o.material?.isMaterial)ms.add(o.material);});
+     ms.forEach(m=>{Object.values(m).forEach(t=>{if(t?.isTexture)ts.add(t);});m.dispose();});gs.forEach(g=>g.dispose());ts.forEach(t=>t.dispose());
+     return {validFeathers,anchored};
+    });
+    assert.deepEqual(contracts,{validFeathers:true,anchored:true});
    }
-   await page.locator('.gx-orb[data-id="7"]').click();
-   await page.waitForTimeout(320);
-   check((await page.locator(".gx-detail h2").innerText())==="LUXÚRIA",view.name+": seleção de Luxuria falhou");
-   await page.screenshot({path:path.join(output,view.name+"-luxuria.png"),animations:"disabled"});
+
+   const readyAt=await page.evaluate(()=>performance.now());
+   await page.waitForFunction(t=>Number(document.querySelector('#galaxy-screen')?.dataset.gxTelemetryAt)>t,readyAt,{timeout:15000});
+   const info=await page.evaluate(()=>{const root=document.querySelector('#galaxy-screen'),c=root.querySelector('canvas'),gl=c.getContext('webgl2');return {models:{art:root.dataset.gxArtMode,worlds:+root.dataset.gxWorldReliefs,sources:+root.dataset.gxArtSources,depth:+root.dataset.gxReliefDepth},gpu:{calls:+root.dataset.gxDrawCalls,triangles:+root.dataset.gxTriangles,textures:+root.dataset.gxTextures},canvasCount:root.querySelectorAll('canvas').length,glError:gl.getError()};});
+   assert.equal(info.canvasCount,1);assert.equal(info.glError,0);assert.equal(info.models.art,'relief');assert.equal(info.models.worlds,7);assert.equal(info.models.sources,2);assert.ok(info.models.depth>20,'world geometry has real depth');
+   await page.evaluate(()=>document.fonts.ready);
+   const poseBefore=await page.evaluate(()=>Number(document.querySelector('#galaxy-screen').dataset.gxArtYaw));
+   await page.waitForTimeout(1400);
+   const poseAfter=await page.evaluate(()=>Number(document.querySelector('#galaxy-screen').dataset.gxArtYaw));
+   if(view.reduced)assert.equal(poseAfter,0);else assert.notEqual(poseAfter,poseBefore,'relief meshes rotate in 3D');
+   assert.equal(await page.locator('.gx-nav button').count(),5);assert.equal(await page.locator('.gx-nav button:disabled').count(),3);
+   if(view.width<900){assert.ok((await page.locator('.gx-enter').boundingBox()).height>=44);assert.ok((await page.locator('.gx-nav-settings').boundingBox()).height>=44);}
+   // One before/after image per required size; narrow is functional QA only.
+   if(!view.reduced)await capture(page,path.join(output,view.name+'.png'));
+   const planets=[];
+   for(let id=1;id<=7;id++){
+    const orb=page.locator(`.gx-orb[data-id="${id}"]`);
+    if(view.width<900)await orb.tap();else{await orb.focus();await page.keyboard.press('Enter');}
+    assert.equal(await orb.getAttribute('aria-pressed'),'true');
+    assert.equal(await page.locator('.gx-orb.sel').getAttribute('data-id'),String(id));
+    if(id!==1){assert.equal(await page.locator('.gx-enter').count(),0);assert.ok(await page.locator('.gx-access').isVisible());}
+    const bounds=await orb.boundingBox();assert.ok(bounds.width>=44&&bounds.height>=44,'touch target');
+    planets.push({id,selected:true,locked:id!==1});
+   }
+   await page.locator('.gx-nav-settings').click();assert.equal(await page.evaluate(()=>window.menuQA.settings),1);
    await page.locator('.gx-orb[data-id="1"]').click();
-   await page.locator(".gx-enter").click();
-   await page.waitForTimeout(720);
-   const opened=await page.evaluate(()=>window.menuQA.opened);
-   check(opened===1,view.name+": ENTRAR não chamou jogo");
-   reports.push({view,info,planetAudits,errors,bad,opened,passed:errors.length===0&&bad.length===0});
-   await ctx.close();
+   await page.evaluate(()=>window.menuQA.canEnter=false);
+   // Re-select to update readiness immediately, then poll while loading.
+   await page.locator('.gx-orb[data-id="1"]').click();assert.ok(await page.locator('.gx-enter').isDisabled());
+   await page.evaluate(()=>window.menuQA.canEnter=true);await page.waitForFunction(()=>!document.querySelector('.gx-enter').disabled);
+   // Exercise the visibility handler: a hidden menu must schedule no frames.
+   await page.evaluate(()=>{window.__originalRAF=window.requestAnimationFrame;window.__rafCalls=0;window.requestAnimationFrame=cb=>{window.__rafCalls++;return window.__originalRAF(cb);};Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});
+   await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__rafCalls),0);
+   await page.evaluate(()=>{delete document.hidden;document.dispatchEvent(new Event('visibilitychange'));window.requestAnimationFrame=window.__originalRAF;});
+   // Lose/restore actual WebGL context. SVG fallback retains all controls.
+   await page.evaluate(()=>{const gl=document.querySelector('canvas').getContext('webgl2');window.__loss=gl.getExtension('WEBGL_lose_context');window.__loss.loseContext();});
+   await page.waitForFunction(()=>!document.querySelector('#galaxy-screen').classList.contains('gx-three-on'));
+   assert.ok(await page.locator('.gx-enter').isVisible());
+   await page.evaluate(()=>window.__loss.restoreContext());
+   await page.waitForFunction(()=>document.querySelector('#galaxy-screen').classList.contains('gx-three-on'));
+   await page.locator('.gx-enter').click();await page.waitForFunction(()=>window.menuQA.opened===1);
+   assert.equal(await page.locator('#galaxy-screen,canvas.gx-three-canvas').count(),0);
+   // Dynamic coins/progress and close-before-GLB-load lifecycle.
+   await page.evaluate(()=>window.menuQA.mount({coins:1234,progress:{questStep:4,bishopsDefeated:2}}));
+   assert.equal((await page.locator('.gx-wallet b').innerText()).replace(/\D/g,''),'1234');
+   assert.equal(await page.locator('.gx-bar em').innerText(),'31%');
+   await page.evaluate(()=>window.menuQA.close());await page.waitForTimeout(100);
+   assert.equal(await page.locator('#galaxy-screen').count(),0);
+   reports.push({view,loadMs,info,planets,settings:true,readiness:true,contextRestored:true,callbackAndTeardown:true,dynamicValues:true,errors,bad});
+   await context.close();assert.deepEqual(errors,[]);assert.deepEqual(bad,[]);
   }
+  const fallback=await browser.newContext({viewport:{width:1536,height:864}}),page=await fallback.newPage();
+  await page.addInitScript(()=>{const native=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/i.test(type)?null:native.call(this,type,...args);};});
+  await page.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
+  await page.waitForSelector('.gx-enter');await page.waitForSelector('#galaxy-screen.gx-cinematic-ready');await page.evaluate(()=>document.fonts.ready);
+  assert.equal(await page.locator('#galaxy-screen.gx-three-on').count(),0);
+  await page.locator('.gx-orb[data-id="2"]').click();assert.ok(await page.locator('.gx-access').isVisible());
+  await page.locator('.gx-orb[data-id="1"]').click();
+  await capture(page,path.join(output,'fallback-webgl-unavailable.png'));
+  await page.locator('.gx-enter').click();await page.waitForFunction(()=>window.menuQA.opened===1);
+  await fallback.close();reports.push({view:{name:'WebGL unavailable'},fallback:true,entered:true});
+  // A failed art request must retain the fully independent GLB/scanned 3D reserve.
+  const reserve=await browser.newContext({viewport:{width:852,height:393}}),rp=await reserve.newPage(),reserveErrors=[];
+  await rp.route('**/assets/ui/menu/cinematic/*',route=>route.abort());
+  rp.on('pageerror',e=>reserveErrors.push(e.message));
+  rp.on('console',m=>{if(m.type()==='error'&&/THREE|WebGL|shader/i.test(m.text()))reserveErrors.push(m.text());});
+  await rp.goto(base+'/tools/visual-lab/galaxy-menu-preview.html');
+  await rp.waitForFunction(()=>document.querySelector('#galaxy-screen')?.dataset.gxModelsReady==='true',null,{timeout:90000});
+  const reserveModels=await rp.evaluate(()=>{const d=document.querySelector('#galaxy-screen').dataset;return {mode:d.gxArtMode,guardian:d.gxGuardianModel,storm:d.gxStormModel,hero:d.gxHeroModel,rock:d.gxScannedRock};});
+  assert.equal(reserveModels.mode,'geometry-reserve');assert.ok(Object.values(reserveModels).every(Boolean));assert.deepEqual(reserveErrors,[]);
+  await capture(rp,path.join(output,'fallback-art-unavailable.png'));
+  await rp.locator('.gx-enter').click();await rp.waitForFunction(()=>window.menuQA.opened===1);await reserve.close();
+  reports.push({view:{name:'Art unavailable'},models:reserveModels,errors:reserveErrors,entered:true});
  }finally{await browser.close();}
- fs.writeFileSync(path.join(output,"report.json"),JSON.stringify({renderer:"Three.js real; geometria/shaders/texturas geradas por codigo",reports},null,2));
- check(reports.every(r=>r.passed),"Console/rede: "+JSON.stringify(reports));
-})().catch(e=>{console.error(e);fs.writeFileSync(path.join(output,"failure.txt"),String(e.stack||e));process.exitCode=1;});
+ fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({environment:'Chromium/SwiftShader; mobile viewport emulation, not physical Android',reports},null,2));
+})().catch(e=>{console.error(e);fs.writeFileSync(path.join(output,'failure.txt'),e.stack||String(e));process.exitCode=1;});

@@ -6,6 +6,10 @@ on:
       - "galaxies3d.js"
       - "galaxies-three-scene.js"
       - "galaxies-cinematic-models.js"
+      - "galaxies-cinematic-stage.js"
+      - "galaxies-cinematic-art.js"
+      - "galaxies-scanned-scenery.js"
+      - "assets/ui/menu/**"
       - "galaxies-living-inferno.js"
       - "galaxies-gothic-depth.js"
       - "galaxies-infernal-art.js"
@@ -30,9 +34,13 @@ jobs:
           node --check galaxies-infernal-art.js
           node --check galaxies-three-scene.js
           node --check galaxies-cinematic-models.js
+          node --check galaxies-cinematic-stage.js
+          node --check galaxies-cinematic-art.js
+          node --check galaxies-scanned-scenery.js
           node --check galaxies-living-inferno.js
           node --check galaxies-gothic-depth.js
           node --check tools/visual-lab/galaxy-menu-qa.cjs
+          node --check tools/visual-lab/galaxy-menu-world-qa.cjs
           node --check galaxies3d.js
           node --test galaxies3d.test.mjs
       - name: Preparar agente navegador
@@ -49,18 +57,14 @@ jobs:
           cat /tmp/galaxy-preview.log
           exit 1
       - name: Fotografar nas duas resolucoes, selecionar mundos e testar ENTRAR
-        run: node tools/visual-lab/galaxy-menu-qa.cjs
-      - name: Comparar visualmente com a referência original (somente QA)
-        continue-on-error: true
         run: |
-          git fetch --no-tags --depth=1 origin main
-          git show FETCH_HEAD:assets/ui/menu-sete-pecados-reference.jpg > /tmp/menu-original-qa.jpg
-          node tools/visual-lab/galaxy-menu-similarity.cjs /tmp/menu-original-qa.jpg visual-lab-results/galaxy-menu-three/desktop-1536x864-ganancia.png visual-lab-results/galaxy-menu-three/similarity.json
-      - name: Guardar quatro capturas e relatorio
+          node tools/visual-lab/galaxy-menu-qa.cjs
+          node tools/visual-lab/galaxy-menu-world-qa.cjs
+      - name: Guardar capturas reais e relatorio
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: galaxias-threejs-fotos-${{ github.run_number }}
           path: visual-lab-results/galaxy-menu-three/
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error

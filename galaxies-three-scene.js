@@ -1,14 +1,14 @@
 /**
- * MENU VIVO THREE.JS — 7 Pecados. 100% geometria + shaders + texturas
- * procedurais geradas no navegador. Não utiliza arquivos de imagem.
+ * MENU VIVO THREE.JS — 7 Pecados. Geometria, shaders e superfícies procedurais,
+ * com fotogrametria CC0 e iluminação HDR locais (fontes em assets/ui/menu/polyhaven).
  * O menu HTML continua responsável pelas ações, progressão e acessibilidade.
  * WebGL é opcional; se falhar, SVG existente permanece disponível.
  */
 import * as THREE from 'three';
-import {clone as cloneSkinned} from 'three/addons/utils/SkeletonUtils.js';
+import {attachCinematicArt} from './galaxies-cinematic-art.js';
+import {addCinematicStage} from './galaxies-cinematic-stage.js';
+import {attachScannedScenery} from './galaxies-scanned-scenery.js';
 import {attachCinematicModels} from './galaxies-cinematic-models.js';
-import {addLivingInferno} from './galaxies-living-inferno.js';
-import { addInfernalArchitecture } from './galaxies-gothic-depth.js';
 
 const PI=Math.PI;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -36,7 +36,7 @@ function proceduralTexture(id){
   [[239,248,254],[126,164,210],[31,50,79]],
   [[179,57,72],[93,12,33],[23,4,11]],
   [[255,99,29],[96,33,20],[14,13,17]],
-  [[250,151,208],[134,52,114],[37,14,54]]
+  [[157,101,205],[61,25,99],[10,5,22]]
  ][id-1];
  const hash=(x,y)=>{
   let k=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(id,2147483647);
@@ -75,21 +75,16 @@ function proceduralTexture(id){
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=2;
  return tex;
 }
-function spire(parent,x,y,z,height,base,color,glow){
- const body=mesh(new THREE.CylinderGeometry(base*.6,base,height*.7,6),mat(color,.5,.55),parent,x,y+height*.3,z);
- mesh(new THREE.ConeGeometry(base*.95,height*.48,6),mat(glow,.35,.62),parent,x,y+height*.86,z);
- return body;
-}
 function castle(parent,r,ice=false){
  // Cidadela instanciada: mantém todas as torres, janelas e pináculos,
  // reduzindo chamadas de desenho no celular.
  const stone=mat(ice?'#728cab':'#b47a32',.58,.45,ice?.08:.15);
- const roofs=mat(ice?'#c9e7fa':'#ffce70',.43,.43,ice?.14:.25);
+ const roofs=mat(ice?'#99bed3':'#88602f',.64,.51,ice?.05:.035);
  const windows=new THREE.MeshBasicMaterial({color:ice?'#e4f6ff':'#ffe49b'});
  mesh(new THREE.BoxGeometry(r*1.43,r*.105,r*.14),stone,parent,0,r*.23,r*1.02);
  const n=ice?15:18,d=new THREE.Object3D();
  const towers=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),stone,n);
- const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,5),roofs,n);
+ const tips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,8),roofs,n);
  const panes=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),windows,n);
  for(let i=0;i<n;i++){
   const t=i/(n-1),x=(t-.5)*r*1.4,random=rand(i*8+19);
@@ -98,7 +93,7 @@ function castle(parent,r,ice=false){
   d.rotation.set(0,0,0);d.position.set(x,y+h*.33,z);
   d.scale.set(r*(.08+random*.07),h*.68,r*.16);d.updateMatrix();towers.setMatrixAt(i,d.matrix);
   d.position.set(x,y+h*.85,z);
-  d.scale.set(r*(.09+random*.055),h*.38,r*(.09+random*.055));d.updateMatrix();tips.setMatrixAt(i,d.matrix);
+  d.scale.set(r*(.065+random*.035),h*.55,r*(.065+random*.035));d.updateMatrix();tips.setMatrixAt(i,d.matrix);
   d.position.set(x,y+h*.39,z+r*.087);
   d.scale.set(r*.028,r*.07,r*.006);d.updateMatrix();panes.setMatrixAt(i,d.matrix);
   if(i%3===0){
@@ -113,7 +108,7 @@ function castle(parent,r,ice=false){
  // Geometria única por parte, preserva a leitura gótica mesmo em 100px.
  const mid=r*(ice?1.05:1.14);
  const nave=mesh(new THREE.BoxGeometry(r*.38,r*.62,r*.25),stone,parent,0,r*.62,mid);
- const roof=mesh(new THREE.ConeGeometry(r*.245,r*.48,8),roofs,parent,0,r*1.13,mid);
+ const roof=mesh(new THREE.ConeGeometry(r*.19,r*.62,8),roofs,parent,0,r*1.18,mid);
  const needle=mesh(new THREE.CylinderGeometry(r*.012,r*.014,r*.29,6),roofs,parent,0,r*1.48,mid);
  ball(parent,r*.023,ice?'#f2ffff':'#ffdf8d',0,r*1.66,mid);
  const glass=new THREE.MeshBasicMaterial({color:ice?'#c4ecff':'#ffb944',transparent:true,opacity:.85});
@@ -125,27 +120,22 @@ function castle(parent,r,ice=false){
  }
 }
 function goldenIsland(parent,r){
- // Fortaleza levitando sobre rocha natural fraturada. Nada de imagem pronta.
- const g=new THREE.IcosahedronGeometry(r*.78,1);
- const p=g.getAttribute('position');
- for(let i=0;i<p.count;i++){
-  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),n=1+(rand(i+71)-.5)*.22;
-  p.setXYZ(i,x*n,y*n,z*n);
- }g.computeVertexNormals();
- const island=mesh(g,mat('#6d4327',.28,.88),parent,0,-r*.35,r*.93);
- island.scale.set(1.36,.55,.5);
- const upper=mesh(new THREE.CylinderGeometry(r*.85,r*.73,r*.11,12),mat('#d89c40',.51,.57),parent,0,-r*.08,r*.93);
- upper.rotation.x=PI/2;upper.scale.y=.45;
- // Corrente de ferro dourado cruzando a cidade-ilha.
- const count=16,geo=new THREE.TorusGeometry(r*.064,r*.013,5,12);
- const chain=new THREE.InstancedMesh(geo,mat('#a9772d',.77,.38),count),d=new THREE.Object3D();
- for(let i=0;i<count;i++){const t=i/(count-1);
-  d.position.set((-r*.9+r*1.8*t),r*(.19-.69*t),r*1.22);
-  d.rotation.set(.4,0,-.33+(i%2)*PI/2);
-  d.scale.setScalar(1);d.updateMatrix();chain.setMatrixAt(i,d.matrix);
+ // Separated crust plates reveal the molten gold beneath; continuous sphere, no flat island disc.
+ const material=mat('#58493b',.35,.85);material.envMapIntensity=.25;material.bumpMap=parent.material.map;material.bumpScale=r*.03;
+ const count=98,plates=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),material,count),d=new THREE.Object3D();
+ for(let i=0;i<count;i++){
+  const y=-.98+(i+.5)/count*1.42,a=i*2.39996323,rad=Math.sqrt(1-y*y);
+  const direction=new THREE.Vector3(Math.cos(a)*rad,y,Math.sin(a)*rad);
+  d.position.copy(direction).multiplyScalar(r*.96);d.lookAt(direction.clone().multiplyScalar(r*2));
+  const size=r*(.215+rand(i+92)*.055);d.rotateZ(rand(i+13)*3);d.scale.set(size,size*(.7+rand(i+21)*.4),r*.085);d.updateMatrix();plates.setMatrixAt(i,d.matrix);
+  plates.setColorAt(i,new THREE.Color().setHSL(.08,.12,.65+rand(i+70)*.20));
  }
- chain.instanceMatrix.needsUpdate=true;parent.add(chain);
- for(let i=0;i<4;i++)ball(parent,r*.035,'#ffd16b',-r*.59+i*r*.36,-r*.14,r*1.18);
+ plates.name='gold-crust-plates';plates.instanceMatrix.needsUpdate=true;parent.add(plates);
+ // Heavy seams of molten gold descend from the fractured crust.
+ const gold=mat('#be7d24',.72,.32,.28),drips=new THREE.InstancedMesh(new THREE.ConeGeometry(1,1,7),gold,9);
+ for(let i=0;i<9;i++){const x=(i/8-.5+rand(i+17)*.035)*r*1.35,h=r*(.07+rand(i+311)*.48);d.position.set(x,-Math.sqrt(r*r-x*x)-h*.35,r*.23);d.rotation.set(0,0,Math.PI);d.scale.set(r*(.008+rand(i+42)*.007),h,r*.012);d.updateMatrix();drips.setMatrixAt(i,d.matrix);}
+ drips.instanceMatrix.needsUpdate=true;parent.add(drips);
+
 }
 
 function celestialFalls(parent,r,ice=false){
@@ -206,8 +196,6 @@ function glacialMountains(parent,r){
  }
  fog.instanceMatrix.needsUpdate=true;parent.add(fog);
 }
-function coin(parent,r,x,y,z){const m=new THREE.MeshStandardMaterial({color:'#ffcf43',metalness:.85,roughness:.21,emissive:'#a24a02',emissiveIntensity:.1});
- const o=mesh(new THREE.CylinderGeometry(r,r,r*.16,12),m,parent,x,y,z);o.rotation.x=PI/2;return o;}
 function treasure(parent,r){
  // Baú de Avareza com tampa levantada, conteúdo luminoso e moedas 3D.
  const wood=mat('#3e2111',.22,.72),gold=mat('#e9b548',.78,.27),gem=mat('#edc879',.34,.31);
@@ -357,27 +345,20 @@ function makePlanet(id,r){
  });
  const atm=new THREE.Mesh(new THREE.SphereGeometry(r*1.048,32,20),atmosphereMaterial);
  group.add(atm);
- if(id===1){goldenIsland(group,r);castle(group,r);celestialFalls(group,r);ring(group,r*1.13,r*.035,'#e8a34b',.55,.27,r*.18);ring(group,r*.86,r*.055,'#704016',-.48,0,r*.87);}
- if(id===2){envy(group,r);ring(group,r*1.14,r*.02,'#36ec82',.32,-.2,r*.12,.75);}
- if(id===3){treasure(group,r);ring(group,r*1.18,r*.025,'#f6c467',-.24,.16,r*.12);}
- if(id===4){glacialMountains(group,r);castle(group,r,true);celestialFalls(group,r,true);ring(group,r*1.11,r*.018,'#9de5ff',.48,.09,r*.17);}
- if(id===5){maw(group,r);ring(group,r*1.17,r*.02,'#fc444d',-.21,.17,.2*r);}
- if(id===6){for(let i=0;i<9;i++){let a=i*2*PI/9;const crack=[];for(let j=0;j<6;j++)crack.push([Math.cos(a+j*.1)*r*(.95-j*.09),Math.sin(a+j*.16)*r*(.95-j*.08),r*.27+j*r*.045]);tube(group,crack,r*.014,'#ff5a0c',.62);}ring(group,r*1.07,r*.028,'#ff430e',.3,-.18,0);}
- if(id===7){roseField(group,r,7);ring(group,r*1.14,r*.016,'#ff42a6',-.25,.18,r*.23,.81);}
- const halo=ring(group,r*1.15,r*.009,colors[id-1],.31,.1,-r*.06,.34);halo.name='orbital';
+ if(id===1){goldenIsland(globe,r);const city=new THREE.Group();city.name='golden-citadel';city.rotation.y=-.19;group.add(city);castle(city,r);city.scale.set(.88,.66,.8);city.position.y=r*.22;}
+ if(id===2){envy(group,r);}
+ if(id===3){treasure(group,r);}
+ if(id===4){glacialMountains(group,r);castle(group,r,true);celestialFalls(group,r,true);}
+ if(id===5){maw(group,r);}
+ if(id===6){ring(group,r*1.025,r*.006,'#ff430e',.3,-.18,0,.25);}
+ if(id===7){roseField(group,r,7);}
+ const halo=ring(group,r*1.03,r*.003,colors[id-1],.31,.1,-r*.06,.14);halo.name='orbital';
  group.userData={globe,halo,id};
  return group;
 }
-function starfield(parent,W,H){
- const n=160,points=new Float32Array(n*3),cols=new Float32Array(n*3);
- for(let i=0;i<n;i++){points[i*3]=(rand(i*4)-.5)*W;points[i*3+1]=(rand(i*5+2)-.5)*H;points[i*3+2]=-310+rand(i*7)*35;
-  const c=new THREE.Color(i%5===0?'#ff6b52':'#e7bbad');cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(points,3));g.setAttribute('color',new THREE.BufferAttribute(cols,3));
- const pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.45,vertexColors:true,transparent:true,opacity:.8,sizeAttenuation:false}));parent.add(pts);return pts;
-}
 function emberField(parent,W,H){
  // Partículas incandescentes geradas em buffer: uma única draw call.
- const count=110,coords=new Float32Array(count*3);
+ const count=W<950?44:90,coords=new Float32Array(count*3);
  for(let i=0;i<count;i++){
   coords[i*3]=(rand(i+810)-.5)*W;
   coords[i*3+1]=-H*.49+rand(i+428)*H*.58;
@@ -395,9 +376,9 @@ function sky(parent,W,H){
  // Nebulosa infernal procedural com nuvens fractais e contra-luz cromática;
  // desenhada e animada integralmente no fragment shader.
  const material=new THREE.ShaderMaterial({
-  uniforms:{uTime:{value:0}},depthWrite:false,
+  uniforms:{uTime:{value:0},uClouds:{value:null},uHasClouds:{value:0}},depthWrite:false,
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:"uniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float f=0.,a=.54;for(int i=0;i<4;i++){f+=a*n(p);p*=2.03;a*=.49;}return f;}\nvoid main(){\n vec2 uv=vUv,wind=vec2(uTime*.0032,uTime*.0007);\n vec2 p=uv*vec2(5.9,3.9);\n float warp=fbm(p*.68+wind);\n float c1=fbm(p+vec2(warp,-warp)*1.17+wind);\n float c2=fbm(p*1.82-vec2(warp*.58)+wind*.5);\n float formation=smoothstep(.39,.67,c1*.76+c2*.37);\n float den=smoothstep(.34,.64,c1*.91+c2*.22);\n float fiery=exp(-length((uv-vec2(.82,.72))*vec2(1.33,1.6))*2.75);\n float blue=exp(-length((uv-vec2(.17,.79))*vec2(1.9,1.65))*3.6);\n float redRight=smoothstep(.35,.93,uv.x)*(.24+fiery*.83);\n float horizon=pow(1.-uv.y,2.6);\n vec3 sky=vec3(.006,.010,.021);\n sky+=vec3(.24,.018,.032)*formation*redRight*1.40;\n sky+=vec3(.24,.022,.032)*den*fiery*1.18;\n sky+=vec3(.063,.098,.165)*blue*(.38+formation*.9);\n sky+=vec3(.13,.011,.012)*horizon*(.26+den*.9);\n float ironCloud=smoothstep(.21,.62,fbm(p*.8+vec2(2.4,1.2)+wind));\n sky=mix(sky,sky*.37,ironCloud*.42);\n float rim=exp(-length((uv-vec2(.745,.76))*vec2(2.4,2.2))*4.4);\n sky+=vec3(.23,.026,.011)*rim*(.12+formation);\n sky*=.86;\n gl_FragColor=vec4(sky,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"
+  fragmentShader:"uniform sampler2D uClouds;uniform float uHasClouds;uniform float uTime;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float f=0.,a=.54;for(int i=0;i<4;i++){f+=a*n(p);p*=2.03;a*=.49;}return f;}\nvoid main(){\n vec2 uv=vUv,wind=vec2(uTime*.0032,uTime*.0007);\n vec2 p=uv*vec2(5.9,3.9);\n float warp=fbm(p*.68+wind);\n float c1=fbm(p+vec2(warp,-warp)*1.17+wind);\n float c2=fbm(p*1.82-vec2(warp*.58)+wind*.5);\n float formation=smoothstep(.39,.67,c1*.76+c2*.37);\n float den=smoothstep(.34,.64,c1*.91+c2*.22);\n float fiery=exp(-length((uv-vec2(.82,.72))*vec2(1.33,1.6))*2.75);\n float blue=exp(-length((uv-vec2(.17,.79))*vec2(1.9,1.65))*3.6);\n float redRight=smoothstep(.35,.93,uv.x)*(.24+fiery*.83);\n float horizon=pow(1.-uv.y,2.6);\n vec3 sky=vec3(.006,.010,.021);\n sky+=vec3(.11,.013,.023)*formation*redRight*1.40;\n sky+=vec3(.12,.016,.027)*den*fiery*1.18;\n sky+=vec3(.063,.098,.165)*blue*(.38+formation*.9);\n sky+=vec3(.11,.10,.13)*horizon*(.26+den*.9);\n float ironCloud=smoothstep(.21,.62,fbm(p*.8+vec2(2.4,1.2)+wind));\n sky=mix(sky,sky*.37,ironCloud*.42);\n float rim=exp(-length((uv-vec2(.745,.76))*vec2(2.4,2.2))*4.4);\n sky+=vec3(.23,.026,.011)*rim*(.12+formation);\n sky*=.86;\n if(uHasClouds>.5){vec3 clouds=texture2D(uClouds,vec2(.12+uv.x*.38+uTime*.00015,.53+uv.y*.36)).rgb;float lum=clamp(dot(clouds,vec3(.2126,.7152,.0722))*.4,0.,1.);vec3 tint=mix(vec3(.36,.38,.44),vec3(.26,.035,.052),smoothstep(.32,.87,uv.x));sky=mix(sky,tint*(.03+pow(lum,1.4)*.7),.60);sky*=.65+.35*formation; }\n vec2 haloDelta=(uv-vec2(.20,.86))*vec2(1.78,1.);float haloDist=length(haloDelta);float haloAngle=atan(haloDelta.y,haloDelta.x);float rays=pow(abs(sin(haloAngle*7.+.3)),24.)*.10+pow(abs(sin(haloAngle*11.)),32.)*.055;sky+=vec3(.54,.58,.68)*(exp(-haloDist*32.)*.7+exp(-haloDist*11.)*rays);\n gl_FragColor=vec4(sky,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"
  });
  mesh(new THREE.PlaneGeometry(W,H),material,parent,0,0,-360);
  return material;
@@ -409,96 +390,6 @@ function smokeLayer(parent,W,H,tint,x,y,z){
   fragmentShader:"\nuniform float uTime;uniform vec3 uTint;varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat fbm(vec2 p){float v=0.;float a=.57;for(int i=0;i<3;i++){v+=a*n(p);p*=2.11;a*=.5;}return v;}\nvoid main(){\n vec2 uv=vUv,flow=vec2(uTime*.016,uTime*.002);\n float large=fbm(uv*vec2(4.,3.)+flow),fine=fbm(uv*vec2(13.,8.)-flow*.65);\n float m=smoothstep(.32,.65,large*.75+fine*.34);\n float feather=pow(max(0.,sin(3.1415926*uv.x)*sin(3.1415926*uv.y)),.85);\n float a=pow(m,1.35)*feather*.39;\n vec3 color=uTint*(.55+large*.85);\n gl_FragColor=vec4(color,a);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
  mesh(new THREE.PlaneGeometry(W*.66,H*.47),material,parent,x,y,z);
  return material;
-}
-function gothicRuins(parent,W,H){
- const rock=mat('#08070b',.08,.95),light=mat('#782116',.4,.7,.04);
- // Cidadela e torres distantes: geometria compartilhada, poucas draw calls.
- const towerGeom=new THREE.CylinderGeometry(4,8,95,5),spireGeom=new THREE.ConeGeometry(10,40,5);
- const mt=new THREE.InstancedMesh(towerGeom,rock,42);
- const ms=new THREE.InstancedMesh(spireGeom,rock,42);
- const dummy=new THREE.Object3D();
- for(let i=0;i<42;i++){
-  let x=(rand(i+19)-.5)*W*1.04;
-  if(i>20)x=W*.20+rand(i+62)*W*.29;
-  const y=H*.09+rand(i+28)*H*.15;
-  const z=-255+rand(i+32)*14,sc=.22+rand(i+43)*.86;
-  dummy.position.set(x,y,z);dummy.scale.set(sc,sc*(.6+rand(i+5)),sc);dummy.updateMatrix();mt.setMatrixAt(i,dummy.matrix);
-  dummy.position.y=y+sc*52;dummy.scale.setScalar(sc);dummy.updateMatrix();ms.setMatrixAt(i,dummy.matrix);
- }
- parent.add(mt,ms);
- // Rochedos vulcânicos facetados, sem cones geométricos artificiais.
- // Instancing dá dezenas de pedras com uma única draw call.
- const rockGeo=new THREE.IcosahedronGeometry(1,0);
- const shards=new THREE.InstancedMesh(rockGeo,mat('#151117',.13,.94),84);
- const d=new THREE.Object3D();
- for(let i=0;i<84;i++){
-  const t=i/83,x=(t-.5)*W*1.13;
-  const side=1-Math.abs(t-.5)*1.55;
-  const h=15+rand(i+72)*55+(i%11===0?45:0);
-  d.position.set(x,-H*.505+rand(i+29)*H*.085,-170+rand(i+15)*17);
-  d.rotation.set(rand(i+3)*PI,rand(i+4)*PI,rand(i+18)*.7-.35);
-  const spread=Math.max(.24,Math.abs(t-.5)*2);d.scale.set((13+rand(i+6)*27)*spread,h*(.44+spread*.6),17+rand(i+24)*17);
-  d.updateMatrix();shards.setMatrixAt(i,d.matrix);
-  const c=new THREE.Color().setRGB(.033+rand(i+7)*.04,.023+rand(i+19)*.025,.029+rand(i+10)*.026);
-  shards.setColorAt(i,c);
- }
- shards.instanceMatrix.needsUpdate=true;shards.instanceColor.needsUpdate=true;parent.add(shards);
- // Reflexos de lava presos aos intervalos entre rochas.
- const embers=new THREE.InstancedMesh(new THREE.SphereGeometry(1,6,4),
-   new THREE.MeshBasicMaterial({color:'#ca2e12',transparent:true,opacity:.66}),17);
- for(let i=0;i<17;i++){
-  const x=(rand(i+87)-.5)*W;
-  d.position.set(x,-H*.437+rand(i+14)*22,-158);
-  d.rotation.set(0,0,0);d.scale.set(5+rand(i)*16,1.3,2.7);d.updateMatrix();embers.setMatrixAt(i,d.matrix);
- }
- embers.instanceMatrix.needsUpdate=true;parent.add(embers);
-}
-function eclipseCitadel(parent,W,H){
- // Silhueta gótica contra o sol vermelho, sem modelos/bitmaps.
- const x=W*.245,y=H*.239,z=-247;
- const dark=mat('#180a10',.18,.9),edge=mat('#41121b',.22,.8);
- mesh(new THREE.BoxGeometry(W*.25,H*.038,14),dark,parent,x,y,z);
- for(let i=0;i<21;i++){
-  const t=(i-10)/10,px=x+t*W*.125;
-  const h=H*(.052+(1-Math.abs(t))*.09+rand(i+200)*.05);
-  mesh(new THREE.CylinderGeometry(4.5,7.5,h,5),dark,parent,px,y+h*.48,z);
-  mesh(new THREE.ConeGeometry(10,h*.48,5),edge,parent,px,y+h*.94,z);
- }
-}
-function borderChains(parent,W,H){
- const geo=new THREE.TorusGeometry(10,3.2,5,12);
- const inst=new THREE.InstancedMesh(geo,mat('#32303a',.48,.73),84),d=new THREE.Object3D();
- const strands=[[[-W*.57,H*.56],[-W*.34,H*.26],28],[[-W*.57,-H*.27],[-W*.25,-H*.61],32],[[W*.57,H*.54],[W*.36,H*.32],24]];
- let idx=0;for(const [a,b,n] of strands){
-  const angle=Math.atan2(b[1]-a[1],b[0]-a[0]);
-  for(let i=0;i<n;i++){const t=i/(n-1);
-   d.position.set(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,16);
-   d.rotation.set(.28,0,angle+(i%2?PI/2:0));
-   d.scale.setScalar(Math.max(.42,H/800));d.updateMatrix();inst.setMatrixAt(idx++,d.matrix);
-  }
- }
- inst.instanceMatrix.needsUpdate=true;parent.add(inst);
-}
-function eclipse(parent,W,H){
- const x=W*.245,y=H*.405,r=H*.094;
- const corona=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
- vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"varying vec2 vUv;\nvoid main(){float d=length((vUv-.5)*2.);\nfloat glow=exp(-d*3.3)*.58+exp(-abs(d-.53)*15.)*.32;\nvec3 c=mix(vec3(.92,.055,.01),vec3(.99,.27,.07),d);\ngl_FragColor=vec4(c,glow*max(0.,1.-smoothstep(.8,1.1,d)));\n #include <tonemapping_fragment>\n #include <colorspace_fragment>}"});
- mesh(new THREE.PlaneGeometry(r*4.6,r*4.6),corona,parent,x,y,-295);
- const moon=new THREE.ShaderMaterial({fragmentShader:"varying vec2 vUv;\nfloat hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}\nvoid main(){\n vec2 v=(vUv-.5)*2.;float d=length(v);\n float clouds=n(v*8.)*.48+n(v*21.)*.25+n(v*3.)*.27;\n float limb=smoothstep(.69,.99,d);\n vec3 surface=mix(vec3(.028,.004,.013),vec3(.14,.013,.022),clouds);\n surface+=vec3(.11,.006,.009)*pow(max(0.,clouds-.35),1.9);\n vec3 fire=mix(vec3(.73,.035,.016),vec3(1.,.36,.05),pow(limb,3.));\n surface=mix(surface,fire,limb*.92);\n surface*=.72;\n gl_FragColor=vec4(surface,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}",
- vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}'});
- mesh(new THREE.CircleGeometry(r,64),moon,parent,x,y,-283);
- mesh(new THREE.CircleGeometry(r*.72,64),new THREE.MeshBasicMaterial({color:'#180609',transparent:true,opacity:.42,depthWrite:false}),parent,x-r*.10,y+r*.08,-273);
- ring(parent,r*.98,r*.019,'#fc5428',0,0,-267).position.set(x,y,-267);
- ring(parent,r*1.035,r*.008,'#f1974c',0,0,-272,.72).position.set(x,y,-272);
- const glow=new THREE.PointLight('#ff311b',5,H*.9,1.5);glow.position.set(x,y,110);parent.add(glow);
-}
-function infernalGround(parent,W,H){
- // Rachaduras Voronoi entre placas rochosas (não linhas senoides artificiais).
- const material=new THREE.ShaderMaterial({depthWrite:false,
- vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:"varying vec2 vUv;\nfloat h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);\nreturn mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+1.),f.x),f.y);}\nfloat crack(vec2 p){\n vec2 ip=floor(p),fp=fract(p);float d1=10.,d2=10.;\n for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){\n  vec2 o=vec2(float(i),float(j)),cell=ip+o;\n  vec2 seed=o+vec2(h(cell),h(cell+13.1))*.74+.13;\n  float d=length(seed-fp);\n  if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;\n }\n return max(0.,d2-d1);\n}\nvoid main(){\n vec2 uv=vUv;\n float f=n(uv*vec2(11.,4.)),detail=n(uv*vec2(41.,13.));\n vec2 warp=uv*vec2(20.,6.)+vec2(f,detail)*.58;\n float e=crack(warp);\n float gap=1.-smoothstep(.006,.026,e);\n float ridge=detail*.58+f*.42;\n vec3 stone=mix(vec3(.016,.010,.014),vec3(.075,.027,.029),ridge);\n stone+=vec3(.028,.008,.011)*n(uv*vec2(89.,17.));\n float glow=gap*(.34+.66*n(uv*vec2(7.,3.)))*(.52+pow(1.-uv.y,1.6)*.48);\n vec3 lava=vec3(.82,.11,.025)*glow+vec3(.4,.09,.025)*pow(glow,3.);\n vec3 col=stone+lava;\n col*=.8+.2*n(uv*vec2(5.,2.));\n col*=.58;gl_FragColor=vec4(col,1.);\n #include <tonemapping_fragment>\n #include <colorspace_fragment>\n}"});
- mesh(new THREE.PlaneGeometry(W,H*.32),material,parent,0,-H*.42,-188);
 }
 function updateCoordinates(root,scene,camera,groups,details,viewport){
  const W=root.clientWidth,H=root.clientHeight;if(!W||!H)return;
@@ -513,19 +404,6 @@ function updateCoordinates(root,scene,camera,groups,details,viewport){
   g.userData.screenRadius=p.radius;
   g.scale.setScalar(g.userData.screenScale);
  }
- // Corrente vermelha animável entre os sete mundos, feita de curvas 3D.
- if(details.chains){
-  const pts=groups.map(g=>new THREE.Vector3(g.position.x,g.position.y,-20));
-  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
-  const old=details.chains.geometry;
-  details.chains.geometry=new THREE.TubeGeometry(curve,112,2.2,5,false);
-  old.dispose();
- }
- const pane=root.querySelector('.gx-art');if(pane&&details.planet){
-  const p=rpos(pane);details.planet.position.set(p.x,p.y,18);
-  details.planet.userData.detailTargetScale=clamp(p.radius,28,Math.min(H*.16,130))/details.planet.userData.originalRadius;
-  details.planet.scale.setScalar(details.planet.userData.detailTargetScale);
- }
  const canvas=root.querySelector('.gx-three-canvas');if(canvas)viewport.renderer.setSize(W,H,false);
 }
 export function mountThreeGalaxyScene(root,{onSelect}={}){
@@ -536,18 +414,17 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  }catch(e){console.warn('[Galáxias] WebGL indisponível, usando fallback SVG',e);return null;}
  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2.4));
  renderer.outputColorSpace=THREE.SRGBColorSpace;
- renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
  const canvas=renderer.domElement;canvas.className='gx-three-canvas';canvas.setAttribute('aria-hidden','true');root.prepend(canvas);
  const scene=new THREE.Scene(),W=root.clientWidth,H=root.clientHeight;
  const camera=new THREE.OrthographicCamera(-W/2,W/2,H/2,-H/2,.1,2000);camera.position.set(0,0,400);
- scene.add(new THREE.AmbientLight('#8995b2',.88));
- const key=new THREE.DirectionalLight('#ffdbba',2.15);key.position.set(-130,220,220);scene.add(key);
- const red=new THREE.PointLight('#ff3a17',3.4,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
+ scene.add(new THREE.AmbientLight('#9ba9c6',.32));
+ const key=new THREE.DirectionalLight('#f2e6d7',2.7);key.position.set(-280,250,120);scene.add(key);
+ const red=new THREE.PointLight('#b52c20',2,H*1.25,1.5);red.position.set(W*.3,H*.25,150);scene.add(red);
  const environment=new THREE.Group();scene.add(environment);
  const shader=sky(environment,W,H);
  const smokes=[smokeLayer(environment,W,H,'#263955',-W*.19,H*.26,-310),smokeLayer(environment,W,H,'#4b101a',W*.28,H*.27,-309)];
- gothicRuins(environment,W,H);addInfernalArchitecture(environment,W,H);infernalGround(environment,W,H);eclipse(environment,W,H);eclipseCitadel(environment,W,H);borderChains(environment,W,H);starfield(environment,W,H);
- const inferno=addLivingInferno(environment,W,H);
+ const stage=addCinematicStage(scene,W,H);
  const embers=emberField(environment,W,H);
  const groups=[],details={planet:null,chains:null};
  // Halo da seleção: gradiente HDR calculado em shader, sem JPG/PNG.
@@ -559,31 +436,34 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
   }));
  selectionHalo.renderOrder=-1;scene.add(selectionHalo);
- details.chains=new THREE.Mesh(
-  new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:'#ff3b20',toneMapped:false,depthWrite:false})
- );
- details.chains.renderOrder=-2;scene.add(details.chains);
  for(let id=1;id<=7;id++){const g=makePlanet(id,64);g.userData.originalRadius=64;scene.add(g);groups.push(g);}
- // O retrato de destaque compartilha texturas/malhas com o planeta do topo.
- details.planet=groups[0].clone(true);details.planet.userData.originalRadius=64;scene.add(details.planet);
- const cinematic=attachCinematicModels({root,environment,planets:groups,detail:details,screenWidth:W,screenHeight:H});
+ let sceneReady=false;
+ let cinematic={resize(){},update(){},stop(){}},scanned={restore(){},stop(){}};
+ const art=attachCinematicArt({root,scene,environment,stage,planets:groups,width:W,height:H});
+ art.ready.then(async loaded=>{
+  if(!running||!root.isConnected)return;
+  if(!loaded){
+   root.dataset.gxArtMode='geometry-reserve';
+   cinematic=attachCinematicModels({root,environment,planets:groups,detail:details,screenWidth:W,screenHeight:H,hero:stage.hero});
+   scanned=attachScannedScenery({root,scene,renderer,stage,planets:groups,sky:shader,width:W,height:H});
+   await Promise.all([cinematic.ready,scanned.ready]);
+  }
+  if(running&&root.isConnected){sceneReady=true;root.dataset.gxModelsReady='true';if(!contextLost)root.classList.add('gx-three-on');}
+ });
  // Prioriza nitidez no celular, limitando a área renderizada para não
  // desperdiçar GPU. Na tela 975x450 do A55, alvo ~2,08 DPR.
+ const lowQuality=matchMedia('(pointer:coarse)').matches||W<950||(navigator.deviceMemory||8)<=4;
+ root.dataset.gxQuality=lowQuality?'low':'high';
  const size=()=>{
   const width=Math.max(1,root.clientWidth),height=Math.max(1,root.clientHeight);
-  const dpr=Math.min(window.devicePixelRatio||1,2.4,Math.max(1,Math.sqrt(1900000/(width*height))));
+  const dpr=Math.min(window.devicePixelRatio||1,lowQuality?1.65:2.4,Math.max(.75,Math.sqrt((lowQuality?1000000:1900000)/(width*height))));
   if(Math.abs(renderer.getPixelRatio()-dpr)>.03)renderer.setPixelRatio(dpr);
   updateCoordinates(root,scene,camera,groups,details,{renderer});
+  cinematic.resize(height);art.resize(width,height);stage.resize(width,height);stage.alignChains(groups,width,height);environment.scale.set(width/W,height/H,1);
  };
  const observer=new ResizeObserver(size);observer.observe(root);
  const selected=()=>Number(root.querySelector('.gx-orb.sel')?.dataset.id||1);
- cinematic.ready.then(()=>{if(root.isConnected&&selected()===7)setSelected(7);});
- function setSelected(id){
-  const current=details.planet;scene.remove(current);
-  // Reutilizar modelo já criado evita gerar texturas e geometrias a cada clique.
-  const copy=id===7?cloneSkinned(groups[6]):groups[id-1].clone(true);copy.userData.originalRadius=64;
-  details.planet=copy;scene.add(copy);size();copy.scale.multiplyScalar(.82);
- }
+ function setSelected(){size();}
  let lastSelection=1,frame=0,elapsed=0,prev=0,running=true,id=0,lastTelemetry=0;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  const coarsePointer=matchMedia('(pointer:coarse)').matches;
@@ -594,37 +474,35 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
  };
  root.addEventListener('pointermove',pointer,{passive:true});
  const tick=ms=>{
-  if(!running||!root.isConnected)return;
+  if(!running||!root.isConnected||document.hidden||contextLost)return;
   id=requestAnimationFrame(tick);
-  if(document.hidden||root.classList.contains('leaving'))return;
+  if(!sceneReady||document.hidden||root.classList.contains('leaving'))return;
   // Calcular delta apenas quando renderizar: evita animação em meia velocidade
   // em telas de 60 Hz com limitador de 30 FPS.
   const mobile=coarsePointer||root.clientWidth<950;
   if(ms-frame<(reduced?1000:(mobile?32:16)))return;
-  const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=dt;frame=ms;
+  const dt=Math.min(.06,(ms-prev||16)/1000);prev=ms;elapsed+=reduced?0:dt;frame=ms;
   shader.uniforms.uTime.value=elapsed;for(const m of smokes)m.uniforms.uTime.value=elapsed;
-  inferno.update(elapsed);cinematic.update(dt,elapsed);
+  stage.update(elapsed);cinematic.update(reduced?0:dt,elapsed);art.update(elapsed);
   if(!reduced){
    environment.position.x+=(parallax.x-environment.position.x)*Math.min(1,dt*2.6);
    environment.position.y+=(parallax.y-environment.position.y)*Math.min(1,dt*2.6);
    // Modelos GLB possuem animações/idle próprios, sem figura procedural.
    for(let i=0;i<embers.count;i++){
-    const at=i*3+1;embers.coords[at]+=(6+rand(i+42)*22)*dt;
+    const at=i*3+1;embers.coords[at-1]-=12*dt;if(embers.coords[at-1]<-W/2)embers.coords[at-1]=W/2;embers.coords[at]+=(6+rand(i+42)*22)*dt;
     if(embers.coords[at]>H*.14)embers.coords[at]=-H*.49;
    }
    embers.attr.needsUpdate=true;
   }
   if(!reduced){
-   groups.forEach((g,i)=>{g.rotation.y=Math.sin(elapsed*.13+i)*.11;g.rotation.z=Math.sin(elapsed*.43+i)*.012;});
-   details.planet.rotation.y=Math.sin(elapsed*.2)*.075;
+   groups.forEach((g,i)=>{g.userData.globe.rotation.y=elapsed*(.018+i*.003);});
   }
   const now=selected();if(now!==lastSelection){lastSelection=now;setSelected(now);}
-  const dtPlanet=details.planet,scaleGoal=dtPlanet.userData.detailTargetScale;
-  if(scaleGoal){dtPlanet.scale.setScalar(dtPlanet.scale.x+(scaleGoal-dtPlanet.scale.x)*Math.min(1,dt*8.5));}
   groups.forEach((g,i)=>{
    const target=g.userData.screenScale*(i+1===now?1.055:1);
    g.scale.setScalar(g.scale.x+(target-g.scale.x)*Math.min(1,dt*9));
   });
+  stage.alignChains(groups,root.clientWidth,root.clientHeight);
   const active=groups[now-1];
   if(active){
    selectionHalo.position.set(active.position.x,active.position.y,active.position.z-23);
@@ -635,19 +513,26 @@ export function mountThreeGalaxyScene(root,{onSelect}={}){
   renderer.render(scene,camera);
   // Telemetria sem alocação por frame para auditoria do custo real na GPU.
   if(ms-lastTelemetry>1200){
-   lastTelemetry=ms;
+   lastTelemetry=ms;root.dataset.gxTelemetryAt=String(ms);
+   root.dataset.gxArtYaw=String(art.pose().yaw);root.dataset.gxArtTime=String(art.pose().time);
    root.dataset.gxDrawCalls=String(renderer.info.render.calls);
    root.dataset.gxTriangles=String(renderer.info.render.triangles);
    root.dataset.gxTextures=String(renderer.info.memory.textures);
   }
  };
- function lost(e){e.preventDefault();root.classList.remove('gx-three-on');}
- function restored(){if(running&&root.isConnected)root.classList.add('gx-three-on');}
+ let contextLost=false;
+ function resume(){cancelAnimationFrame(id);prev=0;if(running&&!document.hidden&&!contextLost)id=requestAnimationFrame(tick);}
+ document.addEventListener('visibilitychange',resume);
+ function lost(e){e.preventDefault();contextLost=true;cancelAnimationFrame(id);root.classList.remove('gx-three-on');}
+ function restored(){if(running&&root.isConnected){contextLost=false;scanned.restore();if(sceneReady)root.classList.add('gx-three-on');resume();}}
  canvas.addEventListener('webglcontextlost',lost,{passive:false});canvas.addEventListener('webglcontextrestored',restored);
- root.classList.add('gx-three-on');size();id=requestAnimationFrame(tick);
+ size();id=requestAnimationFrame(tick);
  const stop=()=>{
-  running=false;cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);cinematic.stop();canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
-  for(const object of scene.children){object.traverse?.(v=>{v.geometry?.dispose?.();if(v.material){const ms=Array.isArray(v.material)?v.material:[v.material];for(const m of ms){m.map?.dispose?.();m.dispose?.();}}});}
+  if(!running)return;running=false;rmo.disconnect();document.removeEventListener('visibilitychange',resume);cancelAnimationFrame(id);observer.disconnect();root.removeEventListener('pointermove',pointer);cinematic.stop();scanned.stop();art.stop();canvas.removeEventListener('webglcontextrestored',restored);canvas.removeEventListener('webglcontextlost',lost);
+  const geometries=new Set(),materials=new Set(),textures=new Set(),skeletons=new Set();
+  scene.traverse(v=>{if(v.skeleton)skeletons.add(v.skeleton);if(v.geometry)geometries.add(v.geometry);for(const m of (Array.isArray(v.material)?v.material:[v.material]))if(m?.isMaterial)materials.add(m);});
+  materials.forEach(m=>{Object.values(m).forEach(v=>{if(v?.isTexture)textures.add(v);});Object.values(m.uniforms||{}).forEach(v=>{if(v.value?.isTexture)textures.add(v.value);});m.dispose();});
+  textures.forEach(t=>t.dispose());geometries.forEach(g=>g.dispose());skeletons.forEach(s=>s.dispose());
   renderer.dispose();canvas.remove();root.classList.remove('gx-three-on');
  };
  const rmo=new MutationObserver(()=>{if(!root.isConnected){rmo.disconnect();stop();}});rmo.observe(document.body,{childList:true,subtree:true});

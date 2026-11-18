@@ -82,7 +82,7 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   const open = unlockedGalaxies(save);
   const root = el('section', { id: 'galaxy-screen', 'aria-label': 'Sete galáxias' });
   root.innerHTML = '<div class="gx-backdrop">' + infernalBackdrop() + '</div><div class="gx-stars"></div>' +
-    '<header class="gx-head"><span class="gx-sigil" aria-hidden="true"></span><div><span class="gx-kicker">A BATALHA CONTRA OS</span><h1>7 PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div></header>' +
+    '<header class="gx-head"><span class="gx-sigil" aria-hidden="true"></span><div><span class="gx-kicker">A BATALHA CONTRA OS</span><h1><span>7</span> PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div></header>' +
     '<div class="gx-wallet"><span class="gx-coin"></span><b>' + Number(coins || 0).toLocaleString('pt-BR') + '</b></div>' +
     '<nav class="gx-nav">' + NAV.map(([n, k]) => '<button type="button" class="gx-nav-' + k + (k === 'on' ? ' on' : '') + '"' + (k === 'soon' ? ' disabled aria-disabled="true" title="Em breve"' : '') + '><i></i><span>' + n + '</span></button>').join('') + '</nav>' +
     '<div class="gx-track"><svg class="gx-chains" viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true"></svg><div class="gx-orbs"></div></div>' +
@@ -90,8 +90,9 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   const svg = root.querySelector('.gx-chains'), orbs = root.querySelector('.gx-orbs'), detail = root.querySelector('.gx-detail');
   const settingsBtn = root.querySelector('.gx-nav-settings');
   if (settingsBtn) settingsBtn.addEventListener('click', () => { if (typeof onSettings === 'function') onSettings(); });
-  // Planetas numa fila com leve ondulação; a corrente alaranjada passa por trás deles.
-  const pts = GALAXIES.map((g, i) => ({ x: 70 + i * 143, y: 94 }));
+  // Ordem visual da referência; índices continuam sendo os IDs canônicos.
+  const positions = [[535,86],[899,89],[806,91],[701,87],[390,89],[296,91],[204,87]];
+  const pts = positions.map(([x,y]) => ({x,y}));
   let chains = '';
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i], b = pts[i + 1], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 10;
@@ -99,25 +100,28 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     chains += '<path class="gx-chain' + (breaking ? ' breaking' : broken ? ' broken' : '') + '" d="M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y + '"/>';
   }
   svg.innerHTML = chains;
-  let selected = 1;
+  let selected = 1, readinessTimer, enterTimer, celebrationTimer, sceneHandle, fallbackObserver, closed = false;
+  const close = () => { closed = true; clearTimeout(readinessTimer); clearTimeout(enterTimer); clearTimeout(celebrationTimer); fallbackObserver?.disconnect(); sceneHandle?.stop(); root.remove(); };
   function renderDetail() {
+    if (closed) return;
+    clearTimeout(readinessTimer);
     const g = GALAXIES[selected - 1], unlocked = open.includes(g.id), pct = Math.round(galaxyProgress(g.id, progress) * 100);
     const playable = unlocked && g.id === 1;
     const access = '<div class="gx-access"><span class="gx-lock-ic"></span><div><strong>CONDIÇÕES DE ACESSO</strong><ul>' + g.access.map(t => '<li>' + t + '</li>').join('') + '</ul></div>' +
       (g.quote ? '<blockquote>“' + g.quote + '”<cite>— ' + g.quoteBy + '</cite></blockquote>' : '<blockquote>“' + (g.hint || g.tag) + '”</blockquote>') + '</div>';
     detail.innerHTML = '<div class="gx-art">' + planetSvg(g.id, !unlocked) + '</div>' +
-      '<div class="gx-info"><span class="gx-num">GALÁXIA ' + g.id + '</span><h2>' + g.name.toUpperCase() + '</h2><span class="gx-tag">' + g.tag.toUpperCase() + '</span>' +
+      '<div class="gx-info"><span class="gx-num">GALÁXIA ' + ['I','II','III','IV','V','VI','VII'][g.id-1] + '</span><h2>' + g.name.toUpperCase() + '</h2><span class="gx-tag">' + g.tag.toUpperCase() + '</span>' +
       '<p>' + (unlocked && g.id !== 1 ? 'As correntes caíram. Esta jornada chega numa próxima atualização.' : g.lore) + '</p>' +
       (playable ? '<span class="gx-pcap">PROGRESSO DA GALÁXIA</span><div class="gx-bar"><i style="width:' + pct + '%"></i><em>' + pct + '%</em></div><button type="button" class="gx-enter">ENTRAR</button>'
         : '<span class="gx-sealed">' + (unlocked ? 'DESPERTA' : '🔒 SELADA') + '</span>') + '</div>' + access;
     detail.classList.toggle('is-locked', !unlocked);
     const btn = detail.querySelector('.gx-enter');
     if (btn) {
-      const sync = () => { const ok = isReady(); btn.disabled = !ok; btn.textContent = ok ? 'ENTRAR' : 'PREPARANDO O MUNDO…'; if (!ok) setTimeout(sync, 400); };
+      const sync = () => { const ok = isReady(); btn.disabled = !ok; btn.textContent = ok ? 'ENTRAR' : 'PREPARANDO O MUNDO…'; if (!ok && !closed && !root.classList.contains('leaving')) readinessTimer = setTimeout(() => { if (btn.isConnected) sync(); }, 400); };
       sync();
-      btn.addEventListener('click', () => { if (!isReady()) return; root.classList.add('leaving'); setTimeout(() => { root.remove(); if (onEnter) onEnter(g.id); }, 650); });
+      btn.addEventListener('click', () => { if (!isReady() || closed || root.classList.contains('leaving')) return; root.classList.add('leaving'); enterTimer = setTimeout(() => { close(); if (onEnter) onEnter(g.id); }, 650); });
     }
-    for (const o of orbs.children) o.classList.toggle('sel', Number(o.dataset.id) === selected);
+    for (const o of orbs.children) { const active = Number(o.dataset.id) === selected; o.classList.toggle('sel', active); o.setAttribute('aria-pressed', String(active)); }
   }
   GALAXIES.forEach((g, i) => {
     const unlocked = open.includes(g.id);
@@ -130,19 +134,35 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   });
   renderDetail();
   document.body.appendChild(root);
-  // Cenário e planetas vivos, gerados integralmente por código Three.js.
+  // The same authored layers remain interactive when WebGL is unavailable.
+  Promise.all(['environment.webp','worlds-hero.webp'].map(file=>new Promise((resolve,reject)=>{
+    const image=new Image();image.onload=resolve;image.onerror=reject;image.src=new URL('./assets/ui/menu/cinematic/'+file,import.meta.url).href;
+  }))).then(()=>{if(!closed&&root.isConnected)root.classList.add('gx-cinematic-ready');}).catch(()=>{});
+  const alignFallbackChains=()=>{
+    const bounds=root.getBoundingClientRect(),W=bounds.width,H=bounds.height;if(!W||!H)return;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    let lines='';
+    for(const orb of orbs.children){const b=orb.getBoundingClientRect(),r=Math.min(b.width,b.height)*.47,cx=b.left+b.width/2-bounds.left,cy=b.top+b.height/2-bounds.top;
+      for(const sign of [-1,1]){const x=cx+sign*r*.4,y=cy-r*.8,raw=x-W/2+sign*r*.18,ax=Math.abs(raw)<W*.065?Math.sign(raw||sign)*W*.065:raw,ay=H*(.20+.28*Math.pow(ax/(W*.49),2));
+        lines+=`<path d="M${ax+W/2} ${ay} L${x} ${y}" fill="none" stroke="#4e4031" stroke-width="2" stroke-dasharray="3 2"/>`;
+      }
+    }svg.innerHTML=lines;
+  };
+  fallbackObserver=new ResizeObserver(alignFallbackChains);fallbackObserver.observe(root);alignFallbackChains();
+
+  // Cenário e planetas Three.js vivos com geometria procedural e assets locais.
   // SVG autoral continua disponível apenas em caso de WebGL indisponível.
   // Importação sob demanda: testes Node de progresso não precisam de WebGL nem 'three'.
-  import('./galaxies-three-scene.js').then(m=>{if(root.isConnected)m.mountThreeGalaxyScene(root);})
+  import('./galaxies-three-scene.js').then(m=>{if(root.isConnected && !closed)sceneHandle=m.mountThreeGalaxyScene(root);})
     .catch(e=>console.warn('[Galáxias] Three.js indisponível; mantendo SVG procedural de reserva',e));
   // MOD 197 — a corrente da galáxia recém-libertada se rompe (uma vez), com o próximo mundo despertando.
   const freed = Number(save.celebrate) || 0;
   if (freed >= 2 && freed <= 7) {
     const orb = orbs.querySelector('[data-id="' + freed + '"]');
-    if (orb) { orb.classList.add('awakening'); setTimeout(() => { selected = freed; renderDetail(); }, 1800); }
+    if (orb) { orb.classList.add('awakening'); celebrationTimer = setTimeout(() => { if (!root.isConnected) return; selected = freed; renderDetail(); }, 1800); }
     const banner = el('div', { class: 'gx-freed' }, 'A CORRENTE SE ROMPEU · GALÁXIA ' + freed + ' DESPERTA');
     root.appendChild(banner);
     if (typeof onCelebrated === 'function') onCelebrated(freed);
   }
-  return { root, close() { root.remove(); } };
+  return { root, close };
 }
