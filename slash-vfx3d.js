@@ -13,7 +13,11 @@
  * elétrica, três riscos paralelos de garra). Um golpe comum nunca usa o tamanho/brilho de ultimate.
  */
 const STYLES = {
-  prota: { core: 0xffffff, body: 0xe8efff, rim: 0x8fd0ff, accent: 0xffe7a8, dark: 0x0a1020, blend: 'add', rakes: 1, width: 1, ext: 1.25, inner: .1, life: .26, sparks: 0xf4fbff, spark2: 0xffe3a0, star: 0xffffff },
+  /* Combate de referência (7cd9ab51): crescente larga de núcleo branco com borda carmesim e esteira escura — lê em
+     cenário claro, dura o bastante para o arco inteiro ficar na tela, e passa bem da ponta da lâmina. */
+  prota: { core: 0xffffff, body: 0xfff1f4, rim: 0xff2346, accent: 0xffd6de, dark: 0x16030a, blend: 'add', rakes: 1, width: 1.3, ext: 1.7, inner: .06, life: .36, sparks: 0xfff4f6, spark2: 0xff3a5a, star: 0xffffff },
+  /* Esteira do dash: fita carmesim rente ao corpo, do ponto de partida ao de chegada (risco vermelho longo da referência) */
+  dash: { core: 0xffe8ec, body: 0xff1b3d, rim: 0x6a0016, accent: 0xffffff, dark: 0x1a0008, blend: 'normal', rakes: 1, width: 1, ext: .25, inner: 0, life: .42, sparks: 0xff4d6a, spark2: 0xffffff, star: 0xffe0e6 },
   // Mod 320: VHAZRAEL — crescente grossa de núcleo branco-amarelo, corpo carmesim e borda violeta escura (referência: rastros largos dos vídeos do criador, identidade própria)
   vhazrael: { core: 0xfff3dc, body: 0xd8142e, rim: 0x5c0b86, accent: 0xffc46a, dark: 0x2a0208, blend: 'normal', rakes: 1, width: 1.15, ext: .8, inner: .12, life: .4, sparks: 0xff5a4a, spark2: 0x8a1cff, star: 0xffe2c8 },
   demon: { core: 0xf3d9ff, body: 0x8b2cff, rim: 0x4a0f8f, accent: 0x1a0626, dark: 0x07010d, blend: 'add', rakes: 3, width: .55, ext: .9, inner: .1, life: .22, sparks: 0xc57cff, spark2: 0x2b0a40, star: 0xe7c2ff },
@@ -176,6 +180,27 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, up = Math.random() * 2.5, sp2 = 3 + Math.random() * 6 * (.6 + power);
       spark(p, { x: dir.x * sp2 * .7 + Math.cos(a) * sp2 * .6, y: up + dir.y * sp2 * .4, z: dir.z * sp2 * .7 + Math.sin(a) * sp2 * .6 }, style, .26 + power * .18, 1 + power * .6); }
   }
+  // ---------------- estouro de tinta (referência 7cd9ab51 0:04/0:09: respingo branco com bordas escuras no contato) ----------------
+  const splashMat = () => new T.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: false, toneMapped: false,
+    uniforms: { k: { value: 1 }, seed: { value: 0 }, col: { value: new T.Color(0xffffff) }, ink: { value: new T.Color(0x0b0306) }, tint: { value: new T.Color(0xff2346) } },
+    vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: `precision highp float;varying vec2 vUv;uniform float k,seed;uniform vec3 col,ink,tint;${NOISE}
+      void main(){vec2 p=(vUv-.5)*2.;float r=length(p),a=atan(p.y,p.x);
+        float spikes=pow(vn(vec2(a*4.+seed,seed*.3)),2.)*.75+.25*vn(vec2(a*13.+seed*2.,1.));float reach=(.25+.75*spikes)*(.35+.65*sqrt(k));
+        float body=1.-smoothstep(reach-.08,reach,r);float hole=smoothstep(k*.9-.25,k*.9,r*(1.+.3*vn(vec2(a*6.,seed))));
+        float rim=smoothstep(reach-.2,reach-.06,r)*body;float fade=1.-smoothstep(.55,1.,k);
+        float alpha=body*mix(1.,hole,step(.15,k))*fade;if(alpha<.02)discard;
+        vec3 c=mix(col,ink,rim*.85);c=mix(c,tint,smoothstep(.0,.6,rim)*.25*(1.-k));gl_FragColor=vec4(c,alpha*.95);}` });
+  const splashPool = Array.from({ length: 4 }, () => { const m = new T.Mesh(new T.PlaneGeometry(1, 1), splashMat()); m.visible = false; m.frustumCulled = false; m.renderOrder = 12; root.add(m); return { m, age: 1, life: .3, size: 1 }; });
+  let splashCursor = 0;
+  /** Respingo branco de bordas escuras no ponto do contato (finalizadores, contra-ataques, clash). */
+  function splash(p, { power = .6, tint } = {}) {
+    if (quality === 'low' && power < .8) return;
+    const s = splashPool[splashCursor++ % splashPool.length], u = s.m.material.uniforms;
+    s.m.position.set(p.x, p.y, p.z); s.age = 0; s.life = .22 + power * .16; s.size = 1.6 + power * 2.6; s.m.visible = true; u.seed.value = Math.random() * 60; if (tint !== undefined) u.tint.value.setHex(tint); else u.tint.value.setHex(0xff2346);
+    const n = quality === 'low' ? 6 : Math.round(10 + power * 14);
+    for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, e = (Math.random() - .3) * 1.2, v = 4 + Math.random() * 7 * power; spark(p, { x: Math.cos(a) * v, y: e * v * .6 + 1.5, z: Math.sin(a) * v }, 'prota', .3 + power * .2, 1.3 + power); }
+  }
   // ---------------- atualização ----------------
   const camQ = new T.Quaternion();
   function update(dt, camera, level = 'high') {
@@ -188,9 +213,10 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
       sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
       P.set(sp.pos.subarray(i * 3, i * 3 + 3), live * 3); V.set(sp.vel.subarray(i * 3, i * 3 + 3), live * 3); K[live * 2] = sp.age[i]; K[live * 2 + 1] = sp.size[i]; C.set(sp.col.subarray(i * 3, i * 3 + 3), live * 3); live++; }
     sparkGeo.instanceCount = live; if (live) { aPos.needsUpdate = aVel.needsUpdate = aK.needsUpdate = aCol.needsUpdate = true; aPos.addUpdateRange?.(0, live * 3); }
+    for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
   }
-  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; }
-  function stats() { return { slashes: slashPool.filter(s => s.m.visible).length, waves: wavePool.filter(w => w.g.visible).length, sparks: sparkGeo.instanceCount, stars: starPool.filter(s => s.m.visible).length, capacity: { slashes, waves, sparks, stars } }; }
-  return { sample, end, wave, impact, spark, update, clear, stats, root };
+  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; for (const s of splashPool) s.m.visible = false; }
+  function stats() { return { slashes: slashPool.filter(s => s.m.visible).length, waves: wavePool.filter(w => w.g.visible).length, sparks: sparkGeo.instanceCount, stars: starPool.filter(s => s.m.visible).length, splashes: splashPool.filter(s => s.m.visible).length, capacity: { slashes, waves, sparks, stars } }; }
+  return { sample, end, wave, impact, splash, spark, update, clear, stats, root };
 }

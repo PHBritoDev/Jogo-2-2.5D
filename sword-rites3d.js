@@ -92,9 +92,10 @@ export class SwordRites {
   if(a){
    if(ctx.sword!==undefined&&ctx.sword!==a.sword){this.cancel('weapon');return;}
    if(a.kind==='prota'&&(!target?.alive||target.id!==a.targetId||dist(ctx.from,target)>9)){this.cancel('target');return;}
-   a.t=Math.min(a.duration,a.t+dt);
+   const sdt=a.kind==='basic'&&a.def?.speed>0?dt*a.def.speed:dt;/* combate de referência: golpes do protagonista mais rápidos (o clipe, as janelas e o warp seguem o mesmo relógio) */
+   a.t=Math.min(a.duration,a.t+sdt);
    if(a.kind==='basic'){a.phase=a.t<a.def.open?'windup':a.t<=a.def.close?'active':'recovery';if(a.mode==='plunge'&&!ctx.grounded){a.fallTime=(a.fallTime||0)+dt;a.t=Math.min(a.t,a.def.open-.015);a.phase='windup';if(a.fallTime>4){this.cancel('fall-timeout');return;}}
-    if(a.def.drive)this.api.drive?.(a,dt,target);
+    if(a.def.drive)this.api.drive?.(a,sdt,target);
     else if(this.api.choreography&&a.mode==='ground'&&a.def.advance&&a.t<a.def.close&&a.t>a.def.open*.5&&!ctx.moving){const speed=a.def.advance/(a.def.close-a.def.open*.5);this.api.advance?.(Math.sin(a.yaw)*speed*dt,Math.cos(a.yaw)*speed*dt);}
    }
    if(a.kind==='basic'&&a.t>=a.def.open&&!a.released){a.released=true;this.api.event('active',a);}

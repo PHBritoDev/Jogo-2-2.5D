@@ -17,9 +17,11 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   await E(()=>{for(const id of ['vfx-lab','quest-hud','status'])document.getElementById(id)&&(document.getElementById(id).style.display='none');});
   await E(()=>{const D=SevenSinsDebug3D;D.setHour&&D.setHour(10);D.squadLab('1');});
   await p.waitForFunction(()=>SevenSinsDebug3D.squadState().on&&SevenSinsDebug3D.combat315().enemies.length===1,null,{timeout:120000});
-  // 1) briefing combate/câmera (P4): golpe básico SEM projétil — a 4,6 m (fora da lâmina+rastro) não dá dano;
-  //    encostado, a lâmina + rastro colado acerta uma vez, com VFX de corte visível
-  report.steps.wave=await E(()=>{const D=SevenSinsDebug3D;D.teleport(-5,16,Math.PI);D.squadPose('e1',-5,11.4,0,true);D.squadPause(true);D.view(.7,.16,6);D.combatStep(.4,{fps:30,draw:false});const h0=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.3,{fps:60,draw:true});const mid=D.combat315();D.combatStep(.9,{fps:60,draw:false});const h1=D.squadState().enemyHP;
+  // 1) briefing combate/câmera (P4): golpe básico SEM projétil — a 7,5 m (além da aproximação curta de ≤ 3,2 m + lâmina e
+  //    rastro) não dá dano; encostado, a lâmina + rastro colado acerta uma vez, com VFX de corte visível.
+  //    (Missão combate cinematográfico: a aproximação curta agora funciona no esquadrão, então a 4,6 m o herói chega
+  //    andando e acerta com a lâmina — o "longe" passou a ser fora do alcance da aproximação.)
+  report.steps.wave=await E(()=>{const D=SevenSinsDebug3D;D.teleport(-5,16,Math.PI);D.squadPose('e1',-5,8.5,0,true);D.squadPause(true);D.view(.7,.16,6);D.combatStep(.4,{fps:30,draw:false});const h0=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.3,{fps:60,draw:true});const mid=D.combat315();D.combatStep(.9,{fps:60,draw:false});const h1=D.squadState().enemyHP;
    D.squadPose('e1',-5,14.9,0,true);D.combatStep(.5,{fps:30,draw:false});const h2=D.squadState().enemyHP;D.combatAction('attack');D.combatStep(.9,{fps:60,draw:false});return {h0,h1,h2,h3:D.squadState().enemyHP,vfx:mid.slash,report:D.protaReport().move};});
   assert.equal(report.steps.wave.h1,report.steps.wave.h0,'longe: nada sai voando para acertar');assert.ok(report.steps.wave.vfx.slashes>0,'VFX do corte colado à lâmina visível');
   assert.ok(report.steps.wave.h3<report.steps.wave.h2,'perto: lâmina + rastro acertam');
