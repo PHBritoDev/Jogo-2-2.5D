@@ -175,7 +175,7 @@ export class Enemy1Squad {
     a.stamina = Math.min(a.T.stamina, a.stamina + dt * 14); if ((a.poiseT -= dt) <= 0) a.poise = a.T.poise;
     if (a.alert > 0) a.alert -= dt;
     if (a.shield) a.shield.update(this.time);
-    if((a.airY>0||a.airV>0)&&!(a.act&&a.act.type==='leap')){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY){a.airV=0;a.jumps=0;}}
+    if((a.airY>0||a.airV>0)&&!(a.act&&a.act.type==='leap')){a.airV-=18*dt;a.airY=Math.max(0,a.airY+a.airV*dt);if(!a.airY){a.airV=0;a.jumps=0;}a.y=this.ground(a.x,a.z)+a.airY;}
     const tgt = this.pickTarget(a, dt);
     if (a.T.brain) a.T.brain(this, a, dt, tgt); // MOD 247: cérebro adaptativo opcional por espécie
     // reações rápidas (defesa, esquiva, contra-selo) agendadas com tempo de reação humano
@@ -519,7 +519,11 @@ export class Enemy1Squad {
     if (a.act && a.act.unstoppable) { this.event('superArmor', { actor: a }); return; }
     // golpe que ainda não soltou é interrompido; magia já lançada segue o curso dela
     if (a.act && a.act.type === 'cast' && a.act.released && !a.act.channel) return;
+    // Missão 19/11: armadura de cambaleio (espécies com T.staggerArmor) — depois de cambalear, não cambaleia de novo por
+    // alguns segundos (só a quebra de guarda passa): o chefe não fica preso em cadeia de reações e volta a lutar.
+    if (a.T.staggerArmor && !broken && this.time < (a.staggerArmorUntil || 0)) { this.event('poiseHold', { actor: a }); return; }
     a.act = null; a.guard = false; this.begin(a, { type: 'stagger', dur, anim: broken ? 'block' : 'hit', face: false }); a.cds.melee = Math.max(a.cds.melee || 0, .6);
+    if (a.T.staggerArmor) a.staggerArmorUntil = this.time + dur + a.T.staggerArmor;
   }
   kill(a) {
     a.alive = false; a.act = null; a.guard = false; a.vx = a.vz = 0; a.anim = { role: 'death', once: true, speed: 1, rev: a.anim.rev + 1 };

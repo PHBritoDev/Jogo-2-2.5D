@@ -4443,8 +4443,19 @@ function applyVzTint(){
  }
  vzTint.on=k>.002;
 }
+/* Missão 19/11 — auditoria do duelo REAL do VHAZRAEL (sem fullCombatQA): papéis/clipes tocados, atos iniciados (com o
+   motivo/objetivo), eventos de IA e tempo passivo entre ações. Barato: só contadores; lido pelo QA via vzAudit(). */
+const vzA={on:false,t:0,roles:{},acts:{},events:{},log:[],passive:0,passiveMax:0,lastActT:0,repeats:0,lastAct:null,dist:[0,0,0,0]};
+function vzAuditReset(){Object.assign(vzA,{on:true,t:0,roles:{},acts:{},events:{},log:[],passive:0,passiveMax:0,lastActT:0,repeats:0,lastAct:null,dist:[0,0,0,0]});vzA._rev={};vzA._act={};}
+function vzAuditTick(dt){if(!vzA.on||!squadOn)return;vzA.t+=dt;for(const a of squadAlive()){if(a.kind!=='vhazrael')continue;
+ if(vzA._rev[a.id]!==a.anim.rev){vzA._rev[a.id]=a.anim.rev;vzA.roles[a.anim.role]=(vzA.roles[a.anim.role]||0)+1;}
+ const d=Math.hypot(a.x-player.position.x,a.z-player.position.z);vzA.dist[d<1.6?0:d<3.2?1:d<7?2:3]+=dt;
+ if(a.act&&a.act!==vzA._act[a.id]){vzA._act[a.id]=a.act;const k=a.act.type+(a.act.move?':'+a.act.move.id:a.act.skill?':'+a.act.skill:a.act.goal?':'+a.act.goal:'');vzA.acts[k]=(vzA.acts[k]||0)+1;if(k===vzA.lastAct&&a.act.type!=='stagger')vzA.repeats++;vzA.lastAct=k;
+  vzA.idleRun=0;if(vzA.log.length<400)vzA.log.push([+vzA.t.toFixed(2),k,+d.toFixed(1)]);}
+ if(!a.act){vzA.passive+=dt;vzA.idleRun=(vzA.idleRun||0)+dt;vzA.passiveMax=Math.max(vzA.passiveMax,vzA.idleRun);}}}
+function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;}
 function squadEvent(type,d){
- const a=d&&d.actor,s=d&&d.spell;
+ const a=d&&d.actor,s=d&&d.spell;vzAuditEvent(type,d);
  switch(type){
   case 'windup':if(a?.kind==='vhazrael'){const m=a.act?.move,r=m?.rate||1;if(d.label)status.textContent=d.label;setTimeout(()=>worldAudio.bossSwing&&worldAudio.bossSwing(!!m?.heavy),Math.max(0,(d.at||0)/r*1000-60));} /* áudio: o "vush" da espada cai no corte, não no início do gesto */else if(d.label&&a?.T.boss){status.textContent=d.label;worldAudio.whoosh();}break;
   case 'meleeHit':if(d.result==='hit'){if(a?.kind==='vhazrael'&&worldAudio.bossHit)worldAudio.bossHit();else worldAudio.hit();if(d.target==='hero')hitStop(a?.kind==='e2boss'?45:25);}break;
@@ -4647,7 +4658,7 @@ function updateSquadCombat(dt,now){
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});vzAuditTick(dt);
  updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
@@ -8457,6 +8468,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
+ vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},qaSkills(){/* QA: as 4 Palavras compradas (o duelo precisa provar a reação do Bispo à magia do herói) */for(const id of ['magic','magic2','magic3','ultimate'])ownedItems.add(id);refreshSkillUnlocks();playerMana=100;return [...ownedItems];},heroHeal(){/* QA: mantém o bot vivo para observar a IA por mais tempo (nunca usado no jogo) */playerHP=playerMaxHP;return playerHP;},
  dashProbe(){/* missão combate (QA): alvos do dash, aproximação e janela de contra-ataque */return{aimWhy:prota302.aimWhy||null,clashes:prota302.clashes||0,flinches:prota302.flinches||0,duelPull:+duelPull.toFixed(2),camYaw:+cameraYaw.toFixed(3),slash:slashVFX.stats(),cands:protaCandidates().map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),alive:c.alive})),dist:prota302.dashDist,target:prota302.dashTarget,counter:+(prota302.counterUntil-prota302.clock).toFixed(2),dodged:prota302.dodged,lock:lockOnActive,lockId:prota302.lockId,hidden:prota302.hidden,visible:!!model?.visible,gate:{cine:cineActive,vz:typeof vzLocked!=="undefined"&&!!vzLocked,dlg:dialogueOpen,paused:gamePaused,cosmic:cosmicLock()}};},
  enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},
  heroState(){return{p:player.position.toArray().map(v=>+v.toFixed(3)),yaw:+playerYaw.toFixed(3),grounded,vy:+verticalVelocity.toFixed(3),dash:+dashRemaining.toFixed(3),clip:activeAction?.getClip().name||null,speed:+Math.hypot(moveVX,moveVZ).toFixed(2),sprint:isSprinting(),cam:camera.position.toArray().map(v=>+v.toFixed(2)),hp:enemyHP,e:enemy.position.toArray().map(v=>+v.toFixed(2))};},
