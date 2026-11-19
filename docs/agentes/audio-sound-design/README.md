@@ -36,3 +36,12 @@
 - Novo indicador `pausedByGame`: `pause(on)`, `unlock()` e evento de visibilidade respeitam simultaneamente a pausa e aba oculta.
 - Teste de regressão reaproveitado de #492: `tests/audio-pause-visibility.test.mjs`.
 - QA auditivo em aparelho real ainda pendente; não interpretar CI como validação da mixagem.
+
+## Rodada de integração — regressões de áudio (13/11/2026)
+- A `main` consultada já contém as mudanças de `burst()` (#490), `thunder()` (#502), modo musical `silent` (#495) e pausa/visibilidade (integração #505 da #492). Não repetir correções já integradas.
+- PRs de trabalho de outras equipes ainda abertos incluem #473 (Claude/Eldória) e #506 (mobile); nenhum arquivo desses trabalhos foi alterado.
+- Foi acrescentado `tests/audio-integrated-regressions.test.mjs` para proteger quatro contratos em um só teste de integração estática: ruído longo, trovão, pausa ao mudar de aba e trilha silenciosa.
+- Verificação manual de padrões de fonte: condições de pausa e posição do loop confirmadas. **Não equivale a executar `node --test`**, nem a ouvir a saída Web Audio.
+- Sem novos arquivos sonoros, licenças externas, alterações de gameplay ou aumento de custo de áudio em tempo de execução. A suíte acrescenta somente trabalho ao CI.
+- Pendente: executar `node --test tests/audio-integrated-regressions.test.mjs`, revisar falhas se houver, comparar forma de onda e artefatos de loop, medir Android real.
+- Risco: contratos estáticos podem falhar em refatorações equivalentes; revisar sem alterar produção cegamente. Nenhum merge autorizado.
