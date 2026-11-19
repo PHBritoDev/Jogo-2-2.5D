@@ -34,9 +34,9 @@
     "before": false,
     "view": 0,
     "frame": 4,
-    "calls": 18,
-    "triangles": 70986,
-    "points": 0,
+    "calls": 28,
+    "triangles": 94739,
+    "points": 36,
     "lines": 0
   },
   {
@@ -44,9 +44,9 @@
     "before": false,
     "view": 1,
     "frame": 5,
-    "calls": 15,
-    "triangles": 67562,
-    "points": 0,
+    "calls": 26,
+    "triangles": 92099,
+    "points": 36,
     "lines": 0
   },
   {
@@ -54,9 +54,9 @@
     "before": false,
     "view": 2,
     "frame": 6,
-    "calls": 14,
-    "triangles": 67458,
-    "points": 0,
+    "calls": 24,
+    "triangles": 90275,
+    "points": 36,
     "lines": 0
   },
   {
@@ -94,9 +94,9 @@
     "before": false,
     "view": 0,
     "frame": 4,
-    "calls": 18,
-    "triangles": 70986,
-    "points": 0,
+    "calls": 28,
+    "triangles": 62507,
+    "points": 36,
     "lines": 0
   },
   {
@@ -104,9 +104,9 @@
     "before": false,
     "view": 1,
     "frame": 5,
-    "calls": 15,
-    "triangles": 67562,
-    "points": 0,
+    "calls": 27,
+    "triangles": 61643,
+    "points": 36,
     "lines": 0
   },
   {
@@ -114,9 +114,9 @@
     "before": false,
     "view": 2,
     "frame": 6,
-    "calls": 14,
-    "triangles": 67458,
-    "points": 0,
+    "calls": 24,
+    "triangles": 59411,
+    "points": 36,
     "lines": 0
   }
 ]

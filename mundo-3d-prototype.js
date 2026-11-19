@@ -6647,7 +6647,12 @@ function startGreedBattle(){
  startDimensionBattle('greed',{hp:GREED_FORMS[0].hp,returnTo:{x:DS.offer.x-18,z:DS.offer.z+4},onVictory:greedVictory,onAbort:()=>{stopAllies6();if(act6Sandra){disposeClone(act6Sandra);act6Sandra=null;}guidePinned=false;status.textContent='Sem corações. Recupere um e coloque os fragmentos na estátua de novo.';}});
 }
 function greedIntro(){if(!dimBattle||dimBattle.key!=='greed'||questStep!==ACT6N.greed)return;playStory('ganancia',greedIntroScene(),{focus:'enemy',face:'enemy'});}
-function revealGreedForm(i){const f=GREED_FORMS[i],sp=arenaSpots('greed').boss;loadRig(f.rig).then(()=>{useRig(f.rig);revealEncounter(f.profile,sp,f.hp,'');enemy.visible=true;enemyAlive=true;bossRageAnnounced=false;if(enemyActions.arise)playEnemyAnimation('arise',.1,true);enemyAttackCooldown=2.4;const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}syncEnemyLabel();});}
+function revealGreedForm(i){const battle=dimBattle,f=GREED_FORMS[i],sp=arenaSpots('greed').boss;loadRig(f.rig).then(()=>{
+ if(!battle||dimBattle!==battle||!battle.active||act6Form!==i)return;
+ useRig(f.rig);
+ // The outgoing form stays on screen during the transformation. Re-arm
+ // encounter initialization for the new rig, health pool and attack profile.
+ enemy.visible=false;revealEncounter(f.profile,sp,f.hp,'');bossRageAnnounced=false;if(enemyActions.arise)playEnemyAnimation('arise',.1,true);enemyAttackCooldown=2.4;const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}syncEnemyLabel();});}
 /** Chamado quando uma forma da Ganância cai (true = tratado). */
 function act6GreedDefeat(){
  if(!dimBattle||dimBattle.key!=='greed'||questStep!==ACT6N.greed)return false;
