@@ -27,7 +27,8 @@ test('P1: mouse no PC — pointer lock, yaw 360° contínuo, pitch só sem inver
 });
 test('P2: sem botão MIRAR; trava suave automática com histerese; golpe sempre orientado ao alvo válido', () => {
   assert.ok(!/id="aim"/.test(html) && !/MIRAR<\/span>/.test(html));
-  assert.ok(/if\(!t&&prota302\.lockId!=null\)\{const cur=cands\.find\(c=>c\.id===prota302\.lockId\);/.test(m) && /d<10&&\(!intent\.input\|\|off<1\.35\)/.test(m));
+  // missão 19/11: a trava suave com histerese vive em chooseAttackTarget (alvo atual com bônus; analógico não solta o alvo perto)
+  assert.ok(/chooseAttackTarget\(from,\{heroYaw:playerYaw,camYaw:cameraYaw\+Math\.PI,stick:st,cands,lockedId,currentId:prota302\.lockId/.test(m));
   assert.ok(/assist:true,range:lockOnActive\?18:9/.test(m));
   assert.ok(/function cycleSoftTarget\(\)/.test(m) && /cycleSoftTarget\(\);\}/.test(m));
 });
