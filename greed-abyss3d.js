@@ -101,97 +101,81 @@ export function createGreedAbyss(T, parent, radius) {
     const y=-3+84*u,fold=.5+.5*cos(38*a+3*sin(u*6+a*7));
     return [r*cos(a),y,r*sin(a)*(sin(a)<0?1.74:1),.023+.085*fold*fold+.014*sin(17*u+a*12)];
   });
-  const skull=new T.Group();skull.position.set(17,23,-radius-17);skull.rotation.z=-.14;skull.scale.set(.86,1.18,1);group.add(skull);
-  const profile=[[2.5,4,-82,33,-29],[15,20,-58,24,-25],[26,32,-38,13,-14],[24,29,-24,7,-7],[19,24,-10,4,-4],[15,21,-2,2,-2],[12,18,0,0,0],[10,16,-2,0,0],[8,14,-8,0,0],[5,9,-15,1,-2],[.08,.12,-28,2,-4]];
-  function skullSurface(u,v){
-    const k=u*(profile.length-1),idx=Math.min(profile.length-2,Math.floor(k)),t=k-idx,a=v*tau;
-    const p=profile[idx].map((x,i)=>x+(profile[idx+1][i]-x)*t);
-    const ribs=sin(a*19+2*sin(a*5+u*13)+u*10),plates=cos(u*63+sin(a*6)*3+cos(3*a-u*9));
-    const skin=1+.032*ribs+.024*plates+.04*sin(3*a+u*7);
-    const inside=Math.max(0,(u-.60)/.40);
-    const shade=Math.exp(-inside*8);
-    const enamel=.19*Math.exp(-((u-.604)**2)/.00027)*(.66+.34*cos(a+1));
-    return [p[4]-10*(1-Math.min(1,u/.40))**2+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.0007+enamel+shade*(.063+.038*ribs+.036*plates+.050*(1+cos(a+1)))];
-  }
-  surface(compact?50:80,compact?80:112,skullSurface,skull);
-  // Polished osseous lips: a broken rim on the outer crest and a second,
-  // narrower fold just inside it. Both follow the asymmetry of the skull.
-  surface(5,compact?112:168,(u,v,band)=>{
-    const a=v*tau,k=(band?.627:.591)+(u-.5)*(.014+.004*cos(5*a));
-    const [x,y,z]=skullSurface(k,v),crest=sin(Math.PI*u);
-    const erosion=.5+.5*cos(49*a+3*sin(13*a));
-    const lift=(.16+.24*erosion)*crest;
-    return [x+lift*cos(a),y+lift*sin(a),z+.16*crest,
-      .09+crest*(.25+.42*erosion)*(.75+.25*cos(a+.8))];
-  },skull,2);
-  // Carved ridges wrap from the lip into the temporal plates. Each ridge
-  // fans out independently, with bare areas between neighbouring bundles.
-  const ridges=[],ridgeColors=[],ridgeIndices=[];
-  const ridgeSteps=compact?16:28;
-  for(let rib=0;rib<39;rib++){
-    const az=(rib+.31*sin(rib*2.1))/39,span=.22+.27*random();
-    const base=ridges.length/3;
-    for(let k=0;k<=ridgeSteps;k++){
-      const t=k/ridgeSteps,u=.612-span*t;
-      const curve=az+.018*sin(t*3+rib)+.028*t*t*cos(rib);
-      const lift=sin(Math.PI*t)**.65;
-      for(let j=0;j<5;j++){
-        const v=curve+(j-2)*(.0004+.0015*lift);
-        const [x,y,z]=skullSurface(u,v),angle=v*tau;
-        const crest=1-Math.abs(j-2)*.5,offset=lift*(.06+crest*.51);
-        ridges.push(x+cos(angle)*offset,y+sin(angle)*offset,z+.09*crest);
-        const value=.018+crest*(.062+.13*Math.max(0,cos(angle+1)))*lift;
-        ridgeColors.push(value,value,value*1.05);
-        if(k&&j){const n=base+5*k+j;ridgeIndices.push(n-6,n-1,n,n-6,n,n-5);}
-      }
-    }
-  }
-  const relief=new T.BufferGeometry();
-  relief.setAttribute('position',new T.Float32BufferAttribute(ridges,3));
-  relief.setAttribute('color',new T.Float32BufferAttribute(ridgeColors,3));
-  relief.setIndex(ridgeIndices);relief.computeVertexNormals();
-  skull.add(new T.Mesh(relief,stone));
-
-  // The zygomatic shelves sweep back into the roof. Their knife-edge folds
-  // cast a silhouette above the throat from both side approaches.
-  for(const side of [-1,1]){
-    surface(compact?24:42,compact?14:24,(u,v)=>{
-      const a=v*tau,flare=sin(Math.PI*u)**.67;
-      const rib=1+.16*cos(5*a+u*17);
-      const x=side*(10+13*sin(u*2.5))-23*u*u;
-      const y=9+33*u+6*sin(u*2.8+side*.32);
-      return [x+(2+5*flare)*cos(a)*rib,y+(2+6*flare)*sin(a)*rib,
-        -3-50*u+flare*4*cos(a),.045+.095*Math.max(0,sin(a+.6))+.024*cos(u*42+a)];
-    },skull);
-  }
-  // Strips of petrified fascia trail behind the lip down the outside of
-  // the jaw. Their hooked ends are visible against the backlit passage.
-  surface(compact?12:18,4,(u,v,j)=>{
-    const left=j%2===0,angle=(left?Math.PI:0)+(.35-.10*Math.floor(j/2));
-    const [x,y,z]=skullSurface(.53+.025*cos(j*3),angle/tau);
-    const drop=6.5+6*(.5+.5*sin(j*4.21));
-    const spread=(v-.5)*(1-u)**.68*(.65+1.7*sin(Math.PI*u));
-    const strandBend=(left?-1:1)*(1.4*sin(u*3.7)-.92*u*u);
-    return [x+strandBend+spread,y-drop*u,z+.9*sin(u*4+j)+.37*sin(v*Math.PI)*(1-u),
-      .034+(.18+.11*sin(j))*(1-u*.6)*sin(v*Math.PI)**3];
-  },skull,18);
-  // A swept cervical arch leaves a pocket of negative space above the
-  // throat. Its right-hand end enters the cranium behind the upper jaw.
-  const neck=new T.CatmullRomCurve3([
-    [-62,11,-65],[-46,31,-69],[-34,46,-74],[-12,54,-75],
-    [10,55,-76],[23,49,-80],[24,40,-83]
+  // The buried tail, raised coil and projecting muzzle share a single spine.
+  // Sweep back along the last bend to excavate the throat inside that same skin.
+  const skull=new T.Group();
+  skull.position.set(15,20,-radius-14);
+  group.add(skull);
+  const spine=new T.CatmullRomCurve3([
+    [-39,-24,-38],[-39,1,-45],[-37,22,-49],[-26,36,-46],
+    [-7,40,-40],[9,33,-33],[17,21,-25],[18,12,-18],
+    [13,6,-10],[0,0,0]
   ].map(p=>new T.Vector3(...p)));
-  const rings=compact?42:64,frames=neck.computeFrenetFrames(rings,false);
-  const centers=Array.from({length:rings+1},(_,i)=>neck.getPointAt(i/rings));
-  surface(rings,compact?32:48,(u,v)=>{
-    const i=Math.round(rings*u),a=tau*v,c=centers[i],n=frames.normals[i],b=frames.binormals[i];
-    const joint=.5+.5*cos(u*83+1.8*sin(a*2.3+u*7));
-    const layer=.5+.5*cos(a*13+4*u+sin(u*13+a));
-    const width=6.2+4.3*(1-u)+1.8*sin(u*7)+joint*.95+layer*.62;
-    const x=width*cos(a),y=(width*1.20+sin(a*3+u*9))*sin(a);
-    return [c.x+n.x*x+b.x*y,c.y+n.y*x+b.y*y,c.z+n.z*x+b.z*y,
-      .036+.105*joint*layer+.058*Math.max(0,-sin(a+.4))];
-  });
+  const samples=192,frames=spine.computeFrenetFrames(samples,false);
+  const centers=Array.from({length:samples+1},(_,i)=>spine.getPointAt(i/samples));
+  const tangent=frames.tangents[samples];
+  const horizontal=new T.Vector3(tangent.z,0,-tangent.x).normalize();
+  const roll=Math.atan2(horizontal.dot(frames.binormals[samples]),horizontal.dot(frames.normals[samples]));
+  const right=frames.normals.map((n,i)=>n.clone().multiplyScalar(cos(roll)).addScaledVector(frames.binormals[i],sin(roll)));
+  const top=right.map((r,i)=>new T.Vector3().crossVectors(frames.tangents[i],r));
+  function section(t,a,inset=0,relief=0){
+    const i=Math.min(samples-1,Math.floor(t*samples)),f=t*samples-i;
+    const muzzle=T.MathUtils.smoothstep(t,.73,.98);
+    const ridge=.5+.5*cos(132*t+2.2*sin(3*a+6*t)+.9*sin(7*a-t*3));
+    const tendon=.5+.5*cos(11*a+5*t+sin(5*a-4*t));
+    const corrugation=(.60*ridge+.46*tendon)*(1-.91*muzzle);
+    const hinge=Math.exp(-((t-.90)**2)/.0028);
+    const cheek=hinge*(1.4+.9*cos(a*2-.6))* (.72+.28*cos(a-.4));
+    const width=6.2+2.1*sin(Math.PI*t)+1.5*(1-t)+corrugation+cheek;
+    const height=width*(1.04+.94*muzzle);
+    // Flatten the upper palate and lengthen the side walls toward the lips.
+    const power=1-.30*muzzle,c=cos(a),s=sin(a);
+    const x=(width*(1-inset)+relief)*Math.sign(c)*Math.abs(c)**power;
+    const y=(height*(1-inset)+relief)*Math.sign(s)*Math.abs(s)**power;
+    const lip=muzzle**4*(1.9*s+.42*cos(3*a+.45));
+    const point=k=>centers[k].clone().addScaledVector(right[k],x)
+      .addScaledVector(top[k],y).addScaledVector(frames.tangents[k],lip);
+    const p=point(i).lerp(point(i+1),f);
+    return [p.x,p.y,p.z,ridge,tendon];
+  }
+  surface(compact?104:152,compact?48:68,(u,v)=>{
+    const a=tau*v,[x,y,z,rib,sinew]=section(u,a);
+    const grazing=.50+.50*cos(a-1.16);
+    return [x,y,z,.013+.19*grazing*(.32+.68*rib)*(.54+.46*sinew)];
+  },skull);
+  surface(compact?30:46,compact?48:68,(u,v)=>{
+    const a=tau*v,t=1-.26*u;
+    const inset=.06+.93*u**1.52;
+    const [x,y,z,rib]=section(t,a,inset);
+    return [x,y,z,.0008+.077*Math.exp(-10*u)*(.25+.75*rib)];
+  },skull);
+  // Overlapping vertebral collars follow the turning axis. Their upper
+  // edges catch the key light while the belly disappears into the vault.
+  const collars=Array.from({length:39},()=>random());
+  surface(4,compact?25:39,(u,v,j)=>{
+    const a=tau*(v-.22)+.12*sin(j*1.3);
+    const t=.041+(j+.45*(collars[j]-.5))*.024+(u-.5)*(.012+.009*collars[j])
+      +.006*cos(a*2+j*.36)+.002*sin(5*a-j*.41);
+    const crown=sin(Math.PI*u),wear=.55+.45*cos(7*a+2*collars[j]+j);
+    const [x,y,z]=section(t,a,0,crown*(.16+.45*wear));
+    return [x,y,z,.024+crown**2*(.044+.115*wear)*(.62+.38*sin(a))];
+  },skull,collars.length);
+  // Low, split cheek plates run lengthwise across the last vertebrae.
+  // They flare over the hinge and converge onto the upper edge of the gape.
+  surface(compact?18:28,5,(u,v,j)=>{
+    const side=j%2===0?1:-1,fan=Math.floor(j/2);
+    const a=(side>0?0:Math.PI)+side*(.12+.21*fan+.55*u*u);
+    const t=.74+.255*u-.018*sin(Math.PI*u+fan*.5);
+    const taper=sin(Math.PI*u)**.70;
+    const [x,y,z]=section(t,a+(v-.5)*(.015+.19*taper),0,
+      taper*(.13+.72*sin(Math.PI*v)));
+    return [x,y,z,.041+.19*taper*sin(v*Math.PI)**3*(.55+.45*u)];
+  },skull,10);
+  surface(5,compact?96:132,(u,v)=>{
+    const a=v*tau;
+    const [x,y,z]=section(1-.004*Math.abs(u-.5),a,.071*u,.15*sin(Math.PI*u));
+    return [x,y,z,.18+.47*sin(Math.PI*u)*(.74+.26*cos(31*a+sin(7*a)))];
+  },skull);
   // A polished black nodule hangs in the gap under the arch. Its thin
   // mineral crescent and three divergent tethers read even in silhouette.
   const nodule={x:-12,y:38,z:-56,r:2.65};
@@ -287,30 +271,29 @@ export function createGreedAbyss(T, parent, radius) {
   // Scimitar-like enamel shards taper along a bent axis; instances share a single mesh.
   const shard=surface(compact?3:6,compact?4:6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
   group.remove(shard);
-  // Enamel has a thinner reflective edge than the surrounding shale.
-  // Upper canines hang under gravity; the lower row hooks up at the floor.
-  const enamel=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
-  const tooth=surface(compact?5:8,5,(u,v)=>{
-    const a=v*tau,taper=(1-u)**1.15;
-    return [taper*cos(a)+.38*u*u,u,taper*.62*sin(a)-.47*u*u,
-      .055+.29*(.5+.5*cos(a-.4))+.12*u];
-  });
-  group.remove(tooth);
-  const teeth=new T.InstancedMesh(tooth.geometry,enamel,92);skull.add(teeth);
-  const dummy=new T.Object3D(),up=new T.Vector3(0,1,0),dir=new T.Vector3();
-  for(let i=0;i<teeth.count;i++){
-    const row=i>=46?1:0;
-    const a=tau*((i%46)+.22*sin(i*2.71)+row*.41)/46;
-    const [x,y,z]=skullSurface(row?.68:.602,a/tau);
-    const jaw=sin(a),side=cos(a);
-    const vertical=jaw>-.26?-1:1;
-    dummy.position.set(x,y,z);
-    dummy.quaternion.setFromUnitVectors(up,dir.set(-.12*side,vertical,-.22-.17*row).normalize());
-    const socket=.15+random()*.24;
-    const length=.85+4.2*random()**1.7+1.4*Math.abs(jaw);
-    dummy.scale.set(socket,length,socket);
-    dummy.updateMatrix();teeth.setMatrixAt(i,dummy.matrix);
+  // The upper jaw carries torn sheets with pointed cusps. The lower lip
+  // carries shorter remnants; most of the mouth remains open to the bend.
+  const dentin=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
+  const bays=Array.from({length:46},()=>({width:random(),drop:random()}));
+  // The counterpart of each cusp begins deeper inside the mouth.
+  const innerBays=Array.from({length:46},()=>({width:random(),drop:random()}));
+  function dentalCurtain(bayList,row){
+    surface(compact?5:8,8,(u,v,j)=>{
+      const bay=bayList[j],a=tau*(j+v)/bayList.length;
+      const mid=(.5+bay.width*.32),arch=v<mid?v/mid:(1-v)/(1-mid);
+      const cusp=1-Math.sqrt(Math.max(0,1-(1-arch)**2));
+      const s=sin(a),depth=row?.976:1;
+      const [x,y,z]=section(depth,a,row?.11:.029);
+      const sign=s>-.34?-1:1,extra=s>.25?2.3:.6;
+      const joint=v<mid?bay:bayList[(j+1)%bayList.length];
+      const drop=.21+cusp*(.7+extra+joint.drop**2*4.3);
+      const side=cos(a);
+      return [x-side*.10*u*drop,y+sign*u*drop,z-.20*u*drop+.08*sin(Math.PI*u),
+        .12+.40*(1-.65*u)*(.56+.44*cos(a-1))+.09*cusp];
+    },skull,bayList.length).material=dentin;
   }
+  dentalCurtain(bays,0);dentalCurtain(innerBays,1);
+  const dummy=new T.Object3D();
   const spires=new T.InstancedMesh(shard.geometry,stone,170);group.add(spires);
   for(let i=0;i<170;i++){
     const a=Math.floor(i/7)*2.399+random()*.06,r=radius+4+random()*18;
@@ -318,27 +301,21 @@ export function createGreedAbyss(T, parent, radius) {
     const silhouetteClearance=pz < -24 && Math.abs(px+4)<4;
     dummy.position.set(px+(silhouetteClearance?-7:0),.4,pz);dummy.rotation.set(.16*random(),a,.22*sin(a));dummy.scale.set(.3+random(),2+7*random(),.45+random());dummy.updateMatrix();spires.setMatrixAt(i,dummy.matrix);
   }
-  // Tattered strands span the upper teeth, catching only narrow slivers of
-  // light. All are drawn in one batch and stay outside the walkable disc.
-  const strands=new T.InstancedMesh(shard.geometry,stone,42);skull.add(strands);
-  for(let i=0;i<strands.count;i++){
-    const a=random()*Math.PI, depth=random();
-    dummy.position.set((11.7-depth)*cos(a),17.5*sin(a),-.5-depth*3);
-    dir.set(-.07*cos(a),-1,.03*sin(a*7));dummy.quaternion.setFromUnitVectors(up,dir.normalize());
-    dummy.scale.set(.05+random()*.12,1+random()**2*9,.09);
-    dummy.updateMatrix();strands.setMatrixAt(i,dummy.matrix);
-  }
-  // Bent fangs are attached at the sampled lip. The narrow inner edge
-  // catches a silver glint, while the shaft bends back into the throat.
-  surface(compact?9:14,5,(u,v,j)=>{
-    const a=(j+.30*sin(j*3.7))*tau/31;
-    const [x,y,z]=skullSurface(.595,a/tau);
-    const length=2.4+5.6*(.5+.5*sin(j*6.7+1))**2+2*Math.abs(sin(a));
-    const r=(.23+.32*(.5+.5*cos(j*3)))*(1-u)**1.28;
-    const bend=length*(.08*u+.23*u*u);
-    return [x-cos(a)*bend+r*cos(tau*v),y+(sin(a)>-.30?-1:1)*length*u+.27*sin(tau*v)*r,
-      z+1.4*sin(Math.PI*u)-2.8*u*u+r*sin(tau*v),.10+.27*(1-u)*(.5+.5*cos(tau*v))+.16*u];
-  },skull,31);
+  // A few threads actually bridge upper and lower gums along the flanks.
+  // Their endpoints lie on different sections, giving the opening parallax.
+  const threads=Array.from({length:42},()=>[random(),random(),random(),random()]);
+  surface(compact?9:15,4,(u,v,j)=>{
+    const [az,depth,slack,weight]=threads[j*2],side=j%2?1:-1;
+    const a=.28+az*.74;
+    const upper=section(.99-.045*depth,side>0?a:Math.PI-a,.06);
+    const attached=j%4===0;
+    const lower=section(.992-.035*depth,side>0?-a:Math.PI+a,.07);
+    const t=attached?u:u*(.14+.43*weight);
+    const r=(attached?.082:.11)*(attached?1:1-u);
+    return [upper[0]+(lower[0]-upper[0])*t+side*(.30+slack*.35)*sin(t*Math.PI)+r*cos(tau*v),
+      upper[1]+(lower[1]-upper[1])*t,upper[2]+(lower[2]-upper[2])*t-.54*sin(t*Math.PI)+r*sin(tau*v),
+      .13+.25*(.5+.5*cos(tau*v))];
+  },skull,threads.length/2).material=dentin;
   const specks=new Float32Array(36*3);
   for(let i=0;i<specks.length;i+=3){
     specks[i]=(random()-.5)*58;specks[i+1]=2+random()*16;specks[i+2]=-random()*36;
@@ -355,7 +332,7 @@ export function createGreedAbyss(T, parent, radius) {
   halo.material.map=new T.CanvasTexture(canvas);halo.position.set(-4,3.7,-46);halo.scale.set(11,11,1);group.add(halo);
   return {env:{bg:0x07080a,fog:0x101116,fogNear:41,fogFar:160,hemi:[0xc4c5cc,0x575250,.95],sun:[0xf4eff0,1.15],light:[0xdde5f4,9,95,[-8,17,-23]],exposure:1.15},
     update(t,dt,camera,options){
-      skull.scale.y=1.18+.009*sin(t*.52);
+      skull.scale.y=1+.004*sin(t*.52);
       dust.position.set(.32*sin(t*.17),.18*sin(t*.24),0);
       const target=options?.player || camera?.position;
       watchers.forEach(({socket,lids,iris},i)=>{
@@ -368,6 +345,6 @@ export function createGreedAbyss(T, parent, radius) {
         }
       });
     },
-    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();closed=true;enamel.dispose();cornea.dispose();neutral.dispose();reliefMap.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
+    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();closed=true;dentin.dispose();cornea.dispose();neutral.dispose();reliefMap.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
   };
 }
