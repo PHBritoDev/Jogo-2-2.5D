@@ -107,9 +107,9 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     const S = FAUNA[a.kind], d = near(a, px, pz); a.st += dt;
     const fleeR = a.kind === 'grilo' ? 1.6 : a.kind === 'dourado' ? 4.5 : 0;
     if (fleeR && d < fleeR && a.state !== 'flee' && a.state !== 'leave') { a.state = a.kind === 'dourado' ? 'leave' : 'flee'; a.st = 0; a.hop = 0; }
-    if (a.state === 'idle' && a.st > 1.5 + a.seed * 3) { a.state = Math.random() < (a.kind === 'rapina' ? .1 : .45) ? 'hop' : 'idle'; a.st = 0; if (a.state === 'hop') a.yaw += (Math.random() - .5) * 2.2; }
+    if (a.state === 'idle' && a.st > 1.5 + a.seed * 3) { a.state = Math.random() < .45 ? 'hop' : 'idle'; a.st = 0; if (a.state === 'hop') a.yaw += (Math.random() - .5) * 2.2; }
     if (a.state === 'hop' || a.state === 'flee') {
-      const len = a.kind === 'grilo' ? .3 : .3, dist = a.kind === 'grilo' ? .35 : .45;
+      const len = .3, dist = a.kind === 'grilo' ? .35 : .45;
       if (a.state === 'flee' && a.hop === 0) a.yaw = Math.atan2(a.x - px, a.z - pz) + (Math.random() - .5) * .6;
       a.hop += dt / len; const u = Math.min(1, a.hop), nx = a.x + Math.sin(a.yaw) * dist * dt / len, nz = a.z + Math.cos(a.yaw) * dist * dt / len;
       if (habitatOk(a.kind, nx, nz, ctx) && Math.hypot(nx - a.hx, nz - a.hz) < 14) { a.x = nx; a.z = nz; } else a.yaw += Math.PI * .6 * dt / len;
