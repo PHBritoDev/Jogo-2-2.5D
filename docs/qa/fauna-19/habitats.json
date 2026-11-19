@@ -1,0 +1,67 @@
+{
+  "coelho": {
+    "biome": "vale",
+    "animal": {
+      "kind": "coelho",
+      "state": "idle",
+      "yaw": 3.3882453526554737,
+      "qa": false,
+      "perch": false,
+      "x": -575.11,
+      "z": -6.06,
+      "y": 1.71
+    }
+  },
+  "montanha": {
+    "biome": "serra",
+    "animal": {
+      "kind": "montanha",
+      "state": "idle",
+      "yaw": 3.5672082525943893,
+      "qa": false,
+      "perch": false,
+      "x": -777.73,
+      "z": -48.66,
+      "y": 63.46
+    }
+  },
+  "lava": {
+    "biome": "cinzas",
+    "animal": {
+      "kind": "lava",
+      "state": "idle",
+      "yaw": 4.581865365478179,
+      "qa": false,
+      "perch": false,
+      "x": -1132.24,
+      "z": -142.41,
+      "y": 33.7
+    }
+  },
+  "dourado": {
+    "biome": "vale",
+    "animal": {
+      "kind": "dourado",
+      "state": "idle",
+      "yaw": 0.5814502050675103,
+      "qa": false,
+      "perch": false,
+      "x": -568.8,
+      "z": -170.12,
+      "y": 6
+    }
+  },
+  "grilo": {
+    "biome": "vale",
+    "animal": {
+      "kind": "grilo",
+      "state": "idle",
+      "yaw": 5.912119058698211,
+      "qa": false,
+      "perch": false,
+      "x": -606.29,
+      "z": -92.26,
+      "y": 1
+    }
+  }
+}

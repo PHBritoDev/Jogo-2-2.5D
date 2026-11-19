@@ -1,0 +1,138 @@
+[
+  {
+    "kind": "coelho",
+    "spawn": true,
+    "biome": "vale",
+    "point": [
+      -305.2,
+      -50.2
+    ],
+    "states": [
+      "idle",
+      "flee"
+    ],
+    "landed": false,
+    "simulationSpeed": 2,
+    "range": [
+      1.41,
+      1.64
+    ],
+    "draws": 1,
+    "tris": 4867,
+    "counts": {
+      "coelho": 1
+    },
+    "loaded": [
+      "coelho",
+      "dourado"
+    ],
+    "fps": 4.7,
+    "worldCalls": 61,
+    "heapMiB": 190,
+    "videoFrames": 30
+  },
+  {
+    "kind": "montanha",
+    "spawn": true,
+    "biome": "serra",
+    "point": [
+      -675.2,
+      -54.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      18.36,
+      23.44
+    ],
+    "draws": 1,
+    "tris": 2947,
+    "counts": {
+      "montanha": 1
+    },
+    "loaded": [
+      "coelho",
+      "dourado",
+      "montanha"
+    ],
+    "fps": 3.4,
+    "worldCalls": 69,
+    "heapMiB": 190,
+    "videoFrames": 84
+  },
+  {
+    "kind": "lava",
+    "spawn": true,
+    "biome": "cinzas",
+    "point": [
+      -1015.2,
+      -25.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      55.64,
+      58.64
+    ],
+    "draws": 1,
+    "tris": 4937,
+    "counts": {
+      "lava": 1
+    },
+    "loaded": [
+      "coelho",
+      "dourado",
+      "montanha",
+      "lava"
+    ],
+    "fps": 2.6,
+    "worldCalls": 69,
+    "heapMiB": 190,
+    "videoFrames": 58
+  },
+  {
+    "kind": "dourado",
+    "spawn": true,
+    "biome": "vale",
+    "point": [
+      -325.2,
+      -47.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      2.6,
+      5.6
+    ],
+    "draws": 2,
+    "tris": 7806,
+    "counts": {
+      "dourado": 1,
+      "coelho": 1
+    },
+    "loaded": [
+      "dourado",
+      "coelho"
+    ],
+    "fps": 5.1,
+    "worldCalls": 64,
+    "heapMiB": 169,
+    "videoFrames": 80
+  },
+  {
+    "kind": "grilo",
+    "spawn": false
+  }
+]
