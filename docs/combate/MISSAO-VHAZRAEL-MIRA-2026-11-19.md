@@ -73,6 +73,10 @@ A IA só lê o que já está visível: um golpe começando, um projétil no ar, 
 | saltos / dash de entrada / flanco / sair | 0 / 0 / 0 / 0 | 2–3 / 1–3 / 1–2 / 1 |
 | bombardeio, espinhos, trono, Extinção Orbital | só espinhos e orbital | todos |
 
+**Duelo público gravado** (`vhazrael-duelo-publico-26s.mp4`, quadros e `vhazrael-duelo-publico-auditoria.json`), 26 s:
+espinhos, bombardeio, Ruptura do Trono e Extinção Orbital; Salto Predatório; dash de aproximação, dash de **entrar**,
+**flanquear** e **sair**; Estocada, Riposta, Corte Duplo e Queda do Trono. O maior tempo parado entre ações foi 2,5 s.
+
 Leitura da magia do herói no jogo: o cerco de lâminas provocou **dash para fora da magia** e a Chuva de Estrelas provocou
 **escudo**. Nos testes (160 sementes), as quatro respostas aparecem e "aguentar" fica entre 10 % e 40 %.
 
