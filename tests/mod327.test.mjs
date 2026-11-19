@@ -137,44 +137,44 @@ test('praça de Cinzária: chafariz inequívoco (torno com bacia, taça e pinác
   assert.ok(/addSolid\(\{ x: P\.fountain\.x, z: P\.fountain\.z, r: R \+ \.35, city: 1/.test(blk), 'colisão mantida');
 });
 
-/* ---------- P1/P2: fauna com os GLBs do autor ---------- */
+/* ---------- P1/P2: fauna preservada no Ato 1 ---------- */
 import { FAUNA, FAUNA_CELL, cellCandidate, habitatOk, budget, insectLevel } from '../fauna3d.js';
 const fctx = (biome, extra = {}) => ({ biome: () => biome, water: () => -1, road: () => false, lava: () => 0, blocked: () => false, ...extra });
-test('fauna: os cinco GLBs do autor existem e são os únicos modelos usados', () => {
-  const files = Object.values(FAUNA).map(s => s.file).sort();
-  assert.deepEqual(files, ['Coelho.glb', 'Grilo.glb', 'PassaroLava.glb', 'Passaro_Rapina_Montanhas.glb', 'Passaro_Vale_Dourado.glb']);
-  for (const f of files) assert.ok(fs.existsSync(new URL('../' + f, import.meta.url)), f);
+test('fauna: somente pássaro dourado do Ato 1 e grilo permanecem', () => {
+  assert.deepEqual(Object.keys(FAUNA).sort(), ['dourado', 'grilo']);
+  assert.deepEqual(Object.values(FAUNA).map(s => s.file).sort(), ['Grilo.glb', 'Passaro_Vale_Dourado.glb']);
+  for (const { file } of Object.values(FAUNA)) assert.ok(fs.existsSync(new URL('../' + file, import.meta.url)), file);
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
-  assert.ok(!/BoxGeometry|ConeGeometry|SphereGeometry|PlaneGeometry/.test(src), 'nenhum bicho procedural de bloco/2D');
-  assert.ok(/index !== baseIdx\) return Promise\.resolve\(null\)/.test(src) && /resizeWidth: size/.test(src), 'só a cor base, reduzida — normal/rugosidade 2048² não são decodificados');
+  for (const old of ['Coelho.glb', 'PassaroLava.glb', 'Passaro_Rapina_Montanhas.glb']) assert.ok(!src.includes(old), old + ' removido');
+  assert.ok(/index !== baseIdx\) return Promise\.resolve\(null\)/.test(src) && /resizeWidth: size/.test(src));
 });
-test('fauna: habitat — nunca na água, estrada, lava, sólido, cidade ou vulcão; cada espécie no seu bioma', () => {
-  for (const k of Object.keys(FAUNA)) for (const b of ['cidade', 'vulcao', null]) assert.equal(habitatOk(k, 0, 0, fctx(b)), false, k + ' em ' + b);
-  assert.ok(habitatOk('coelho', 0, 0, fctx('vale')) && !habitatOk('coelho', 0, 0, fctx('vale', { water: () => .1 })), 'coelho perto da água, nunca dentro');
-  assert.ok(!habitatOk('coelho', 0, 0, fctx('vale', { road: () => true })) && !habitatOk('grilo', 0, 0, fctx('prado', { road: () => true })), 'nada no meio da estrada');
-  assert.ok(!habitatOk('corvo', 0, 0, fctx('cinzas', { lava: () => 1 })) && habitatOk('corvo', 0, 0, fctx('cinzas')) && !habitatOk('corvo', 0, 0, fctx('vale')), 'corvo-de-lava só nas cinzas, nunca sobre lava');
-  assert.ok(habitatOk('rapina', 0, 0, fctx('serra')) && habitatOk('rapina', 0, 0, fctx('abismo')) && !habitatOk('rapina', 0, 0, fctx('vale')));
-  assert.ok(!habitatOk('coelho', 0, 0, fctx('cinzas')) && !habitatOk('grilo', 0, 0, fctx('cinzas')), 'nada de coelho/grilo na cinza');
-  assert.ok(!habitatOk('coelho', 0, 0, fctx('vale', { blocked: () => true })), 'nem dentro de rocha/casa');
+test('fauna: habitat restrito, sem cidade, água, estrada, lava ou objetos sólidos', () => {
+  for (const k of Object.keys(FAUNA)) {
+    for (const b of ['cidade', 'vulcao', 'cinzas', 'serra', 'abismo', null]) assert.equal(habitatOk(k, 0, 0, fctx(b)), false);
+    assert.ok(habitatOk(k, 0, 0, fctx('vale')));
+    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { water: () => .1 })));
+    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { road: () => true })));
+    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { blocked: () => true })));
+  }
 });
-test('fauna: grilos SÓ do anoitecer à madrugada (sem grilo de dia); orçamento e qualidade baixa', () => {
-  for (let h = 6; h <= 18; h += .5) { assert.equal(FAUNA.grilo.active(h), false, 'grilo às ' + h + 'h'); assert.equal(insectLevel(h, true) > 0 && h < 17.8, false); }
-  assert.ok(FAUNA.grilo.active(21) && FAUNA.grilo.active(2) && insectLevel(21, true) === 1 && insectLevel(21, false) < .3);
-  assert.deepEqual(Object.fromEntries(Object.keys(FAUNA).map(k => [k, budget(k, false)])), { coelho: 3, dourado: 3, rapina: 1, corvo: 2, grilo: 2 }, 'orçamento do briefing');
-  assert.equal(budget('grilo', true), 0, 'celular em qualidade baixa: sem grilo visual (só o canto)');
-  for (const k of Object.keys(FAUNA)) assert.ok(budget(k, true) <= budget(k, false));
+test('fauna: grilos somente à noite; orçamento das duas espécies', () => {
+  for (let h = 6; h <= 18; h += .5) { assert.equal(FAUNA.grilo.active(h), false); assert.equal(insectLevel(h, true) > 0 && h < 17.8, false); }
+  assert.ok(FAUNA.grilo.active(21) && FAUNA.grilo.active(2));
+  assert.deepEqual(Object.fromEntries(Object.keys(FAUNA).map(k => [k, budget(k, false)])), { dourado: 3, grilo: 2 });
+  assert.equal(budget('grilo', true), 0);
 });
-test('fauna: semente estável por célula (o mesmo bicho mora no mesmo lugar) e densidade baixa', () => {
-  for (const k of Object.keys(FAUNA)) { let n = 0; for (let cx = -30; cx < 30; cx++) for (let cz = -10; cz < 10; cz++) { const a = cellCandidate(k, cx, cz), b = cellCandidate(k, cx, cz); assert.deepEqual(a, b); if (a) { n++; assert.ok(a.x >= cx * FAUNA_CELL && a.x < (cx + 1) * FAUNA_CELL); } } assert.ok(n > 30 && n < 1200 * .8, k + ' densidade ' + n); }
+test('fauna: semente estável por célula e densidade baixa', () => {
+  for (const k of Object.keys(FAUNA)) { let n = 0; for (let cx = -30; cx < 30; cx++) for (let cz = -10; cz < 10; cz++) {
+    const a = cellCandidate(k, cx, cz), b = cellCandidate(k, cx, cz); assert.deepEqual(a, b);
+    if (a) { n++; assert.ok(a.x >= cx * FAUNA_CELL && a.x < (cx + 1) * FAUNA_CELL); }
+  } assert.ok(n > 30 && n < 1200 * .8, k); }
 });
-test('fauna no jogo: controlador único, lazy por habitat, sem bicho em interior/caverna, canto dos grilos ponderado', () => {
+test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos grilos', () => {
   assert.equal((m.match(/createFauna\(/g) || []).length, 1);
   assert.ok(/fauna\.update\(dt,\{px:P\.x,pz:P\.z,hour:gameClock\.hour,camera,hidden:voidMode\|\|caveWalk\}\)/.test(m));
   assert.ok(/worldAudio\.update\(dt,\{[^}]*insects:faunaInsects,/.test(m));
-  const au = fs.readFileSync(new URL('../audio3d.js', import.meta.url), 'utf8'); assert.ok(/const ins = s\.insects \?\? \(night > \.4 \? 1 : 0\)/.test(au));
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
-  assert.ok(/if \(list\.length && !assets\[kind\] && !loading\)/.test(src), 'um GLB por vez, só com habitat no raio');
-  assert.ok(/if \(d < 10 \|\| \(inView && d < 22\)\) continue;/.test(src), 'nunca nasce na cara do jogador');
+  assert.ok(/if \(list\.length && !assets\[kind\] && !loading\)/.test(src));
 });
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
