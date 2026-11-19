@@ -47,7 +47,7 @@ test('Mod visível e cache atualizado: marcador, loader, BUILD e index na mesma 
   const loader=fs.readFileSync(new URL('./mod181-loader.js',import.meta.url),'utf8');
   const index=fs.readFileSync(new URL('./index.html',import.meta.url),'utf8');
   assert.match(loader,/searchParams\.get\('v'\)/);
-  assert.match(index,/encodeURIComponent\(meta\.MOD\)/);
+  assert.match(index,/nav\.worldURL\(params,meta\.BUILD\)/);
   assert.match(src,/syncBuildMarker\(document\.getElementById\('marker'\)\)/);
 });
 
