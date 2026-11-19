@@ -192,6 +192,21 @@ export function createGreedAbyss(T, parent, radius) {
     return [c.x+n.x*x+b.x*y,c.y+n.y*x+b.y*y,c.z+n.z*x+b.z*y,
       .036+.105*joint*layer+.058*Math.max(0,-sin(a+.4))];
   });
+  // A polished black nodule hangs in the gap under the arch. Its thin
+  // mineral crescent and three divergent tethers read even in silhouette.
+  const nodule={x:-12,y:38,z:-56,r:2.65};
+  surface(compact?14:22,compact?22:32,(u,v)=>{
+    const a=v*tau,lat=u*Math.PI,r=nodule.r*sin(lat);
+    const rim=Math.exp(-((u-.81)**2)/.0018)*(.5+.5*cos(a+1.2));
+    return [nodule.x+r*cos(a),nodule.y+nodule.r*cos(lat),nodule.z+r*sin(a),
+      .005+.34*rim+.023*(1-u)**4];
+  });
+  surface(compact?12:18,4,(u,v,j)=>{
+    const a=j*tau/3,bend=u*u*(j===0?7:4.3),w=.13+.41*u**3;
+    return [nodule.x+cos(a)*(.65+bend)+w*cos(v*tau),
+      nodule.y+2.3+u*(13+j*2),
+      nodule.z+sin(a)*(.5+bend)-13*u+w*sin(v*tau),.032+.13*(.5+.5*cos(v*tau+a))];
+  },group,3);
   // Thin torn sails descend from vaulted folds. Individual tears open
   // windows through to the farther wall instead of filling it with pillars.
   surface(compact?15:24,6,(u,v,j)=>{

@@ -34,8 +34,8 @@
     "before": false,
     "view": 0,
     "frame": 4,
-    "calls": 28,
-    "triangles": 94739,
+    "calls": 35,
+    "triangles": 119687,
     "points": 36,
     "lines": 0
   },
@@ -44,8 +44,8 @@
     "before": false,
     "view": 1,
     "frame": 5,
-    "calls": 26,
-    "triangles": 92099,
+    "calls": 33,
+    "triangles": 117047,
     "points": 36,
     "lines": 0
   },
@@ -54,8 +54,8 @@
     "before": false,
     "view": 2,
     "frame": 6,
-    "calls": 24,
-    "triangles": 90275,
+    "calls": 31,
+    "triangles": 115223,
     "points": 36,
     "lines": 0
   },
@@ -94,8 +94,8 @@
     "before": false,
     "view": 0,
     "frame": 4,
-    "calls": 28,
-    "triangles": 38743,
+    "calls": 35,
+    "triangles": 52945,
     "points": 36,
     "lines": 0
   },
@@ -104,8 +104,8 @@
     "before": false,
     "view": 1,
     "frame": 5,
-    "calls": 27,
-    "triangles": 38167,
+    "calls": 34,
+    "triangles": 52369,
     "points": 36,
     "lines": 0
   },
@@ -114,8 +114,8 @@
     "before": false,
     "view": 2,
     "frame": 6,
-    "calls": 24,
-    "triangles": 36511,
+    "calls": 31,
+    "triangles": 50713,
     "points": 36,
     "lines": 0
   }
