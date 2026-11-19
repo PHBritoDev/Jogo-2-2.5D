@@ -1,17 +1,17 @@
-/** TESTE TEMPORÁRIO DO CRIADOR (17/11/2026).
- * true = inimigos 1–4, bispos 1–4 e Ganância usam apenas combate físico normal;
- * false = restaura todos os poderes originais, sem apagar implementações.
- * IMPORTANTE: não usar esta configuração como balanceamento final.
+/** Treino SÓ FÍSICO (criado como teste temporário em 17/11/2026) — agora OPCIONAL e EXPLÍCITO.
+ * Antes ele ficava ligado por padrão no jogo público e desligava salto, escudo, magias e ultimates de todos os
+ * inimigos e Bispos (por isso o VHAZRAEL "não pulava nem conjurava"). Missão 19/11: o padrão é o kit canônico completo.
+ * Para treinar só esgrima, abra o jogo com ?treinoFisico=1 (alias legado: ?somenteFisico=1).
+ * O antigo ?fullCombatQA=1 continua aceito e não muda nada (já é o padrão).
  */
-// O jogo público mantém modo de esgrima; testes legados Node verificam o kit original.
-// QA de combate completo em navegador usa ?fullCombatQA=1 para não falsificar regressões.
-export const TEMP_MELEE_ONLY_TEST = typeof window !== 'undefined' &&
-  !new URLSearchParams(window.location.search).has('fullCombatQA');
-export const meleeOnlyProfile = p => TEMP_MELEE_ONLY_TEST && [
+const params = typeof window !== 'undefined' && window.location ? new URLSearchParams(window.location.search) : null;
+export const TEMP_MELEE_ONLY_TEST = !!params && !params.has('fullCombatQA') && (params.has('treinoFisico') || params.has('somenteFisico'));
+export const MELEE_ONLY_PROFILES = Object.freeze([
   'vhazrael', 'fallen1', 'vorgazhek', 'fallen2', 'zarkhael', 'fallen3',
   'veraxion', 'fallen4', 'greed1', 'greed2', 'greed3',
   'captor', 'warden', 'evo1', 'elite1',
   'demon2', 'miniboss2', 'evo2', 'elite2',
   'demon3', 'miniboss4', 'zealot', 'evo3', 'elite3',
   'demon4', 'leader4', 'miniboss3', 'hollow', 'elite4'
-].includes(p);
+]);
+export const meleeOnlyProfile = p => TEMP_MELEE_ONLY_TEST && MELEE_ONLY_PROFILES.includes(p);

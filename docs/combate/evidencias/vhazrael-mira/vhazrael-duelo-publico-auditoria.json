@@ -1,0 +1,167 @@
+{
+ "st": {
+  "attacks": 46,
+  "dashes": 49,
+  "magic": 6,
+  "heals": 0,
+  "heroDmg": 139,
+  "bossDmg": 285,
+  "frames": 774,
+  "skips": 6
+ },
+ "audit": {
+  "on": true,
+  "t": 26,
+  "roles": {
+   "idle": 12,
+   "Trono_Riposta": 2,
+   "hit": 1,
+   "walk": 10,
+   "run": 5,
+   "dash": 4,
+   "Trono_Duplo": 1,
+   "Trono_Estocada": 1,
+   "jump": 1,
+   "Trono_Queda": 1
+  },
+  "acts": {
+   "cast:thorns": 1,
+   "melee:Trono_Riposta": 2,
+   "stagger": 1,
+   "dodge:sair": 1,
+   "melee:Trono_Duplo": 1,
+   "dodge:flanquear": 1,
+   "melee:Trono_Estocada": 1,
+   "dodge:entrar": 1,
+   "cast:throne": 1,
+   "cast:bombard": 1,
+   "dodge": 1,
+   "leap": 1,
+   "melee:Trono_Queda": 1,
+   "cast:orbital": 1
+  },
+  "events": {
+   "cast": 4,
+   "thorns": 1,
+   "thornWave": 3,
+   "thornRise": 19,
+   "windup": 5,
+   "vzTactic": 3,
+   "tactic:sair": 1,
+   "evade": 1,
+   "poiseHold": 2,
+   "meleeHit": 3,
+   "tactic:flanquear": 1,
+   "vzSawCast": 1,
+   "sawCast:melee": 1,
+   "tactic:entrar": 1,
+   "throne": 1,
+   "throneCharge": 1,
+   "throneRaise": 1,
+   "throneSlash": 1,
+   "throneImpact": 1,
+   "throneShockwave": 1,
+   "throneBlast": 1,
+   "bombard": 1,
+   "bombardShot": 23,
+   "bombardImpact": 23,
+   "vzClose": 1,
+   "leap": 1,
+   "jump": 2,
+   "airDash": 1,
+   "leapStrike": 1,
+   "bombardEnd": 1,
+   "orbital": 1
+  },
+  "log": [
+   [
+    0.6,
+    "cast:thorns",
+    6.5
+   ],
+   [
+    2.13,
+    "melee:Trono_Riposta",
+    1
+   ],
+   [
+    2.17,
+    "stagger",
+    1
+   ],
+   [
+    2.8,
+    "dodge:sair",
+    1.5
+   ],
+   [
+    3.2,
+    "melee:Trono_Duplo",
+    2.4
+   ],
+   [
+    4.6,
+    "melee:Trono_Riposta",
+    1.7
+   ],
+   [
+    5.33,
+    "dodge:flanquear",
+    3.8
+   ],
+   [
+    5.93,
+    "melee:Trono_Estocada",
+    4.8
+   ],
+   [
+    6.8,
+    "dodge:entrar",
+    7.6
+   ],
+   [
+    7.5,
+    "cast:throne",
+    6.9
+   ],
+   [
+    18.07,
+    "cast:bombard",
+    25.1
+   ],
+   [
+    21.8,
+    "dodge",
+    13.8
+   ],
+   [
+    22.33,
+    "leap",
+    7.4
+   ],
+   [
+    24.1,
+    "melee:Trono_Queda",
+    2.7
+   ],
+   [
+    25.77,
+    "cast:orbital",
+    2.1
+   ]
+  ],
+  "passive": 6.1,
+  "passiveMax": 2.53,
+  "lastActT": 0,
+  "repeats": 0,
+  "lastAct": "cast:orbital",
+  "dist": [
+   2,
+   5,
+   2.9,
+   16.1
+  ],
+  "idleRun": 0
+ },
+ "errs": []
+}

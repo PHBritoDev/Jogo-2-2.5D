@@ -49,12 +49,42 @@ export function poseKatana(T, b, a, dt, time, low) {
   else {
     const cast = a.alive && a.act && (a.act.type === 'cast' || a.act.type === 'phase2'); b.kCast += ((cast ? 1 : 0) - b.kCast) * Math.min(1, dt * 6);
     const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, k = b.kCast;
-    if (a.kind === 'vhazrael') V.d.set(fy * .3 + rx * .12, -1, fz * .3 + rz * .12); else V.d.set(fy * .82 + rx * .18, -.32, fz * .82 + rz * .18); V.d.lerp(V.p.set(-fy * .2 + rx * .3, -1, -fz * .2 + rz * .3), k).normalize();
+    if (a.kind === 'vhazrael') { V.d.set(fy * .3 + rx * .12, -1, fz * .3 + rz * .12).normalize(); if (b.carryW > .001 && b.carryBlade) V.d.lerp(b.carryBlade, b.carryW).normalize(); } else V.d.set(fy * .82 + rx * .18, -.32, fz * .82 + rz * .18); V.d.lerp(V.p.set(-fy * .2 + rx * .3, -1, -fz * .2 + rz * .3), k).normalize();
     if (!a.alive) { b.wDrop = Math.min(1, b.wDrop + dt * 1.6); V.d.lerp(V.p.set(rx, -.05, rz), b.wDrop).normalize(); }
     V.f.set(fy, 0, fz); V.f.addScaledVector(V.d, -V.f.dot(V.d)).normalize(); V.x.crossVectors(V.d, V.f).normalize(); V.m.makeBasis(V.x, V.d, V.f); root.quaternion.setFromRotationMatrix(V.m);
     if (!a.alive) root.position.y = Math.max(a.y + .12, root.position.y - b.wDrop * 1.2);
   }
   root.visible = b.holder.visible; w.userData.updateFx(time, a.phase2 ? 1 : 0, low, root.visible);
+}
+/**
+ * Missão 19/11 — postura armada do VHAZRAEL fora dos golpes (a espada caída "de braço cansado" destruía a presença).
+ *  • Marcha do Executor (alvo a ≥ 4,2 m): punho à frente-direita na altura do peito, lâmina em diagonal para cima e para
+ *    FORA do ombro direito (longe do rosto, do peito e das asas), cabeça no herói.
+ *  • Guarda de Predador (perto): punho à frente do peito, lâmina apontada ao herói em diagonal — pronta para cortar.
+ *  • Dash: a guarda abaixa e a lâmina vem junto ao corpo, sem cruzar a malha. Golpes, conjuração, bloqueio, salto e
+ *    cambaleio usam o próprio clipe (peso 0 aqui) e a transição é suave (sem estalo).
+ * Só osso do braço direito e um pouco do peito; pernas e passos continuam do Walking/Running/strafe.
+ */
+export const VZ_CARRY = Object.freeze({
+  march: { rua: [.1, -.8, .42], rla: [.72, .48, .2], blade: [-.12, .84, .55], chest: -.06 },
+  guard: { rua: [.45, -.72, .3], rla: [.92, .2, -.12], blade: [.78, .5, -.05], chest: .1 },
+  dash: { rua: [.05, -.9, .35], rla: [.6, -.35, .2], blade: [.55, -.15, .45], chest: .14 },
+  near: 4.2, rate: 7 });
+const CARRY_OFF = typeof location !== 'undefined' && new URLSearchParams(location.search).has('vzSemPostura'); // QA antes/depois: ?vzSemPostura=1 desliga a camada
+export function poseCarry(T, b, a, squad, dt) {
+  if (a.kind !== 'vhazrael' || CARRY_OFF) return;
+  const R = b.arms || (b.arms = findArms(b.model)); if (!R) return;
+  const act = a.act, free = a.alive && (!act || act.type === 'dodge' || act.type === 'hop' || act.type === 'move') && !(a.airY > .35);
+  b.carryW = (b.carryW || 0) + ((free ? 1 : 0) - (b.carryW || 0)) * Math.min(1, dt * VZ_CARRY.rate); const w = b.carryW; if (w < .01) return;
+  const t = squad && squad.targets ? squad.targets.find(x => x.id === a.targetId) || squad.targets[0] : null, d = t ? Math.hypot(t.x - a.x, t.z - a.z) : 99;
+  const want = act && act.type === 'dodge' ? 1 : d < VZ_CARRY.near ? .5 : 0; b.carryMode = (b.carryMode ?? want) + (want - (b.carryMode ?? want)) * Math.min(1, dt * 5);
+  const m = b.carryMode, A = VZ_CARRY.march, G = VZ_CARRY.guard, D2 = VZ_CARRY.dash, mix = (k) => m <= .5 ? A[k].map((v, i) => v + (G[k][i] - v) * (m / .5)) : G[k].map((v, i) => v + (D2[k][i] - v) * ((m - .5) / .5));
+  /* direita REAL do personagem: de frente para +Z, a mão direita fica em −X → (−fz, +fy) */
+  const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = -fz, rz = fy, V = b._cv || (b._cv = { d: new T.Vector3(), s: new T.Vector3(), q: new T.Quaternion(), q2: new T.Quaternion(), q3: new T.Quaternion(), p: new T.Vector3() });
+  const D = (v) => V.d.set(fy * v[0] + rx * v[2], v[1], fz * v[0] + rz * v[2]).normalize();
+  const ch = m <= .5 ? A.chest + (G.chest - A.chest) * (m / .5) : G.chest + (D2.chest - G.chest) * ((m - .5) / .5); turn(R.chest, V.p.set(0, 1, 0), ch * w, V);
+  aim(R.rua, R.rla, D(mix('rua')), w, V); aim(R.rla, R.rh, D(mix('rla')), w, V);
+  const bl = mix('blade'); b.carryBlade = (b.carryBlade || new T.Vector3()).set(fy * bl[0] + rx * bl[2], bl[1], fz * bl[0] + rz * bl[2]).normalize();
 }
 /** Camada procedural de conjuração por cima do clipe Skill_03 (ou do Idle), em espaço de mundo. */
 export function poseCaster(T, b, a, squad, dt) {

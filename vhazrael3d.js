@@ -64,7 +64,8 @@ export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, 
 /** Proporção de decisões ofensivas: a magia é pontuação de ritmo (alvo 25–40 % das últimas 12 decisões). */
 export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
 const VHAZ = {
-  ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
+  /* Missão 19/11: raio .68 (o corpo de 2,3 m com asas encostava/atravessava o herói a 1,2 m) e armadura de cambaleio de 2,2 s */
+  ...E1.common, hp: VZ_HP, radius: .68, height: 2.3, poise: 70, flinch: 99, staggerArmor: 2.2, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
   speed: { walk: 2.86, run: 5.63, strafe: 2.86, back: 3.5, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
   /* Combate de referência (esgrima rápida com dashes): no modo de espada o bispo também esquiva com dash (é físico, não
@@ -131,11 +132,74 @@ export function vhazraelBrain(sq, a, dt, t) {
     if (a.act && a.act.type === 'block' && aggr > (VHAZRAEL_SWORD_ONLY_TEST ? .12 : .4) && a.act.t > (VHAZRAEL_SWORD_ONLY_TEST ? .16 : .3) && !a.cds.riposte) { a.cds.riposte = VHAZRAEL_SWORD_ONLY_TEST ? 1.6 : 3; a.act = null; a.cds.melee = 0; sq.startMelee(a, t); sq.event('vzRiposte', { actor: a }); }
     // strafe para o lado OPOSTO ao dash preferido (fecha a rota de fuga favorita)
     if (Math.abs(S.side) > .3) a.intent.side = -Math.sign(S.side);
+    vzTactics(sq, a, t, dt);
   }
   // durante a Extinção Orbital ninguém mais ataca (lacaios seguram); depois, tudo segue com força total
   const orbit = sq.spells.find(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done');
   for (const o of sq.actors) if (o !== a && o.alive) { if (orbit) { o.alert = Math.max(o.alert, .5); if (o.act && o.act.type !== 'stagger') o.act = null; } }
 }
+/* ---------- Missão 19/11: matriz de decisão (intenção + distância + estado do jogador + fase) ---------- */
+/**
+ * Faixas (gap = distância entre as bordas): colado < .5 · espada .5–2.4 · dash 2.4–7.5 · magia > 7.5.
+ * Estado visível do herói: atacando, conjurando (projétil vindo), se recuperando de um golpe, defendendo, distante.
+ * Cada ação tem OBJETIVO (entrar, flanquear, sair, reposicionar+conjurar, punir, saltar, defender) e recuperação; o dash
+ * respeita o orçamento (VZ_DASH: 3 em 2,5 s → trava 1,3 s) e a recarga própria de cada tática. Nunca lê botão futuro:
+ * só o que já começou (golpe, projétil no ar, conjuração com mana gasta).
+ */
+export const VZ_TACTICS = Object.freeze({ every: [.38, .62], enter: { gap: [2.2, 7.5], cd: 2.6, dur: 1.55 }, flank: { gap: [.3, 3], cd: 3.4, dur: 1.15 }, out: { gap: [-1, 1.4], cd: 3, dur: 1.2 },
+  magic: { lookahead: 1.3, weights: [[.35, .3, .1, .25], [.3, .3, .2, .2], [.25, .3, .3, .15], [.2, .35, .3, .15]] /* escudo, dash, salto, receber — por fase */ } });
+const vzReady = (sq, a, t) => (a.T.kit || []).filter(id => id !== 'orbital' && SKILLS_OK(sq, a, t, id));
+function SKILLS_OK(sq, a, t, id) { const ts = a.T[id]; if (!ts || a.cds[id] || a.cds.spellGap) return false; const d = Math.hypot(t.x - a.x, t.z - a.z); return d >= ts.min && d <= ts.max; }
+export function vzTactics(sq, a, t, dt) {
+  if (t && t.casting && !a.vzSawCast) { a.vzSawCast = true; sq.event('vzSawCast', { actor: a, busy: a.act ? a.act.type : a.react ? 'react:' + a.react.type : a.alert > 0 ? 'alert' : 'livre' }); } else if (t && !t.casting) a.vzSawCast = false;
+  if (!t || a.pendingDeath || a.alert > 0 || sq.spells.some(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done')) return;
+  const T = VZ_TACTICS, P = a.vzPhase || 0, rand = () => sq.rand();
+  // 0) herói acabou de conjurar (mana gasta — sinal visível; ex.: cerco de lâminas): sair da área com dash, escudo, salto ou aguentar
+  if (!a.act && !a.react && t.casting && !a.cds.vzCastRead) {
+    a.cds.vzCastRead = 2.4; const w = T.magic.weights[P], r = rand(), d0 = Math.hypot(t.x - a.x, t.z - a.z) || 1; a.vzLast = 'magia';
+    if (r < w[0] && a.shield && a.shield.canActivate(sq.time)) { a.react = { type: 'shield', t: .14 + rand() * .1 }; sq.event('vzRead', { actor: a, read: 'conjuração', answer: 'escudo' }); return; }
+    if (r < w[0] + w[1] && !a.cds.dodge) { const sgn = rand() < .5 ? 1 : -1, ux = (a.x - t.x) / d0, uz = (a.z - t.z) / d0, fx = ux * .7 + uz * sgn * .7, fz = uz * .7 - ux * sgn * .7, l = Math.hypot(fx, fz) || 1; a.cds.dodge = a.T.dodge.cd;
+      sq.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.3, anim: 'dash', dx: fx / l, dz: fz / l, iframes: true, face: false, goal: 'sair-da-magia' }); sq.event('vzRead', { actor: a, read: 'conjuração', answer: 'dash' }); return; }
+    if (r < w[0] + w[1] + w[2] && !a.cds.hop && !a.airY) { vzHop(sq, a, t, 'escapar'); sq.event('vzRead', { actor: a, read: 'conjuração', answer: 'salto' }); return; }
+    sq.event('vzRead', { actor: a, read: 'conjuração', answer: 'recebe' });
+  }
+  // 1) magia do herói vindo: escudo, dash lateral, salto ou aceitar o golpe (varia por fase; não esquiva de tudo)
+  if (!a.act && !a.react) for (const f of sq.foreign) {
+    const key = 'vz:' + a.id + ':' + f.id; if (sq.seen.has(key)) continue;
+    const rx = a.x - f.x, rz = a.z - f.z, along = rx * f.dx + rz * f.dz; if (along <= 0) continue;
+    const miss = Math.abs(rx * f.dz - rz * f.dx), tt = along / Math.max(.1, f.speed); if (miss > a.T.radius + f.r + .9 || tt > T.magic.lookahead || tt < .18) continue;
+    sq.seen.add(key); const w = T.magic.weights[P], r = rand(); a.vzLast = 'magia';
+    if (r < w[0] && a.shield && a.shield.canActivate(sq.time)) { a.react = { type: 'shield', t: .12 + rand() * .08 }; sq.event('vzRead', { actor: a, read: 'magia', answer: 'escudo' }); return; }
+    if (r < w[0] + w[1] && !a.cds.dodge) { a.react = { type: 'dodge', t: .1 + rand() * .1, from: f, side: true }; sq.event('vzRead', { actor: a, read: 'magia', answer: 'dash' }); return; }
+    if (r < w[0] + w[1] + w[2] && !a.cds.hop && !a.airY) { vzHop(sq, a, t, 'escapar'); sq.event('vzRead', { actor: a, read: 'magia', answer: 'salto' }); return; }
+    sq.event('vzRead', { actor: a, read: 'magia', answer: 'recebe' }); return;
+  }
+  if (a.act || a.react) return;
+  if ((a.tacT = (a.tacT ?? 0) - dt) > 0) return; a.tacT = T.every[0] + rand() * (T.every[1] - T.every[0]);
+  const d = Math.hypot(t.x - a.x, t.z - a.z) || 1, gap = d - (t.radius || .4) - a.T.radius, ux = (t.x - a.x) / d, uz = (t.z - a.z) / d;
+  const st = sq.study(t.id), recovering = !t.attacking && sq.time - st.lastAttack < .9 && sq.time - st.lastAttack > .15;
+  const dashOk = !a.cds.dodge && !a.cds.close && !a.airY, see = sq.los(a.x, a.z, t.x, t.z), canMelee = sq.canAttack(a, 'melee', t.id);
+  const opts = [];
+  // ENTRAR: dash de aproximação + corte (iniciativa; mais quando o herói conjura ou se recupera de um golpe)
+  if (dashOk && see && canMelee && !a.cds.vzEnter && gap >= T.enter.gap[0] && gap <= T.enter.gap[1]) opts.push(['entrar', .32 + P * .07 + (recovering ? .3 : 0) + (t.casting ? .3 : 0) + (gap > 4.5 ? .12 : 0)]);
+  // FLANQUEAR: dash lateral + combo (contra guarda e contra quem fica parado de frente)
+  if (dashOk && see && canMelee && !a.cds.vzFlank && gap >= T.flank.gap[0] && gap <= T.flank.gap[1]) opts.push(['flanquear', .24 + P * .06 + (t.blocking ? .4 : 0) + (t.attacking ? .06 : 0) + (Math.hypot(t.vx || 0, t.vz || 0) < .5 ? .08 : 0)]);
+  // SAIR: dash para trás quando o herói pressiona colado; se houver magia pronta, reposiciona e conjura
+  if (dashOk && !a.cds.vzOut && gap <= T.out.gap[1] && t.attacking) opts.push(['sair', .26 + (a.hp < a.maxHp * .5 ? .12 : 0) + (a.style?.aggr > 2 ? .12 : 0) + (sq.time - (a.staggerArmorUntil || -9) < 1.5 ? .25 : 0)]);
+  // PUNIR: herói se recuperando de um golpe ao alcance → golpe rápido já
+  if (canMelee && recovering && gap <= 2.4 && !a.cds.melee) opts.push(['punir', .4 + P * .05]);
+  if (!opts.length) return;
+  // escolha por roleta ponderada (imprevisível mas legível): a chance de agir sobe com a melhor utilidade
+  const top = Math.max(...opts.map(o => o[1])); if (rand() > Math.min(.85, top)) return;
+  let roll = rand() * opts.reduce((x, o) => x + o[1], 0), goal = opts[0][0]; for (const o of opts) { roll -= o[1]; if (roll <= 0) { goal = o[0]; break; } }
+  a.vzLast = goal; sq.event('vzTactic', { actor: a, goal, gap: +gap.toFixed(2) });
+  if (goal === 'entrar') { a.cds.vzEnter = T.enter.cd * a.cdMul; a.cds.close = Math.max(a.cds.close || 0, 1.2); sq.begin(a, { type: 'dodge', dur: a.T.dash.time * T.enter.dur * Math.min(1.6, .7 + gap / 6), anim: 'dash', dx: ux, dz: uz, face: true, chain: 'melee', token: 'melee', tid: t.id, goal }); return; }
+  if (goal === 'flanquear') { const sgn = rand() < .5 ? 1 : -1; a.cds.vzFlank = T.flank.cd * a.cdMul; const fx = uz * sgn * .85 + ux * .35, fz = -ux * sgn * .85 + uz * .35, l = Math.hypot(fx, fz); sq.begin(a, { type: 'dodge', dur: a.T.dash.time * T.flank.dur, anim: 'dash', dx: fx / l, dz: fz / l, face: false, iframes: true, chain: 'melee', token: 'melee', tid: t.id, goal }); return; }
+  if (goal === 'sair') { a.cds.vzOut = T.out.cd * a.cdMul; const ready = vzReady(sq, a, t), then = ready.length && rand() < .55 ? ready[Math.floor(rand() * ready.length)] : undefined; sq.begin(a, { type: 'dodge', dur: a.T.dash.time * T.out.dur, anim: 'dash', dx: -ux, dz: -uz, face: false, iframes: true, then, goal: then ? 'reposicionar+' + then : goal }); return; }
+  if (goal === 'punir') { const m = (BOSS_MOVES.vhazrael || []).find(x => x.fast && !x.range); sq.startMelee(a, t, m && m.id); if (a.act) a.act.goal = goal; return; }
+}
+/** Salto curto (Basic_Jump): sai do chão por ~0,7 s — escapa de magia rasteira; não é ataque. */
+export function vzHop(sq, a, t, goal = 'saltar') { a.cds.hop = 3.5; a.airV = 7.2; a.airY = .02; sq.begin(a, { type: 'hop', dur: .72, anim: 'jump', animSpeed: 1.3, animFrom: 1.45, face: true, goal }); }
 /** Mod 320 — fase pela vida, orçamento de dash e proporção espada × magia (com registro auditável em a.vzStats). */
 function vzTick(sq, a, dt) {
   const ph = vzPhaseOf(a.hp, a.maxHp); if (ph !== a.vzPhase) { const was = a.vzPhase; a.vzPhase = ph; if (was !== undefined) sq.event('vzPhase', { actor: a, phase: ph }); }
