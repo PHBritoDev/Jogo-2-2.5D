@@ -1,9 +1,10 @@
-"""Final pass: latest corona, audio controls during pause and lethal-hit handoff."""
+"""Final pass: accretion disc, audio controls during pause and lethal-hit handoff."""
 import asyncio,os,json
 from pathlib import Path
 from playwright.async_api import async_playwright
-out=Path('docs/evidencias/mod228')
+out=Path(os.getenv('WHITEHOLE_QA_OUT','docs/evidencias/ultimate-acrecao'))
 async def main():
+ out.mkdir(parents=True,exist_ok=True)
  async with async_playwright() as p:
   b=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,proxy={'server':os.environ.get('HTTPS_PROXY','http://proxy:8080'),'bypass':'127.0.0.1,localhost'},args=['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader'])
   page=await b.new_page(viewport={'width':800,'height':500},ignore_https_errors=True);page.set_default_timeout(120000);errors=[]

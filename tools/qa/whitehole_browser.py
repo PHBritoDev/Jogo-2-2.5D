@@ -1,8 +1,9 @@
 import asyncio,os,json
 from pathlib import Path
 from playwright.async_api import async_playwright
-out=Path('docs/evidencias/mod228');out.mkdir(parents=True,exist_ok=True)
+out=Path(os.getenv('WHITEHOLE_QA_OUT','docs/evidencias/ultimate-acrecao'));out.mkdir(parents=True,exist_ok=True)
 async def main():
+ out.mkdir(parents=True,exist_ok=True)
  async with async_playwright() as p:
   b=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,proxy={'server':os.environ.get('HTTPS_PROXY','http://proxy:8080'),'bypass':'127.0.0.1,localhost'},args=['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader'])
   page=await b.new_page(viewport={'width':800,'height':500},ignore_https_errors=True);page.set_default_timeout(120000);errors=[]
@@ -21,7 +22,7 @@ async def main():
   # Real capture gate: motion/camera/attacks cannot leak through while presentation owns control.
   await page.keyboard.press('j');await page.keyboard.press('w');await page.mouse.move(300,220);await page.mouse.wheel(0,100)
   last=0
-  for t,name in [(2,'ascent'),(4,'sword'),(5.5,'rift'),(9.9,'colossal'),(10.6,'silence'),(12,'launch'),(13.5,'white'),(16,'landing'),(17.1,'restored')]:
+  for t,name in [(2,'ascent'),(4,'sword'),(5.5,'rift'),(9.9,'colossal'),(10.6,'silence'),(12,'launch'),(13.22,'impacto'),(16,'landing'),(17.1,'restored')]:
    st=await page.evaluate('(dt)=>SevenSinsDebug3D.whiteFrame(dt)',t-last);last=t
    assert st['pos']==before['pos'],st
    await page.screenshot(path=str(out/(name+'.png')));print(name,st,flush=True)
