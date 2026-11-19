@@ -84,7 +84,7 @@ export function nativeMoveClips(T, model, clone, clipFor, moves, grip, blade = [
     const clip = src.clone(); clip.name = m.id; const frames = [], N = Math.ceil(m.duration * 30);
     mixer.stopAllAction(); const a = mixer.clipAction(clip); a.play();
     for (let i = 0; i <= N; i++) {
-      mixer.setTime(Math.min(m.duration, clip.duration - 1e-3) * i / N); rig.updateMatrixWorld(true);
+      mixer.setTime(Math.min(m.duration * i / N, clip.duration - 1e-3)); rig.updateMatrixWorld(true);
       hand.getWorldPosition(p); hand.getWorldQuaternion(q).multiply(grip);
       frames.push([blade.map(b => new T.Vector3(...b).applyQuaternion(q).add(p).toArray())]);
     }

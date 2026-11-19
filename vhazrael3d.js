@@ -58,8 +58,47 @@ export const VZ_HP = 2600, VZ_PHASES = [.7, .4, .15];
 export const VZ_HERO_DMG = 1.6;
 export const vzPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > VZ_PHASES[0] ? 0 : k > VZ_PHASES[1] ? 1 : k > VZ_PHASES[2] ? 2 : 3; };
 /** Duplo salto REAL (motor da esquadra: 2 impulsos, dash aéreo travado no alvo, corte descendente no pouso). */
-export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .2, v1: 7.4, v2: 5.8, second: .38, dash: .26, dashSpeed: 12.5, fall: -15, maxAir: 1.5, gravity: 18, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });
+export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .46, height: 5.4, rise: .76, hover: .18, fall: .38, maxAir: 1.32, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });
 /** Dash: recarga de 0,5 s, mas com orçamento (no máximo 3 em 2,5 s) e compromisso — nunca vira teleporte em série. */
+// The announced destination is a safe point on the launch corridor. Stop short
+// of the player's capsule; dodging after the announcement never moves the seal.
+function judgment(sq, a, act, target, dt) {
+  const L = a.T.leap, {rise,hover,fall}=L;
+  if (!act.mark) {
+    if (!target) { act.t = act.dur; return; }
+    const dx = target.x-a.x, dz = target.z-a.z, distance = Math.hypot(dx,dz) || 1;
+    const reach = Math.min(7, distance-target.radius-a.T.radius-.12);
+    let x=a.x, z=a.z, y=sq.ground(x,z);
+    for (let d=.15; d<=reach; d+=.15) {
+      const nx=a.x+dx*d/distance, nz=a.z+dz*d/distance, ny=sq.ground(nx,nz);
+      if (!Number.isFinite(ny) || Math.abs(ny-y)>.45 || sq.blocked(nx,nz)) break;
+      x=nx; z=nz; y=ny;
+    }
+    act.start={x:a.x,z:a.z}; act.mark={x,y,z}; act.face=false;
+    act.dur=L.crouch+rise+hover+fall+L.recover;
+    sq.event('vzMark',{actor:a,mark:act.mark,r:L.strike.r});
+  }
+  const air=act.t-L.crouch;
+  if (air<0 || act.phase==='land') return;
+  if (act.phase==='crouch') {act.phase='rise';sq.event('jump',{actor:a,n:1});}
+  const u=Math.min(1,air/rise), dive=Math.max(0,Math.min(1,(air-rise-hover)/fall));
+  const travel=u*u*(3-2*u);
+  if (u<1 || act.phase==='rise') {
+    sq.move(a,act.start.x+(act.mark.x-act.start.x)*travel-a.x,act.start.z+(act.mark.z-act.start.z)*travel-a.z);
+    if (u===1) {act.phase='dive';sq.event('airDash',{actor:a});}
+  }
+  a.airY=L.height*(1-(1-u)*(1-u))*(1-dive*dive);
+  a.y=sq.ground(a.x,a.z)+a.airY;
+  if (dive<1) return;
+  act.phase='land'; act.landAt=act.t; a.airY=a.airV=a.jumps=0;
+  if (Math.hypot(a.x-act.mark.x,a.z-act.mark.z)>.4) {act.fizzle=true;return;}
+  sq.event('leapStrike',{actor:a,mark:act.mark});
+  for (const t of sq.enemyTargets()) {
+    if (Math.hypot(t.x-act.mark.x,t.z-act.mark.z)>L.strike.r || Math.abs(t.y-act.mark.y)>.75 || !sq.los(a.x,a.z,t.x,t.z)) continue;
+    const result=sq.damageTarget(t.id,L.strike.dmg,{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:1.1,combo:1});
+    sq.event('meleeHit',{actor:a,target:t.id,result,n:1,move:'salto'});
+  }
+}
 export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, window: 2.5, lockout: 1.3 });
 /** Proporção de decisões ofensivas: a magia é pontuação de ritmo (alvo 25–40 % das últimas 12 decisões). */
 export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });
@@ -72,14 +111,14 @@ const VHAZ = {
      poder) e defende menos e mais curto — a defesa vira aparar e responder (riposta), não parede. */
   dash: VZ_DASH, block: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .24 : .32, dur: VHAZRAEL_SWORD_ONLY_TEST ? .48 : .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .3 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
+  stepJudgment: judgment, leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
   decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: !VHAZRAEL_SWORD_ONLY_TEST, feint: VHAZRAEL_SWORD_ONLY_TEST ? null : 'throne',
   kit: VHAZRAEL_SWORD_ONLY_TEST ? [] : ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
   brain: vhazraelBrain, pickMove: vhazraelPickMove, holdDeath: (sq, a) => orbitalHoldsDeath(sq, a)
 };
 /* Mod 320 — golpes de espada NATIVOS do VHAZRAEL.glb (vhazrael-rig3d.js): clipes reais, janelas nos picos medidos da
    mão, contato pelo traço da lâmina amostrado do mesmo clipe. Substituem os 3 golpes de IK do rig antigo. */
-BOSS_MOVES.vhazrael = (VHAZRAEL_SWORD_ONLY_TEST ? VZ_MOVES.filter(m => !m.range) : VZ_MOVES).map(m => ({ ...m, patterns: ['diagonal'] }));
+BOSS_MOVES.vhazrael = VZ_MOVES.map(m => ({ ...m, patterns: ['diagonal'] }));
 /* CLAUDE (P3) — esgrima mais rápida e contínua, por golpe (não acelerar tudo igual): leves ~0,6 s, médios ~1,1 s,
    pesados ~1,4 s em tempo real. A janela de dano, o traço da lâmina, o avanço e o clipe andam juntos no tempo do clipe
    (enemy1-squad3d.stepAction × rate), então o telegraph continua legível (1º impacto ≥ 0,33 s). */
@@ -125,8 +164,8 @@ export function vhazraelBrain(sq, a, dt, t) {
     a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = VHAZRAEL_SWORD_ONLY_TEST ? clamp(VHAZ.dodge.chance + aggr * .12, 0, .5) : clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
     a.T.thorns.bias = clamp(S.side, -1, 1) * clamp(S.dash / 3, 0, 1); a.T.thorns.delay = clamp(S.dash / 4, 0, 1) * .35; a.T.throne.guardBreak = guard > .35;
     // quem foge e mantém distância: dash de aproximação emendando o golpe (com recarga própria)
-    if (!a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
-      a.cds.close = 4.5; sq.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.6, anim: 'dash', dx: dx / d, dz: dz / d, face: true, chain: 'melee', token: 'melee', tid: t.id }); sq.event('vzClose', { actor: a });
+    if (!a.act && !a.react && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
+      a.cds.close = 4.5; sq.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.6, anim: 'dash', dx: dx / d, dz: dz / d, face: true, chain: 'melee', goal:'chase', token: 'melee', tid: t.id }); sq.event('vzClose', { actor: a });
     }
     // contra quem ataca sem parar: passo atrás logo depois de bloquear, e contra-ataque rápido
     if (a.act && a.act.type === 'block' && aggr > (VHAZRAEL_SWORD_ONLY_TEST ? .12 : .4) && a.act.t > (VHAZRAEL_SWORD_ONLY_TEST ? .16 : .3) && !a.cds.riposte) { a.cds.riposte = VHAZRAEL_SWORD_ONLY_TEST ? 1.6 : 3; a.act = null; a.cds.melee = 0; sq.startMelee(a, t); sq.event('vzRiposte', { actor: a }); }
@@ -154,6 +193,26 @@ export function vzTactics(sq, a, t, dt) {
   if (t && t.casting && !a.vzSawCast) { a.vzSawCast = true; sq.event('vzSawCast', { actor: a, busy: a.act ? a.act.type : a.react ? 'react:' + a.react.type : a.alert > 0 ? 'alert' : 'livre' }); } else if (t && !t.casting) a.vzSawCast = false;
   if (!t || a.pendingDeath || a.alert > 0 || sq.spells.some(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done')) return;
   const T = VZ_TACTICS, P = a.vzPhase || 0, rand = () => sq.rand();
+  // Reserve a decision during the safe tail of a swing. Neither the
+  // tactical brain nor the idle selector may consume a pending guard.
+  const strike=a.act?.move;
+  const recoveringSword=strike && a.act.t>strike.close+.06;
+  if (recoveringSword && !a.react && (t.attacking || t.casting) &&
+      Math.hypot(t.x-a.x,t.z-a.z)<4.6 && a.shield?.canActivate(sq.time) && !a.cds.shieldGap) {
+    a.cds.shieldGap=1.6;
+    if (rand()<.68) { a.act=null; a.react={type:'shield',t:.18}; return; }
+  }
+  if (recoveringSword && !a.react && !strike.heavy && a.act.t>strike.close+.13 &&
+      !t.attacking && Math.hypot(t.x-a.x,t.z-a.z)<2.7 && (a.act.links||1)<3 &&
+      sq.los(a.x,a.z,t.x,t.z)) {
+    const links=(a.act.links||1)+1;
+    sq.startMelee(a,t); a.act.links=links;
+    if (links===3) a.cds.melee+=.8;
+    sq.event('vzLink',{actor:a,links}); return;
+  }
+  if (!a.act && !a.react && !a.cds.leap && !a.airY && Math.hypot(t.x-a.x,t.z-a.z)>4 &&
+      Math.hypot(t.x-a.x,t.z-a.z)<8 && sq.time-(a.lastDash??-99)<1.8 &&
+      sq.los(a.x,a.z,t.x,t.z) && sq.canAttack(a,'melee',t.id)) { sq.startLeap(a,t); return; }
   // 0) herói acabou de conjurar (mana gasta — sinal visível; ex.: cerco de lâminas): sair da área com dash, escudo, salto ou aguentar
   if (!a.act && !a.react && t.casting && !a.cds.vzCastRead) {
     a.cds.vzCastRead = 2.4; const w = T.magic.weights[P], r = rand(), d0 = Math.hypot(t.x - a.x, t.z - a.z) || 1; a.vzLast = 'magia';
@@ -173,6 +232,13 @@ export function vzTactics(sq, a, t, dt) {
     if (r < w[0] + w[1] && !a.cds.dodge) { a.react = { type: 'dodge', t: .1 + rand() * .1, from: f, side: true }; sq.event('vzRead', { actor: a, read: 'magia', answer: 'dash' }); return; }
     if (r < w[0] + w[1] + w[2] && !a.cds.hop && !a.airY) { vzHop(sq, a, t, 'escapar'); sq.event('vzRead', { actor: a, read: 'magia', answer: 'salto' }); return; }
     sq.event('vzRead', { actor: a, read: 'magia', answer: 'recebe' }); return;
+  }
+  if (a.act?.type==='dodge' && a.act.t+dt>=a.act.dur && !a.cds.vzDouble &&
+      ['entrar','sair','chase'].includes(a.act.goal) && sq.los(a.x,a.z,t.x,t.z) && (a.vzStats?.dashAt?.length||0)<VZ_DASH.budget) {
+    const dx=t.x-a.x,dz=t.z-a.z,d=Math.hypot(dx,dz)||1, side=a.intent.side||1;
+    a.cds.vzDouble=4; a.lastDash=sq.time;
+    sq.begin(a,{type:'dodge',dur:.21,anim:'dash',dx:side*dz/d,dz:-side*dx/d,face:true,chain:'melee',goal:'flanco-duplo',token:'melee',tid:t.id});
+    sq.event('vzTactic',{actor:a,goal:'flanco-duplo'});return;
   }
   if (a.act || a.react) return;
   if ((a.tacT = (a.tacT ?? 0) - dt) > 0) return; a.tacT = T.every[0] + rand() * (T.every[1] - T.every[0]);

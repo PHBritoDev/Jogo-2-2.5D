@@ -68,3 +68,35 @@ test('timings independentes do FPS: 30/45/60 dão a mesma sequência de golpes e
   assert.equal(r30.first, r60.first); assert.equal(r45.first, r60.first);
   assert.deepEqual(r30.hits.slice(0, 2), r60.hits.slice(0, 2));
 });
+
+for (const fps of [30,45,60]) {
+  test('Julgamento anuncia ponto fixo, salta e resolve uma vez a '+fps+' FPS',()=>{
+    for (const answer of ['stay','escape','jump']) {
+      const {sq,log}=world(), a=boss(sq,5), h=hero();
+      sq.setTargets([h]);sq.startLeap(a,h);
+      let apex=0,mark;
+      for(let i=0;i<fps*3 && a.act;i++){
+        sq.stepAction(a,1/fps,h);apex=Math.max(apex,a.airY||0);
+        if(!mark)mark={...a.act.mark};
+        if(i===fps){if(answer==='escape')h.x=mark.x+3;if(answer==='jump')h.y=1.3;}
+        if(a.act)assert.deepEqual(a.act.mark,mark);
+      }
+      assert.ok(apex>5);assert.equal(a.airY,0);assert.equal(log.filter(e=>e.type==='leapStrike').length,1);
+      assert.equal(log.filter(e=>e.type==='meleeHit').length,answer==='stay'?1:0);
+    }
+  });
+}
+test('recuperação permite escudo e preserva o último quadro ativo',()=>{
+  const {sq,log}=world(),a=boss(sq,2),h=hero({attacking:true});sq.setTargets([h]);sq.startMelee(a,h,'Trono_Duplo');
+  const act=a.act;sq.rand=()=>.01;act.t=act.move.close-.05;
+  a.T.brain(sq,a,.01,h);assert.equal(a.act,act);assert.equal(a.react,null);
+  act.t=act.move.close+.1;a.T.brain(sq,a,.01,h);assert.equal(a.react.type,'shield');
+  for(let i=0;i<15;i++)sq.update(1/60);
+  assert.equal(log.filter(e=>e.type==='shield').length,1);assert.equal(a.shield.canActivate(sq.time),false);
+});
+test('avanço emenda flanco apenas uma vez no mesmo orçamento',()=>{
+  const {sq,log}=world(),a=boss(sq,5),h=hero();sq.setTargets([h]);
+  sq.begin(a,{type:'dodge',anim:'dash',goal:'entrar',dx:0,dz:-1,dur:.24});a.act.t=.23;
+  a.T.brain(sq,a,.02,h);assert.equal(a.act.goal,'flanco-duplo');
+  a.act.t=.2;a.T.brain(sq,a,.02,h);assert.equal(log.filter(e=>e.goal==='flanco-duplo').length,1);
+});
