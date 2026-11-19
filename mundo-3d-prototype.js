@@ -2936,8 +2936,11 @@ function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
  voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
- player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;cameraYaw=0;cameraPitch=.12;moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
- camera.position.set(spots.player.x,sp.y+3.5,spots.player.z+8.5);
+ player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
+ const abyssEntry=key==='greed';
+ cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
+ moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
+ camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
 }
 function warmTextures(root){const seen=new Set();root.traverse(o=>{const ms=o.material?[].concat(o.material):[];for(const m of ms)for(const k of ['map','emissiveMap','normalMap','roughnessMap']){const t=m&&m[k];if(t&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(e){}}}});}
 function startDimensionBattle(key,opts){

@@ -150,7 +150,19 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     orb.style.left = (pts[i].x / 10) + '%'; orb.style.top = (pts[i].y / 2) + '%';
     orb.style.setProperty('--c', g.color); orb.style.setProperty('--g', g.glow);
     orb.innerHTML = '<span class="gx-core">' + planetSvg(g.id, !unlocked) + '</span><span class="gx-label"><b>' + g.name.toUpperCase() + '</b><small>' + (unlocked ? '' : '<i class="gx-padlock"></i>') + 'GALÁXIA ' + g.id + '</small></span>';
-    orb.addEventListener('click', () => { selected = g.id; renderDetail(); });
+    const ripple = el('span', { class: 'gx-touch-ripple', 'aria-hidden': 'true' });
+    orb.appendChild(ripple);
+    orb.addEventListener('click', () => {
+      selected = g.id;
+      renderDetail();
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches && ripple.animate) {
+        ripple.getAnimations().forEach(animation => animation.cancel());
+        ripple.animate([
+          { transform: 'scale(.76) rotate(-12deg)', opacity: .9 },
+          { transform: 'scale(1.22) rotate(8deg)', opacity: 0 }
+        ], { duration: 440, easing: 'cubic-bezier(.16,.65,.28,1)' });
+      }
+    });
     orbs.appendChild(orb);
   });
   renderDetail();

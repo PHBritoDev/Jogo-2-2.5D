@@ -665,7 +665,7 @@ export function buildDimensionArena(THREE, theme, spec) {
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
       for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { if(ctx.refs.greedAbyss)ctx.refs.greedAbyss.dispose(); else if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else if (ctx.refs.vorgazhekAbyss) ctx.refs.vorgazhekAbyss.dispose(); else dispose(group); }
+    dispose() { if (ctx.refs.greedAbyss) ctx.refs.greedAbyss.dispose(); else if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else if (ctx.refs.vorgazhekAbyss) ctx.refs.vorgazhekAbyss.dispose(); else dispose(group); }
   };
 }
 

@@ -6,17 +6,40 @@ export function createGreedAbyss(T, parent, radius) {
   let seed = 57239;
   const random = () => ((seed = (Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   const stone = new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:.76});
-  // Object-space mineral grain continues around curved lips and folded strata.
-  stone.onBeforeCompile = shader => {
-    shader.vertexShader = 'varying vec3 fossilP;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nfossilP=position;');
-    shader.fragmentShader = 'varying vec3 fossilP;\n' + shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  // Bake tileable mineral strata once. Mipmaps remove high-frequency shimmer
+  // in moving shots; the floor and vault share one small texture.
+  const lattice=Float32Array.from({length:4096},random);
+  function noise(x,y){
+    const ix=Math.floor(x),iy=Math.floor(y);
+    const fx=x-ix,fy=y-iy,tx=fx*fx*(3-2*fx),ty=fy*fy*(3-2*fy);
+    const at=(i,j)=>lattice[(i&63)+64*(j&63)];
+    return (at(ix,iy)*(1-tx)+at(ix+1,iy)*tx)*(1-ty)
+      +(at(ix,iy+1)*(1-tx)+at(ix+1,iy+1)*tx)*ty;
+  }
+  const size=256,texels=new Uint8Array(size*size*4);
+  for(let j=0;j<size;j++)for(let i=0;i<size;i++){
+    const x=i/size*64,y=j/size*64;
+    const twist=noise(x,y)*.56+noise(x*2,y*2)*.19;
+    const stratum=sin(x*tau/8+twist*4.8+2*sin(y*tau/32));
+    const seam=Math.abs(stratum+.21*sin(y*tau/4));
+    const index=(j*size+i)*4;
+    texels[index]=Math.min(255,28+112*Math.min(1,seam*3)+82*twist+23*noise(x*4,y*4));
+    texels[index+3]=255;
+  }
+  const mineral=new T.DataTexture(texels,size,size,T.RGBAFormat);
+  mineral.wrapS=mineral.wrapT=T.RepeatWrapping;
+  mineral.magFilter=T.LinearFilter;mineral.minFilter=T.LinearMipmapLinearFilter;
+  mineral.generateMipmaps=true;mineral.needsUpdate=true;
+  stone.onBeforeCompile=shader=>{
+    shader.uniforms.mineral={value:mineral};
+    shader.vertexShader='varying vec3 fossilP;\n'+shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\nfossilP=position;');
+    shader.fragmentShader='uniform sampler2D mineral; varying vec3 fossilP;\n'+shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
       vec3 p=fossilP;
-      float folds=sin(p.y*5.1+p.z*.73+2.4*sin(p.x*.76+p.z*.39)+sin(p.y*.83));
-      float shale=sin(2.6*p.x+p.y*1.3+3.*sin(p.z*.65));
-      float veins=pow(max(0.,folds),8.);
-      float chips=fract(sin(dot(floor(p*21.),vec3(17.13,79.17,39.37)))*23752.);
-      diffuseColor.rgb *= .40+.45*chips+.35*shale*shale+.72*veins;
-    `);
+      vec2 strata=vec2(p.x+.53*p.y,p.z+.35*p.y);
+      float grit=texture2D(mineral,strata*.024).r;
+      float crease=texture2D(mineral,strata.yx*.087+vec2(grit*.018)).r;
+      diffuseColor.rgb *= .14+1.37*grit*crease;`);
   };
   function surface(rows, cols, sample, owner=group) {
     const xyz=[], colors=[], indices=[];
@@ -38,44 +61,76 @@ export function createGreedAbyss(T, parent, radius) {
     const ridge=Math.exp(-Math.pow((x-4*sin(z*.115))/3.1,2));
     const grain=sin(x*3+cos(z*2))*sin(z*2.1+x*.9);
     const height=Math.max(0,r-radius)*(.12+.08*sin(a*7));
-    return [x,height-.025,z,.048+.035*(grain+1)+ridge*(.09+.055*grain),Math.pow(Math.max(0,grain),8)*.32];
+    return [x,height-.025,z,.031+.025*(grain+1)+ridge*(.12+.075*grain),Math.pow(Math.max(0,grain),8)*.32];
   });
   surface(36,128,(u,v)=>{
     const a=v*tau,r=76*(1-.97*u*u)+4*sin(15*a+4*u)+2*sin(33*a-u*11);
     const y=-3+84*u,fold=.5+.5*cos(38*a+3*sin(u*6+a*7));
-    return [r*cos(a),y,r*sin(a),.023+.085*fold*fold+.014*sin(17*u+a*12)];
+    return [r*cos(a),y,r*sin(a)*(sin(a)<0?1.74:1),.023+.085*fold*fold+.014*sin(17*u+a*12)];
   });
-  const skull=new T.Group();skull.position.set(15,23,-radius-14);group.add(skull);
-  const profile=[[2.5,4,-51,17,-22],[10,15,-44,21,-24],[19,24,-31,18,-24],[22,28,-18,12,-15],[19,24,-8,6,-7],[15,21,-2,2,-2],[12,18,0,0,0],[10,16,-2,0,0],[8,14,-8,0,0],[5,9,-15,1,-2],[.08,.12,-28,2,-4]];
+  const skull=new T.Group();skull.position.set(14,23,-radius-17);skull.rotation.z=-.14;skull.scale.set(.86,1.18,1);group.add(skull);
+  const profile=[[2.5,4,-82,33,-29],[15,20,-58,24,-25],[26,32,-38,13,-14],[24,29,-24,7,-7],[19,24,-10,4,-4],[15,21,-2,2,-2],[12,18,0,0,0],[10,16,-2,0,0],[8,14,-8,0,0],[5,9,-15,1,-2],[.08,.12,-28,2,-4]];
   surface(80,112,(u,v)=>{
     const k=u*(profile.length-1),idx=Math.min(profile.length-2,Math.floor(k)),t=k-idx,a=v*tau;
     const p=profile[idx].map((x,i)=>x+(profile[idx+1][i]-x)*t);
-    const ribs=sin(a*36+2*sin(a*5+u*13)+u*10),plates=cos(u*110+sin(a*6)*2);
+    const ribs=sin(a*19+2*sin(a*5+u*13)+u*10),plates=cos(u*63+sin(a*6)*3+cos(3*a-u*9));
     const skin=1+.032*ribs+.024*plates+.04*sin(3*a+u*7);
     const shade=u>.6?Math.pow(Math.max(0,(1-u)/.4),3):1;
-    return [p[4]+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.002+shade*(.09+.042*ribs+.027*plates+.055*(1+cos(a+1)))];
+    return [p[4]-10*(1-Math.min(1,u/.40))**2+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.002+shade*(.09+.042*ribs+.027*plates+.055*(1+cos(a+1)))];
   },skull);
-  function tendon(x,y,z,dx,dy,dz,width,phase){
-    return surface(36,14,(u,v)=>{
-      const a=v*tau,flute=1+.19*cos(7*a+4*u+phase);
-      const r=width*(.28+.72*Math.pow(1-u,.75))*flute;
-      return [x+dx*u+4*sin(u*4+phase)*u+r*cos(a),y+dy*u,z+dz*u+r*sin(a),.044+.055*(1+cos(7*a+4*u+phase))];
-    });
+  // The zygomatic shelves sweep back into the roof. Their knife-edge folds
+  // cast a silhouette above the throat from both side approaches.
+  for(const side of [-1,1]){
+    surface(42,24,(u,v)=>{
+      const a=v*tau,flare=sin(Math.PI*u)**.67;
+      const rib=1+.16*cos(5*a+u*17);
+      const x=side*(10+13*sin(u*2.5))-23*u*u;
+      const y=9+33*u+6*sin(u*2.8+side*.32);
+      return [x+(2+5*flare)*cos(a)*rib,y+(2+6*flare)*sin(a)*rib,
+        -3-50*u+flare*4*cos(a),.045+.095*Math.max(0,sin(a+.6))+.024*cos(u*42+a)];
+    },skull);
+  }
+  // A buttress splays into the bedrock at its feet and hooks into the vault.
+  // Its oblique crests continue across the eye sockets.
+  function rootSection(x,z,dx,dz,w,phase,u,a) {
+    const hook=u*u, flare=1+1.8*Math.exp(-u*11);
+    const fold=cos(3*a+3.4*u+phase)+.52*cos(7*a-5*u+sin(phase+u*7));
+    const breadth=w*(.46+.65*(1-u))*flare*(1+.28*fold);
+    return [x+dx*hook+6*sin(u*5+phase)*u+breadth*cos(a),
+      z+dz*hook+3*sin(phase+u*7)*u+.65*breadth*sin(a),fold];
   }
   const watchers=[];
-  for(let i=0;i<14;i++){
-    const a=tau*i/14+.15,d=radius+11+random()*10,x=d*cos(a),z=d*sin(a);
-    if(z < -24 && x > -10 && x < 32) continue; // Keep the distant jaw visible through the arch.
-    const dx=-x*.35,dy=48+random()*23,dz=-z*.3,w=3+random()*3;
-    tendon(x,-2,z,dx,dy,dz,w,a);
-    if([2,5,8,10].includes(i)){
-      const u=i===10?.64:.24,ex=x+dx*u+4*sin(u*4+a)*u,ez=z+dz*u;
-      const socket=new T.Group();socket.position.set(ex,-2+dy*u,ez);socket.rotation.y=Math.atan2(-ex,-ez);group.add(socket);
-      const size=i===10?3.1:1.35;socket.scale.setScalar(size);
-      socket.translateZ(w*(.28+.72*Math.pow(1-u,.75))-.2);
-      surface(16,44,(s,t)=>{const ang=t*tau,r=.002+s;const pupil=s<.29,iris=s<.6;
-        return [2.1*r*cos(ang),r*sin(ang)*(.54+.46*Math.abs(sin(ang))),.65*(1-r*r),pupil?.006:iris?.14+.08*cos(ang*29):.39-.26*s];},socket);
-      watchers.push(socket);
+  for(let i=0;i<13;i++){
+    const a=tau*i/13+.16+.12*sin(i*8),d=radius+15+random()*9,x=d*cos(a),z=d*sin(a);
+    if(z < -24 && x > -10 && x < 32) continue;
+    const dx=-x*.82,dy=45+random()*26,dz=-z*.70,w=2.6+random()*3.3;
+    surface(30,22,(u,v)=>{
+      const [rx,rz,fold]=rootSection(x,z,dx,dz,w,a,u,v*tau);
+      return [rx,-3+dy*u,rz,.035+.055*Math.max(0,fold)+.014*sin(u*15+v*8)];
+    });
+    if([2,6,8,9].includes(i)){
+      const u=i===9?.49:.18, facing=Math.atan2(-z,-x);
+      const [ex,ez]=rootSection(x,z,dx,dz,w,a,u,facing);
+      const socket=new T.Group();socket.position.set(ex,-3+dy*u,ez);
+      socket.rotation.y=Math.atan2(-x,-z);socket.rotateZ(.17*cos(i));group.add(socket);
+      socket.scale.setScalar(i===9?3.05:1.48);
+      surface(15,40,(s,v)=>{
+        const ang=v*tau, depth=sin(ang),rad=.002+s;
+        return [2.05*rad*cos(ang),rad*depth*(.45+.48*Math.abs(depth)),
+          .64*(1-rad*rad),.32-.12*s+.05*cos(ang*19)*s];
+      },socket);
+      const iris=surface(10,32,(s,v)=>{
+        const ang=v*tau,rad=.005+s;
+        const glint=Math.exp(-110*((rad*cos(ang)+.31)**2+(rad*sin(ang)-.39)**2));
+        return [.51*rad*cos(ang),.53*rad*sin(ang),.69-.09*rad*rad,
+          (s<.47?.004:.037+.11*(1-s)*(.5+.5*sin(ang*21)))+.82*glint];
+      },socket);
+      surface(8,40,(s,v)=>{
+        const ang=v*tau, lip=sin(ang),r=1+s*.40;
+        return [2.06*r*cos(ang),r*lip*(.49+.48*Math.abs(lip)),
+          -.15+.31*sin(Math.PI*s)+.18*lip,.030+.083*sin(Math.PI*s)*(.85+.45*lip)];
+      },socket);
+      watchers.push({socket,iris});
     }
   }
   // Scimitar-like enamel shards taper along a bent axis; instances share a single mesh.
@@ -94,14 +149,45 @@ export function createGreedAbyss(T, parent, radius) {
     const a=Math.floor(i/7)*2.399+random()*.06,r=radius+4+random()*18;
     dummy.position.set(r*cos(a),.4,r*sin(a));dummy.rotation.set(.16*random(),a,.22*sin(a));dummy.scale.set(.3+random(),2+7*random(),.45+random());dummy.updateMatrix();spires.setMatrixAt(i,dummy.matrix);
   }
+  // Tattered strands span the upper teeth, catching only narrow slivers of
+  // light. All are drawn in one batch and stay outside the walkable disc.
+  const strands=new T.InstancedMesh(shard.geometry,stone,42);skull.add(strands);
+  for(let i=0;i<strands.count;i++){
+    const a=random()*Math.PI, depth=random();
+    dummy.position.set((11.7-depth)*cos(a),17.5*sin(a),-.5-depth*3);
+    dir.set(-.07*cos(a),-1,.03*sin(a*7));dummy.quaternion.setFromUnitVectors(up,dir.normalize());
+    dummy.scale.set(.05+random()*.12,1+random()**2*9,.09);
+    dummy.updateMatrix();strands.setMatrixAt(i,dummy.matrix);
+  }
+  const specks=new Float32Array(36*3);
+  for(let i=0;i<specks.length;i+=3){
+    specks[i]=(random()-.5)*58;specks[i+1]=2+random()*16;specks[i+2]=-random()*36;
+  }
+  const dustGeometry=new T.BufferGeometry();
+  dustGeometry.setAttribute('position',new T.BufferAttribute(specks,3));
+  const dust=new T.Points(dustGeometry,new T.PointsMaterial({color:0x797b81,size:.055,transparent:true,opacity:.38,depthWrite:false}));
+  group.add(dust);
   // Mineral backlight and lone hooded witness, well outside the combat disc.
   const witness=new T.Group();witness.position.set(-4,2.4,-43);group.add(witness);
   surface(18,14,(u,v)=>{const a=v*tau,r=(u>.79?.17*sin(Math.PI*(u-.79)/.21):.13+.36*(1-u)**3);return[r*cos(a),2.4*u,r*sin(a),.013];},witness);
   const halo=new T.Sprite(new T.SpriteMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending}));
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const c=canvas.getContext('2d'),grad=c.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,'#fff');grad.addColorStop(.18,'#7f8184');grad.addColorStop(1,'#000');c.fillStyle=grad;c.fillRect(0,0,64,64);
-  halo.material.map=new T.CanvasTexture(canvas);halo.position.set(-4,4,-46);halo.scale.set(19,18,1);group.add(halo);
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const c=canvas.getContext('2d'),grad=c.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,'#fff');grad.addColorStop(.12,'#898b90');grad.addColorStop(.50,'#292b30');grad.addColorStop(1,'#000');c.fillStyle=grad;c.fillRect(0,0,64,64);
+  halo.material.map=new T.CanvasTexture(canvas);halo.position.set(-4,4,-46);halo.scale.set(9,10,1);group.add(halo);
   return {env:{bg:0x07080a,fog:0x101116,fogNear:34,fogFar:145,hemi:[0xc4c5cc,0x575250,.95],sun:[0xf4eff0,1.15],light:[0xdde5f4,2.6,85,[-5,12,-18]],exposure:1.15},
-    update(t){skull.scale.y=1+.007*sin(t*.52);watchers.forEach((o,i)=>{const phase=(t+i*3.4)%(9+i);o.scale.y=o.scale.x*(1-.95*Math.max(0,1-Math.abs(phase-.22)/.22));});},
-    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());stone.dispose();halo.material.map.dispose();halo.material.dispose();}
+    update(t,dt,camera,options){
+      skull.scale.y=1.18+.009*sin(t*.52);
+      dust.position.set(.32*sin(t*.17),.18*sin(t*.24),0);
+      const target=options?.player || camera?.position;
+      watchers.forEach(({socket,iris},i)=>{
+        const phase=(t+i*3.4)%(13+i*2);
+        socket.scale.y=socket.scale.x*(1-.94*Math.max(0,1-Math.abs(phase-.22)/.22));
+        if(target){
+          const yaw=socket.rotation.y;
+          const side=(target.x-socket.position.x)*cos(yaw)-(target.z-socket.position.z)*sin(yaw);
+          iris.position.x=.23*Math.tanh(side/14);
+        }
+      });
+    },
+    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();mineral.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
   };
 }
