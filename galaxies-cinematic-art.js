@@ -25,7 +25,25 @@ export function attachCinematicArt({root,scene,environment,stage,planets,width:W
   backgroundMaterial.onBeforeCompile=s=>{s.uniforms.artTime=time;s.vertexShader='uniform float artTime;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
    float featherTip=(1.-smoothstep(.07,.20,uv.x))*smoothstep(.65,.85,uv.y);
    transformed.y+=sin(artTime*.38+uv.x*15.)*${(H*.0014).toFixed(6)}*featherTip;`);};
-  backgroundMaterial.customProgramCacheKey=()=> 'cinematic-feather-wind';
+  const featherShader = backgroundMaterial.onBeforeCompile;
+  backgroundMaterial.onBeforeCompile = shader => {
+   featherShader(shader);
+   shader.fragmentShader = 'uniform float artTime;\n' + shader.fragmentShader;
+   shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
+    vec2 waterUV = vMapUv;
+    if (waterUV.x > .21 && waterUV.x < .29 && waterUV.y > .15 && waterUV.y < .40) {
+     // Two cataracts in the environment painting. Feather the motion at the rock lips.
+     float fallX = mix(.232, .223, smoothstep(.16, .40, waterUV.y));
+     float mainFall = 1.0 - smoothstep(.004, .012, abs(waterUV.x - fallX));
+     float sideFall = 1.0 - smoothstep(.002, .008, abs(waterUV.x - .269));
+     float mask = smoothstep(.15,.21,waterUV.y)*(1.0-smoothstep(.37,.40,waterUV.y));
+     float flow = sin(waterUV.y*125.0 + artTime*2.2 + waterUV.x*39.0);
+     waterUV.y += mask*max(mainFall,sideFall)*flow*.0027;
+    }
+    diffuseColor *= texture2D(map,waterUV);
+   `);
+  };
+  backgroundMaterial.customProgramCacheKey=()=> 'cinematic-running-water';
   background=new T.Mesh(new T.PlaneGeometry(W,H,36,24),backgroundMaterial);background.position.z=-320;layer.add(background);
   // The complete fallback sculpture is preserved for failed image loads, hidden only after success.
   stage.group.visible=false;stage.links.material.color.set('#8a7354');stage.links.material.metalness=.45;stage.links.material.roughness=.52;stage.links.material.emissive.set('#130c06');
@@ -40,6 +58,8 @@ export function attachCinematicArt({root,scene,environment,stage,planets,width:W
    vec2 local=vec2(uv.x*4.-3.,uv.y*2.);
    float cape=(1.-smoothstep(.34,.67,local.x))*smoothstep(.08,.25,local.y)*(1.-smoothstep(.70,.88,local.y));
    transformed.x-=sin(artTime*.56+local.y*3.)*${(H*.003).toFixed(6)}*cape;
+   float travellingFold=sin(artTime*1.2+local.x*7.+local.y*2.);
+   transformed.y+=travellingFold*${(H*.0055).toFixed(6)}*cape;
    transformed.z+=sin(artTime*.48+local.x*8.)*${(H*.004).toFixed(6)}*cape;`);};
   heroMaterial.customProgramCacheKey=()=> 'cinematic-cape-wind';
   hero=new T.Mesh(reliefGeometry(H*.155,7,true),heroMaterial);hero.name='cinematic-hero';hero.position.set(-H*.055,-H*.30,165);layer.add(hero);
