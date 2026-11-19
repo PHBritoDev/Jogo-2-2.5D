@@ -33,16 +33,16 @@
   var frame=document.createElement('iframe');
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
-  var suffix=(params.has('todasHabilidades')?'&todasHabilidades=1':'')+(params.has('debug3d')?'&debug3d=1':'')+(params.get('adm')==='1'?'&adm=1':'')+(params.has('galaxias')?'&galaxias=1':'')+(params.has('treinoEspadas')?'&treinoEspadas=1':'')+(params.has('treinoCombate244')?'&treinoCombate244=1':'')+(params.has('vfxLab236')?'&vfxLab236=1':'')+(params.has('testeQuantum233')?'&testeQuantum233=1':'')+(params.has('testeVhazrael')?'&testeVhazrael=1':'');
+  const lab = new URL('./laboratorio-inimigos.html', location.href);
+  lab.search = params.toString();
+  document.querySelector('#lab-test-entry').href = lab.href;
+  if (params.get('adm') === '1') { location.replace(lab.href); return; }
   frame.allow='fullscreen';
   document.body.appendChild(frame);
   // Metadata único, atualizado sem tocar este shell ou o loader.
-  import('./build-info.js?stamp='+Date.now()).then(function(meta){
-    frame.src='mundo-3d-prototype.html?refresh='+encodeURIComponent(meta.MOD)+'&build='+encodeURIComponent(meta.MOD)+suffix;
-  }).catch(function(err){
-    console.error('Falha ao obter build-info',err);
-    frame.src='mundo-3d-prototype.html?build='+Date.now()+suffix;
-  });
+  Promise.all([import('./shell-navigation.js'), import('./build-info.js?stamp='+Date.now())])
+    .then(([nav,meta])=>{frame.src=nav.worldURL(params,meta.BUILD);})
+    .catch(()=>{frame.src='./mundo-3d-prototype.html?'+params;});
 })();
 </script>
 </body>
