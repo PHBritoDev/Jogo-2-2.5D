@@ -1,6 +1,7 @@
 // A continuous folded shell travels from the back of the skull over the lip
 // and down the throat. Coordinates are local to the existing combat arena.
 export function createGreedAbyss(T, parent, radius) {
+  const compact=globalThis.matchMedia?.('(pointer: coarse)')?.matches;
   const group = new T.Group(); parent.add(group);
   const tau = Math.PI * 2, sin = Math.sin, cos = Math.cos;
   let seed = 57239;
@@ -39,7 +40,8 @@ export function createGreedAbyss(T, parent, radius) {
       vec2 strata=vec2(p.x+.53*p.y,p.z+.35*p.y);
       float grit=texture2D(mineral,strata*.024).r;
       float crease=texture2D(mineral,strata.yx*.087+vec2(grit*.018)).r;
-      diffuseColor.rgb *= .14+1.37*grit*crease;`);
+      diffuseColor.rgb *= .14+1.37*grit*crease;`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * .24;');
   };
   function surface(rows, cols, sample, owner=group) {
     const xyz=[], colors=[], indices=[];
@@ -56,28 +58,83 @@ export function createGreedAbyss(T, parent, radius) {
   }
   // The path is level inside the combat circle. A mineral seam winds
   // towards the witness on the distant ridge.
-  surface(58,112,(u,v)=>{
+  surface(compact?40:58,compact?80:112,(u,v)=>{
     const a=v*tau,r=.01+u*(radius+26),x=r*cos(a),z=r*sin(a);
     const ridge=Math.exp(-Math.pow((x-4*sin(z*.115))/3.1,2));
     const grain=sin(x*3+cos(z*2))*sin(z*2.1+x*.9);
     const height=Math.max(0,r-radius)*(.12+.08*sin(a*7));
     return [x,height-.025,z,.031+.025*(grain+1)+ridge*(.12+.075*grain),Math.pow(Math.max(0,grain),8)*.32];
   });
-  surface(36,128,(u,v)=>{
+  // Interlocking fractured schist catches the backlight along the route.
+  // Within the combat disc these plates are flush, with no collision volume.
+  const chamberSeed=seed;
+  const plates=[],tints=[],faces=[];
+  for(let i=0;i<215;i++){
+    const z=-48+random()*76, axis=4*sin(z*.115);
+    const shoulder=(random()-.5)*2, x=axis+shoulder*(3+random()*9);
+    const outside=Math.max(0,Math.hypot(x,z)-radius);
+    const floor=-.019+outside*(.12+.08*sin(7*Math.atan2(z,x)));
+    const width=.35+random()**2*1.9, length=.5+random()**2*2.4;
+    const angle=-.52+random()*.87,base=plates.length/3;
+    const shade=.044+.074*random()+.065*(1-Math.abs(shoulder));
+    plates.push(x,floor+.009+outside*.018,z);tints.push(shade,shade,shade*1.025);
+    for(let k=0;k<7;k++){
+      const a=(k+.22*random())/7*tau,sx=width*cos(a),sz=length*sin(a);
+      plates.push(x+sx*cos(angle)-sz*sin(angle),floor+.002+random()*.013,
+        z+sx*sin(angle)+sz*cos(angle));
+      const lip=shade*(.38+.71*Math.max(0,-sin(a))+.2*random());
+      tints.push(lip*1.035,lip,lip*.97);
+      faces.push(base,base+1+(k+1)%7,base+1+k);
+    }
+  }
+  seed=chamberSeed;
+  const seams=new T.BufferGeometry();
+  seams.setAttribute('position',new T.Float32BufferAttribute(plates,3));
+  seams.setAttribute('color',new T.Float32BufferAttribute(tints,3));
+  seams.setIndex(faces);seams.computeVertexNormals();group.add(new T.Mesh(seams,stone));
+  surface(compact?26:36,compact?100:128,(u,v)=>{
     const a=v*tau,r=76*(1-.97*u*u)+4*sin(15*a+4*u)+2*sin(33*a-u*11);
     const y=-3+84*u,fold=.5+.5*cos(38*a+3*sin(u*6+a*7));
     return [r*cos(a),y,r*sin(a)*(sin(a)<0?1.74:1),.023+.085*fold*fold+.014*sin(17*u+a*12)];
   });
   const skull=new T.Group();skull.position.set(14,23,-radius-17);skull.rotation.z=-.14;skull.scale.set(.86,1.18,1);group.add(skull);
   const profile=[[2.5,4,-82,33,-29],[15,20,-58,24,-25],[26,32,-38,13,-14],[24,29,-24,7,-7],[19,24,-10,4,-4],[15,21,-2,2,-2],[12,18,0,0,0],[10,16,-2,0,0],[8,14,-8,0,0],[5,9,-15,1,-2],[.08,.12,-28,2,-4]];
-  surface(80,112,(u,v)=>{
+  function skullSurface(u,v){
     const k=u*(profile.length-1),idx=Math.min(profile.length-2,Math.floor(k)),t=k-idx,a=v*tau;
     const p=profile[idx].map((x,i)=>x+(profile[idx+1][i]-x)*t);
     const ribs=sin(a*19+2*sin(a*5+u*13)+u*10),plates=cos(u*63+sin(a*6)*3+cos(3*a-u*9));
     const skin=1+.032*ribs+.024*plates+.04*sin(3*a+u*7);
     const shade=u>.6?Math.pow(Math.max(0,(1-u)/.4),3):1;
-    return [p[4]-10*(1-Math.min(1,u/.40))**2+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.002+shade*(.09+.042*ribs+.027*plates+.055*(1+cos(a+1)))];
-  },skull);
+    return [p[4]-10*(1-Math.min(1,u/.40))**2+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.002+shade*(.063+.038*ribs+.036*plates+.050*(1+cos(a+1)))];
+  }
+  surface(compact?60:80,compact?92:112,skullSurface,skull);
+  // Carved ridges wrap from the lip into the temporal plates. Each ridge
+  // fans out independently, with bare areas between neighbouring bundles.
+  const ridges=[],ridgeColors=[],ridgeIndices=[];
+  for(let rib=0;rib<39;rib++){
+    const az=(rib+.31*sin(rib*2.1))/39,span=.22+.27*random();
+    const base=ridges.length/3;
+    for(let k=0;k<=28;k++){
+      const t=k/28,u=.612-span*t;
+      const curve=az+.018*sin(t*3+rib)+.028*t*t*cos(rib);
+      const lift=sin(Math.PI*t)**.65;
+      for(let j=0;j<5;j++){
+        const v=curve+(j-2)*(.0004+.0015*lift);
+        const [x,y,z]=skullSurface(u,v),angle=v*tau;
+        const crest=1-Math.abs(j-2)*.5,offset=lift*(.06+crest*.51);
+        ridges.push(x+cos(angle)*offset,y+sin(angle)*offset,z+.09*crest);
+        const value=.018+crest*(.062+.13*Math.max(0,cos(angle+1)))*lift;
+        ridgeColors.push(value,value,value*1.05);
+        if(k&&j){const n=base+5*k+j;ridgeIndices.push(n-6,n-1,n,n-6,n,n-5);}
+      }
+    }
+  }
+  const relief=new T.BufferGeometry();
+  relief.setAttribute('position',new T.Float32BufferAttribute(ridges,3));
+  relief.setAttribute('color',new T.Float32BufferAttribute(ridgeColors,3));
+  relief.setIndex(ridgeIndices);relief.computeVertexNormals();
+  skull.add(new T.Mesh(relief,stone));
+
   // The zygomatic shelves sweep back into the roof. Their knife-edge folds
   // cast a silhouette above the throat from both side approaches.
   for(const side of [-1,1]){
@@ -99,42 +156,64 @@ export function createGreedAbyss(T, parent, radius) {
     return [x+dx*hook+6*sin(u*5+phase)*u+breadth*cos(a),
       z+dz*hook+3*sin(phase+u*7)*u+.65*breadth*sin(a),fold];
   }
+  const cornea=new T.MeshStandardMaterial({vertexColors:true,roughness:.26,metalness:.08,side:T.DoubleSide});
   const watchers=[];
   for(let i=0;i<13;i++){
     const a=tau*i/13+.16+.12*sin(i*8),d=radius+15+random()*9,x=d*cos(a),z=d*sin(a);
     if(z < -24 && x > -10 && x < 32) continue;
     const dx=-x*.82,dy=45+random()*26,dz=-z*.70,w=2.6+random()*3.3;
-    surface(30,22,(u,v)=>{
+    surface(compact?24:30,compact?18:22,(u,v)=>{
       const [rx,rz,fold]=rootSection(x,z,dx,dz,w,a,u,v*tau);
-      return [rx,-3+dy*u,rz,.035+.055*Math.max(0,fold)+.014*sin(u*15+v*8)];
+      const y=-3+dy*u, clearance=y<7?Math.max(1,(radius+3)/Math.hypot(rx,rz)):1;
+      return [rx*clearance,y,rz*clearance,.035+.055*Math.max(0,fold)+.014*sin(u*15+v*8)];
     });
     if([2,6,8,9].includes(i)){
-      const u=i===9?.49:.18, facing=Math.atan2(-z,-x);
+      const u=i===8?.47:.18, facing=Math.atan2(-z,-x);
       const [ex,ez]=rootSection(x,z,dx,dz,w,a,u,facing);
       const socket=new T.Group();socket.position.set(ex,-3+dy*u,ez);
       socket.rotation.y=Math.atan2(-x,-z);socket.rotateZ(.17*cos(i));group.add(socket);
-      socket.scale.setScalar(i===9?3.05:1.48);
-      surface(15,40,(s,v)=>{
+      socket.scale.setScalar(i===8?Math.min(2.40,w*.63):Math.min(1.38,w*.41));
+      socket.translateZ(socket.scale.x*.44);
+      // Loft the outer eyelid back onto the same parametrized cross-section
+      // as the host root, including its tilt, flutes and changing thickness.
+      socket.updateMatrix();
+      const intoSocket=socket.matrix.clone().invert(),attachment=new T.Vector3(),rootPhase=a;
+      surface(12,48,(s,v)=>{
+        const a=v*tau,c=cos(a),sn=sin(a),rootU=u+sn*socket.scale.x*2.7/dy;
+        const outerAngle=facing-c*1.06+.10*sn;
+        const [rx,rz]=rootSection(x,z,dx,dz,w,rootPhase,rootU,outerAngle);
+        attachment.set(rx,-3+dy*rootU,rz).applyMatrix4(intoSocket);
+        const easing=s*s*(3-2*s),rim=sin(Math.PI*s);
+        const innerX=2.07*c,innerY=sn*(.52+.45*Math.abs(sn));
+        return [innerX+(attachment.x-innerX)*easing,
+          innerY+(attachment.y-innerY)*easing,
+          -.06+attachment.z*easing+.22*rim*(.5+.5*cos(a*11+s*3))-.15*s**5,
+          .035+.05*rim*(.5+.5*cos(a*11+s*3))+.039*Math.max(0,sn)*(1-s)];
+      },socket);
+      const lids=new T.Group();socket.add(lids);
+      const sclera=surface(12,32,(s,v)=>{
         const ang=v*tau, depth=sin(ang),rad=.002+s;
         return [2.05*rad*cos(ang),rad*depth*(.45+.48*Math.abs(depth)),
           .64*(1-rad*rad),.32-.12*s+.05*cos(ang*19)*s];
-      },socket);
-      const iris=surface(10,32,(s,v)=>{
+      },lids);
+      sclera.material=cornea;
+      const iris=surface(12,36,(s,v)=>{
         const ang=v*tau,rad=.005+s;
         const glint=Math.exp(-110*((rad*cos(ang)+.31)**2+(rad*sin(ang)-.39)**2));
         return [.51*rad*cos(ang),.53*rad*sin(ang),.69-.09*rad*rad,
           (s<.47?.004:.037+.11*(1-s)*(.5+.5*sin(ang*21)))+.82*glint];
-      },socket);
+      },lids);
+      iris.material=cornea;
       surface(8,40,(s,v)=>{
-        const ang=v*tau, lip=sin(ang),r=1+s*.40;
+        const ang=v*tau, lip=sin(ang),r=1+s*(.22+.11*cos(ang)**2);
         return [2.06*r*cos(ang),r*lip*(.49+.48*Math.abs(lip)),
-          -.15+.31*sin(Math.PI*s)+.18*lip,.030+.083*sin(Math.PI*s)*(.85+.45*lip)];
+          -.05-1.2*s*s+.38*sin(Math.PI*s)+.14*lip,.030+.083*sin(Math.PI*s)*(.85+.45*lip)];
       },socket);
-      watchers.push({socket,iris});
+      watchers.push({socket,lids,iris});
     }
   }
   // Scimitar-like enamel shards taper along a bent axis; instances share a single mesh.
-  const shard=surface(6,6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
+  const shard=surface(compact?4:6,compact?5:6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
   group.remove(shard);
   const teeth=new T.InstancedMesh(shard.geometry,stone,92);skull.add(teeth);
   const dummy=new T.Object3D(),up=new T.Vector3(0,1,0),dir=new T.Vector3();
@@ -173,14 +252,14 @@ export function createGreedAbyss(T, parent, radius) {
   const halo=new T.Sprite(new T.SpriteMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending}));
   const canvas=document.createElement('canvas');canvas.width=canvas.height=64;const c=canvas.getContext('2d'),grad=c.createRadialGradient(32,32,0,32,32,32);grad.addColorStop(0,'#fff');grad.addColorStop(.12,'#898b90');grad.addColorStop(.50,'#292b30');grad.addColorStop(1,'#000');c.fillStyle=grad;c.fillRect(0,0,64,64);
   halo.material.map=new T.CanvasTexture(canvas);halo.position.set(-4,4,-46);halo.scale.set(9,10,1);group.add(halo);
-  return {env:{bg:0x07080a,fog:0x101116,fogNear:34,fogFar:145,hemi:[0xc4c5cc,0x575250,.95],sun:[0xf4eff0,1.15],light:[0xdde5f4,2.6,85,[-5,12,-18]],exposure:1.15},
+  return {env:{bg:0x07080a,fog:0x101116,fogNear:34,fogFar:145,hemi:[0xc4c5cc,0x575250,.95],sun:[0xf4eff0,1.15],light:[0xdde5f4,9,95,[-8,17,-23]],exposure:1.15},
     update(t,dt,camera,options){
       skull.scale.y=1.18+.009*sin(t*.52);
       dust.position.set(.32*sin(t*.17),.18*sin(t*.24),0);
       const target=options?.player || camera?.position;
-      watchers.forEach(({socket,iris},i)=>{
+      watchers.forEach(({socket,lids,iris},i)=>{
         const phase=(t+i*3.4)%(13+i*2);
-        socket.scale.y=socket.scale.x*(1-.94*Math.max(0,1-Math.abs(phase-.22)/.22));
+        lids.scale.y=1-.94*Math.max(0,1-Math.abs(phase-.22)/.22);
         if(target){
           const yaw=socket.rotation.y;
           const side=(target.x-socket.position.x)*cos(yaw)-(target.z-socket.position.z)*sin(yaw);
@@ -188,6 +267,6 @@ export function createGreedAbyss(T, parent, radius) {
         }
       });
     },
-    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();mineral.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
+    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();cornea.dispose();mineral.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
   };
 }
