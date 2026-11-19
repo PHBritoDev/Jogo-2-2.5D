@@ -1,0 +1,15 @@
+{
+  "renderer": "Chromium / SwiftShader",
+  "viewport": [740, 416],
+  "framebuffer": [504, 283],
+  "pointer": "coarse",
+  "method": "Arena isolada, câmera fixa. Duas passagens por versão, na ordem antes/depois/depois/antes. Cada passagem descartou seis quadros de aquecimento e cronometrou 18 renders com leitura síncrona de um pixel. Valores arredondados em milissegundos.",
+  "comparisonBeforeMobileRefinement": {
+    "main": {"samples": 36, "medianMs": 33.7, "p90Ms": 67.3},
+    "pullRequest": {"samples": 36, "medianMs": 125.8, "p90Ms": 162.2}
+  },
+  "comparisonAfterMobileRefinement": {
+    "main": {"samples": 36, "medianMs": 26.8, "p90Ms": 59.5},
+    "pullRequest": {"samples": 36, "medianMs": 73.1, "p90Ms": 78.8}
+  }
+}

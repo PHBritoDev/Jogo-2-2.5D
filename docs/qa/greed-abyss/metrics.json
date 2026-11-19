@@ -95,7 +95,7 @@
     "view": 0,
     "frame": 4,
     "calls": 28,
-    "triangles": 62507,
+    "triangles": 38743,
     "points": 36,
     "lines": 0
   },
@@ -105,7 +105,7 @@
     "view": 1,
     "frame": 5,
     "calls": 27,
-    "triangles": 61643,
+    "triangles": 38167,
     "points": 36,
     "lines": 0
   },
@@ -115,7 +115,7 @@
     "view": 2,
     "frame": 6,
     "calls": 24,
-    "triangles": 59411,
+    "triangles": 36511,
     "points": 36,
     "lines": 0
   }

@@ -6,7 +6,9 @@ export function createGreedAbyss(T, parent, radius) {
   const tau = Math.PI * 2, sin = Math.sin, cos = Math.cos;
   let seed = 57239;
   const random = () => ((seed = (Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
-  const stone = new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:.76});
+  const rockOptions={vertexColors:true,side:T.DoubleSide};
+  const stone=compact?new T.MeshLambertMaterial(rockOptions)
+    :new T.MeshStandardMaterial({...rockOptions,roughness:.76});
   // Bake tileable mineral strata once. Mipmaps remove high-frequency shimmer
   // in moving shots; the floor and vault share one small texture.
   const lattice=Float32Array.from({length:4096},random);
@@ -58,7 +60,7 @@ export function createGreedAbyss(T, parent, radius) {
   }
   // The path is level inside the combat circle. A mineral seam winds
   // towards the witness on the distant ridge.
-  surface(compact?40:58,compact?80:112,(u,v)=>{
+  surface(compact?28:58,compact?64:112,(u,v)=>{
     const a=v*tau,r=.01+u*(radius+26),x=r*cos(a),z=r*sin(a);
     const ridge=Math.exp(-Math.pow((x-4*sin(z*.115))/3.1,2));
     const grain=sin(x*3+cos(z*2))*sin(z*2.1+x*.9);
@@ -92,7 +94,7 @@ export function createGreedAbyss(T, parent, radius) {
   seams.setAttribute('position',new T.Float32BufferAttribute(plates,3));
   seams.setAttribute('color',new T.Float32BufferAttribute(tints,3));
   seams.setIndex(faces);seams.computeVertexNormals();group.add(new T.Mesh(seams,stone));
-  surface(compact?26:36,compact?100:128,(u,v)=>{
+  surface(compact?22:36,compact?84:128,(u,v)=>{
     const a=v*tau,r=76*(1-.97*u*u)+4*sin(15*a+4*u)+2*sin(33*a-u*11);
     const y=-3+84*u,fold=.5+.5*cos(38*a+3*sin(u*6+a*7));
     return [r*cos(a),y,r*sin(a)*(sin(a)<0?1.74:1),.023+.085*fold*fold+.014*sin(17*u+a*12)];
@@ -107,15 +109,16 @@ export function createGreedAbyss(T, parent, radius) {
     const shade=u>.6?Math.pow(Math.max(0,(1-u)/.4),3):1;
     return [p[4]-10*(1-Math.min(1,u/.40))**2+p[0]*cos(a)*skin,p[3]+p[1]*sin(a)*skin,p[2]+1.3*cos(a*2),.002+shade*(.063+.038*ribs+.036*plates+.050*(1+cos(a+1)))];
   }
-  surface(compact?60:80,compact?92:112,skullSurface,skull);
+  surface(compact?50:80,compact?80:112,skullSurface,skull);
   // Carved ridges wrap from the lip into the temporal plates. Each ridge
   // fans out independently, with bare areas between neighbouring bundles.
   const ridges=[],ridgeColors=[],ridgeIndices=[];
+  const ridgeSteps=compact?16:28;
   for(let rib=0;rib<39;rib++){
     const az=(rib+.31*sin(rib*2.1))/39,span=.22+.27*random();
     const base=ridges.length/3;
-    for(let k=0;k<=28;k++){
-      const t=k/28,u=.612-span*t;
+    for(let k=0;k<=ridgeSteps;k++){
+      const t=k/ridgeSteps,u=.612-span*t;
       const curve=az+.018*sin(t*3+rib)+.028*t*t*cos(rib);
       const lift=sin(Math.PI*t)**.65;
       for(let j=0;j<5;j++){
@@ -138,7 +141,7 @@ export function createGreedAbyss(T, parent, radius) {
   // The zygomatic shelves sweep back into the roof. Their knife-edge folds
   // cast a silhouette above the throat from both side approaches.
   for(const side of [-1,1]){
-    surface(42,24,(u,v)=>{
+    surface(compact?24:42,compact?14:24,(u,v)=>{
       const a=v*tau,flare=sin(Math.PI*u)**.67;
       const rib=1+.16*cos(5*a+u*17);
       const x=side*(10+13*sin(u*2.5))-23*u*u;
@@ -162,7 +165,7 @@ export function createGreedAbyss(T, parent, radius) {
     const a=tau*i/13+.16+.12*sin(i*8),d=radius+15+random()*9,x=d*cos(a),z=d*sin(a);
     if(z < -24 && x > -10 && x < 32) continue;
     const dx=-x*.82,dy=45+random()*26,dz=-z*.70,w=2.6+random()*3.3;
-    surface(compact?24:30,compact?18:22,(u,v)=>{
+    surface(compact?18:30,compact?16:22,(u,v)=>{
       const [rx,rz,fold]=rootSection(x,z,dx,dz,w,a,u,v*tau);
       const y=-3+dy*u, clearance=y<7?Math.max(1,(radius+3)/Math.hypot(rx,rz)):1;
       return [rx*clearance,y,rz*clearance,.035+.055*Math.max(0,fold)+.014*sin(u*15+v*8)];
@@ -178,7 +181,7 @@ export function createGreedAbyss(T, parent, radius) {
       // as the host root, including its tilt, flutes and changing thickness.
       socket.updateMatrix();
       const intoSocket=socket.matrix.clone().invert(),attachment=new T.Vector3(),rootPhase=a;
-      surface(12,48,(s,v)=>{
+      surface(compact?7:12,compact?28:48,(s,v)=>{
         const a=v*tau,c=cos(a),sn=sin(a),rootU=u+sn*socket.scale.x*2.7/dy;
         const outerAngle=facing-c*1.06+.10*sn;
         const [rx,rz]=rootSection(x,z,dx,dz,w,rootPhase,rootU,outerAngle);
@@ -191,20 +194,20 @@ export function createGreedAbyss(T, parent, radius) {
           .035+.05*rim*(.5+.5*cos(a*11+s*3))+.039*Math.max(0,sn)*(1-s)];
       },socket);
       const lids=new T.Group();socket.add(lids);
-      const sclera=surface(12,32,(s,v)=>{
+      const sclera=surface(compact?7:12,compact?26:32,(s,v)=>{
         const ang=v*tau, depth=sin(ang),rad=.002+s;
         return [2.05*rad*cos(ang),rad*depth*(.45+.48*Math.abs(depth)),
           .64*(1-rad*rad),.32-.12*s+.05*cos(ang*19)*s];
       },lids);
       sclera.material=cornea;
-      const iris=surface(12,36,(s,v)=>{
+      const iris=surface(compact?8:12,compact?28:36,(s,v)=>{
         const ang=v*tau,rad=.005+s;
         const glint=Math.exp(-110*((rad*cos(ang)+.31)**2+(rad*sin(ang)-.39)**2));
         return [.51*rad*cos(ang),.53*rad*sin(ang),.69-.09*rad*rad,
           (s<.47?.004:.037+.11*(1-s)*(.5+.5*sin(ang*21)))+.82*glint];
       },lids);
       iris.material=cornea;
-      surface(8,40,(s,v)=>{
+      surface(compact?5:8,compact?28:40,(s,v)=>{
         const ang=v*tau, lip=sin(ang),r=1+s*(.22+.11*cos(ang)**2);
         return [2.06*r*cos(ang),r*lip*(.49+.48*Math.abs(lip)),
           -.05-1.2*s*s+.38*sin(Math.PI*s)+.14*lip,.030+.083*sin(Math.PI*s)*(.85+.45*lip)];
@@ -213,7 +216,7 @@ export function createGreedAbyss(T, parent, radius) {
     }
   }
   // Scimitar-like enamel shards taper along a bent axis; instances share a single mesh.
-  const shard=surface(compact?4:6,compact?5:6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
+  const shard=surface(compact?3:6,compact?4:6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
   group.remove(shard);
   const teeth=new T.InstancedMesh(shard.geometry,stone,92);skull.add(teeth);
   const dummy=new T.Object3D(),up=new T.Vector3(0,1,0),dir=new T.Vector3();
