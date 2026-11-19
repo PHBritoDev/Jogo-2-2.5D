@@ -287,13 +287,29 @@ export function createGreedAbyss(T, parent, radius) {
   // Scimitar-like enamel shards taper along a bent axis; instances share a single mesh.
   const shard=surface(compact?3:6,compact?4:6,(u,v)=>{const a=tau*v,r=(1-u)*(.74+.26*cos(3*a));return [r*cos(a)+.36*u*u,u,r*sin(a),.07+.22*u+.045*cos(a)];});
   group.remove(shard);
-  const teeth=new T.InstancedMesh(shard.geometry,stone,92);skull.add(teeth);
+  // Enamel has a thinner reflective edge than the surrounding shale.
+  // Upper canines hang under gravity; the lower row hooks up at the floor.
+  const enamel=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
+  const tooth=surface(compact?5:8,5,(u,v)=>{
+    const a=v*tau,taper=(1-u)**1.15;
+    return [taper*cos(a)+.38*u*u,u,taper*.62*sin(a)-.47*u*u,
+      .055+.29*(.5+.5*cos(a-.4))+.12*u];
+  });
+  group.remove(tooth);
+  const teeth=new T.InstancedMesh(tooth.geometry,enamel,92);skull.add(teeth);
   const dummy=new T.Object3D(),up=new T.Vector3(0,1,0),dir=new T.Vector3();
-  for(let i=0;i<92;i++){
-    const a=tau*(i%46)/46+.025*random(),inner=i>=46?.85:1;
-    dummy.position.set(12*cos(a)*inner,18*sin(a)*inner,1.3*cos(2*a)-(1-inner)*26);
-    dummy.quaternion.setFromUnitVectors(up,dir.set(-.57*cos(a),-sin(a),-.41).normalize());
-    dummy.scale.set(.17+random()*.4,1.5+random()*4+.8*Math.abs(sin(a)),.33);dummy.updateMatrix();teeth.setMatrixAt(i,dummy.matrix);
+  for(let i=0;i<teeth.count;i++){
+    const row=i>=46?1:0;
+    const a=tau*((i%46)+.22*sin(i*2.71)+row*.41)/46;
+    const [x,y,z]=skullSurface(row?.68:.602,a/tau);
+    const jaw=sin(a),side=cos(a);
+    const vertical=jaw>-.26?-1:1;
+    dummy.position.set(x,y,z);
+    dummy.quaternion.setFromUnitVectors(up,dir.set(-.12*side,vertical,-.22-.17*row).normalize());
+    const socket=.15+random()*.24;
+    const length=.85+4.2*random()**1.7+1.4*Math.abs(jaw);
+    dummy.scale.set(socket,length,socket);
+    dummy.updateMatrix();teeth.setMatrixAt(i,dummy.matrix);
   }
   const spires=new T.InstancedMesh(shard.geometry,stone,170);group.add(spires);
   for(let i=0;i<170;i++){
@@ -319,8 +335,8 @@ export function createGreedAbyss(T, parent, radius) {
     const [x,y,z]=skullSurface(.595,a/tau);
     const length=2.4+5.6*(.5+.5*sin(j*6.7+1))**2+2*Math.abs(sin(a));
     const r=(.23+.32*(.5+.5*cos(j*3)))*(1-u)**1.28;
-    const bend=length*(.23*u+.37*u*u);
-    return [x-cos(a)*bend+r*cos(tau*v),y-sin(a)*length*u+.27*sin(tau*v)*r,
+    const bend=length*(.08*u+.23*u*u);
+    return [x-cos(a)*bend+r*cos(tau*v),y+(sin(a)>-.30?-1:1)*length*u+.27*sin(tau*v)*r,
       z+1.4*sin(Math.PI*u)-2.8*u*u+r*sin(tau*v),.10+.27*(1-u)*(.5+.5*cos(tau*v))+.16*u];
   },skull,31);
   const specks=new Float32Array(36*3);
@@ -352,6 +368,6 @@ export function createGreedAbyss(T, parent, radius) {
         }
       });
     },
-    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();closed=true;cornea.dispose();neutral.dispose();reliefMap.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
+    dispose(){parent.remove(group);const geometries=new Set();group.traverse(o=>{if(o.isMesh)geometries.add(o.geometry);if(o.isInstancedMesh)o.dispose();});geometries.forEach(g=>g.dispose());dust.geometry.dispose();dust.material.dispose();closed=true;enamel.dispose();cornea.dispose();neutral.dispose();reliefMap.dispose();stone.dispose();halo.material.map.dispose();halo.material.dispose();}
   };
 }

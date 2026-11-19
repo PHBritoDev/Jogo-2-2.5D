@@ -35,7 +35,7 @@
     "view": 0,
     "frame": 4,
     "calls": 35,
-    "triangles": 119687,
+    "triangles": 120423,
     "points": 36,
     "lines": 0
   },
@@ -45,7 +45,7 @@
     "view": 1,
     "frame": 5,
     "calls": 33,
-    "triangles": 117047,
+    "triangles": 117783,
     "points": 36,
     "lines": 0
   },
@@ -55,7 +55,7 @@
     "view": 2,
     "frame": 6,
     "calls": 31,
-    "triangles": 115223,
+    "triangles": 115959,
     "points": 36,
     "lines": 0
   },
@@ -95,7 +95,7 @@
     "view": 0,
     "frame": 4,
     "calls": 35,
-    "triangles": 52945,
+    "triangles": 55337,
     "points": 36,
     "lines": 0
   },
@@ -105,7 +105,7 @@
     "view": 1,
     "frame": 5,
     "calls": 34,
-    "triangles": 52369,
+    "triangles": 54761,
     "points": 36,
     "lines": 0
   },
@@ -115,7 +115,7 @@
     "view": 2,
     "frame": 6,
     "calls": 31,
-    "triangles": 50713,
+    "triangles": 53105,
     "points": 36,
     "lines": 0
   }
