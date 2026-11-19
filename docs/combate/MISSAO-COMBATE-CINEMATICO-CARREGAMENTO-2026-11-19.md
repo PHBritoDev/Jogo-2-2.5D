@@ -79,6 +79,13 @@ Na `main` o dash não leva o herói até o VHAZRAEL e o golpe de longe não alca
 O VHAZRAEL ativo bloqueia e se esquiva da sequência repetida (IA anti-spam da Mod 316): os acertos limpos medidos com
 a IA parada sobem de 33 % para 100 %.
 
+### Duelo contínuo de 32 s contra o VHAZRAEL
+Vídeo: `docs/combate/evidencias/combate-cinematico/vhazrael-duelo-32s-antes-depois.mp4`. Mesmo bot, 960 passos de
+1/30 s, um quadro a cada 2 passos. Na PR: 52 golpes no alcance, 26 quadros com dano no chefe, 1º acerto aos 6,2 s,
+28 dashes e 166 de dano recebido pelo herói (o bot não tem defesa além do dash). A gravação da `main` parou aos
+31 s (465 quadros), por queda do processo do navegador headless, sem métricas finais. Nos quadros gravados, o golpe
+da `main` não alcança o chefe, enquanto na PR o herói fica colado e os acertos aparecem (DEFENDEU/dano).
+
 ## Provas e limites
 - Testes: `tests/carregamento-modulos.test.mjs` e `tests/combate-cinematico.test.mjs`. Suíte completa: falham as
   mesmas 9 da `main`.
