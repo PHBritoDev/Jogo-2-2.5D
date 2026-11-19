@@ -1873,9 +1873,9 @@ new GLTFLoader().load(heroURL,gltf=>{
  fitGuideModel();addVillageVendors();
  player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.textContent='Não foi possível carregar '+(newHero?'Prota_otimizado_2K.glb':'Protagonista.glb')+'. ';const fallback=document.createElement('a');fallback.href=heroFallbackURL;fallback.textContent='Usar protagonista antigo';loading.append(fallback);status.textContent='Falha ao carregar modelo';});
-const keys={};addEventListener('keydown',e=>{const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA');if(typing)return;keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();});
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-addEventListener('keydown',e=>{if(e.repeat)return;const typing=document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA'||document.activeElement.tagName==='SELECT');if(typing)return;if(e.code==='KeyR'){action('sword-skill');return;}if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'){action('dash');return;}if(e.code==='KeyG'){action('shield');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
+import { acceptsGameKey, bindMovementKeys } from './desktop-movement.js';
+const keys = bindMovementKeys(window, document);
+addEventListener('keydown',e=>{if(e.repeat || !acceptsGameKey(e))return;if(e.code==='KeyR'){action('sword-skill');return;}if(e.code==='KeyJ'||e.code==='KeyX'){action('attack');return;}if(e.code==='KeyF'){action('dash');return;}if(e.code==='KeyG'){action('shield');return;}if(e.code==='Digit1'||e.code==='Numpad1'){action('magic');return;}if(e.code==='Digit2'||e.code==='Numpad2'){action('magic2');return;}if(e.code==='Digit3'||e.code==='Numpad3'){action('magic3');return;}if(e.code==='Digit4'||e.code==='Numpad4'){action('ultimate');return;}if(e.code==='Space'){e.preventDefault();action('jump');return;}if(e.key==='e'||e.key==='Enter')tryInteract();});
 let joyX=0,joyY=0,joyActive=false,joyPointerId=null;const stick=document.getElementById('stick'),knob=document.getElementById('knob');
 function setJoy(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.32;const d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max;}joyX=dx/max;joyY=dy/max;knob.style.transform='translate('+dx+'px,'+dy+'px)';}
 // Only the finger that started the joystick may steer or release it; other fingers remain free for combat.
@@ -3265,7 +3265,12 @@ function updateFpsBadge(now){fpsFrames++;if(now-fpsSince<1000)return;const fps=M
  bindInstantTap(document.getElementById('pause-resume'),()=>setPaused(false));
  bindInstantTap(document.getElementById('pause-map'),()=>{setPaused(false);openWorldMap();});
  bindInstantTap(document.getElementById('pause-galaxies'),()=>{setPaused(false);openGalaxyScreen();});
- addEventListener('keydown',e=>{if(e.code!=='Escape'&&e.code!=='KeyP')return;const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing||(mapOpen&&e.code==='Escape'))return;setPaused(!gamePaused);},{capture:true});
+ addEventListener('keydown',e=>{if ((e.code !== 'Escape' && e.code !== 'KeyP') || e.repeat || !acceptsGameKey(e)) return;
+  if (e.code === 'Escape') {
+    if (mapOpen || shopOpen) return;
+    if (inventoryOpen) { closeInventory(); return; }
+  }
+  setPaused(!gamePaused);},{capture:true});
  addEventListener('visibilitychange',()=>{if(document.hidden)setPaused(true);});
  const panel=document.getElementById('graphics-panel-3d');
  if(panel){
