@@ -1,0 +1,391 @@
+{
+ "st": {
+  "attacks": 295,
+  "dashes": 95,
+  "magic": 16,
+  "heals": 0,
+  "heroDmg": 120,
+  "bossDmg": 161,
+  "frames": 1800,
+  "skips": 0
+ },
+ "audit": {
+  "on": true,
+  "t": 60,
+  "roles": {
+   "run": 7,
+   "Investida_Corrompida": 9,
+   "idle": 36,
+   "walk": 50,
+   "Orbita_Recuo": 9,
+   "hit": 1,
+   "dash": 20,
+   "Eclipse_Duplo": 8,
+   "block": 1,
+   "jump": 6,
+   "Giro_Eclipse": 3,
+   "Fenda_Queda": 2
+  },
+  "acts": {
+   "run:investida": 3,
+   "melee:Investida_Corrompida": 9,
+   "melee:Orbita_Recuo": 9,
+   "stagger": 1,
+   "dodge:crepusculo:1": 7,
+   "dodge:crepusculo:2": 7,
+   "melee:Eclipse_Duplo": 8,
+   "block:fenda": 1,
+   "leap": 6,
+   "melee:Giro_Eclipse": 3,
+   "dodge:eclipse:1": 3,
+   "dodge:eclipse:2": 2,
+   "melee:Fenda_Queda": 2,
+   "dodge:crepusculo:3": 1
+  },
+  "events": {
+   "windup": 31,
+   "shield": 1,
+   "shieldHit": 1,
+   "vzTactic": 13,
+   "tactic:crepusculo": 7,
+   "vgChain": 10,
+   "poiseHold": 3,
+   "tactic:fenda": 1,
+   "guard": 1,
+   "blocked": 1,
+   "vzRiposte": 1,
+   "meleeHit": 12,
+   "leap": 6,
+   "jump": 12,
+   "airDash": 6,
+   "leapStrike": 6,
+   "tactic:eclipse": 3,
+   "tactic:investida": 2
+  },
+  "log": [
+   [
+    0.03,
+    "run:investida",
+    5.7
+   ],
+   [
+    0.07,
+    "melee:Investida_Corrompida",
+    4.3
+   ],
+   [
+    1.13,
+    "melee:Orbita_Recuo",
+    2.5
+   ],
+   [
+    1.77,
+    "stagger",
+    2.8
+   ],
+   [
+    2.43,
+    "dodge:crepusculo:1",
+    1.4
+   ],
+   [
+    2.7,
+    "dodge:crepusculo:2",
+    1.9
+   ],
+   [
+    2.97,
+    "melee:Eclipse_Duplo",
+    2.3
+   ],
+   [
+    4.33,
+    "block:fenda",
+    1
+   ],
+   [
+    4.8,
+    "melee:Orbita_Recuo",
+    1.4
+   ],
+   [
+    6.43,
+    "leap",
+    4.9
+   ],
+   [
+    7.83,
+    "melee:Orbita_Recuo",
+    2
+   ],
+   [
+    9.63,
+    "melee:Investida_Corrompida",
+    6
+   ],
+   [
+    10.47,
+    "dodge:crepusculo:1",
+    1.2
+   ],
+   [
+    10.7,
+    "dodge:crepusculo:2",
+    3.1
+   ],
+   [
+    10.93,
+    "melee:Giro_Eclipse",
+    2.5
+   ],
+   [
+    13,
+    "leap",
+    5.4
+   ],
+   [
+    14.43,
+    "dodge:eclipse:1",
+    3.3
+   ],
+   [
+    14.67,
+    "dodge:eclipse:2",
+    1
+   ],
+   [
+    14.7,
+    "melee:Fenda_Queda",
+    1
+   ],
+   [
+    17,
+    "melee:Eclipse_Duplo",
+    2.4
+   ],
+   [
+    18.2,
+    "dodge:crepusculo:1",
+    2.3
+   ],
+   [
+    18.43,
+    "dodge:crepusculo:2",
+    3.9
+   ],
+   [
+    18.63,
+    "melee:Investida_Corrompida",
+    4.7
+   ],
+   [
+    19.53,
+    "melee:Orbita_Recuo",
+    1.9
+   ],
+   [
+    21.27,
+    "dodge:crepusculo:1",
+    2.1
+   ],
+   [
+    21.53,
+    "dodge:crepusculo:2",
+    4
+   ],
+   [
+    21.73,
+    "dodge:crepusculo:3",
+    2.5
+   ],
+   [
+    21.87,
+    "melee:Eclipse_Duplo",
+    1.6
+   ],
+   [
+    23.1,
+    "leap",
+    5.4
+   ],
+   [
+    24.5,
+    "melee:Orbita_Recuo",
+    2.6
+   ],
+   [
+    26.3,
+    "melee:Investida_Corrompida",
+    6.8
+   ],
+   [
+    27.17,
+    "dodge:eclipse:1",
+    5.6
+   ],
+   [
+    27.33,
+    "melee:Eclipse_Duplo",
+    2.1
+   ],
+   [
+    29.03,
+    "melee:Orbita_Recuo",
+    1.8
+   ],
+   [
+    30.77,
+    "dodge:eclipse:1",
+    7.5
+   ],
+   [
+    31.03,
+    "dodge:eclipse:2",
+    1
+   ],
+   [
+    31.07,
+    "melee:Eclipse_Duplo",
+    0.9
+   ],
+   [
+    32.37,
+    "melee:Giro_Eclipse",
+    1.9
+   ],
+   [
+    34.1,
+    "melee:Investida_Corrompida",
+    6.2
+   ],
+   [
+    35.03,
+    "melee:Eclipse_Duplo",
+    1.1
+   ],
+   [
+    36.4,
+    "leap",
+    5.9
+   ],
+   [
+    37.8,
+    "melee:Orbita_Recuo",
+    2
+   ],
+   [
+    39.63,
+    "melee:Investida_Corrompida",
+    6.2
+   ],
+   [
+    40.5,
+    "run:investida",
+    9.3
+   ],
+   [
+    41.03,
+    "melee:Investida_Corrompida",
+    7.4
+   ],
+   [
+    42,
+    "melee:Eclipse_Duplo",
+    1
+   ],
+   [
+    43.3,
+    "dodge:crepusculo:1",
+    1.8
+   ],
+   [
+    43.57,
+    "dodge:crepusculo:2",
+    3.9
+   ],
+   [
+    44.1,
+    "melee:Orbita_Recuo",
+    2.5
+   ],
+   [
+    45.93,
+    "melee:Giro_Eclipse",
+    2
+   ],
+   [
+    47.6,
+    "run:investida",
+    10
+   ],
+   [
+    48.17,
+    "melee:Investida_Corrompida",
+    7.8
+   ],
+   [
+    49.1,
+    "melee:Eclipse_Duplo",
+    1.1
+   ],
+   [
+    50.5,
+    "dodge:crepusculo:1",
+    3.3
+   ],
+   [
+    50.73,
+    "dodge:crepusculo:2",
+    3.8
+   ],
+   [
+    50.93,
+    "leap",
+    4.4
+   ],
+   [
+    52.33,
+    "melee:Orbita_Recuo",
+    2.7
+   ],
+   [
+    55.43,
+    "melee:Investida_Corrompida",
+    5.7
+   ],
+   [
+    56.53,
+    "melee:Fenda_Queda",
+    2.8
+   ],
+   [
+    58.13,
+    "dodge:crepusculo:1",
+    1.7
+   ],
+   [
+    58.37,
+    "dodge:crepusculo:2",
+    3.4
+   ],
+   [
+    58.63,
+    "leap",
+    3.9
+   ]
+  ],
+  "passive": 10.63,
+  "passiveMax": 1.47,
+  "lastActT": 0,
+  "repeats": 0,
+  "lastAct": "leap",
+  "dist": [
+   15.9,
+   19.2,
+   18.8,
+   6.2
+  ],
+  "idleRun": 0.1
+ },
+ "errs": []
+}
