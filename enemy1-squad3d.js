@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js?v=mod329-export-bishop-duel';
 import {BOSS_MOVES,bossTravel,bossLift} from './boss-choreography3d.js';
 /** CLAUDE (P3): pausa entre golpes de chefe — cadeia de 3–4 golpes quase colados, depois uma respiração tática curta. */
 export function bossGap(a){a.bossChain=(a.bossChain||0)+1;if(a.bossChain>=3+((a.bossChain*7+(a.id||'').length)%2)){a.bossChain=0;return .85;}return .12;}
