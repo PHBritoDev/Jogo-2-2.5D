@@ -1,0 +1,17 @@
+<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Escudo Hexagonal QA</title><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script><style>body{margin:0;background:#141d27;color:white;font:14px system-ui}label{position:absolute;top:8px;left:12px}</style><label>Escudo Hexagonal — QA isolado</label><script type="module">
+import * as T from 'three';import {createShieldVFX} from './shield-vfx3d.js';
+const renderer=new T.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(960,540);renderer.setPixelRatio(1);document.body.append(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color('#1a2430');const camera=new T.PerspectiveCamera(50,960/540,.1,100);camera.position.set(5,3.4,8);camera.lookAt(0,1.4,0);
+scene.add(new T.HemisphereLight(0xabcfff,0x172522,2));const sun=new T.DirectionalLight(0xffffff,2);sun.position.set(3,7,5);scene.add(sun);
+const floor=new T.Mesh(new T.PlaneGeometry(24,24),new T.MeshStandardMaterial({color:'#52605a'}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const dummy=new T.Mesh(new T.CapsuleGeometry(.34,1.4,4,8),new T.MeshStandardMaterial({color:'#7b8997',roughness:.7}));dummy.position.y=1.2;scene.add(dummy);
+const shield=createShieldVFX(T,scene,{ground:()=>0});const s={active:true,serial:1,spec:{radiusK:.9},damage:0,impacts:[],endReason:null,remaining:()=>10};
+window.shieldQA={ready:true,show:({skin='celeste',phase='full',side=false}={})=>{
+shield.release('qa');s.serial++;s.active=true;s.damage=phase==='damaged'?.75:phase==='broken'?1:0;s.impacts=phase==='hit'?[{x:0,y:.2,z:1}]:[];s.endReason=null;
+shield.sync('qa',s,{x:0,y:0,z:0},2.8,1,skin,.22);
+if(phase==='hit')shield.sync('qa',s,{x:0,y:0,z:0},2.8,1.02,skin,.02);
+if(phase==='broken'){s.active=false;s.endReason='broken';shield.sync('qa',s,{x:0,y:0,z:0},2.8,1.34,skin,.34);}
+camera.position.set(side?8:5,3.4,side?1.1:8);camera.lookAt(0,1.4,0);renderer.render(scene,camera);
+return {skin,phase,side,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries,shield:shield.stats()};}};
+window.shieldQA.show({});
+</script>
