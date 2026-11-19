@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VORGAZHEK — QA do rig novo</title>
+<style>html,body{margin:0;background:#101018;color:#cfd3ff;font:12px system-ui}canvas{display:block}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><div id="info">carregando…</div>
+<script type="module">
+/* Missão 19/11 — prova visual do NewBispo2_Otimizado.glb: poses dos próprios clipes (e das poses recortadas), Espada Cósmica
+   presa à mão com a MESMA empunhadura calibrada do jogo, 4 vistas (frente, lado, costas, ¾) sob luz neutra. */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { calibrateGrip, inPlaceClip } from '../../vhazrael-rig3d.js';
+import { buildVoidBlade } from '../../vorgazhek-vfx3d.js';
+import { VG_FILE, vgSynthClips } from '../../vorgazhek3d.js';
+const W = 1200, POSES = [['VG_idle', 0], ['Walking', .3], ['Running', .2], ['VG_guard', 0], ['Double_Combo_Attack', .63], ['Attack', 1.07], ['Weapon_Combo_2', 1.97], ['Jump_Over_Obstacle_2', .4]], VIEWS = [0, Math.PI / 2, Math.PI, -Math.PI * .75];
+const cell = W / VIEWS.length, H = cell * POSES.length, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setScissorTest(true); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a1b26); scene.add(new THREE.HemisphereLight(0xdfe6ff, 0x30283a, 1.6)); const sun = new THREE.DirectionalLight(0xffffff, 1.8); sun.position.set(3, 5, 4); scene.add(sun);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(2.2, 48), new THREE.MeshStandardMaterial({ color: 0x2a2c3a })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const cam = new THREE.PerspectiveCamera(35, 1, .05, 50);
+new GLTFLoader().load('../../' + VG_FILE.slice(2), g => {
+  const model = g.scene, clips = g.animations.concat(vgSynthClips(THREE, g.animations)); /* a caixa da malha skinned não conta o esqueleto: mede pelos ossos (cabeça) depois de posar o idle */ scene.add(model); { const m0 = new THREE.AnimationMixer(model), c0 = clips.find(c => c.name === 'VG_idle'); if (c0) { m0.clipAction(c0).play(); m0.setTime(0); } model.updateMatrixWorld(true); let head = null, foot = null; model.traverse(o => { if (o.isBone && o.name === 'head_end') head = o; if (o.isBone && o.name === 'LeftToes') foot = o; }); const hy = head.getWorldPosition(new THREE.Vector3()).y, fy = foot.getWorldPosition(new THREE.Vector3()).y, s = 2.15 / Math.max(.2, hy - fy); model.scale.setScalar(s); model.position.y = -fy * s; m0.stopAllAction(); }
+  let hand = null; model.traverse(o => { if (!hand && o.isBone && /^RightHand$/.test(o.name)) hand = o; });
+  const grip = calibrateGrip(THREE, model, m => m.clone(true), clips.find(c => c.name === 'VG_idle'));
+  const blade = buildVoidBlade(THREE); scene.add(blade);
+  const mixer = new THREE.AnimationMixer(model);
+  POSES.forEach(([name, t], row) => {
+    const c = clips.find(x => x.name === name); mixer.stopAllAction(); if (c) { const a = mixer.clipAction(inPlaceClip(c, { vertical: name === 'Jump_Over_Obstacle_2' })); a.play(); mixer.setTime(t); }
+    model.updateMatrixWorld(true); hand.getWorldPosition(blade.position); hand.getWorldQuaternion(blade.quaternion).multiply(grip); blade.updateMatrixWorld(true);
+    VIEWS.forEach((v, col) => { cam.position.set(Math.sin(v) * 5, 1.5, Math.cos(v) * 5); cam.lookAt(0, 1.05, 0); const y = H - (row + 1) * cell; r.setViewport(col * cell, y, cell, cell); r.setScissor(col * cell, y, cell, cell); r.render(scene, cam); });
+  });
+  document.getElementById('info').textContent = 'linhas: ' + POSES.map(p => p[0] + '@' + p[1]).join(' · ') + ' | colunas: frente, lado, costas, ¾'; window.__done = true;
+}, undefined, e => { document.getElementById('info').textContent = 'erro: ' + e.message; window.__done = true; });
+</script></body></html>

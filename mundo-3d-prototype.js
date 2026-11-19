@@ -112,7 +112,8 @@ import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
-import { meleeOnlyProfile } from './combat-melee-test-mode.js';
+import { meleeOnlyProfile, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js';
+import { VG_FILE, VG_ROLES, VG_IN_PLACE, VG_TIME, vgSynthClips } from './vorgazhek3d.js';
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
@@ -3054,6 +3055,8 @@ function beginDimensionFight(){
  enemy.visible=false;useRig(d.rig);bossRageAnnounced=false;bossComboHits=0;bossHitCounter=0;
  const sp=arenaSpots(b.key);
  if(b.key==='bishop1'&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop1',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:vhazraelSquadDone};startSquadPack();}
+ /* missão 19/11: no treino dos Bispos (padrão) o VORGAZHEK luta com o corpo novo na esquadra; ?bisposComPoderes=1 mantém o Bispo 2 clássico com todos os poderes */
+ else if(b.key==='bishop2'&&BISHOP_DUEL_ONLY&&!SQUAD_LEGACY){pack={squad:true,dim:true,rig:'bishop2n',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:vorgazhekSquadDone};startSquadPack();}
  else revealEncounter(d.profile,sp.boss,b.hp,d.line);
  checkpointX=sp.player.x;checkpointZ=sp.player.z;
  const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}
@@ -3067,6 +3070,7 @@ function beginDimensionFight(){
  if(b.key==='greed')setTimeout(greedIntro,600);
 }
 /** Fim da luta em esquadra do VHAZRAEL: mesma saída de antes (fala de derrota no Ato I, depois a vitória da dimensão). */
+function vorgazhekSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop2')return;dimensionVictory();}
 function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(b.test){dimensionVictory();return;}if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
  if(pack&&pack.dim)clearPack();
@@ -4174,6 +4178,7 @@ function loadRig(name){
   model.scale.setScalar(scale);model.position.set(0,-box.min.y*scale,0);model.visible=false;enemyModelRoot.add(model);
   if(name==='rival')addSandraClue(model);
   if(name==='bishop2')attachCosmicSword(model); // MOD 262: espada cósmica permanente na mão do Bispo 2
+  if(def.synth)for(const c of def.synth(THREE,clips))clips.push(c);
   const mixer=new THREE.AnimationMixer(model),actions={};
   const inPlace=clip=>{const c=clip.clone();for(const t of c.tracks){if(!/hips[^.]*\.position$/i.test(t.name))continue;const v=t.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return c;};
   for(const [role,clipName] of Object.entries(def.roles)){const c=by(clipName);if(c)actions[role]=mixer.clipAction((def.inPlace||[]).includes(role)?inPlace(c):c);}
@@ -4333,7 +4338,7 @@ function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squ
 function squadRuntime(){
  if(squadRT)return squadRT;
  squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
-  source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
+  source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':k==='vorgazhek'?'bishop2n':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
@@ -4346,12 +4351,12 @@ function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile
 function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}
 /** Mod 317: os bandidos da estrada lutam como esquadra simultânea (espécie 'bandit', só espada). */
 function banditSquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='bandit'&&profile==='bandit1';}
-function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'||P.rig==='bandit'?P.rig:'enemy1';}
-function squadHp(P,kind,n){if(kind==='bandit')return Math.round((P.hp||70)*1.25);if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
+function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'||P.rig==='bishop2n'||P.rig==='bandit'?P.rig:'enemy1';}
+function squadHp(P,kind,n){if(kind==='vorgazhek')return Math.round((P.hp||560)*3.6);if(kind==='bandit')return Math.round((P.hp||70)*1.25);if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
 function startSquadPack(){
  const P=pack;if(!P)return;const rigN=squadRig(P),src=rigSource(rigN);if(!src||!src.model){P.waitRig=true;if(rigN==='enemy1')loadEnemyModel();else loadRig(rigN).catch(()=>{});return;}// espera o rig carregar
  P.waitRig=false;
- const kind=P.rig==='bishop1'?'vhazrael':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':P.rig==='bandit'?'bandit':'common',n=P.spots.length,rt=squadRuntime();
+ const kind=P.rig==='bishop1'?'vhazrael':P.rig==='bishop2n'?'vorgazhek':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':P.rig==='bandit'?'bandit':'common',n=P.spots.length,rt=squadRuntime();
  const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
  for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
  squadBlockCache.clear();squadStopAt=0;rt.start(spots,{seed:(questStep*131+act1Sub*17+n*7+1)|0});
@@ -4457,13 +4462,13 @@ function applyVzTint(){
    motivo/objetivo), eventos de IA e tempo passivo entre ações. Barato: só contadores; lido pelo QA via vzAudit(). */
 const vzA={on:false,t:0,roles:{},acts:{},events:{},log:[],passive:0,passiveMax:0,lastActT:0,repeats:0,lastAct:null,dist:[0,0,0,0]};
 function vzAuditReset(){Object.assign(vzA,{on:true,t:0,roles:{},acts:{},events:{},log:[],passive:0,passiveMax:0,lastActT:0,repeats:0,lastAct:null,dist:[0,0,0,0]});vzA._rev={};vzA._act={};}
-function vzAuditTick(dt){if(!vzA.on||!squadOn)return;vzA.t+=dt;for(const a of squadAlive()){if(a.kind!=='vhazrael')continue;
+function vzAuditTick(dt){if(!vzA.on||!squadOn)return;vzA.t+=dt;for(const a of squadAlive()){if(a.kind!=='vhazrael'&&a.kind!=='vorgazhek')continue;
  if(vzA._rev[a.id]!==a.anim.rev){vzA._rev[a.id]=a.anim.rev;vzA.roles[a.anim.role]=(vzA.roles[a.anim.role]||0)+1;}
  const d=Math.hypot(a.x-player.position.x,a.z-player.position.z);vzA.dist[d<1.6?0:d<3.2?1:d<7?2:3]+=dt;
  if(a.act&&a.act!==vzA._act[a.id]){vzA._act[a.id]=a.act;const k=a.act.type+(a.act.move?':'+a.act.move.id:a.act.skill?':'+a.act.skill:a.act.goal?':'+a.act.goal:'');vzA.acts[k]=(vzA.acts[k]||0)+1;if(k===vzA.lastAct&&a.act.type!=='stagger')vzA.repeats++;vzA.lastAct=k;
   vzA.idleRun=0;if(vzA.log.length<400)vzA.log.push([+vzA.t.toFixed(2),k,+d.toFixed(1)]);}
  if(!a.act){vzA.passive+=dt;vzA.idleRun=(vzA.idleRun||0)+dt;vzA.passiveMax=Math.max(vzA.passiveMax,vzA.idleRun);}}}
-function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
+function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael'&&d.actor.kind!=='vorgazhek')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
 function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;vzAuditEvent(type,d);
  switch(type){
@@ -7011,6 +7016,8 @@ function updateLate(dt,now){
 }
 lateSystemsReady=true;
 /* ===================== MOD 197 — ARCO FINAL: OS QUATRO GUARDIÕES E O PECADO DA GANÂNCIA ===================== */
+/* missão 19/11: VORGAZHEK com o corpo novo (NewBispo2_Otimizado.glb) no motor da esquadra; poses de guarda/reação recortadas do próprio GLB */
+RIG_DEFS.bishop2n={file:VG_FILE,height:1.4,roles:VG_ROLES,inPlace:VG_IN_PLACE,timeScales:{idle:1,block:1,jump:VG_TIME.jump.speed,dash:VG_TIME.dash.speed},synth:vgSynthClips};
 RIG_DEFS.bishop1={file:VZ_FILE,height:1.4,roles:VZ_ROLES,inPlace:VZ_IN_PLACE,timeScales:{idle:.85,look:1,stride:1,jump:VZ_TIME.jump.speed,dash:VZ_TIME.dash.speed,block:1}}; // Mod 320: VHAZRAEL.glb substitui o Bispo1-lod.glb (mesmo bispo, mesmos IDs)
 RIG_DEFS.greed1={file:'./Ganancia1-lod.glb?v=mod197',height:1.7,roles:{idle:'_01a15a96_67a9_773a_89e1_3990f76b968d',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_03',dash:'_01a15a9f_d25c_70e1_bcee_3b20cf78b1d2',death:'Dead',arise:'Arise'},inPlace:['attack','dash','death']};
 RIG_DEFS.greed2={file:'./Ganancia2-lod.glb?v=mod197',height:1.9,roles:{idle:'_01a156cd_69c5_76fe_b170_51aba82e74db',walk:'Walking',run:'Running',attack:'Triple_Combo_Attack',cast:'Skill_01',death:'Dead',arise:'Arise'},inPlace:['attack','death']};
@@ -8483,8 +8490,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
- vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},vzPoseQA(role='walk',step=0,actType=null){/* QA (missão 19/11): força o papel de locomoção do VHAZRAEL e anda 'step' m por passo, sem IA */const s=squadSq();if(!s)return null;const a=s.actors.find(x=>x.alive&&x.kind==='vhazrael');if(!a)return null;a.alert=1e9;a.decideT=1e9;a.react=null;a.act=actType?{type:actType,t:0,dur:99,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),face:false}:null;if(a.anim.role!==role||a.anim.once)a.anim={role,once:false,speed:1,rev:a.anim.rev+1};if(step){a.x+=Math.sin(a.yaw)*step;a.z+=Math.cos(a.yaw)*step;a.y=terrainHeightAt(a.x,a.z);}return{x:a.x,z:a.z,yaw:a.yaw,role:a.anim.role};},
- vzBladeClearance(){/* QA: menor distância entre a lâmina do VHAZRAEL e o corpo (esferas nos ossos, exceto braço/mão direitos) */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='vhazrael'),b=a&&squadRT.body(a.id);if(!b||!b.weaponRoot||!b.weapon)return null;b.model.updateMatrixWorld(true);b.weaponRoot.updateMatrixWorld(true);
+ bossActor(){/* QA: estado cru do chefe da esquadra */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.T?.boss);if(!a)return null;return{kind:a.kind,alert:a.alert,act:a.act&&{type:a.act.type,goal:a.act.goal,t:+a.act.t.toFixed(2)},react:a.react,cds:Object.fromEntries(Object.entries(a.cds).map(([k,v])=>[k,+v.toFixed(2)])),tac:a.vgTacT,intent:a.intent?.mode,x:+a.x.toFixed(2),z:+a.z.toFixed(2),hp:a.hp,chain:a.vgChain?a.vgChain.goal:null,stats:a.vgStats,target:a.targetId};},vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},vzPoseQA(role='walk',step=0,actType=null){/* QA (missão 19/11): força o papel de locomoção do VHAZRAEL e anda 'step' m por passo, sem IA */const s=squadSq();if(!s)return null;const a=s.actors.find(x=>x.alive&&(x.kind==='vhazrael'||x.kind==='vorgazhek'));if(!a)return null;a.alert=1e9;a.decideT=1e9;a.react=null;a.act=actType?{type:actType,t:0,dur:99,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),face:false}:null;if(a.anim.role!==role||a.anim.once)a.anim={role,once:false,speed:1,rev:a.anim.rev+1};if(step){a.x+=Math.sin(a.yaw)*step;a.z+=Math.cos(a.yaw)*step;a.y=terrainHeightAt(a.x,a.z);}return{x:a.x,z:a.z,yaw:a.yaw,role:a.anim.role};},
+ vzBladeClearance(){/* QA: menor distância entre a lâmina do VHAZRAEL e o corpo (esferas nos ossos, exceto braço/mão direitos) */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='vhazrael'||x.kind==='vorgazhek')),b=a&&squadRT.body(a.id);if(!b||!b.weaponRoot||!b.weapon)return null;b.model.updateMatrixWorld(true);b.weaponRoot.updateMatrixWorld(true);
   const A=b.weapon.userData.tipA.clone().applyMatrix4(b.weapon.matrixWorld),B=b.weapon.userData.tipB.clone().applyMatrix4(b.weapon.matrixWorld),R={Head:.2,Neck:.12,Chest:.27,Spine2:.26,Spine1:.25,Spine:.24,Hips:.24,LeftShoulder:.1,LeftUpperArm:.09,LeftArm:.09,LeftLowerArm:.07,LeftForeArm:.07,LeftUpperLeg:.13,LeftUpLeg:.13,RightUpperLeg:.13,RightUpLeg:.13,LeftLowerLeg:.09,LeftLeg:.09,RightLowerLeg:.09,RightLeg:.09,RightShoulder:.1};
   const p=new THREE.Vector3(),seg=new THREE.Line3(A,B),c=new THREE.Vector3();let min=99,who=null;b.model.traverse(o=>{if(!o.isBone)return;const n=o.name.replace(/^mixamorig/,'');if(!(n in R))return;o.getWorldPosition(p);seg.closestPointToPoint(p,true,c);const dd=c.distanceTo(p)-R[n];if(dd<min){min=dd;who=n;}});
   return{min:+min.toFixed(3),bone:who,tip:[+B.x.toFixed(2),+B.y.toFixed(2),+B.z.toFixed(2)],base:[+A.x.toFixed(2),+A.y.toFixed(2),+A.z.toFixed(2)],carryW:+(b.carryW||0).toFixed(2),mode:+(b.carryMode||0).toFixed(2),boss:[a.x,a.y,a.z,a.yaw]};},
