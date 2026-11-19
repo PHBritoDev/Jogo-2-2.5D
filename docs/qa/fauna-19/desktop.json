@@ -1,0 +1,172 @@
+[
+  {
+    "kind": "coelho",
+    "spawn": true,
+    "biome": "vale",
+    "point": [
+      -305.2,
+      -50.2
+    ],
+    "states": [
+      "idle",
+      "flee"
+    ],
+    "landed": false,
+    "simulationSpeed": 2,
+    "range": [
+      1.41,
+      1.52
+    ],
+    "draws": 2,
+    "tris": 9734,
+    "counts": {
+      "coelho": 2
+    },
+    "loaded": [
+      "coelho",
+      "dourado"
+    ],
+    "fps": 2.3,
+    "worldCalls": 165,
+    "heapMiB": 228,
+    "videoFrames": 18
+  },
+  {
+    "kind": "montanha",
+    "spawn": true,
+    "biome": "serra",
+    "point": [
+      -675.2,
+      -54.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      18.36,
+      23.44
+    ],
+    "draws": 2,
+    "tris": 5894,
+    "counts": {
+      "montanha": 2
+    },
+    "loaded": [
+      "coelho",
+      "dourado",
+      "montanha"
+    ],
+    "fps": 3.1,
+    "worldCalls": 70,
+    "heapMiB": 228,
+    "videoFrames": 83
+  },
+  {
+    "kind": "lava",
+    "spawn": true,
+    "biome": "cinzas",
+    "point": [
+      -1015.2,
+      -25.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      53.25,
+      56.25
+    ],
+    "draws": 2,
+    "tris": 9874,
+    "counts": {
+      "lava": 2
+    },
+    "loaded": [
+      "coelho",
+      "dourado",
+      "montanha",
+      "lava"
+    ],
+    "fps": 2.3,
+    "worldCalls": 74,
+    "heapMiB": 228,
+    "videoFrames": 74
+  },
+  {
+    "kind": "dourado",
+    "spawn": true,
+    "biome": "vale",
+    "point": [
+      -325.2,
+      -47.2
+    ],
+    "states": [
+      "idle",
+      "flight"
+    ],
+    "landed": true,
+    "simulationSpeed": 2,
+    "range": [
+      2.6,
+      5.6
+    ],
+    "draws": 5,
+    "tris": 18551,
+    "counts": {
+      "dourado": 3,
+      "coelho": 2
+    },
+    "loaded": [
+      "dourado",
+      "coelho"
+    ],
+    "fps": 2.7,
+    "worldCalls": 67,
+    "heapMiB": 169,
+    "videoFrames": 73
+  },
+  {
+    "kind": "grilo",
+    "spawn": true,
+    "biome": "vale",
+    "point": [
+      -305.2,
+      -50.2
+    ],
+    "states": [
+      "idle",
+      "flee"
+    ],
+    "landed": false,
+    "simulationSpeed": 2,
+    "dayHidden": true,
+    "range": [
+      1.41,
+      1.5
+    ],
+    "draws": 4,
+    "tris": 17659,
+    "counts": {
+      "dourado": 1,
+      "coelho": 2,
+      "grilo": 1
+    },
+    "loaded": [
+      "coelho",
+      "dourado",
+      "montanha",
+      "lava",
+      "grilo"
+    ],
+    "fps": 1.2,
+    "worldCalls": 170,
+    "heapMiB": 228,
+    "videoFrames": 24
+  }
+]

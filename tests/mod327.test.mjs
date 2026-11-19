@@ -138,29 +138,46 @@ test('praça de Cinzária: chafariz inequívoco (torno com bacia, taça e pinác
 });
 
 /* ---------- P1/P2: fauna preservada no Ato 1 ---------- */
-import { FAUNA, FAUNA_CELL, cellCandidate, habitatOk, budget, insectLevel } from '../fauna3d.js';
+import { FAUNA, FAUNA_CELL, cellCandidate, habitatOk, drinkingBank, budget, insectLevel } from '../fauna3d.js';
 const fctx = (biome, extra = {}) => ({ biome: () => biome, water: () => -1, road: () => false, lava: () => 0, blocked: () => false, ...extra });
-test('fauna: somente pássaro dourado do Ato 1 e grilo permanecem', () => {
-  assert.deepEqual(Object.keys(FAUNA).sort(), ['dourado', 'grilo']);
-  assert.deepEqual(Object.values(FAUNA).map(s => s.file).sort(), ['Grilo.glb', 'Passaro_Vale_Dourado.glb']);
+test('fauna: cinco espécies com modelos presentes na main', () => {
+  assert.deepEqual(Object.keys(FAUNA).sort(), ['coelho','dourado','grilo','lava','montanha']);
+  assert.deepEqual(Object.values(FAUNA).map(s => s.file).sort(), ['Coelhinho.glb','Grilo.glb','PassaroLava.glb','PassaroMontanha.glb','Passaro_Vale_Dourado.glb']);
   for (const { file } of Object.values(FAUNA)) assert.ok(fs.existsSync(new URL('../' + file, import.meta.url)), file);
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
-  for (const old of ['Coelho.glb', 'PassaroLava.glb', 'Passaro_Rapina_Montanhas.glb']) assert.ok(!src.includes(old), old + ' removido');
+  for (const old of ['Coelho.glb','Passaro_Rapina_Montanhas.glb']) assert.ok(!src.includes(old), old + ' removido');
   assert.ok(/index !== baseIdx\) return Promise\.resolve\(null\)/.test(src) && /resizeWidth: size/.test(src));
 });
-test('fauna: habitat restrito, sem cidade, água, estrada, lava ou objetos sólidos', () => {
-  for (const k of Object.keys(FAUNA)) {
-    for (const b of ['cidade', 'vulcao', 'cinzas', 'serra', 'abismo', null]) assert.equal(habitatOk(k, 0, 0, fctx(b)), false);
-    assert.ok(habitatOk(k, 0, 0, fctx('vale')));
-    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { water: () => .1 })));
-    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { road: () => true })));
-    assert.ok(!habitatOk(k, 0, 0, fctx('vale', { blocked: () => true })));
+test('fauna: os ombros animados pertencem à skin dos GLBs atuais', () => {
+  for (const species of Object.values(FAUNA).filter(s => s.wings)) {
+    const glb = fs.readFileSync(new URL('../' + species.file, import.meta.url));
+    const json = JSON.parse(glb.toString('utf8', 20, 20 + glb.readUInt32LE(12)));
+    const joints = json.skins[0].joints.map(i => json.nodes[i].name);
+    for (const shoulder of species.wings) assert.ok(joints.includes(shoulder), species.file + ' ' + shoulder);
   }
 });
-test('fauna: grilos somente à noite; orçamento das duas espécies', () => {
+
+test('fauna: habitat restrito, sem cidade, água, estrada, lava ou objetos sólidos', () => {
+  for (const k of Object.keys(FAUNA)) {
+    for (const b of ['cidade', 'vulcao', 'cinzas', 'serra', 'abismo', null]) assert.equal(habitatOk(k, 0, 0, fctx(b)), FAUNA[k].biomes.includes(b));
+    assert.ok(habitatOk(k, 0, 0, fctx(FAUNA[k].biomes[0])));
+    assert.ok(!habitatOk(k, 0, 0, fctx(FAUNA[k].biomes[0], { water: () => .1 })));
+    assert.ok(!habitatOk(k, 0, 0, fctx(FAUNA[k].biomes[0], { road: () => true })));
+    assert.ok(!habitatOk(k, 0, 0, fctx(FAUNA[k].biomes[0], { blocked: () => true })));
+  }
+});
+test('dourado bebe de terra firme somente junto a água rasa', () => {
+  const shore = fctx('vale', {water:(x,z) => z > .42 ? .12 : 0});
+  const bank = drinkingBank(0, 0, shore);
+  assert.ok(bank && shore.water(bank.x, bank.z) === 0);
+  assert.equal(drinkingBank(0, 0, {...shore, blocked:() => true}), null);
+  assert.equal(drinkingBank(0, 0, {...shore, water:() => .9}), null);
+});
+
+test('fauna: grilos somente à noite; orçamento por espécie e qualidade', () => {
   for (let h = 6; h <= 18; h += .5) { assert.equal(FAUNA.grilo.active(h), false); assert.equal(insectLevel(h, true) > 0 && h < 17.8, false); }
   assert.ok(FAUNA.grilo.active(21) && FAUNA.grilo.active(2));
-  assert.deepEqual(Object.fromEntries(Object.keys(FAUNA).map(k => [k, budget(k, false)])), { dourado: 3, grilo: 2 });
+  assert.deepEqual(Object.fromEntries(Object.keys(FAUNA).map(k => [k, budget(k, false)])), {coelho:2,montanha:2,lava:2,dourado:3,grilo:2});
   assert.equal(budget('grilo', true), 0);
 });
 test('fauna: semente estável por célula e densidade baixa', () => {

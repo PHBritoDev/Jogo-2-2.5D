@@ -1,28 +1,19 @@
-/**
- * Mod 327 — fauna com os GLBs do autor (Grilo, Passaro_Vale_Dourado).
- *
- *  - UM controlador para todas as espécies. Spawn com semente estável por célula (40 m) e por espécie: o mesmo coelho
- *    "mora" na mesma clareira; só existe perto da câmera (LOD por distância), nunca nasce na cara do jogador.
- *  - Carregamento preguiçoso: um GLB só é baixado quando um habitat dele entra no raio de interesse, um de cada vez,
- *    fora do quadro. Só a COR BASE é decodificada, já reduzida (createImageBitmap 256/128 px); os mapas 2048² de
- *    normal/rugosidade não são decodificados (3 × 16 MB por bicho economizados). Material Lambert (barato no celular).
- *  - O grilo usa InstancedMesh; o pássaro dourado é
- *    skinned: clones com SkeletonUtils, ossos animados à mão (cabeça, cauda, asas) — os GLBs não têm clipes.
- *  - Inspeção dos arquivos (Mod 327): todos vêm em pose de POUSO (asas fechadas). Pela regra do briefing, nenhuma
- *    ave-modelo voa com asas rígidas: o dourado deixa
- *    o poleiro abrindo as asas pelos ossos de ombro. Planadores no céu continuam sendo as silhuetas de
- *    eldoria-birds3d.js (bandos distantes), sem duplicar na mesma distância.
- *  - Grilos: SÓ do anoitecer à madrugada (regra do autor), no capim de clareira/beira de mata/água, nunca em estrada,
- *    cidade, cinza ou vulcão. O canto continua no audio3d (intermitente), agora ponderado pelo habitat.
+/** Fauna do Ato I. Uma semente por célula mantém a clareira de cada animal.
+ * Os quatro vertebrados da main têm rig sem clipes. Cada clone mantém seu
+ * esqueleto; o grilo sem rig compartilha uma InstancedMesh. Apenas a textura
+ * de cor reduzida é decodificada. Os bandos distantes continuam independentes.
  */
 export const FAUNA = Object.freeze({
-  dourado: { file: 'Passaro_Vale_Dourado.glb', len: .17, turn: 0, max: 3, near: 30, density: .5, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 6 && h <= 19, tex: 128, skinned: true, perch: true },
+  coelho: { file: 'Coelhinho.glb', len: .42, turn: -Math.PI/2, max: 2, near: 34, density: .52, biomes: ['prado','floresta','vale'], active: h => h>=5 && h<=20, tex:128, skinned:true },
+  montanha: { file: 'PassaroMontanha.glb', len:.52, turn:Math.PI/2, max:2, near:48, density:.45, biomes:['serra'], active:h=>h>=6&&h<=19, tex:128, skinned:true, wings:['bone_18','tripo::Spine_5'] },
+  lava: { file:'PassaroLava.glb', len:.36, turn:Math.PI/2, max:2, near:42, density:.4, biomes:['cinzas','vulcao'], active:()=>true, tex:128, skinned:true, wings:['bone_14','tripo::Spine_4'] },
+  dourado: { wings:['bone_32','bone_33'], file: 'Passaro_Vale_Dourado.glb', len: .17, turn: Math.PI / 2, max: 3, near: 30, density: .5, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 6 && h <= 19, tex: 128, skinned: true, perch: true },
   grilo: { file: 'Grilo.glb', len: .085, turn: Math.PI / 2, max: 2, near: 12, density: .7, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 18.5 || h <= 5.2, tex: 128 }
 });
 export const FAUNA_CELL = 40;
 
 function hash(a, b, s) { let h = (a * 374761393 + b * 668265263 + s * 974711) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
-const SEED = { dourado: 23, grilo: 53 };
+const SEED = { coelho:61, montanha:79, lava:97, dourado: 23, grilo: 53 };
 /** Candidato determinístico de uma espécie numa célula (ou null): mesma resposta sempre, sem estado. */
 export function cellCandidate(kind, cx, cz) {
   const S = FAUNA[kind], s = SEED[kind]; if (hash(cx, cz, s) > S.density) return null;
@@ -40,6 +31,19 @@ export function habitatOk(kind, x, z, ctx) {
   if (ctx.blocked?.(x, z)) return false;                            // nem dentro de rocha/casa/árvore
   return true;
 }
+// A dry foothold within beak reach of shallow water. Sample only at spawn.
+export function drinkingBank(x, z, ctx) {
+  if (!ctx.water) return null;
+  for (let i = 0; i < 8; i++) {
+    const yaw = i * Math.PI / 4, dx = Math.sin(yaw), dz = Math.cos(yaw);
+    for (const offset of [0, .35, .7]) {
+      const bx = x + dx * offset, bz = z + dz * offset;
+      const depth = ctx.water(bx + dx * .17, bz + dz * .17);
+      if (depth > .02 && depth < .35 && habitatOk('dourado', bx, bz, ctx)) return {x:bx, z:bz, yaw};
+    }
+  }
+  return null;
+}
 /** Quantos de cada espécie podem estar ativos agora (por qualidade): baixa = metade, sem grilo visual. */
 export function budget(kind, low) { const m = FAUNA[kind].max; return low ? (kind === 'grilo' ? 0 : Math.max(1, m >> 1)) : m; }
 /** Fator 0..1 do coro de grilos para o áudio (hora + habitat próximo); dia = 0 (regra do autor). */
@@ -51,7 +55,7 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
   const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadMs: [] };
-  const mx = new T.Object3D(); let loading = null, scanT = 0, t = 0;
+  const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
     if (index !== baseIdx) return Promise.resolve(null);              // normal/rugosidade 2048²: não decodifica
@@ -64,6 +68,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   } });
   const pending = {};
   function load(kind) {
+    if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
     if (assets[kind]) return Promise.resolve(assets[kind]); if (pending[kind]) return pending[kind];
     const S = FAUNA[kind], t0 = performance.now(); stats.loads++;
     const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
@@ -72,61 +77,182 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       const old = mesh.material, mat = new T.MeshLambertMaterial({ map: old.map || null, color: old.map ? 0xffffff : old.color }); old.dispose();
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
       const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3 };
-      if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; }
+      if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
       else { A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
       assets[kind] = A; stats.loaded.push(kind); stats.loadMs.push(Math.round(performance.now() - t0));
     }).catch(e => { assets[kind] = { failed: String(e && e.message || e) }; }).finally(() => { delete pending[kind]; });
   }
+  // Only inspect rendered rocks when a bird is created. Intersect one nearby
+  // instance at a time; a ray through the entire instanced world is expensive.
+  const perchGroups = ['jornada-rochas', 'vale-afloramentos', 'prado-rochedos-renascimento'];
+  const rockMatrix = new T.Matrix4(), rockCenter = new T.Vector3();
+  const perchRay = new T.Raycaster(), down = new T.Vector3(0, -1, 0);
+  function nearestPerch(c) {
+    const biome = ctx.biome(c.x,c.z);
+    let best = null, radius = 3.5;
+    for (const name of perchGroups) {
+      const rocks = scene.getObjectByName(name);
+      if (!rocks?.visible || !rocks.count) continue;
+      for (let i = 0; i < rocks.count; i++) {
+        rocks.getMatrixAt(i, rockMatrix);
+        rockMatrix.premultiply(rocks.matrixWorld);
+        rockCenter.setFromMatrixPosition(rockMatrix);
+        const {x, z} = rockCenter, distance = Math.hypot(x - c.x, z - c.z);
+        if (distance >= radius || ctx.biome(x,z) !== biome ||
+            ctx.road?.(x,z) || ctx.water?.(x,z) > .02 || ctx.lava?.(x,z) > 0) continue;
+        const floor = ground(x,z);
+        const surface = new T.Mesh(rocks.geometry, rocks.material);
+        surface.matrixWorld.copy(rockMatrix);
+        perchRay.ray.origin.set(x, floor + 5, z);
+        perchRay.ray.direction.copy(down);
+        const hit = perchRay.intersectObject(surface, false)[0];
+        if (!hit || hit.point.y < floor + .12 || hit.point.y > floor + 3) continue;
+        best = {x, z, y:hit.point.y}; radius = distance;
+      }
+    }
+    return best;
+  }
   function spawn(c) {
+    const id = c.cell + c.kind;
+    if (live.has(id)) despawn(id);
     const A = assets[c.kind], S = FAUNA[c.kind], y = ground(c.x, c.z);
-    const a = { ...c, hx: c.x, hz: c.z, y, by: y, state: 'idle', st: 0, hop: 0, vx: 0, vz: 0, fly: 0, look: 0 };
-    if (S.skinned) { const n = skClone(A.proto); n.scale.setScalar(A.k); root.add(n); a.node = n; a.bones = A.bones(n); a.rest = Object.fromEntries(Object.entries(a.bones).map(([k, b]) => [k, b.quaternion.clone()])); }
-    live.set(c.cell + c.kind, a);
+    const a = { ...c, hx: c.x, hz: c.z, y, by: y, state: 'idle', st: 0, cooldown: 0, poseAt: 0, hop: 0, vx: 0, vz: 0, fly: 0, look: 0 };
+    if (S.wings) {
+      a.perch = nearestPerch(c);
+      if (!a.perch && c.kind === 'dourado') {
+        const bank = drinkingBank(c.x, c.z, ctx);
+        if (bank) a.perch = {...bank, y:ground(bank.x, bank.z), bank:true};
+      }
+      if (a.perch) Object.assign(a, a.perch, {by:a.perch.y});
+    }
+    if (S.skinned) { const n = skClone(A.proto); n.scale.setScalar(A.k); root.add(n); a.node = n; a.bones = A.bones(n); n.updateMatrixWorld(true); a.axes = {}; a.rest = Object.fromEntries(Object.entries(a.bones).map(([k, b]) => [k, b.quaternion.clone()])); }
+    live.set(id, a);
   }
   function despawn(key) { const a = live.get(key); if (a?.node) { root.remove(a.node); a.node.traverse(o => { if (o.isSkinnedMesh) o.skeleton.dispose(); }); } live.delete(key); }
   const near = (a, px, pz) => Math.hypot(a.x - px, a.z - pz);
   function scan(px, pz, hour, cam) {
     const wanted = {};
     for (const kind of Object.keys(FAUNA)) {
-      const S = FAUNA[kind], B = budget(kind, low); if (!B || !S.active(hour)) { for (const [k, a] of live) if (a.kind === kind && a.state !== 'leave') despawn(k); continue; }
+      const S = FAUNA[kind], B = budget(kind, low); if (!B || !S.active(hour)) { for (const [k, a] of live) if (a.kind === kind) despawn(k); continue; }
       const R = S.near, c0x = Math.floor((px - R) / FAUNA_CELL), c1x = Math.floor((px + R) / FAUNA_CELL), c0z = Math.floor((pz - R) / FAUNA_CELL), c1z = Math.floor((pz + R) / FAUNA_CELL), list = [];
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
       if (list.length && !assets[kind] && !loading) { loading = load(kind).finally(() => { loading = null; }); }
     }
-    for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k) && a.state !== 'leave') despawn(k); }
-    const fx = cam ? -Math.sin(cam.rotation.y) : 0, fz = cam ? -Math.cos(cam.rotation.y) : 0;
+    for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
+    const population = {};
+    for (const a of live.values()) population[a.kind] = (population[a.kind] || 0) + 1;
+    if (cam) cam.getWorldDirection(forward); else forward.set(0,0,0);
+    const horizontal = Math.hypot(forward.x, forward.z) || 1;
+    const fx = forward.x / horizontal, fz = forward.z / horizontal;
     for (const kind of Object.keys(wanted)) { if (!assets[kind] || assets[kind].failed) continue;
-      for (const [d, c] of wanted[kind]) { if (live.has(c.cell + c.kind)) continue; const dx = c.x - px, dz = c.z - pz, inView = (dx * fx + dz * fz) / (d || 1) > .55;
+      for (const [d, c] of wanted[kind]) { if ((population[kind] || 0) >= budget(kind, low)) break; if (live.has(c.cell + c.kind)) continue; const dx = c.x - px, dz = c.z - pz, inView = (dx * fx + dz * fz) / (d || 1) > .55;
         if (d < 10 || (inView && d < 22)) continue; // nunca aparece na cara do jogador
-        spawn(c); } }
+        spawn(c); population[kind] = (population[kind] || 0) + 1; } }
   }
-  const tmpQ = new T.Quaternion(), ax = new T.Vector3();
-  function bone(a, name, axis, ang) { const b = a.bones[name]; if (!b) return; ax.set(...axis); tmpQ.setFromAxisAngle(ax, ang); b.quaternion.copy(a.rest[name]).multiply(tmpQ); }
+  const tmpQ = new T.Quaternion();
+  function bone(a, name, axis, ang, additive = false) { const key = T.PropertyBinding.sanitizeNodeName(name), b = a.bones[key];
+    if (!b) return;
+    const id = key + axis.join(',');
+    // The exported rigs use different local joint axes. Express the requested
+    // axis in the unposed model frame, independent of the animal's heading.
+    if (!a.axes[id]) {
+      const original = assets[a.kind].rigFrames[key];
+      a.axes[id] = new T.Vector3(...axis).applyQuaternion(original).normalize();
+    }
+    tmpQ.setFromAxisAngle(a.axes[id], ang);
+    if (!additive) b.quaternion.copy(a.rest[key]);
+    b.quaternion.multiply(tmpQ); }
   function step(a, dt, px, pz) {
-    const S = FAUNA[a.kind], d = near(a, px, pz); a.st += dt;
-    const fleeR = a.kind === 'grilo' ? 1.6 : a.kind === 'dourado' ? 4.5 : 0;
-    if (fleeR && d < fleeR && a.state !== 'flee' && a.state !== 'leave') { a.state = a.kind === 'dourado' ? 'leave' : 'flee'; a.st = 0; a.hop = 0; }
-    if (a.state === 'idle' && a.st > 1.5 + a.seed * 3) { a.state = Math.random() < .45 ? 'hop' : 'idle'; a.st = 0; if (a.state === 'hop') a.yaw += (Math.random() - .5) * 2.2; }
+    const S = FAUNA[a.kind], d = near(a, px, pz); a.st += dt; a.cooldown = Math.max(0, a.cooldown - dt);
+    if (S.wings) {
+      if (a.state === 'idle' && !a.cooldown && (d < 4.5 || a.st > 14 + a.seed * 18)) {
+        const away = Math.atan2(a.x - px, a.z - pz);
+        // Probe a short fan once. A cliff or wall at the first heading should
+        // not make the bird hover vertically at its starting point.
+        let reach = 0, heading = away;
+        for (const angle of [away, away + .7, away - .7]) {
+          for (let i = 1; i <= 8; i++) {
+            const x = a.hx + Math.sin(angle) * i, z = a.hz + Math.cos(angle) * i;
+            if (!habitatOk(a.kind, x, z, ctx) || ground(x, z) > a.by + i * .8) break;
+            if (i > reach) { reach = i; heading = angle; }
+          }
+          if (reach === 8) break;
+        }
+        a.cooldown = 1;
+        if (reach >= 1) {
+          a.reach = reach; a.heading = heading; a.state = 'flight'; a.st = 0;
+        }
+      }
+      if (a.state === 'flight') {
+        const phase = Math.min(1, a.st / (4.2 + a.seed * 2)), arc = Math.sin(Math.PI * phase);
+        const side = Math.sin(phase * 2 * Math.PI) * arc * Math.min(.9, a.reach / 4);
+        const sin = Math.sin(a.heading), cos = Math.cos(a.heading);
+        const travel = a.perch ? Math.max(0, (arc - .25) / .75) : arc;
+        const nx = a.hx + sin * travel * a.reach + cos * side * travel;
+        const nz = a.hz + cos * travel * a.reach - sin * side * travel;
+        const lift = Math.min(1, arc * 4);
+        if (a.perch && lift < 1) {
+          a.x = a.perch.x + (a.hx - a.perch.x) * lift;
+          a.z = a.perch.z + (a.hz - a.perch.z) * lift;
+        } else if (habitatOk(a.kind, nx, nz, ctx)) { a.x = nx; a.z = nz; }
+        const height = ground(a.x, a.z);
+        a.y = Math.max(height, a.by) + arc * (2 + a.seed * 2);
+        a.yaw = a.heading + Math.PI * Math.min(1, Math.max(0, (phase - .4) * 5));
+        if (phase === 1) { a.state = 'idle'; a.st = 0; a.cooldown = 2 + a.seed * 2; }
+      }
+      return true;
+    }
+    const fleeR=a.kind==='coelho'?4:1.6;
+    if(d<fleeR&&a.state!=='flee'){a.state='flee';a.st=0;a.hop=0;}
+    if (a.state === 'idle' && a.st > 1.5 + a.seed * 3) { a.state = Math.random() < .45 ? 'hop' : 'idle'; a.st = 0; if (a.state === 'hop') {
+      const homeDistance = Math.hypot(a.hx - a.x, a.hz - a.z);
+      a.yaw = homeDistance > 3 ? Math.atan2(a.hx - a.x, a.hz - a.z) : a.yaw + (Math.random() - .5) * 2.2;
+      // Forage along the margin, turning parallel when the next hop faces water.
+      if (ctx.water?.(a.x + Math.sin(a.yaw), a.z + Math.cos(a.yaw)) > .02) a.yaw += Math.PI / 2;
+    } }
     if (a.state === 'hop' || a.state === 'flee') {
-      const len = .3, dist = a.kind === 'grilo' ? .35 : .45;
+      const len = a.kind==='coelho'?.44:.3, dist = a.kind==='coelho'?(a.state==='flee'?1.15:.65):.35;
       if (a.state === 'flee' && a.hop === 0) a.yaw = Math.atan2(a.x - px, a.z - pz) + (Math.random() - .5) * .6;
       a.hop += dt / len; const u = Math.min(1, a.hop), nx = a.x + Math.sin(a.yaw) * dist * dt / len, nz = a.z + Math.cos(a.yaw) * dist * dt / len;
       if (habitatOk(a.kind, nx, nz, ctx) && Math.hypot(nx - a.hx, nz - a.hz) < 14) { a.x = nx; a.z = nz; } else a.yaw += Math.PI * .6 * dt / len;
       a.by = ground(a.x, a.z); a.y = a.by + Math.sin(Math.PI * u) * (a.kind === 'grilo' ? .07 : .1);
       if (a.hop >= 1) { a.hop = 0; if (a.state === 'hop' || (a.state === 'flee' && d > fleeR * 2.2) || a.st > 4) { a.state = 'idle'; a.st = 0; } }
-    } else if (a.state === 'leave') { // dourado: abre as asas pelos ossos de ombro e some subindo
-      a.fly += dt; const s = 2.2 + a.fly * 3; a.x += Math.sin(a.yaw) * s * dt; a.z += Math.cos(a.yaw) * s * dt; a.y += (1.4 + a.fly) * dt;
-      if (a.fly < .05) a.yaw = Math.atan2(a.x - px, a.z - pz);
-      if (a.fly > 3.5) return false;
     } else a.y = a.by = ground(a.x, a.z);
     return true;
   }
   function pose(a, idx) {
     const S = FAUNA[a.kind], A = assets[a.kind], bob = a.state === 'idle' ? Math.sin(t * (a.kind === 'grilo' ? 9 : 2.1) + a.seed * 9) : 0;
     if (S.skinned) { const n = a.node; n.position.set(a.x, a.y, a.z); n.rotation.set(0, a.yaw + S.turn, 0);
+      if (t < a.poseAt) return;
+      a.poseAt = t + (a.far ? .18 : 0);
       const look = Math.sin(t * .9 + a.seed * 7) * .6 * (a.state === 'idle' ? 1 : .2); bone(a, 'tripo::Head_0', [0, 1, 0], look); bone(a, 'tripo::Tail_0', [1, 0, 0], .15 * Math.sin(t * 3 + a.seed * 5) * (a.state === 'idle' ? 1 : 0));
-      const flap = a.state === 'leave' ? Math.sin(a.fly * 26) * .9 + .6 : 0; for (const [nm, sgn] of [['bone_32', 1], ['bone_33', -1], ['bone_30', 1], ['bone_31', 1]]) bone(a, nm, [0, 0, 1], sgn * flap);
+      if(S.wings){
+        const flying = a.state === 'flight', duration = 4.2 + a.seed * 2;
+        const glide = Math.max(0, 1 - Math.abs(a.st - duration / 2) / .9);
+        const envelope = Math.min(1, a.st * 5, Math.max(0, duration - a.st) * 4);
+        const flap = flying ? envelope * (.51 + .24 * glide + .38 * (1 - glide) * Math.sin(a.st * 18)) : 0;
+        const lift = a.kind === 'lava' ? -flap : flap;
+        for (let side = 0; side < 2; side++) {
+          const sign = side === 0 ? 1 : -1;
+          bone(a, S.wings[side], [1,0,0], lift * sign);
+          // Fan the folded trailing feathers outward before banking into a glide.
+          bone(a, S.wings[side], [0,1,0], lift * sign * .68, true);
+        }
+        if (!flying && Math.sin(a.st * .8) > .5) {
+          if (a.perch?.bank) a.yaw = a.perch.yaw;
+          const dip = a.perch?.bank ? .44 : .22;
+          bone(a, 'tripo::Head_0', [0,0,1], dip * Math.max(0, Math.sin(a.st * 3.2)));
+        }
+      }else if(a.kind==='coelho'){
+        const stride=Math.sin(Math.PI*Math.min(1,a.hop));
+        for(const leg of ['bone_18','bone_22'])bone(a,leg,[0,0,1],stride*.55);
+        for(const leg of ['bone_9','bone_13'])bone(a,leg,[0,0,1],-stride*.35);
+        if (a.state === 'idle') {
+          n.scale.y = A.k * (1 + .012 * bob);
+          if (Math.sin(t * .45 + a.seed) > 0) bone(a,'tripo::Head_0',[0,0,1],-.24*Math.abs(Math.sin(t*2.2)));
+        } else n.scale.y = A.k;
+      }
       return; }
     const pitch = a.state === 'hop' || a.state === 'flee' ? -.25 * Math.sin(Math.PI * Math.min(1, a.hop)) : .03 * bob;
     mx.position.set(a.x, a.y, a.z); mx.rotation.set(0, a.yaw + S.turn, 0); mx.rotateZ(a.kind === 'grilo' ? -pitch : 0);
@@ -138,14 +264,18 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       t += dt; root.visible = !hidden; if (hidden) return;
       scanT -= dt; if (scanT <= 0) { scanT = .6; scan(px, pz, hour, camera); }
       const counts = {}; let draws = 0, tris = 0;
-      for (const [k, a] of live) { if (!step(a, dt, px, pz)) { despawn(k); continue; } const A = assets[a.kind]; const i = counts[a.kind] = (counts[a.kind] || 0); counts[a.kind]++; pose(a, i); if (a.node) { draws++; tris += A.tris; } }
+      for (const [k, a] of live) { a.far = near(a, px, pz) > 20; if (!step(a, dt, px, pz)) { despawn(k); continue; } const A = assets[a.kind]; const i = counts[a.kind] = (counts[a.kind] || 0); counts[a.kind]++; pose(a, i); if (a.node) { draws++; tris += A.tris; } }
       for (const kind of Object.keys(assets)) { const A = assets[kind]; if (!A.im) continue; A.im.count = Math.min(counts[kind] || 0, A.im.instanceMatrix.count); A.im.instanceMatrix.needsUpdate = true; if (A.im.count) { draws++; tris += A.tris * A.im.count; } }
       stats.live = live.size; stats.draws = draws; stats.tris = Math.round(tris); stats.counts = counts;
     },
     /** QA: força o carregamento e o spawn imediato (ignora o "não nascer na cara"). */
-    debugSpawnAt(kind, x, z, yaw = 0) { if (!assets[kind]) return false; spawn({ kind, cell: 'qa' + x.toFixed(1) + z.toFixed(1), x, z, yaw, seed: .5, qa: true }); return true; },
+    debugSpawnAt(kind, x, z, yaw = 0) { if (!assets[kind] || assets[kind].failed || !budget(kind, low) || !habitatOk(kind, x, z, ctx)) return false;
+      const same = [...live].filter(([, a]) => a.kind === kind);
+      if (same.length >= budget(kind, low)) despawn(same[0][0]);
+      spawn({ kind, cell: 'qa' + x.toFixed(1) + z.toFixed(1), x, z, yaw, seed: .5, qa: true }); return true; },
     load,
-    list() { return [...live.values()].map(a => ({ kind: a.kind, state: a.state, x: +a.x.toFixed(2), z: +a.z.toFixed(2), y: +a.y.toFixed(2) })); },
-    dispose() { for (const k of [...live.keys()]) despawn(k); for (const A of Object.values(assets)) { if (A.im) { A.im.geometry.dispose(); root.remove(A.im); } if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); } } scene.remove(root); }
+    list() { return [...live.values()].map(a => ({ kind: a.kind, state: a.state, yaw: a.yaw, qa: !!a.qa, perch:!!a.perch, x: +a.x.toFixed(2), z: +a.z.toFixed(2), y: +a.y.toFixed(2) })); },
+    dispose() { for (const k of [...live.keys()]) despawn(k); for (const A of Object.values(assets)) { if (A.im) { A.im.geometry.dispose(); A.im.dispose(); root.remove(A.im); }
+        if (A.proto) A.proto.traverse(o => { if (o.isSkinnedMesh) { o.geometry.dispose(); o.skeleton.dispose(); } }); if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); } } scene.remove(root); }
   };
 }
