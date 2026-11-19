@@ -149,3 +149,13 @@
 @media(prefers-reduced-motion:reduce){
   #galaxy-screen .gx-tapped::after{animation:none!important;display:none!important}
 }
+
+#galaxy-screen .gx-touch-ripple {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  border: 1px solid var(--c);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, transparent 60%, var(--g) 69%, transparent 71%);
+}
