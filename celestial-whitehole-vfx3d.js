@@ -13,7 +13,7 @@ void main(){
  float lumin=edge*(.18+hot)*(.76+.24*cos(twist));
  vec3 emission=mix(vec3(.76,.042,.009),vec3(1.,.49,.028),hot);
  emission=mix(emission,vec3(1.,.94,.60),pow(hot,4.));
- gl_FragColor=vec4(emission,lumin);
+ gl_FragColor=vec4(emission*1.45,min(1.,lumin*1.65));
 }`;
 function arcGeometry(T,radius,width,lift){
  const v=[],ix=[];
@@ -46,6 +46,27 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
  const line=(color,opacity)=>new T.MeshBasicMaterial({color,opacity,transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,fog:false,toneMapped:false});
  const photon=new T.Mesh(arcGeometry(T,.80,.021,1),line(0xffcf77,1));
  const lens=new T.Mesh(arcGeometry(T,.96,.025,.91),line(0xff641d,.85));portal.add(photon,lens);
+ // Light from the far side bends over the horizon. The near stream passes
+ // across its face and tapers continuously into the inclined outer disk.
+ const streamPositions=[],streamUvs=[],streamIndices=[];
+ for(let i=0;i<=64;i++){
+  const u=i/64,x=(u-.5)*6.1,w=Math.sin(Math.PI*u)**.72;
+  for(const edge of [-1,1]){
+   streamPositions.push(x,.07*Math.sin(x*1.8)+edge*.12*w,.84*w+.075);
+   streamUvs.push(u,(edge+1)/2);
+  }
+  if(i){const j=i*2;streamIndices.push(j-2,j-1,j,j,j-1,j+1);}
+ }
+ const streamGeo=new T.BufferGeometry();streamGeo.setAttribute('position',new T.Float32BufferAttribute(streamPositions,3));
+ streamGeo.setAttribute('uv',new T.Float32BufferAttribute(streamUvs,2));streamGeo.setIndex(streamIndices);
+ const stream=new T.Mesh(streamGeo,new T.ShaderMaterial({uniforms:gas.material.uniforms,transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,
+  vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`varying vec2 v;uniform float time;void main(){float edge=abs(v.y*2.-1.);
+   float flow=.76+.24*sin(v.x*62.-time*5.+sin(v.x*18.));
+   gl_FragColor=vec4(mix(vec3(1.,.18,.012),vec3(1.,.95,.62),exp(-edge*3.)),(1.-edge*edge)*flow);}`}));
+ portal.add(stream);
+ const flareMat=line(0xffc45d,1),jets=new T.InstancedMesh(new T.ConeGeometry(1,1,4,1),flareMat,44);
+ jets.frustumCulled=false;root.add(jets);const up=new T.Vector3(0,1,0);
  const sockets=[new T.Group(),new T.Group()];wings.add(...sockets);
  const feathers=softParticles(T,120),threads=ribbons(T,420,{flow:10}),marks=groundDecals(T,5);
  root.add(feathers.mesh,threads.mesh,marks.mesh);
@@ -104,15 +125,27 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   if(t>=10&&age<0)marks.add(g.x,gy,g.z,R/.86,1,.31,.08,.3+.14*Math.sin(t*6),0,.2,8,n);
   shell.visible=age>=0&&age<1.2;
   if(shell.visible){const k=age/1.2;shell.position.copy(aim);shell.scale.setScalar(.14+R*easeOut(k));shell.material.uniforms.age.value=k;}
+  jets.count=age>=0&&age<.95?(low?22:44):0;
+  if(jets.count){
+   const k=age/.95;
+   for(let i=0;i<jets.count;i++){
+    const a=i*2.39996,el=.06+hash(i+9)*1.38;
+    p.set(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
+    const reach=(3+hash(i+2)*8)*easeOut(Math.min(1,k*2.1)),width=(.035+.09*hash(i+7))*(1-k);
+    pose.position.copy(aim).addScaledVector(p,reach*(.5+k*.42));pose.quaternion.setFromUnitVectors(up,p);
+    pose.scale.set(width,reach*(1-k),width*.62);pose.updateMatrix();jets.setMatrixAt(i,pose.matrix);
+   }
+   jets.instanceMatrix.needsUpdate=true;flareMat.opacity=1-k*k;
+  }
   debris.count=age>0&&age<1.65?(low?12:36):0;
   if(age>=0&&age<1.65){const k=age/1.65,travel=easeOut(k);
    marks.add(g.x,gy,g.z,R*travel/.86,1,.40,.09,1-k,0,k,5,n);
-   feathers.add(g.x,g.y+.4,g.z,2*(1-k),2*(1-k),1,.87,.48,Math.exp(-age*6),0);
+   feathers.add(g.x,g.y+.4,g.z,4.6*(1-k),4.6*(1-k),1,.85,.41,Math.exp(-age*3),0);
    for(let i=0;i<(low?16:38);i++){const a=i*2.4,h=.08+hash(i)*1.1,x=Math.cos(a),z=Math.sin(a),r=(3+hash(i+7)*7)*travel;
     threads.seg(g.x+x*r*.62,g.y+.4+h*r*.62,g.z+z*r*.62,g.x+x*r,g.y+.4+h*r,g.z+z*r,.047*(1-k),.004, gold,clear);}
    for(let i=0;i<debris.count;i++){const a=i*2.4,r=(2+hash(i+2)*5)*travel;pose.position.set(g.x+Math.cos(a)*r,gy+.1+Math.sin(k*Math.PI)*(1+hash(i)*3),g.z+Math.sin(a)*r);pose.rotation.set(k*7+i,a,k*4);pose.scale.setScalar(1-k);pose.updateMatrix();debris.setMatrixAt(i,pose.matrix);}debris.instanceMatrix.needsUpdate=true;
   }
   threads.end();marks.end(t);feathers.end();
  }
- return {root,update,setWings,clear(){root.visible=false;},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();for(const m of [gas,lens,photon,horizon,shell,debris,veil]){m.geometry.dispose();m.material.dispose();}wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
+ return {root,update,setWings,clear(){root.visible=false;},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,stream,gas,lens,photon,horizon,shell,debris,veil]){m.geometry.dispose();m.material.dispose();}wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
 }

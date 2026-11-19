@@ -2076,8 +2076,8 @@ function tickWhiteHole(dt){if(!whiteLease.locked)return;try{whiteLease.run(()=>{
  const wide=step(t,5.1,9),flight=step(t,11,13),orbit=.75+.38*wide;
  whiteLook.copy(whiteHero.pos);whiteLook.y+=wide*Math.min(alt*.42,3.2);whiteLook.x+=fx*wide*1.6;whiteLook.z+=fz*wide*1.6;
  whiteLook.lerp(whitePoint.set(target.x,target.y+.9,target.z),flight);
- const range=(4.5+wide*15)*(camera.aspect<1?1.35:1);
- whiteDest.copy(whiteLook);whiteDest.x+=range*(fz*orbit+fx*.45);whiteDest.z+=range*(-fx*orbit+fz*.45);whiteDest.y+=1.1+3.7*wide;
+ const range=(4.5+wide*15-flight*7)*(camera.aspect<1?1.35:1);
+ whiteDest.copy(whiteLook);whiteDest.x+=range*(fz*orbit+fx*.45);whiteDest.z+=range*(-fx*orbit+fz*.45);whiteDest.y+=1.1+3.7*wide+2.4*flight;
  whiteDest.y=Math.min(whiteDest.y,ceil-.55);whiteDest.y=Math.max(groundHeightAt(whiteDest.x,whiteDest.z)+.6,whiteDest.y);
  whiteCam.copy(s.cam).lerp(whiteDest,step(t,0,1)).lerp(s.cam,land);camera.position.copy(whiteCam);camera.lookAt(whiteLook);camera.quaternion.slerp(s.q,1-step(t,0,.7)*(1-land));
  camera.fov=s.fov+(48-s.fov)*step(t,0,1)*(1-land);camera.updateProjectionMatrix();
