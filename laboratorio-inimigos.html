@@ -29,20 +29,33 @@ footer{display:flex;gap:10px;justify-content:space-between;align-items:center;pa
 <a href="./index.html">↩ Jogo</a>
 </header>
 <main><iframe id="game" title="Jogo 3D" allow="fullscreen;autoplay"></iframe></main>
-<footer><span>O Vale é o INÍCIO da viagem: siga pelas montanhas e pela ponte até Cinzária. Testes de dimensões não salvam o progresso.</span><a id="open" target="_blank" rel="noopener">Tela cheia</a></footer>
+<footer><span>O Vale é o INÍCIO da viagem: siga pelas montanhas e pela ponte até Cinzária. Testes de dimensões não salvam o progresso.</span><span id="status" role="status"></span><button id="open" type="button">Tela cheia</button></footer>
 <script type="module">
-const game=document.getElementById('game'),open=document.getElementById('open'),buttons=[...document.querySelectorAll('nav button')];
-let build='latest';
-function travel(mode,key){
-  const params=new URLSearchParams();
-  if(mode==='dim')params.set('testeDimensao',key);
-  else{params.set('adm','1');params.set('debug3d','1');params.set('jornadaInicio','1');}
-  params.set('build',build);
-  const url='mundo-3d-prototype.html?'+params.toString();
-  game.src=url;open.href=url;buttons.forEach(b=>b.classList.toggle('active',mode==='dim'?b.dataset.dim===key:b.dataset.journey===key));
+import {worldURL} from './shell-navigation.js';
+const game=document.querySelector('#game'), toggle=document.querySelector('#open');
+const status=document.querySelector('#status'), buttons=[...document.querySelectorAll('nav button')];
+const meta=await import('./build-info.js?stamp='+Date.now());
+function travel(key) {
+  const params=new URLSearchParams(location.search);
+  params.delete('jornadaInicio');params.delete('testeDimensao');
+  if(key==='vale') params.set('jornadaInicio','1');
+  else params.set('testeDimensao',key);
+  params.set('debug3d','1');params.set('adm','1');
+  const url=worldURL(params,meta.BUILD);
+  game.src=url;
+  const search=url.slice(url.indexOf('?'));
+  history.replaceState(null,'',location.pathname+search);
+  for(const button of buttons) button.classList.toggle('active',(button.dataset.dim||button.dataset.journey)===key);
+  status.textContent='Carregando destino…';
 }
-for(const b of buttons)b.addEventListener('click',()=>b.dataset.dim?travel('dim',b.dataset.dim):travel('journey','vale'));
-try{const meta=await import('./build-info.js?stamp='+Date.now());build=String(meta.MOD);}catch(e){console.warn('Build indisponível',e);}
-travel('journey','vale');
-</script>
-</body></html>
+game.addEventListener('load',()=>{status.textContent='';game.focus();});
+for(const button of buttons) button.onclick=()=>travel(button.dataset.dim||button.dataset.journey);
+toggle.onclick=async()=>{
+  try {
+    if(document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch { status.textContent='Tela cheia indisponível neste navegador.'; }
+};
+document.addEventListener('fullscreenchange',()=>{toggle.textContent=document.fullscreenElement?'Sair da tela cheia':'Tela cheia';game.focus();});
+travel(new URLSearchParams(location.search).get('testeDimensao')||'vale');
+</script></body></html>
