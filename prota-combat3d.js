@@ -53,8 +53,21 @@ export function dashApproach(from, dir, targets, { blocked = () => false, cfg = 
     if (s < score) { score = s; best = { t, d, dx, dz }; }
   }
   if (!best) return { dir: { x: dir.x, z: dir.z }, dist: distance, target: null };
-  const { t, d, dx, dz } = best, stop = (t.radius || .5) + cfg.stop;
-  return { dir: { x: dx / d, z: dz / d }, dist: Math.max(cfg.min, Math.min(cfg.max, d - stop)), target: t };
+  const { t, d, dx, dz } = best, room = d - ((t.radius || .5) + cfg.stop);
+  // Já no alcance de golpe (sem espaço seguro ≥ cfg.min até a distância de parada): não há aproximação — o dash segue
+  // livre na direção pedida, como sempre (dashSettle impede parar dentro de um corpo). Nunca força passo em direção ao alvo.
+  if (room < cfg.min) return { dir: { x: dir.x, z: dir.z }, dist: distance, target: null };
+  return { dir: { x: dx / d, z: dz / d }, dist: Math.min(cfg.max, room), target: t };
+}
+
+/**
+ * Trecho do dash neste quadro: velocidade (1,55 − 1,1·u)·D/T integrada exatamente entre u0 e u1 (u = fração do tempo
+ * de deslocamento). Antes a velocidade do início do quadro valia pelo quadro inteiro e o dash passava ~13 % da
+ * distância a 30 FPS — e o de aproximação terminava dentro da distância de parada. Agora a soma é sempre D.
+ */
+export function dashStepLen(dist, remaining, dt, travel = PROTA_DASH.travel) {
+  const F = (u) => 1.55 * u - .55 * u * u, c = (u) => Math.min(1, Math.max(0, u));
+  return dist * (F(c(1 - (remaining - dt) / travel)) - F(c(1 - remaining / travel)));
 }
 
 /**

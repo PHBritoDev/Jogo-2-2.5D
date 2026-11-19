@@ -5,7 +5,7 @@ import {createSeatPose} from './seated-pose3d.js';
 import {buildShelter} from './eldoria-shelter3d.js';
 import './bandit-squad3d.js';
 import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector,protaClips} from './protagonist-aerial3d.js';
-import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,dashSettle,dashApproach} from './prota-combat3d.js';
+import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,dashSettle,dashApproach,dashStepLen} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
 import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,CITY_PROPS,JOURNEY_HOLES,ROUTE,polyProject} from './jornada3d.js';
@@ -1890,6 +1890,7 @@ let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let ground
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
    fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
+const protaDashStepLen=(rem,dt)=>dashStepLen(prota302.dashDist||PROTA_DASH.distance,rem,dt);
 const prota302={clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashTrail:[],dashSpent:0,dashDist:0,dashTarget:null,ghostT:0,counterUntil:0,dodged:false,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
 const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0};
 
@@ -2425,7 +2426,7 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
- const dashDt=Math.min(dt,dashRemaining),dashU=newHero?1-dashRemaining/PROTA_DASH.travel:0,dashSpeed=newHero?(prota302.dashDist||PROTA_DASH.distance)/PROTA_DASH.travel*(1.55-1.1*dashU):12.5;if(newHero&&!prota302.hidden&&(prota302.ghostT-=dt)<=0){prota302.ghostT=PROTA_DASH.ghostEvery;heroShadows?.emit();}/* MOD 315: saída explosiva e desaceleração (mesma distância total, sem freada seca) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
+ const dashDt=Math.min(dt,dashRemaining),dashSpeed=newHero?protaDashStepLen(dashRemaining,dashDt)/Math.max(1e-6,dashDt):12.5;if(newHero&&!prota302.hidden&&(prota302.ghostT-=dt)<=0){prota302.ghostT=PROTA_DASH.ghostEvery;heroShadows?.emit();}/* MOD 315: saída explosiva e desaceleração; trecho integrado exato (com o FPS que for, o total é a distância do dash, sem passar do alvo) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
  if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(prota302.dashTrail.length<64)prota302.dashTrail.push(player.position.x,player.position.z);/* Mod 327: trajeto varrido (só pontos já validados) — o fim do dash recua por ele, nunca às cegas */if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */}
  else{
  // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)

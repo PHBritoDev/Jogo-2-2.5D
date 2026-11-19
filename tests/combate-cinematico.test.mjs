@@ -23,7 +23,23 @@ test('dash de aproximação: vai ao inimigo à frente e para na distância de go
   assert.equal(dashApproach({ x: 0, z: 0 }, { x: 1, z: 0 }, [t]).dist, PROTA_DASH.distance, 'dash lateral não é puxado');
   assert.equal(dashApproach({ x: 0, z: 0 }, { x: 0, z: 1 }, [{ ...t, z: 20 }]).target, null, 'longe demais');
   assert.equal(dashApproach({ x: 0, z: 0 }, { x: 0, z: 1 }, [t], { blocked: () => true }).target, null, 'parede no meio');
-  assert.equal(dashApproach({ x: 0, z: 0 }, { x: 0, z: 1 }, [{ ...t, z: 1.6 }]).dist, PROTA_DASH.approach.min, 'colado: passo curto, nunca para dentro');
+  const near = dashApproach({ x: 0, z: 0 }, { x: .3, z: .95 }, [{ ...t, z: 1.6 }]);
+  assert.equal(near.target, null, 'já no alcance: sem aproximação forçada'); assert.equal(near.dist, PROTA_DASH.distance);
+  assert.ok(Math.abs(near.dir.x - .3) < 1e-9, 'colado: dash livre na direção pedida, não puxado para o alvo');
+});
+test('dash de aproximação nunca termina dentro da distância de parada (raios 0,5/0,8/1,5, alvos de 0,3 a 9 m, ângulos no cone)', () => {
+  const { stop, min, max, cone } = PROTA_DASH.approach;
+  let approached = 0;
+  for (const radius of [.5, .8, 1.5]) for (let d = .3; d <= 9; d += .1) for (const ang of [0, .3, -.3, cone - .01]) {
+    const t = { id: 'b', x: Math.sin(ang) * d, z: Math.cos(ang) * d, alive: true, radius };
+    const a = dashApproach({ x: 0, z: 0 }, { x: 0, z: 1 }, [t]);
+    if (!a.target) { assert.equal(a.dist, PROTA_DASH.distance); assert.ok(d - radius - stop < min || d > PROTA_DASH.approach.range); continue; }
+    approached++;
+    const ex = a.dir.x * a.dist, ez = a.dir.z * a.dist, left = Math.hypot(t.x - ex, t.z - ez);
+    assert.ok(a.dist >= min - 1e-9 && a.dist <= max + 1e-9, `distância ${a.dist}`);
+    assert.ok(left >= radius + stop - 1e-9, `r=${radius} d=${d.toFixed(1)}: termina a ${left.toFixed(2)} m do centro`);
+  }
+  assert.ok(approached > 100);
 });
 test('esquiva perfeita → contra-ataque: golpe absorvido pelos i-frames do dash abre a janela; o próximo golpe sai mais forte', () => {
   assert.ok(/if\(now<playerInvulnerableUntil\)\{protaPerfectDodge\(\);return false;\}/.test(m));

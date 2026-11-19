@@ -48,7 +48,13 @@ Medição com a IA do chefe parada, herói a 1,4–3,8 m e ângulos de 0° a ±6
   (pool já existente). Na chegada levanta com o fim do mesmo clipe, sem a pose de salto de antes. Em 1ª pessoa nada
   muda, e o rig antigo continua com o dash invisível.
 - **Aproximação:** com um inimigo à frente (cone de 40°, até 9 m e linha de visão), o dash vai até ele e para na
-  distância de golpe (raio + 1,5 m). De lado, para trás ou sem alvo, faz os 5,4 m livres de sempre.
+  distância de golpe (raio + 1,5 m). De lado, para trás ou sem alvo, faz os 5,4 m livres de sempre. Se o inimigo já
+  estiver dentro do alcance (sem pelo menos 0,8 m livres até a parada), não há aproximação: o dash segue livre na
+  direção pedida e nunca é puxado para o alvo (revisão A2).
+- **Distância exata em qualquer FPS:** o trecho de cada quadro integra a curva de velocidade. Antes, a velocidade do
+  início do quadro valia pelo quadro inteiro, e a 30 FPS o dash andava 6,1 m em vez de 5,4 m. O de aproximação também
+  passava da parada. No jogo, com o VHAZRAEL parado: alvos a 3,2/4,5/7 m terminam a 1,91 m do centro (parada em
+  2,05 m mais ~0,14 m de deslize do embalo); a 1,4–2,6 m, dash livre de 5,4 m (+0,14 m).
 - **Dash + golpe:** golpe durante ou até 0,26 s depois do dash = Corte do retorno (já existia).
 - **Esquiva perfeita → contra-ataque:** um golpe absorvido pelos i-frames do dash mostra ESQUIVA PERFEITA e abre
   0,8 s. O próximo golpe vira CONTRA-ATAQUE com dano ×1,5: com o alvo a mais de 2,6 m sai a Estocada em corrida,
