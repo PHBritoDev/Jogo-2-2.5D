@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js?v=mod329-export-bishop-duel';
 import { registerKind, registerSkill, E1, SKILLS } from './enemy1-squad3d.js';
 /**
  * MOD 238 — Enemy2 ("Trindade"): espécie própria sobre a esquadra da Mod 237 (mesmo diretor, mesmas fichas e estudo
