@@ -114,6 +114,8 @@ export function protaSegments() {
   out.push({ id: 'Prota302_land', clip: PROTA_JUMP.clip, start: PROTA_JUMP.land, end: PROTA_JUMP.landEnd, vertical: true });
   out.push({ id: 'Prota302_arrive', clip: PROTA_DASH.arrive.clip, start: PROTA_DASH.arrive.start, end: PROTA_DASH.arrive.end, vertical: true });
   out.push({ id: 'Prota302_dash', clip: PROTA_DASH.pose.clip, start: PROTA_DASH.pose.start, end: PROTA_DASH.pose.end, vertical: true });
+  /* lock-on: recuar de frente para o inimigo com o Walk_Backward (antes sem uso), no lugar do andar invertido */
+  out.push({ id: 'Prota302_back', clip: 'Walk_Backward', start: 0, end: .87 });
   out.push({ id: 'Prota302_rise', clip: PROTA_DASH.rise.clip, start: PROTA_DASH.rise.start, end: PROTA_DASH.rise.end, vertical: true });
   return out;
 }

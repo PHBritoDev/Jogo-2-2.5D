@@ -1867,7 +1867,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  if(newHero){const run=clips.find(c=>c.name==='Run');if(run)actions.run=mixer.clipAction(run);}if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);
  if(hit)actions.hit=mixer.clipAction(hit);{const kip=chooseClip(clips,/kip/i);if(kip)actions.kipUp=mixer.clipAction(kip);}if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
- if(newHero){const pc=protaClips(protaSegments());protaRoots=pc.roots;protaClipSet=pc.clips;for(const k of ['Prota302_jump','Prota302_land','Prota302_arrive','Prota302_dash','Prota302_rise'])if(pc.clips[k])actions[k]=mixer.clipAction(pc.clips[k]);}
+ if(newHero){const pc=protaClips(protaSegments());protaRoots=pc.roots;protaClipSet=pc.clips;for(const k of ['Prota302_jump','Prota302_land','Prota302_arrive','Prota302_dash','Prota302_rise','Prota302_back'])if(pc.clips[k])actions[k]=mixer.clipAction(pc.clips[k]);}
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
@@ -2439,10 +2439,12 @@ if(dashRemaining>0){
  // Testa cada eixo separadamente para o jogador conseguir deslizar junto à árvore/pedra.
  if(!playerBlockedAt(nextX,player.position.z))player.position.x=nextX;else moveVX=0;
  if(!playerBlockedAt(player.position.x,nextZ))player.position.z=nextZ;else moveVZ=0;
- const wantedYaw=Math.atan2(moveVX,moveVZ);
+ /* lock-on (duelo): o herói anda de frente para o alvo (strafe/recuo), como no duelo de referência; correr solta o giro */
+ const duel=newHero&&lockOnActive&&enemy.visible&&enemyAlive&&!isSprinting()&&cameraDistance>=1.05;
+ const wantedYaw=duel?Math.atan2(enemy.position.x-player.position.x,enemy.position.z-player.position.z):Math.atan2(moveVX,moveVZ);
  const yawDelta=Math.atan2(Math.sin(wantedYaw-playerYaw),Math.cos(wantedYaw-playerYaw));
  if(!rites.busy&&cameraDistance>=1.05){playerYaw+=yawDelta*(1-Math.exp(-12*dt));player.rotation.y=playerYaw;}
- if(newHero){if(grounded&&now>actionUntil&&!protaPoseBusy()&&actions.walk)protaLocomotion(Math.hypot(moveVX,moveVZ));}
+ if(newHero){if(grounded&&now>actionUntil&&!protaPoseBusy()&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);protaLocomotion(sp,duel&&(moveVX*Math.sin(playerYaw)+moveVZ*Math.cos(playerYaw))<-.45*sp);}}
  else if(grounded&&now>actionUntil&&actions.walk){const sp=Math.hypot(moveVX,moveVZ);if(actions.run&&sp>5.2){play('run');actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/5.2,.65,1.65));}else{play('walk');const walkAction=actions.walk;if(walkAction)walkAction.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/3.4,.55,1.45));}}
 }else if(playerHP>0&&grounded&&now>actionUntil&&actions.idle&&!(newHero&&protaPoseBusy()))play('idle');
 // Física vertical com altura do terreno: o personagem pode subir e descer pelas pedras.
@@ -2483,8 +2485,10 @@ if(ascVoidFall&&playerHP>0&&!ascBusy&&player.position.y<ascFallFrom-30){
 /* ===================== MOD 302 — COMBATE DO PROTAGONISTA (só o herói novo) ===================== */
 /** Andar é o padrão (clipe Walking); correr só com CORRER/Shift (clipe Running). A cadência do clipe segue a
  *  velocidade real no chão (1,63 m/s e 5,48 m/s medidos pelo pé de apoio), então o pé não patina. */
-function protaLocomotion(sp){
+function protaLocomotion(sp,back=false){
  if(sp<PROTA_LOCO.idleBelow){if(actions.idle)play('idle',.2);return;}
+ // lock-on: recuando de frente para o alvo → Walk_Backward na cadência da velocidade real (0,96 m por ciclo de 0,87 s)
+ if(back&&actions.Prota302_back&&!isSprinting()){play('Prota302_back',.18);actions.Prota302_back.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/1.1,.6,2.4));return;}
  // corre só com CORRER/Shift; ao soltar, a passada de corrida só continua enquanto o corpo ainda está acima do ritmo de andar (frenagem)
  if(actions.run&&(isSprinting()&&sp>PROTA_LOCO.walk*1.15||sp>PROTA_LOCO.walk*1.45)){play('run',.16);actions.run.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.runNatural,.75,1.3));}
  else{play('walk',.2);actions.walk.setEffectiveTimeScale(THREE.MathUtils.clamp(sp/PROTA_LOCO.walkNatural,.5,1.8));}

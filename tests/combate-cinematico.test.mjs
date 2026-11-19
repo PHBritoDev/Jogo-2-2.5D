@@ -39,3 +39,8 @@ test('lock-on opcional: tocar no inimigo trava/solta (celular), R ou botão do m
   assert.ok(/else if\(lockOnActive&&foeOn\)\{[^}]*k=Math\.min\(\.35,4\/fd\)/.test(m) && /lockOnActive&&cameraDistance>=1\.05\?Math\.min\(3\.2/.test(m));
   assert.ok(!/id="aim"/.test(fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8')), 'sem botão MIRAR de volta');
 });
+test('duelo em lock-on: herói de frente para o alvo e recuo com Walk_Backward (clipe antes sem uso); inventário automático', () => {
+  const seg = Object.fromEntries(protaSegments().map(s => [s.id, s])); assert.equal(seg.Prota302_back.clip, 'Walk_Backward');
+  assert.ok(/const duel=newHero&&lockOnActive&&enemy\.visible&&enemyAlive&&!isSprinting\(\)/.test(m) && /protaLocomotion\(sp,duel&&/.test(m));
+  assert.ok(fs.existsSync(new URL('../tools/combat/clip-inventory.mjs', import.meta.url)));
+});
