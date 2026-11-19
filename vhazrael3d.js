@@ -151,6 +151,7 @@ export const VZ_TACTICS = Object.freeze({ every: [.38, .62], enter: { gap: [2.2,
 const vzReady = (sq, a, t) => (a.T.kit || []).filter(id => id !== 'orbital' && SKILLS_OK(sq, a, t, id));
 function SKILLS_OK(sq, a, t, id) { const ts = a.T[id]; if (!ts || a.cds[id] || a.cds.spellGap) return false; const d = Math.hypot(t.x - a.x, t.z - a.z); return d >= ts.min && d <= ts.max; }
 export function vzTactics(sq, a, t, dt) {
+  if (t && t.casting && !a.vzSawCast) { a.vzSawCast = true; sq.event('vzSawCast', { actor: a, busy: a.act ? a.act.type : a.react ? 'react:' + a.react.type : a.alert > 0 ? 'alert' : 'livre' }); } else if (t && !t.casting) a.vzSawCast = false;
   if (!t || a.pendingDeath || a.alert > 0 || sq.spells.some(s => s.type === 'orbital' && s.phase !== 'after' && s.phase !== 'done')) return;
   const T = VZ_TACTICS, P = a.vzPhase || 0, rand = () => sq.rand();
   // 0) herói acabou de conjurar (mana gasta — sinal visível; ex.: cerco de lâminas): sair da área com dash, escudo, salto ou aguentar
@@ -182,13 +183,15 @@ export function vzTactics(sq, a, t, dt) {
   // ENTRAR: dash de aproximação + corte (iniciativa; mais quando o herói conjura ou se recupera de um golpe)
   if (dashOk && see && canMelee && !a.cds.vzEnter && gap >= T.enter.gap[0] && gap <= T.enter.gap[1]) opts.push(['entrar', .32 + P * .07 + (recovering ? .3 : 0) + (t.casting ? .3 : 0) + (gap > 4.5 ? .12 : 0)]);
   // FLANQUEAR: dash lateral + combo (contra guarda e contra quem fica parado de frente)
-  if (dashOk && see && canMelee && !a.cds.vzFlank && gap >= T.flank.gap[0] && gap <= T.flank.gap[1]) opts.push(['flanquear', .24 + P * .06 + (t.blocking ? .4 : 0) + (t.attacking ? .12 : 0) + (Math.hypot(t.vx || 0, t.vz || 0) < .5 ? .1 : 0)]);
+  if (dashOk && see && canMelee && !a.cds.vzFlank && gap >= T.flank.gap[0] && gap <= T.flank.gap[1]) opts.push(['flanquear', .24 + P * .06 + (t.blocking ? .4 : 0) + (t.attacking ? .06 : 0) + (Math.hypot(t.vx || 0, t.vz || 0) < .5 ? .08 : 0)]);
   // SAIR: dash para trás quando o herói pressiona colado; se houver magia pronta, reposiciona e conjura
-  if (dashOk && !a.cds.vzOut && gap <= T.out.gap[1] && t.attacking) opts.push(['sair', .22 + (a.hp < a.maxHp * .5 ? .12 : 0) + (a.style?.aggr > 2 ? .12 : 0)]);
+  if (dashOk && !a.cds.vzOut && gap <= T.out.gap[1] && t.attacking) opts.push(['sair', .26 + (a.hp < a.maxHp * .5 ? .12 : 0) + (a.style?.aggr > 2 ? .12 : 0) + (sq.time - (a.staggerArmorUntil || -9) < 1.5 ? .25 : 0)]);
   // PUNIR: herói se recuperando de um golpe ao alcance → golpe rápido já
   if (canMelee && recovering && gap <= 2.4 && !a.cds.melee) opts.push(['punir', .4 + P * .05]);
   if (!opts.length) return;
-  opts.sort((x, y) => y[1] - x[1]); const [goal, u] = opts[0]; if (rand() > Math.min(.85, u)) return;
+  // escolha por roleta ponderada (imprevisível mas legível): a chance de agir sobe com a melhor utilidade
+  const top = Math.max(...opts.map(o => o[1])); if (rand() > Math.min(.85, top)) return;
+  let roll = rand() * opts.reduce((x, o) => x + o[1], 0), goal = opts[0][0]; for (const o of opts) { roll -= o[1]; if (roll <= 0) { goal = o[0]; break; } }
   a.vzLast = goal; sq.event('vzTactic', { actor: a, goal, gap: +gap.toFixed(2) });
   if (goal === 'entrar') { a.cds.vzEnter = T.enter.cd * a.cdMul; a.cds.close = Math.max(a.cds.close || 0, 1.2); sq.begin(a, { type: 'dodge', dur: a.T.dash.time * T.enter.dur * Math.min(1.6, .7 + gap / 6), anim: 'dash', dx: ux, dz: uz, face: true, chain: 'melee', token: 'melee', tid: t.id, goal }); return; }
   if (goal === 'flanquear') { const sgn = rand() < .5 ? 1 : -1; a.cds.vzFlank = T.flank.cd * a.cdMul; const fx = uz * sgn * .85 + ux * .35, fz = -ux * sgn * .85 + uz * .35, l = Math.hypot(fx, fz); sq.begin(a, { type: 'dodge', dur: a.T.dash.time * T.flank.dur, anim: 'dash', dx: fx / l, dz: fz / l, face: false, iframes: true, chain: 'melee', token: 'melee', tid: t.id, goal }); return; }

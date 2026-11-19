@@ -17,7 +17,7 @@ import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
 import { calibrateGrip, nativeMoveClips, inPlaceClip } from './vhazrael-rig3d.js';
 import { attachAfterimages, tickAfterimages, clearAfterimages, disposeAfterimages, afterimageStats } from './vhazrael-afterimage3d.js';
-import { attachKatana, poseKatana, poseCaster, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
+import { attachKatana, poseKatana, poseCaster, poseCarry, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
 /**
  * MOD 237 — corpo visual da esquadra Enemy1: um clone do Enemy1 por ator, com mixer, materiais (lampejo de dano
  * individual) e estado de animação próprios. Altura normalizada pelo esqueleto deformado (protocolo de escala GLB) e
@@ -271,7 +271,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         // recuo da reação curta (sem clipe de dano no Enemy1)
         b.model.rotation.x = a.act && a.act.type === 'stagger' ? -Math.sin(Math.min(1, a.act.t / a.act.dur) * Math.PI) * (E3K[a.kind] && a.act.dur > .5 ? .42 : .22) : 0;
         if (E3K[a.kind]) { // Enemy3: camada de conjuração, inclinação no strafe e mão da singularidade
-          poseCaster(T, b, a, squad, dt); const lat = a.vx * Math.cos(a.yaw) - a.vz * Math.sin(a.yaw); b.model.rotation.z += (-lat * .05 - b.model.rotation.z) * Math.min(1, dt * 6);
+          poseCaster(T, b, a, squad, dt); poseCarry(T, b, a, squad, dt); // Missão 19/11: Marcha do Executor / Guarda de Predador (só VHAZRAEL) const lat = a.vx * Math.cos(a.yaw) - a.vz * Math.sin(a.yaw); b.model.rotation.z += (-lat * .05 - b.model.rotation.z) * Math.min(1, dt * 6);
           if (a.act && a.act.spellId && b.hand) { const s = squad.spells.find(x => x.id === a.act.spellId); if (s && s.type === 'singularity') { b.hand.getWorldPosition(_v); s.hand = s.hand || {}; s.hand.x = _v.x + Math.sin(a.yaw) * .18; s.hand.y = _v.y + .12; s.hand.z = _v.z + Math.cos(a.yaw) * .18; } }
         }
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
