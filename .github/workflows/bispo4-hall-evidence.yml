@@ -1,12 +1,7 @@
 name: Bispo 4 — hall WebGL evidence (no deploy)
+# Laboratorio Bispo 4: pausado para PRs; nao interfere mais nas integracoes.
+# Permanece exclusivamente manual, por workflow_dispatch.
 on:
-  pull_request:
-    paths:
-      - 'veraxion-hall-*'
-      - 'dimension-arenas3d.js'
-      - 'mundo-3d-prototype.js'
-      - 'tools/visual-lab/bispo4-hall-*'
-      - '.github/workflows/bispo4-hall-evidence.yml'
   workflow_dispatch:
 permissions:
   contents: read
