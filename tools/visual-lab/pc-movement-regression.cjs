@@ -11,5 +11,18 @@ const {chromium}=require('playwright'), assert=require('node:assert/strict');
  await page.locator('select').focus();assert.ok(await page.evaluate(()=>!movement.w&&!movement.d));
  await page.keyboard.press('ArrowDown');assert.equal(await page.locator('select').inputValue(),'B');
  await page.keyboard.up('w');await page.keyboard.up('d');
+ await page.locator('select').evaluate(el=>el.blur());
+ await page.keyboard.down('w');
+ await page.evaluate(()=>document.dispatchEvent(new Event('fullscreenchange')));
+ assert.equal(await page.evaluate(()=>movement.w),true,'a late transition notification must preserve a new keypress');
+ await page.keyboard.up('w');
+ const distinct=await page.evaluate(()=>{
+   const key=new KeyboardEvent('keydown',{code:'KeyW',key:'z',bubbles:true});
+   document.body.dispatchEvent(key);const byCode=movement.w;
+   document.body.dispatchEvent(new KeyboardEvent('keyup',{code:'KeyW',bubbles:true}));
+   document.body.dispatchEvent(new KeyboardEvent('keydown',{code:'KeyW',key:'w',ctrlKey:true,bubbles:true}));
+   return [byCode,movement.w];
+ });
+ assert.deepEqual(distinct,[true,false]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

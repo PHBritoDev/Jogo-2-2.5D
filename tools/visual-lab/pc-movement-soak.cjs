@@ -19,6 +19,6 @@ const assert=require('node:assert/strict'), fs=require('fs');
  }
  assert.ok(samples.some(s=>Math.hypot(s.x-before.x,s.z-before.z)>.05),'player moved');
  fs.writeFileSync('docs/qa/pc-movement-soak.json',JSON.stringify({elapsedMs:Date.now()-start,before,samples},null,2));
- await page.screenshot({path:'docs/qa/pc-movement-soak.png'});
+ await page.screenshot({path:'docs/qa/pc-movement-soak.png',timeout:120000});
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
