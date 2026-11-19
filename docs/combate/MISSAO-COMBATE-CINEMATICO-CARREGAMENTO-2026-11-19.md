@@ -61,6 +61,24 @@ Medição com a IA do chefe parada, herói a 1,4–3,8 m e ângulos de 0° a ±6
 - Travada, a câmera gira para olhar o inimigo por trás do herói e enquadra os dois: o foco vai ~35 % para o alvo (no
   máximo 4 m) e a distância cresce até +3,2 m conforme a separação. O herói nunca sai do quadro.
 
+## Lutas gravadas (bot com entradas reais, 16 s de jogo, passo de 1/30 s)
+Vídeos em `docs/combate/evidencias/combate-cinematico/` (antes à esquerda, depois à direita). O bot só usa
+`combatAction('attack'|'dash')`: se aproxima com o dash, ataca no alcance e usa o dash para esquivar quando o chefe
+golpeia. O lock-on (R) só existe na PR. "Quadros com dano" conta os quadros em que o HP do chefe caiu.
+
+| | VHAZRAEL main | VHAZRAEL PR | VORGAZHEK main | VORGAZHEK PR |
+|---|---|---|---|---|
+| golpes pedidos no alcance | 4 | 24 | 21 | 17 |
+| quadros com dano | 0 | 2 | 20 | 33 |
+| 1º acerto | nunca | 6,1 s | 1,27 s | **0,63 s** |
+| esquivas perfeitas (quadros) | — | 27 | — | 0 |
+| dano recebido pelo herói | 10 | 43 | 0 | 0 |
+| fim | luta aberta | luta aberta | chefe cai em 14,7 s | chefe cai em 13,7 s |
+
+Na `main` o dash não leva o herói até o VHAZRAEL e o golpe de longe não alcança. Na PR o herói chega, ataca e esquiva.
+O VHAZRAEL ativo bloqueia e se esquiva da sequência repetida (IA anti-spam da Mod 316): os acertos limpos medidos com
+a IA parada sobem de 33 % para 100 %.
+
 ## Provas e limites
 - Testes: `tests/carregamento-modulos.test.mjs` e `tests/combate-cinematico.test.mjs`. Suíte completa: falham as
   mesmas 9 da `main`.
