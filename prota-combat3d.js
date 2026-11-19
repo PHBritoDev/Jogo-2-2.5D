@@ -161,6 +161,60 @@ export function pickTarget(from, yaw, targets, { blocked = () => false, range = 
 }
 
 /**
+ * Missão 19/11 — direção do GOLPE separada da direção do ANALÓGICO (bug reproduzido pelo criador: inimigo bem à frente,
+ * analógico levemente para trás/lado + GOLPE → o herói golpeava para trás e perdia o alvo).
+ *  1. Mira travada (lock-on) válida → ela.
+ *  2. Inimigo válido (vivo, linha de visão, mesmo piso) a até `assist` m → o golpe é dele. O analógico só translada
+ *     (passo lateral/recuo durante o golpe); ruído ou toque leve nunca vira o herói de costas para o alvo.
+ *  3. Troca manual: analógico FIRME (≥ `flick`) apontando a ≤ 35° de OUTRO inimigo a até `range` m → muda para ele.
+ *  4. Sem ninguém em `assist`: o mais bem pontuado até `range` (distância, centro da câmera, frente do herói, alvo
+ *     atual e alvo golpeado há pouco — com histerese); com analógico firme, cone de 57° na direção pedida.
+ *  5. Ninguém → golpe livre na direção do analógico (escolha deliberada de mirar no vazio).
+ * `stick` = {x, z, mag} no MUNDO (já relativo à câmera); mag < `dead` conta como sem entrada.
+ */
+export const ATTACK_AIM = Object.freeze({ assist: 4.6, range: 9, dead: .35, flick: .7, flickCone: .62, height: 3, recentHit: 2.5 });
+export function chooseAttackTarget(from, { heroYaw = 0, camYaw = null, stick = null, cands = [], lockedId = null, currentId = null, lastHitId = null, lastHitAge = 99, blocked = () => false, cfg = ATTACK_AIM } = {}) {
+  const ok = [];
+  for (const t of cands) {
+    if (!t || !t.alive) continue;
+    const dx = t.x - from.x, dz = t.z - from.z, d = Math.hypot(dx, dz);
+    if (d > cfg.range || Math.abs((t.y - (t.height || 1.7) * .5) - from.y) > cfg.height || blocked(from, t)) continue;
+    ok.push({ t, d, yaw: Math.atan2(dx, dz) });
+  }
+  const mag = stick ? Math.min(1, stick.mag ?? Math.hypot(stick.x, stick.z)) : 0, input = mag >= cfg.dead, firm = mag >= cfg.flick;
+  const sYaw = input ? Math.atan2(stick.x, stick.z) : heroYaw;
+  if (lockedId != null) { const L = ok.find(o => o.t.id === lockedId); if (L) return { target: L.t, why: 'lock', input, stickYaw: sYaw }; }
+  // troca deliberada: analógico firme mirando outro inimigo
+  if (firm) { let best = null, bs = Infinity; for (const o of ok) { const off = Math.abs(wrap(o.yaw - sYaw)); if (off > cfg.flickCone) continue; const sc = o.d * .5 + off * 2; if (sc < bs) { bs = sc; best = o; } }
+    if (best && best.t.id !== currentId) return { target: best.t, why: 'flick', input, stickYaw: sYaw }; }
+  const near = ok.filter(o => o.d <= cfg.assist + (o.t.radius || .5));
+  const pool = near.length ? near : firm ? ok.filter(o => Math.abs(wrap(o.yaw - sYaw)) <= 1) : ok;
+  let best = null, bs = Infinity;
+  for (const o of pool) {
+    const camOff = camYaw == null ? 0 : Math.abs(wrap(o.yaw - camYaw)), faceOff = Math.abs(wrap(o.yaw - heroYaw));
+    const sc = o.d * .55 + camOff * .8 + faceOff * .5 - (o.t.id === currentId ? 1.6 : 0) - (o.t.id === lastHitId && lastHitAge < cfg.recentHit ? .8 : 0) - (o.t.threat || 0) * .4;
+    if (sc < bs) { bs = sc; best = o; }
+  }
+  return best ? { target: best.t, why: near.length ? 'assist' : 'auto', input, stickYaw: sYaw } : { target: null, why: 'free', input, stickYaw: sYaw };
+}
+/**
+ * Translação do analógico DURANTE o golpe com alvo válido: o tronco/lâmina seguem no alvo e o stick vira passo lateral
+ * ou recuo (nunca giro). Devolve a velocidade (m/s) e quanto do avanço automático (warp) ainda vale: puxar para trás
+ * cancela a aproximação; empurrar para o alvo mantém tudo.
+ */
+export const ATTACK_STRAFE = Object.freeze({ lateral: 2.6, back: 2.3, activeK: .45 });
+export function attackStrafe(stick, toTarget, phase = 'windup', cfg = ATTACK_STRAFE, dead = ATTACK_AIM.dead) {
+  const mag = stick ? Math.min(1, stick.mag ?? Math.hypot(stick.x, stick.z)) : 0;
+  if (mag < dead || !toTarget) return { vx: 0, vz: 0, warpK: 1 };
+  const l = Math.hypot(toTarget.x, toTarget.z) || 1, fx = toTarget.x / l, fz = toTarget.z / l, sl = Math.hypot(stick.x, stick.z) || 1, sx = stick.x / sl, sz = stick.z / sl;
+  const along = sx * fx + sz * fz; if (along > .5) return { vx: 0, vz: 0, warpK: 1 }; // para o alvo: o golpe já avança
+  // toque leve (< flick): o golpe ainda chega no alvo e o herói só desliza um pouco; analógico FIRME para trás = recuar de verdade (sem avanço)
+  const firm = mag >= ATTACK_AIM.flick, side = sx * -fz + sz * fx, k = (phase === 'active' ? cfg.activeK : 1) * (firm ? mag : mag * .4);
+  const lat = side * cfg.lateral * k, back = Math.min(0, along) * cfg.back * k;
+  return { vx: -fz * lat + fx * back, vz: fx * lat + fz * back, warpK: firm && along < -.3 ? 0 : 1 };
+}
+
+/**
  * "Motion warping" (alinhamento do golpe): cada golpe tem um ponto de contato medido no próprio clipe (`aim`:
  * distância e ângulo do alvo, no quadro do herói no início do trecho, já contando o root motion). Durante o startup
  * o herói gira (até 12 rad/s) e desliza no máximo `warp.max` metros para pôr o alvo nesse ponto — curto, com teto de

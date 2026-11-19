@@ -61,7 +61,7 @@ test('duelo em lock-on: herói de frente para o alvo e recuo com Walk_Backward (
   assert.ok(fs.existsSync(new URL('../tools/combat/clip-inventory.mjs', import.meta.url)));
 });
 test('mira automática (estilo Genshin, sem botão): sem analógico o golpe acha o inimigo em volta, até às costas; com analógico, a direção pedida manda', () => {
-  assert.ok(/pickTarget\(from,intent\.yaw,cands,\{blocked:protaBlocked,range:9,cone:intent\.input\?1\.0:Math\.PI,/.test(m));
+  assert.ok(/chooseAttackTarget\(from,\{heroYaw:playerYaw,camYaw:cameraYaw\+Math\.PI,stick:st,cands,lockedId/.test(m), 'missão 19/11: escolha do alvo separada do analógico');
   const back = { id: 'b', x: 0, z: -2.5, y: 1, alive: true }, ahead = { id: 'a', x: 0, z: 6, y: 1, alive: true };
   assert.equal(pickTarget({ x: 0, y: 1, z: 0 }, 0, [back], { range: 9, cone: Math.PI }), back, 'inimigo às costas é encontrado');
   assert.equal(pickTarget({ x: 0, y: 1, z: 0 }, 0, [back, ahead], { range: 9, cone: Math.PI }), ahead, 'a frente pesa no desempate');
