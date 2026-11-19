@@ -1,31 +1,28 @@
 /**
- * Mod 327 — fauna com os GLBs do autor (Coelho, Grilo, PassaroLava, Passaro_Rapina_Montanhas, Passaro_Vale_Dourado).
+ * Mod 327 — fauna com os GLBs do autor (Grilo, Passaro_Vale_Dourado).
  *
  *  - UM controlador para todas as espécies. Spawn com semente estável por célula (40 m) e por espécie: o mesmo coelho
  *    "mora" na mesma clareira; só existe perto da câmera (LOD por distância), nunca nasce na cara do jogador.
  *  - Carregamento preguiçoso: um GLB só é baixado quando um habitat dele entra no raio de interesse, um de cada vez,
  *    fora do quadro. Só a COR BASE é decodificada, já reduzida (createImageBitmap 256/128 px); os mapas 2048² de
  *    normal/rugosidade não são decodificados (3 × 16 MB por bicho economizados). Material Lambert (barato no celular).
- *  - Espécies estáticas = InstancedMesh (1 draw por espécie; cópias idênticas de verdade). O pássaro dourado é
+ *  - O grilo usa InstancedMesh; o pássaro dourado é
  *    skinned: clones com SkeletonUtils, ossos animados à mão (cabeça, cauda, asas) — os GLBs não têm clipes.
  *  - Inspeção dos arquivos (Mod 327): todos vêm em pose de POUSO (asas fechadas). Pela regra do briefing, nenhuma
- *    ave-modelo voa com asas rígidas: rapina e corvo ficam pousados (olham, ajeitam, saltitam); o dourado só deixa
+ *    ave-modelo voa com asas rígidas: o dourado deixa
  *    o poleiro abrindo as asas pelos ossos de ombro. Planadores no céu continuam sendo as silhuetas de
  *    eldoria-birds3d.js (bandos distantes), sem duplicar na mesma distância.
  *  - Grilos: SÓ do anoitecer à madrugada (regra do autor), no capim de clareira/beira de mata/água, nunca em estrada,
  *    cidade, cinza ou vulcão. O canto continua no audio3d (intermitente), agora ponderado pelo habitat.
  */
 export const FAUNA = Object.freeze({
-  coelho: { file: 'Coelho.glb', len: .42, turn: -Math.PI / 2, max: 3, near: 36, density: .55, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 5.5 && h <= 20.5, tex: 256 },
   dourado: { file: 'Passaro_Vale_Dourado.glb', len: .17, turn: 0, max: 3, near: 30, density: .5, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 6 && h <= 19, tex: 128, skinned: true, perch: true },
-  rapina: { file: 'Passaro_Rapina_Montanhas.glb', len: .62, turn: Math.PI / 2, max: 1, near: 70, density: .22, biomes: ['serra', 'abismo'], active: h => h >= 7 && h <= 18.5, tex: 256, perch: true, high: true },
-  corvo: { file: 'PassaroLava.glb', len: .5, turn: Math.PI / 2, max: 2, near: 46, density: .2, biomes: ['cinzas'], active: h => h >= 6.5 && h <= 19.5, tex: 256, perch: true },
   grilo: { file: 'Grilo.glb', len: .085, turn: Math.PI / 2, max: 2, near: 12, density: .7, biomes: ['vale', 'prado', 'floresta'], active: h => h >= 18.5 || h <= 5.2, tex: 128 }
 });
 export const FAUNA_CELL = 40;
 
 function hash(a, b, s) { let h = (a * 374761393 + b * 668265263 + s * 974711) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
-const SEED = { coelho: 11, dourado: 23, rapina: 37, corvo: 41, grilo: 53 };
+const SEED = { dourado: 23, grilo: 53 };
 /** Candidato determinístico de uma espécie numa célula (ou null): mesma resposta sempre, sem estado. */
 export function cellCandidate(kind, cx, cz) {
   const S = FAUNA[kind], s = SEED[kind]; if (hash(cx, cz, s) > S.density) return null;
@@ -38,7 +35,7 @@ export function cellCandidate(kind, cx, cz) {
 export function habitatOk(kind, x, z, ctx) {
   const S = FAUNA[kind], b = ctx.biome(x, z); if (!b || !S.biomes.includes(b)) return false;
   if ((ctx.water?.(x, z) || 0) > .02) return false;                 // nunca dentro da água (nem na rasa)
-  if (kind !== 'rapina' && ctx.road?.(x, z)) return false;          // nada no meio da estrada
+  if (ctx.road?.(x, z)) return false;          // nada no meio da estrada
   if (ctx.lava?.(x, z) > 0) return false;                           // nem sobre lava
   if (ctx.blocked?.(x, z)) return false;                            // nem dentro de rocha/casa/árvore
   return true;
@@ -108,15 +105,15 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   function bone(a, name, axis, ang) { const b = a.bones[name]; if (!b) return; ax.set(...axis); tmpQ.setFromAxisAngle(ax, ang); b.quaternion.copy(a.rest[name]).multiply(tmpQ); }
   function step(a, dt, px, pz) {
     const S = FAUNA[a.kind], d = near(a, px, pz); a.st += dt;
-    const fleeR = a.kind === 'coelho' ? 6 : a.kind === 'grilo' ? 1.6 : a.kind === 'corvo' ? 6.5 : a.kind === 'dourado' ? 4.5 : 0;
+    const fleeR = a.kind === 'grilo' ? 1.6 : a.kind === 'dourado' ? 4.5 : 0;
     if (fleeR && d < fleeR && a.state !== 'flee' && a.state !== 'leave') { a.state = a.kind === 'dourado' ? 'leave' : 'flee'; a.st = 0; a.hop = 0; }
     if (a.state === 'idle' && a.st > 1.5 + a.seed * 3) { a.state = Math.random() < (a.kind === 'rapina' ? .1 : .45) ? 'hop' : 'idle'; a.st = 0; if (a.state === 'hop') a.yaw += (Math.random() - .5) * 2.2; }
     if (a.state === 'hop' || a.state === 'flee') {
-      const len = a.kind === 'coelho' ? (a.state === 'flee' ? .34 : .42) : a.kind === 'grilo' ? .3 : .3, dist = a.kind === 'coelho' ? (a.state === 'flee' ? 1.1 : .55) : a.kind === 'grilo' ? .35 : .45;
+      const len = a.kind === 'grilo' ? .3 : .3, dist = a.kind === 'grilo' ? .35 : .45;
       if (a.state === 'flee' && a.hop === 0) a.yaw = Math.atan2(a.x - px, a.z - pz) + (Math.random() - .5) * .6;
       a.hop += dt / len; const u = Math.min(1, a.hop), nx = a.x + Math.sin(a.yaw) * dist * dt / len, nz = a.z + Math.cos(a.yaw) * dist * dt / len;
       if (habitatOk(a.kind, nx, nz, ctx) && Math.hypot(nx - a.hx, nz - a.hz) < 14) { a.x = nx; a.z = nz; } else a.yaw += Math.PI * .6 * dt / len;
-      a.by = ground(a.x, a.z); a.y = a.by + Math.sin(Math.PI * u) * (a.kind === 'coelho' ? .16 : a.kind === 'grilo' ? .07 : .1);
+      a.by = ground(a.x, a.z); a.y = a.by + Math.sin(Math.PI * u) * (a.kind === 'grilo' ? .07 : .1);
       if (a.hop >= 1) { a.hop = 0; if (a.state === 'hop' || (a.state === 'flee' && d > fleeR * 2.2) || a.st > 4) { a.state = 'idle'; a.st = 0; } }
     } else if (a.state === 'leave') { // dourado: abre as asas pelos ossos de ombro e some subindo
       a.fly += dt; const s = 2.2 + a.fly * 3; a.x += Math.sin(a.yaw) * s * dt; a.z += Math.cos(a.yaw) * s * dt; a.y += (1.4 + a.fly) * dt;
@@ -131,8 +128,8 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       const look = Math.sin(t * .9 + a.seed * 7) * .6 * (a.state === 'idle' ? 1 : .2); bone(a, 'tripo::Head_0', [0, 1, 0], look); bone(a, 'tripo::Tail_0', [1, 0, 0], .15 * Math.sin(t * 3 + a.seed * 5) * (a.state === 'idle' ? 1 : 0));
       const flap = a.state === 'leave' ? Math.sin(a.fly * 26) * .9 + .6 : 0; for (const [nm, sgn] of [['bone_32', 1], ['bone_33', -1], ['bone_30', 1], ['bone_31', 1]]) bone(a, nm, [0, 0, 1], sgn * flap);
       return; }
-    const pitch = a.state === 'hop' || a.state === 'flee' ? -.25 * Math.sin(Math.PI * Math.min(1, a.hop)) : a.kind === 'coelho' ? .08 + .05 * bob : .03 * bob;
-    mx.position.set(a.x, a.y, a.z); mx.rotation.set(0, a.yaw + S.turn, 0); mx.rotateZ(a.kind === 'grilo' || a.kind === 'coelho' || a.kind === 'corvo' || a.kind === 'rapina' ? -pitch : 0);
+    const pitch = a.state === 'hop' || a.state === 'flee' ? -.25 * Math.sin(Math.PI * Math.min(1, a.hop)) : .03 * bob;
+    mx.position.set(a.x, a.y, a.z); mx.rotation.set(0, a.yaw + S.turn, 0); mx.rotateZ(a.kind === 'grilo' ? -pitch : 0);
     const sq = a.state === 'hop' || a.state === 'flee' ? 1 + .1 * Math.sin(Math.PI * Math.min(1, a.hop)) : 1; mx.scale.set(A.k / sq, A.k * sq, A.k); mx.updateMatrix(); A.im.setMatrixAt(idx, mx.matrix);
   }
   return {
