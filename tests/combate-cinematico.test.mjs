@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { PROTA_DASH, dashApproach, protaSegments } from '../prota-combat3d.js';
+import { PROTA_DASH, dashApproach, protaSegments, pickTarget } from '../prota-combat3d.js';
 import { MOBILITY } from '../combat-mobility3d.js';
 
 const m = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
@@ -59,4 +59,11 @@ test('duelo em lock-on: herói de frente para o alvo e recuo com Walk_Backward (
   const seg = Object.fromEntries(protaSegments().map(s => [s.id, s])); assert.equal(seg.Prota302_back.clip, 'Walk_Backward');
   assert.ok(/const duel=newHero&&lockOnActive&&enemy\.visible&&enemyAlive&&!isSprinting\(\)/.test(m) && /protaLocomotion\(sp,duel&&/.test(m));
   assert.ok(fs.existsSync(new URL('../tools/combat/clip-inventory.mjs', import.meta.url)));
+});
+test('mira automática (estilo Genshin, sem botão): sem analógico o golpe acha o inimigo em volta, até às costas; com analógico, a direção pedida manda', () => {
+  assert.ok(/pickTarget\(from,intent\.yaw,cands,\{blocked:protaBlocked,range:9,cone:intent\.input\?1\.0:Math\.PI,/.test(m));
+  const back = { id: 'b', x: 0, z: -2.5, y: 1, alive: true }, ahead = { id: 'a', x: 0, z: 6, y: 1, alive: true };
+  assert.equal(pickTarget({ x: 0, y: 1, z: 0 }, 0, [back], { range: 9, cone: Math.PI }), back, 'inimigo às costas é encontrado');
+  assert.equal(pickTarget({ x: 0, y: 1, z: 0 }, 0, [back, ahead], { range: 9, cone: Math.PI }), ahead, 'a frente pesa no desempate');
+  assert.equal(pickTarget({ x: 0, y: 1, z: 0 }, 0, [back], { range: 9, cone: 1.0 }), null, 'com analógico para frente, não vira para trás');
 });

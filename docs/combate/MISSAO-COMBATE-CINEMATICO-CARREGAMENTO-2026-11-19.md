@@ -60,6 +60,13 @@ Medição com a IA do chefe parada, herói a 1,4–3,8 m e ângulos de 0° a ±6
   0,8 s. O próximo golpe vira CONTRA-ATAQUE com dano ×1,5: com o alvo a mais de 2,6 m sai a Estocada em corrida,
   senão o Corte do retorno. Testado contra o VHAZRAEL: a esquiva dispara e a janela abre.
 
+## Mira automática (estilo Genshin, sem botão)
+- Sem tocar no analógico, o golpe procura o inimigo mais próximo **em volta do herói** (360°, até 9 m, com linha de
+  visão), e o herói gira e se aproxima sozinho. A frente pesa no desempate. Com o analógico, a direção pedida manda
+  (cone de 57°), para o jogador poder escolher outro alvo. O alvo atual continua enquanto estiver vivo e a até 10 m.
+- No jogo, VHAZRAEL parado, herói a 2 e 3 m, de frente, de lado (±90°), 135° e de costas, 3 golpes por posição e sem
+  alvo anterior: **30/30 acertos**. Antes, com o cone de ±83°, eram 7/30 (só de frente).
+
 ## Lock-on opcional e câmera
 - No celular não há botão novo: **tocar no inimigo** trava, e tocar de novo no mesmo inimigo solta. Arrastar continua
   girando a câmera, e o toque é medido pelo horário do evento (funciona com FPS baixo).

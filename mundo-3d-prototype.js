@@ -2569,7 +2569,8 @@ function protaPick(){
     às costas da intenção do jogador (histerese: não troca nervoso); senão o melhor do cone (distância, frente, ameaça,
     linha de visão). O analógico/mouse continuam mandando: pedir outra direção libera o alvo. */
  if(!t&&prota302.lockId!=null){const cur=cands.find(c=>c.id===prota302.lockId);if(cur&&cur.alive){const dx=cur.x-from.x,dz=cur.z-from.z,d=Math.hypot(dx,dz),off=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-intent.yaw),Math.cos(Math.atan2(dx,dz)-intent.yaw)));if(d<10&&(!intent.input||off<1.35)&&!protaBlocked(from,{x:cur.x,y:cur.y,z:cur.z}))t=cur;}}
- if(!t)t=pickTarget(from,intent.yaw,cands,{blocked:protaBlocked,range:9,cone:intent.input?1.0:1.45,current:prota302.lockId});
+ /* Mira automática (estilo Genshin): sem analógico, o golpe procura o inimigo mais próximo em VOLTA do herói (360°, a frente pesa no desempate) e o herói gira até ele; com analógico, a direção pedida manda (cone de 57°). */
+ if(!t)t=pickTarget(from,intent.yaw,cands,{blocked:protaBlocked,range:9,cone:intent.input?1.0:Math.PI,current:prota302.lockId});
  if(t?.actor&&squadOn&&squadFocus!==t.actor){squadFocus=t.actor;}
  prota302.lockId=t?t.id:null;
  return{target:t,yaw:t?Math.atan2(t.x-player.position.x,t.z-player.position.z):intent.yaw};
