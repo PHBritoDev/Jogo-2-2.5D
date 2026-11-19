@@ -1,4 +1,4 @@
-import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease,WHITE_PHASES,whiteFlash,impactVictims}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
+import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease,WHITE_PHASES,whiteFlash,impactVictims,throwPosition}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
 const source={x:0,y:0,z:0},target=()=>({id:1,x:0,y:0,z:8,alive:true});
 test('ordered eight phases and one damage event at every frame rate',()=>{for(const dt of [1/120,1/60,1/30,.1,3]){let hits=0;const phases=[],s=new CelestialWhiteHole({hit:d=>{assert.equal(d,160);hits++;},event:p=>phases.push(p)});s.start(source,target());for(let t=0;t<20;t+=dt)s.update(dt,target());assert.equal(hits,1);assert.deepEqual(phases,[...WHITE_PHASES.map(p=>p[0]),'finish']);assert(!s.active);}});
 test('invalid target, range, repeated cast and premature hits rejected',()=>{let n=0;const s=new CelestialWhiteHole({hit:()=>n++});assert(!s.start(source,null));assert(!s.start(source,{...target(),z:25}));assert(s.start(source,target()));assert(!s.start(source,target()));s.update(12.99,target());assert.equal(n,0);s.update(.02,target());assert.equal(n,1);});
@@ -21,3 +21,13 @@ test('launch locks location; survivors in range can be hit after original target
 test('lease rollback even when enter or frame throws; idempotent cleanup',()=>{for(const fail of ['enter','frame']){let restored=0;const lease=new CinematicLease({capture:()=>({camera:7}),enter:()=>{if(fail==='enter')throw Error('enter');},restore:s=>{assert.equal(s.camera,7);restored++;}});assert.throws(()=>{lease.begin();lease.run(()=>{throw Error('frame');});});assert(!lease.locked);lease.release();assert.equal(restored,1);}});
 test('purchase, mana and cooldown remain required outside ephemeral debug unlock',()=>{assert(!unlockedSkills().has('ultimate'));assert(unlockedSkills({testAll:true}).has('ultimate'));const u=unlockedSkills({owned:['ultimate']});assert(!canCast('ultimate',{unlocked:u,mana:79}).ok);assert(canCast('ultimate',{unlocked:u,mana:80}).ok);assert(!canCast('ultimate',{unlocked:u,mana:80,cooldownUntil:{ultimate:30000},now:100}).ok);assert.equal(SKILLS.ultimate.cooldown,30000);});
 test('physical position never set by cinematic integration; public test flag forwarded',()=>{const text=readFileSync('mundo-3d-prototype.js','utf8'),a=text.indexOf('// Protagonist Ultimate owns'),b=text.indexOf('function castHolyMagic',a),part=text.slice(a,b);assert(!/player\.position\.(?:set|copy)/.test(part));assert(part.includes('webglcontextlost'));assert(part.includes('stopImmediatePropagation'));assert(readFileSync('index.html','utf8').includes("params.has('todasHabilidades')"));});
+
+test('obstructed release cancels even when a dropped frame crosses launch and impact',()=>{
+ const hits=[],phases=[],s=new CelestialWhiteHole({flightClear:()=>false,hit:d=>hits.push(d),event:p=>phases.push(p)});
+ s.start(source,target());s.update(16,target());assert(!s.active);assert.deepEqual(hits,[]);assert.equal(phases.at(-1),'obstructed');
+});
+test('contact is on the telegraphed terrain point at the impact tick',()=>{
+ const out={},g=target();throwPosition(out,source,g,10,0);assert(out.y>10);
+ const heights=[0,.25,.5,.75,1].map(u=>throwPosition(out,source,g,10,u).y);
+ assert(heights.every((y,i)=>!i||y<=heights[i-1]));assert.equal(out.x,g.x);assert.equal(out.z,g.z);assert(Math.abs(out.y-g.y-.32)<1e-8);
+});

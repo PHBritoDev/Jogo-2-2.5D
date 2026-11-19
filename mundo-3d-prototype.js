@@ -38,7 +38,7 @@ const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQu
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
 var swordTraining=false,riteCinematicView=false;
-import {CelestialWhiteHole,CinematicLease,WHITE_HOLE,whiteFlash} from './celestial-whitehole3d.js';
+import {CelestialWhiteHole,CinematicLease,throwPosition,whiteFlash} from './celestial-whitehole3d.js';
 import {createWhiteHoleVFX} from './celestial-whitehole-vfx3d.js';
 import {CelestialPhoenix} from './celestial-phoenix3d.js';
 import {createPhoenixVFX} from './celestial-phoenix-vfx3d.js';
@@ -2010,10 +2010,21 @@ function whiteActors(){
 const whiteRay=new THREE.Vector3();
 function whiteClear(a,b){
  const steps=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.3);
- for(let i=1;i<steps;i++){const k=i/steps;whiteRay.set(a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k+1,b.z===a.z?a.z:a.z+(b.z-a.z)*k);if(extraBlocked(whiteRay))return false;}
+ for(let i=1;i<steps;i++){const k=i/steps;whiteRay.set(a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k+1,a.z+(b.z-a.z)*k);if(extraBlocked(whiteRay))return false;}
  return true;
 }
-const whiteHole=new CelestialWhiteHole({actors:whiteActors,clear:whiteClear,hit:(d,id)=>{
+function whiteAltitude(o){
+ const ceiling=voidMode&&voidSpec?.ceil?voidSpec.y+voidSpec.ceil(o.x-voidSpec.x,o.z-voidSpec.z):Infinity;
+ return Math.max(0,Math.min(10,(ceiling-o.y-3)*.55));
+}
+function whiteFlightClear(o,g){
+ const alt=whiteAltitude(o);
+ for(let i=0;i<96;i++){throwPosition(whiteRay,o,g,alt,i/96);
+  if(extraBlocked(whiteRay)||whiteRay.y<groundHeightAt(whiteRay.x,whiteRay.z))return false;
+ }
+ return true;
+}
+const whiteHole=new CelestialWhiteHole({actors:whiteActors,clear:whiteClear,flightClear:whiteFlightClear,hit:(d,id)=>{
  if(squadOn){
   const actor=squadSq()?.actor(id);if(!actor?.alive)return;
   const dealt=squadSq().damageActor(id,actor.kind==='vhazrael'?Math.round(d*VZ_HERO_DMG):d,{x:whiteHole.target.x,z:whiteHole.target.z,kind:'area',by:'hero'});
@@ -2042,7 +2053,7 @@ function tickWhiteHole(dt){if(!whiteLease.locked)return;try{whiteLease.run(()=>{
  const rise=step(t,.8,3.6),land=step(t,14.3,17),coil=Math.sin(Math.PI*step(t,0,.95)),throwBack=Math.sin(Math.PI*step(t,9.8,11.15)),release=Math.sin(Math.PI*step(t,10.9,13));
  const dx=target.x-o.x,dz=target.z-o.z,dist=Math.hypot(dx,dz)||1,fx=dx/dist,fz=dz/dist;
  const ceil=voidMode&&voidSpec?.ceil?voidSpec.y+voidSpec.ceil(o.x-voidSpec.x,o.z-voidSpec.z):Infinity;
- const alt=Math.max(0,Math.min(10,(ceil-o.y-3)*.55)),height=alt*rise*(1-land);
+ const alt=whiteAltitude(o),height=alt*rise*(1-land);
  whiteHero.alt=alt;
  for(const [bone,quat] of s.bones)bone.quaternion.copy(quat);
  mixer?.update(dt);model.position.copy(s.modelPosition);model.position.y+=height-.18*coil+.10*Math.sin(Math.PI*land);
@@ -2150,7 +2161,7 @@ function castHolyMagic(kind){
  if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
  if(kind==='magic3'&&phoenix.active){status.textContent='A fênix ainda está ativa.';return;}
  if(EXTRA_SKILLS.includes(kind)&&extraSkillBusy(kind)){status.textContent=SKILLS[kind].name+' ainda está ativa.';return;}
- if(kind==='ultimate'&&(!model||!grounded||dashRemaining>0||!whiteClear(player.position,enemy.position)||!phoenixTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>24)){status.textContent='Aproxime-se de um inimigo e firme os pés para o Julgamento Divino.';return;}
+ if(kind==='ultimate'&&(!model||!grounded||dashRemaining>0||!whiteClear(player.position,enemy.position)||!whiteFlightClear(player.position,enemy.position)||!phoenixTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>24)){status.textContent='Aproxime-se de um inimigo e firme os pés para o Julgamento Divino.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
  playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
  // Large player abilities flatten grass where their main impact is aimed.

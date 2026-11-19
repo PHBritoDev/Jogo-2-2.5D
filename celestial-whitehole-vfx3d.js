@@ -1,6 +1,6 @@
 // The event horizon, orbiting gas and bent light occupy separate depth planes.
 import {softParticles,ribbons,groundDecals,groundNormal,smooth,easeOut,hash} from './celestial-fxkit3d.js';
-import {WHITE_HOLE} from './celestial-whitehole3d.js';
+import {WHITE_HOLE,throwPosition} from './celestial-whitehole3d.js';
 const TAU=Math.PI*2;
 const diskVertex=`varying vec3 local;void main(){local=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const diskFragment=`varying vec3 local;uniform float time;
@@ -26,6 +26,18 @@ function arcGeometry(T,radius,width,lift){
 export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
  const root=new T.Group();root.name='ColapsoLuzEterna';root.visible=false;scene.add(root);
  const portal=new T.Group(),disc=new T.Group(),wings=new T.Group();root.add(portal,wings);portal.add(disc);
+ // Distant bands sit behind scene geometry, and open along the sightline to the cast.
+ const veil=new T.Mesh(new T.SphereGeometry(1,28,12),new T.ShaderMaterial({
+  uniforms:{age:{value:0},cover:{value:0},opening:{value:new T.Vector3()}},
+  vertexShader:'varying vec3 ray;void main(){ray=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`varying vec3 ray;uniform vec3 opening;uniform float age,cover;
+   void main(){vec3 d=normalize(ray);float r=atan(d.z,d.x);
+    float wave=.06*sin(3.*r+age*.13)+.04*cos(8.*r-age*.12);
+    float bank=exp(-pow((d.y-.18-wave)*8.,2.));
+    float split=smoothstep(.04,.52,length(d-opening));
+    gl_FragColor=vec4(mix(vec3(.14,.065,.12),vec3(.033,.028,.08),smoothstep(.03,.38,d.y)),cover*bank*split*.67);}`,
+  transparent:true,side:T.BackSide,depthWrite:false,fog:false,toneMapped:false}));
+ veil.renderOrder=-8;veil.frustumCulled=false;root.add(veil);
  const horizon=new T.Mesh(new T.SphereGeometry(.78,36,20),new T.MeshBasicMaterial({color:0x010004,fog:false,toneMapped:false}));
  portal.add(horizon);
  const gas=new T.Mesh(new T.RingGeometry(.68,3.28,112,12),new T.ShaderMaterial({vertexShader:diskVertex,fragmentShader:diskFragment,
@@ -73,7 +85,7 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   start.set(o.x+fx*reach,o.y+1.5+alt+lift,o.z+fz*reach);
   if(hero?.hand&&t<11){start.lerp(hero.hand,1-grow);start.x+=fx*.18*(1-grow);start.z+=fz*.18*(1-grow);}
   aim.set(g.x,g.y+.32,g.z);
-  portal.position.copy(start).lerp(aim,flight);portal.position.y+=Math.sin(flight*Math.PI)*Math.min(2,alt*.25);
+  if(t<11)portal.position.copy(start);else throwPosition(portal.position,o,g,alt,flight);
   const radius=(.018+.32*smooth((t-3)/1.05)+grow*Math.min(3.3,alt*.30))*(1-.86*smooth((t-12.65)/.35));
   portal.visible=t>=3&&t<13;portal.scale.setScalar(radius);
   rot.copy(camera.quaternion);roll.setFromAxisAngle(axis,-.11+.53*smooth((t-10.4)/1.4));rot.multiply(roll);portal.quaternion.copy(camera.quaternion).slerp(rot,.9);
@@ -84,13 +96,17 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
    disc.localToWorld(p);disc.localToWorld(q);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.014*radius,.007*radius,gold,clear);}
    if(flight>0){for(let i=0;i<4;i++){const a=i*1.57+t*4;p.copy(portal.position);p.x+=Math.cos(a)*radius*.5;p.z+=Math.sin(a)*radius*.5;q.copy(p).lerp(start,.3*flight);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,radius*.22,.01,ember,clear);}}
   }
+  const cover=smooth((t-1)/3)*(1-smooth((t-13)/3));
+  veil.visible=cover>0;veil.position.copy(camera.position);veil.scale.setScalar(Math.min(380,camera.far*.8));
+  veil.material.uniforms.age.value=t;veil.material.uniforms.cover.value=cover;
+  veil.material.uniforms.opening.value.copy(portal.position).sub(camera.position).normalize();
   const age=t-13,gy=ground(g.x,g.z),n=groundNormal(ground,g.x,g.z,normal),R=WHITE_HOLE.radius;
-  if(t>=10&&age<0)marks.add(g.x,gy,g.z,R,1,.31,.08,.3+.14*Math.sin(t*6),0,t*.15,8,n);
+  if(t>=10&&age<0)marks.add(g.x,gy,g.z,R/.86,1,.31,.08,.3+.14*Math.sin(t*6),0,.2,8,n);
   shell.visible=age>=0&&age<1.2;
   if(shell.visible){const k=age/1.2;shell.position.copy(aim);shell.scale.setScalar(.14+R*easeOut(k));shell.material.uniforms.age.value=k;}
   debris.count=age>0&&age<1.65?(low?12:36):0;
   if(age>=0&&age<1.65){const k=age/1.65,travel=easeOut(k);
-   marks.add(g.x,gy,g.z,R*travel,1,.40,.09,1-k,0,k,5,n);
+   marks.add(g.x,gy,g.z,R*travel/.86,1,.40,.09,1-k,0,k,5,n);
    feathers.add(g.x,g.y+.4,g.z,2*(1-k),2*(1-k),1,.87,.48,Math.exp(-age*6),0);
    for(let i=0;i<(low?16:38);i++){const a=i*2.4,h=.08+hash(i)*1.1,x=Math.cos(a),z=Math.sin(a),r=(3+hash(i+7)*7)*travel;
     threads.seg(g.x+x*r*.62,g.y+.4+h*r*.62,g.z+z*r*.62,g.x+x*r,g.y+.4+h*r,g.z+z*r,.047*(1-k),.004, gold,clear);}
@@ -98,5 +114,5 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   }
   threads.end();marks.end(t);feathers.end();
  }
- return {root,update,setWings,clear(){root.visible=false;},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();for(const m of [gas,lens,photon,horizon,shell,debris]){m.geometry.dispose();m.material.dispose();}wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
+ return {root,update,setWings,clear(){root.visible=false;},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();for(const m of [gas,lens,photon,horizon,shell,debris,veil]){m.geometry.dispose();m.material.dispose();}wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
 }

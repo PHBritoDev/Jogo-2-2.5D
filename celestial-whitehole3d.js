@@ -14,8 +14,16 @@ export function impactVictims(center,actors,damage,clear){
  }
  return hits;
 }
+// Flight coordinates are shared by the renderer and the obstruction sweep.
+export function throwPosition(out,origin,target,alt,u){
+ const dx=target.x-origin.x,dz=target.z-origin.z,len=Math.hypot(dx,dz)||1;
+ const x=origin.x+dx/len*3.15,z=origin.z+dz/len*3.15,y=origin.y+1.5+alt+Math.min(alt*.65,5);
+ out.x=x+(target.x-x)*u;out.z=z+(target.z-z)*u;
+ out.y=y+(target.y+.32-y)*u+Math.sin(u*Math.PI)*Math.min(2,alt*.25);
+ return out;
+}
 export class CelestialWhiteHole{
- constructor({hit=()=>{},event=()=>{},actors=null,clear=()=>true}={}){Object.assign(this,{hit,event,actors,clear,active:false,time:0,phase:'idle',hitDone:false});}
+ constructor({hit=()=>{},event=()=>{},actors=null,clear=()=>true,flightClear=()=>true}={}){Object.assign(this,{hit,event,actors,clear,flightClear,active:false,time:0,phase:'idle',hitDone:false});}
  start(source,target,multiplier=1){
   if(this.active||!target?.alive||Math.hypot(target.x-source.x,target.z-source.z)>WHITE_HOLE.range)return false;
   this.source={...source};this.target={...target};this.id=target.id;this.damage=Math.round(WHITE_HOLE.damage*multiplier);
@@ -29,6 +37,7 @@ export class CelestialWhiteHole{
   if(this.time<11&&target)Object.assign(this.target,target);
   for(const [phase,at] of WHITE_PHASES){
    if(this.time>=at||end<at)continue;
+   if(phase==='launch'&&!this.flightClear(this.source,this.target)){this.cancel('obstructed');return;}
    this.phase=phase;this.event(phase);
    if(phase==='impact'&&!this.hitDone){
     this.hitDone=true;
