@@ -1,6 +1,7 @@
 import { abyssEdge, inJourney, inAbyss, journeyHeight, volcanoHeight, volcanoGully, craterFloor, journeyBoundary, polyProject, fbm2, ROUTE, RIVER2, BRIDGE, ABYSS, CITY2, VOLCANO2, GATE2, CAVE2, TRAIL2, trailDistance, WATERFALL, FALL_POOL, ABYSS_FALLS, CITY_PROPS, cinzariaLayout, cinzariaStyle, cinzariaLandmarks, riverDepth, JOURNEY_BOUNDS } from './jornada3d.js';
 import { auroraUniforms, patchAuroraGround } from './aurora-luz3d.js';
 import { createRippleSim, createWaterMaterial, riverGeometry, poolGeometry, createSpray, createFallMaterial, makeFall, createLava, lavaChannelPath } from './fluidos3d.js';
+import { uploadUsedElements } from './instance-upload3d.js';
 /**
  * Mod 321/323 — o MUNDO VISÍVEL da jornada (o relevo e as regras vêm de jornada3d.js; a física usa a mesma função).
  *  • Terreno em BLOCOS com LOD e streaming: blocos finos de 64 m (célula 2 m, saia contra frestas) perto do herói e
@@ -8,7 +9,8 @@ import { createRippleSim, createWaterMaterial, riverGeometry, poolGeometry, crea
  *    descartados ao se afastar. O bloco grosso esconde só as células cobertas por blocos finos ativos.
  *  • Mod 323: o capim/flores de cada bloco fino são calculados UMA vez, quando o bloco nasce (altura lida da própria
  *    malha do bloco); repovoar ao andar só copia arrays — antes eram ~15 mil chamadas da função de relevo num quadro
- *    (travada de 0,3–0,5 s a cada 30 m). Capim em manchas (alto/baixo, verde/dourado), flores em canteiros naturais.
+ *    (travada de 0,3–0,5 s a cada 30 m). A cópia agora sobe à GPU só a faixa usada (Three r160 addUpdateRange) e
+ *    nunca no mesmo quadro em que um bloco ainda está sendo gerado. Capim em manchas, flores em canteiros.
  *  • Árvores: espécies do acervo (EldoriaArvoresTropicais.glb, LOD/impostor) montadas pelo jogo a partir de treePlan;
  *    até o GLB chegar, copas simples. Rochas: malha irregular instanciada; colisão como DOMO (sobe/pula pedra baixa).
  *  • Cachoeira com poço, espuma e névoa; rio; ponte pênsil (torres, cabos, pendurais, longarinas, encontros de pedra);
@@ -210,7 +212,11 @@ export function createJourneyWorld(T, scene, opts = {}) {
     for (const { t } of list) { const v = t.veg, ng = Math.min(v.g, GRASS_MAX - g), nf = Math.min(v.f, FLOWER_MAX - f);
       if (ng > 0) { GA.set(v.G.subarray(0, ng * 16), g * 16); GCA.set(v.GC.subarray(0, ng * 3), g * 3); g += ng; }
       if (nf > 0) { FA.set(v.F.subarray(0, nf * 16), f * 16); FCA.set(v.FC.subarray(0, nf * 3), f * 3); f += nf; } }
-    grass.count = g; flowers.count = f; grass.instanceMatrix.needsUpdate = flowers.instanceMatrix.needsUpdate = true; grass.instanceColor.needsUpdate = flowers.instanceColor.needsUpdate = true;
+    grass.count = g; flowers.count = f;
+    uploadUsedElements(grass.instanceMatrix, g * 16);
+    uploadUsedElements(flowers.instanceMatrix, f * 16);
+    if (grass.instanceColor) uploadUsedElements(grass.instanceColor, g * 3);
+    if (flowers.instanceColor) uploadUsedElements(flowers.instanceColor, f * 3);
   }
 
   /* ---------------- árvores (plano para o acervo de espécies) e rochas ---------------- */
@@ -252,10 +258,15 @@ export function createJourneyWorld(T, scene, opts = {}) {
     if (!speciesTrees) for (const s of treeSpots) { if (Math.hypot(s.x - px, s.z - pz) > 330 || tr >= TREE_MAX) continue; const h = height(s.x, s.z), th = 3.4 * s.s;
       mx.position.set(s.x, h - .1, s.z); mx.rotation.set(0, 0, 0); mx.scale.set(s.s, th, s.s); mx.updateMatrix(); trunks.setMatrixAt(tr++, mx.matrix);
       for (const [oy, sc, ox, oz] of [[th + 1.2 * s.s, 2.2 * s.s, 0, 0], [th + 2.3 * s.s, 1.6 * s.s, .6 * s.s, .3 * s.s], [th + 1.7 * s.s, 1.5 * s.s, -.7 * s.s, -.4 * s.s]]) { if (cr >= TREE_MAX * 3) break; mx.position.set(s.x + ox, h + oy, s.z + oz); mx.scale.set(sc, sc * .8, sc); mx.updateMatrix(); crowns.setMatrixAt(cr, mx.matrix); C.setHSL(.24 + hash(cr, 1, 51) * .06, .42, .28 + hash(cr, 2, 52) * .08); crowns.setColorAt(cr, C); cr++; } }
-    trunks.count = tr; crowns.count = cr; trunks.instanceMatrix.needsUpdate = crowns.instanceMatrix.needsUpdate = true; if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
+    trunks.count = tr; crowns.count = cr;
+    uploadUsedElements(trunks.instanceMatrix, tr * 16);
+    uploadUsedElements(crowns.instanceMatrix, cr * 16);
+    if (crowns.instanceColor) uploadUsedElements(crowns.instanceColor, cr * 3);
     let rk = 0; rockSpots.forEach((s, i) => { if (Math.hypot(s.x - px, s.z - pz) > 300 || rk >= ROCK_MAX) return; mx.position.set(s.x, (s.y ?? height(s.x, s.z)) + s.s * .15, s.z); mx.rotation.set((hash(i, 1, 61) - .5) * .5, hash(i, 2, 62) * 6.28, (hash(i, 3, 63) - .5) * .4); mx.scale.set(s.s * 1.2, s.s * .8, s.s); mx.updateMatrix(); rocks.setMatrixAt(rk, mx.matrix);
       C.setHex(s.dark >= 1 ? 0x57504b : s.dark > 0 ? 0x77716c : 0x9a9284).multiplyScalar(.85 + hash(i, 4, 64) * .3); rocks.setColorAt(rk, C); rk++; });
-    rocks.count = rk; rocks.instanceMatrix.needsUpdate = true; if (rocks.instanceColor) rocks.instanceColor.needsUpdate = true;
+    rocks.count = rk;
+    uploadUsedElements(rocks.instanceMatrix, rk * 16);
+    if (rocks.instanceColor) uploadUsedElements(rocks.instanceColor, rk * 3);
   }
 
   /* grupos com LOD por distância (o plano de corte da jornada é longo: o que está longe e é pequeno não vai para a GPU) */
@@ -536,7 +547,11 @@ float chan(vec2 q,float a0,float w){float r=length(q),a=atan(q.y,q.x);float ac=a
       if (near2) streamTiles(px, pz, 1);
       { const dB = Math.hypot(px - (BRIDGE.x0 + BRIDGE.x1) / 2, pz - BRIDGE.z), dC = Math.hypot(px - CITY2.x, pz - CITY2.z), dF = Math.hypot(px - WATERFALL.x, pz - WATERFALL.z);
         gBridge.visible = dB < 420; gAbyss.visible = dB < 520; gFall.visible = dF < 380; city.visible = dC < 460 && !cityGone; /* a cidade destruída no Ato II continua oculta */ for (const s of vents) s.visible = dC < 330; const dM = Math.hypot(px - CAVE2.mouth.x, pz - CAVE2.mouth.z); caveGate.visible = dM < 280; for (const s of caveFx) s.visible = dM < 240; }
-      vegWait -= dt; if (near2 && vegWait <= 0 && (vegDirty || Math.hypot(px - vegAt[0], pz - vegAt[1]) > 24)) { vegDirty = false; vegWait = .35; vegAt = [px, pz]; fillInstances(px, pz); fillTreesAndRocks(px, pz); }
+      vegWait -= dt; if (near2 && vegWait <= 0 && (vegDirty || Math.hypot(px - vegAt[0], pz - vegAt[1]) > 24)) {
+        // O bloco ainda está nascendo neste quadro: não empilhar a cópia do capim em cima da malha.
+        if (job) { vegWait = .12; }
+        else { vegDirty = false; vegWait = .45; vegAt = [px, pz]; fillInstances(px, pz); fillTreesAndRocks(px, pz); }
+      }
       if (scene.fog) coneFog.value.set(scene.fog.near, scene.fog.far);
       if (fog) { for (const m of fogLayers) m.material.uniforms.uC.value.copy(fog).lerp(C.setRGB(.86, .9, .96), .18 * (1 - night)).multiplyScalar(m.userData.shade * (1 - night * .35)); hazeU.value.copy(fog); }
       glowU.value = .55 + .45 * night + eruption * 2; liftU.value = .22 - .16 * night; // Mod 326: capim menos "aceso" (antes brilhava mais que o chão)
