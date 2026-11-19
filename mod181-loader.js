@@ -2,11 +2,10 @@
  * MOD 186 — carrega mundo-3d-prototype.js (e seus módulos locais: Ato I, terreno), reescreve caminhos relativos dos GLB
  * e o módulo do Ato I, aplica Mod 181 se faltar e correções de combate do Enemy1.
  */
-async function loadText(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('Falha ao carregar ' + url + ' (' + r.status + ')');
-  return r.text();
-}
+import { fetchText, warmModuleGraph, pageImportMap, describeFailure } from './module-warm.js';
+
+// Download com tentativas limitadas e erro com a URL real (ver module-warm.js).
+async function loadText(url) { return fetchText(url); }
 
 function rewriteAssetPaths(code, baseHref) {
   return code.replace(/(['"])\.\/([^'"]+\.(?:glb|png|jpg|jpeg|webp))\1/gi, function(_, q, path) {
@@ -75,6 +74,7 @@ async function applyMod181(code) {
 const BUILD = new URL(import.meta.url).searchParams.get('v') || (await import('./build-info.js?stamp='+Date.now())).BUILD;
 const statusEl = document.getElementById('status');
 const baseHref = new URL('./', import.meta.url).href;
+let warm = null;
 try {
   if (statusEl) statusEl.textContent = 'Preparando o mundo 3D…';
   let code = await loadText(new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href);
@@ -88,11 +88,28 @@ try {
       return prefix + quote + new URL('./' + file + '?v=' + BUILD, import.meta.url).href + quote;
     });
   code = rewriteAssetPaths(code, baseHref);
+  // P0 carregamento: baixa o grafo inteiro com tentativas limitadas ANTES do import nativo (que falha de uma vez só,
+  // sem dizer qual arquivo, e guarda a falha). O import abaixo encontra tudo no cache HTTP.
+  if (statusEl) statusEl.textContent = 'Baixando os módulos do mundo 3D…';
+  warm = await warmModuleGraph(code, new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href, {
+    importMap: pageImportMap(),
+    onProgress: (d, t) => { if (statusEl && (d % 20 === 0 || d === t)) statusEl.textContent = 'Baixando os módulos do mundo 3D… ' + d + '/' + t; }
+  });
+  if (warm.failures.length) console.warn('[Mod 186] módulos que falharam ao baixar:', warm.failures);
   const blob = new Blob([code], { type: 'text/javascript' });
   await import(URL.createObjectURL(blob));
 } catch (err) {
-  console.error(err);
-  if (statusEl) statusEl.textContent = 'Erro na Mod 186: ' + (err && err.message ? err.message : err);
+  const failures = (warm && warm.failures) || (err && err.url ? [{ url: err.url, reason: err.reason || err.message }] : []);
+  console.error('[Mod 186]', err, failures);
+  const msg = describeFailure(err, failures);
+  if (statusEl) statusEl.textContent = 'Erro na Mod 186: ' + msg;
   const loading = document.getElementById('loading');
-  if (loading) loading.innerHTML = 'Falha ao montar o mundo 3D (Mod 186).<br><br>' + (err && err.message ? err.message : String(err));
+  if (loading) {
+    loading.textContent = ''; loading.style.flexDirection = 'column';
+    const t = document.createElement('div'); t.textContent = 'Falha ao montar o mundo 3D (Mod 186).'; loading.appendChild(t);
+    const d = document.createElement('div'); d.style.marginTop = '1em'; d.textContent = msg; loading.appendChild(d);
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'load-retry'; b.textContent = 'Tentar de novo';
+    b.style.cssText = 'margin-top:1.2em;padding:.6em 1.4em;font:inherit;border-radius:8px;border:1px solid #a88b50;background:#1d1a14;color:#eddfc2;pointer-events:auto';
+    b.addEventListener('click', () => location.reload()); loading.appendChild(b);
+  }
 }
