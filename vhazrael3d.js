@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js';
 import { orbitalPath, orbitalMeteorAt, segSegDist, orbitalBlastR } from './vhazrael-orbital-path.js';
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
@@ -7,7 +7,7 @@ import { VZ_MOVES } from './vhazrael-rig3d.js';
 // Selo do motor, importado pela página para provar que a lógica nova carregou.
 export const VHAZRAEL_BUILD = '320-ceifador-glb';
 /** TESTE TEMPORÁRIO solicitado pelo criador: duelo de espada sem poderes. Mudar para false restaura o kit original. */
-export const VHAZRAEL_SWORD_ONLY_TEST = TEMP_MELEE_ONLY_TEST;
+export const VHAZRAEL_SWORD_ONLY_TEST = TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY;
 /**
  * MOD 247 — VHAZRAEL, o Primeiro Bispo (Bispo1-lod.glb), refeito sobre a esquadra da Mod 237 (lógica pura, 120 Hz).
  * Kit novo (os poderes antigos saem do jogo jogável) e a IA mais inteligente do jogo até aqui:
@@ -72,7 +72,7 @@ const VHAZ = {
      poder) e defende menos e mais curto — a defesa vira aparar e responder (riposta), não parede. */
   dash: VZ_DASH, block: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .24 : .32, dur: VHAZRAEL_SWORD_ONLY_TEST ? .48 : .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .3 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
-  leap: VHAZRAEL_SWORD_ONLY_TEST ? null : VZ_LEAP, shield: VHAZRAEL_SWORD_ONLY_TEST ? null : SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
+  leap: VZ_LEAP, shield: SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
   decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: !VHAZRAEL_SWORD_ONLY_TEST, feint: VHAZRAEL_SWORD_ONLY_TEST ? null : 'throne',
   kit: VHAZRAEL_SWORD_ONLY_TEST ? [] : ['throne', 'thorns', 'bombard', 'orbital'], throne: THRONE, thorns: THORNS, bombard: BOMBARD, orbital: ORBITAL,
   brain: vhazraelBrain, pickMove: vhazraelPickMove, holdDeath: (sq, a) => orbitalHoldsDeath(sq, a)
