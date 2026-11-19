@@ -82,6 +82,11 @@ export function dashSettle(p, dir, trail, from, soft, hard, step = .07) {
   if (soft(p.x, p.z) && from && !hard(from.x, from.z)) { p.x = from.x; p.z = from.z; }
   return p;
 }
+/**
+ * Combate de referência (esgrima em alta velocidade): o relógio do golpe corre mais rápido que o clipe original.
+ * Janelas de dano, warp e cancelamento são medidas no MESMO relógio, então ficam proporcionais (nada some, só acelera).
+ */
+export const PROTA_SPEED = Object.freeze({ ground: 1.38, run: 1.32, dash: 1.34, air: 1.28, plunge: 1.18 });
 /** Trechos [início, fim] dos clipes (segundos) e janelas relativas ao trecho. hit: physical | energy | hybrid. */
 export const PROTA_MOVES = Object.freeze({
   ground: [
@@ -93,7 +98,7 @@ export const PROTA_MOVES = Object.freeze({
       energy: { kind: 'wave', at: .24, roll: Math.PI / 2, radius: 1.3, speed: 15, range: 4.6, band: .7, life: .4 }, ref: 'acf4e763 0:04 e 0:08 corte vertical em crescente · 0240a0f0 0:06 lançamento' },
     { name: 'Estocada', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'hybrid', dmg: 1.18, warp: { max: 3.6 }, aim: { r: 1.8, ang: .61 }, hitstop: .06,
       energy: { kind: 'wave', at: .24, roll: .2, radius: 1.15, speed: 22, range: 6.5, band: .65, life: .4, falloff: true }, ref: '0240a0f0 0:10–0:12 investida curta com faíscas no contato · acf4e763 0:07 perseguição' },
-    { name: 'Sentença giratória', clip: '_360_Power_Spin_Jump', start: .70, end: 1.80, open: .40, close: .56, hit: 'hybrid', dmg: 1.55, finisher: true, warp: { max: 2.4 }, aim: { r: 1.6, ang: -.44 }, hitstop: .09, shake: .07,
+    { name: 'Sentença giratória', clip: '_360_Power_Spin_Jump', start: .70, end: 1.80, open: .40, close: .56, hit: 'hybrid', dmg: 1.55, finisher: true, speed: 1.22, warp: { max: 2.4 }, aim: { r: 1.6, ang: -.44 }, hitstop: .09, shake: .07,
       energy: { kind: 'sector', at: .78, span: Math.PI * 2, roll: 0, r0: 1, r1: 5.6, speed: 18, band: 1.1, half: .7, life: .45 }, ref: '9dacd64c 0:24 corte circular em espiral · 523a21e1 0:00 e 0:08 explosão de finalizador' },
   ],
   run: { name: 'Estocada em corrida', clip: 'Weapon_Combo_1', start: .88, end: 1.45, open: .15, close: .36, hit: 'hybrid', dmg: 1.05, warp: { max: 3.6, speed: 24 }, aim: { r: 1.8, ang: .61 }, hitstop: .05,
@@ -116,7 +121,7 @@ export function protaMoveDef(mode = 'ground', step = 0) {
    * normal — o dano vem da varredura da lâmina estendida até a borda do rastro visível (trail, m além da ponta),
    * uma vez por janela. Os dados antigos ficam em `projected` só como referência das habilidades futuras. */
   return { ...m, energy: null, projected: m.energy || null, hit: 'physical', trail: BASIC_TRAIL, id: `Prota302_${PROTA_MOVES[mode] ? mode : 'ground'}_${i}`, step: i, count, duration, multiplier: m.dmg,
-    buffer: Math.max(.05, m.open * .5), cancelAt: Math.min(duration - .04, Math.max(m.close + .13, m.energy ? m.energy.at + .06 : 0)), chain: .5, drive: true,
+    speed: m.speed || PROTA_SPEED[mode] || PROTA_SPEED.ground, buffer: Math.max(.05, m.open * .5), cancelAt: Math.min(duration - .04, Math.max(m.close + .13, m.energy ? m.energy.at + .06 : 0)), chain: .5, drive: true,
     pattern: m.launcher ? 'rise' : m.finisher ? 'finish' : mode === 'plunge' ? 'plunge' : 'slash' };
 }
 /** Segmentos (clipe, início, fim) de todos os golpes, para recortar os AnimationClips uma vez no carregamento. */

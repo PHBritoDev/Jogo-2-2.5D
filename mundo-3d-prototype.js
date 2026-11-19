@@ -1890,8 +1890,9 @@ let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let ground
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
    fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
+const _dashA={x:0,y:0,z:0},_dashB={x:0,y:0,z:0};let dashKeyN=0;
 const protaDashStepLen=(rem,dt)=>dashStepLen(prota302.dashDist||PROTA_DASH.distance,rem,dt);
-const prota302={clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashTrail:[],dashSpent:0,dashDist:0,dashTarget:null,ghostT:0,counterUntil:0,dodged:false,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
+const prota302={dashKey:null,clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashTrail:[],dashSpent:0,dashDist:0,dashTarget:null,ghostT:0,counterUntil:0,dodged:false,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
 const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0};
 
 
@@ -2337,7 +2338,7 @@ if(firstPerson){
 }else{
  const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=dragonViewWeight,dh=judgmentDragon.head;target.y+=dk*Math.max(2,Math.min(12,(dh.y-player.position.y)*.48));
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
- const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
+ lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
  const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
@@ -2427,7 +2428,7 @@ const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
  const dashDt=Math.min(dt,dashRemaining),dashSpeed=newHero?protaDashStepLen(dashRemaining,dashDt)/Math.max(1e-6,dashDt):12.5;if(newHero&&!prota302.hidden&&(prota302.ghostT-=dt)<=0){prota302.ghostT=PROTA_DASH.ghostEvery;heroShadows?.emit();}/* MOD 315: saída explosiva e desaceleração; trecho integrado exato (com o FPS que for, o total é a distância do dash, sem passar do alvo) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
- if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(prota302.dashTrail.length<64)prota302.dashTrail.push(player.position.x,player.position.z);/* Mod 327: trajeto varrido (só pontos já validados) — o fim do dash recua por ele, nunca às cegas */if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */}
+ if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(prota302.dashTrail.length<64)prota302.dashTrail.push(player.position.x,player.position.z);/* Mod 327: trajeto varrido (só pontos já validados) — o fim do dash recua por ele, nunca às cegas */if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */if(!prota302.hidden&&cameraDistance>=1.05){const gy=player.position.y;_dashA.x=player.position.x;_dashA.y=gy+.28;_dashA.z=player.position.z;_dashB.x=player.position.x;_dashB.y=gy+1.3;_dashB.z=player.position.z;slashVFX.sample(prota302.dashKey,_dashA,_dashB,{style:'dash',gain:1.1,extend:0,inner:0});}/* referência 7cd9ab51: risco carmesim longo pelo trajeto do dash */}
  else{
  // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)
  if(!playerBlockedAt(nextX,player.position.z)&&!playerBlockedAt((player.position.x+nextX)/2,player.position.z))player.position.x=nextX;
@@ -2505,7 +2506,7 @@ function protaLand(fall){
 /** Dash da referência 3900: o corpo some numa coluna de fumaça escura que sobe, atravessa o trecho invisível
  *  (com colisão de parede: não passa por obstáculo) e reaparece adiante dentro de um rastro horizontal que se fecha. */
 function protaDashStart(now){
- const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dodged=false;prota302.ghostT=0;
+ const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dodged=false;prota302.ghostT=0;prota302.dashKey='dash'+(++dashKeyN);if(!fp)speedLines(.55,.28);
  /* Missão combate cinematográfico — dash de aproximação: inimigo à frente do dash (cone 40°, ≤ 9 m) → vai direto a ele e para
   * na distância de golpe; senão, os 5,4 m de sempre. Mesmo botão, mesma recarga, mesmos i-frames. */
  {const ap=dashApproach(player.position,{x:dashDirX,z:dashDirZ},protaCandidates(),{blocked:protaBlocked});dashDirX=ap.dir.x;dashDirZ=ap.dir.z;prota302.dashDist=ap.dist;prota302.dashTarget=ap.target?ap.target.id:null;if(ap.target&&!lockOnActive)prota302.lockId=ap.target.id;}prota302.dashFrom.copy(player.position);prota302.dashTrail.length=0;prota302.dashTrail.push(player.position.x,player.position.z);
@@ -2521,6 +2522,29 @@ function protaDashStart(now){
  actionUntil=now+40;
 }
 /** Esquiva perfeita: um golpe absorvido pelos i-frames do dash abre a janela de contra-ataque (uma vez por dash). */
+/**
+ * Combate de referência (25b05adf 0:41/0:34: faíscas douradas quando as lâminas se cruzam) — CHOQUE DE LÂMINAS.
+ * A lâmina do herói está ativa no MESMO instante em que o golpe do chefe está na janela ativa, os dois de frente um para
+ * o outro e a ≤ 3,6 m: nenhum dos dois toma dano, faíscas douradas no ponto do cruzamento, micro-pausa, o chefe é
+ * empurrado e cambaleia, e o herói ganha 0,3 s de invulnerabilidade e a janela do contra-ataque. Uma vez por golpe.
+ */
+function tryBladeClash(a,blade){
+ const f=squadOn&&squadFocus?.alive?squadFocus:null,act=f?.act;if(!f||!act||act.type!=='melee'||act.unstoppable||a.hit||a.clashed)return false;
+ const live=act.move?act.phase==='active':act.nm?act.nm.hits.some(h=>Math.abs(act.t-h.t)<.12):false;if(!live)return false;
+ const dx=f.x-player.position.x,dz=f.z-player.position.z,d=Math.hypot(dx,dz)||1;if(d>3.6)return false;
+ const heroFace=(dx*Math.sin(playerYaw)+dz*Math.cos(playerYaw))/d,bossFace=-(dx*Math.sin(f.yaw)+dz*Math.cos(f.yaw))/d;if(heroFace<.35||bossFace<.45)return false;
+ a.clashed=true;a.hit=true;const sq=squadSq();
+ const p={x:(blade.tip.x+player.position.x+dx*.55)/2,y:Math.max(player.position.y+1,(blade.tip.y+blade.base.y)/2),z:(blade.tip.z+player.position.z+dz*.55)/2};
+ slashVFX.impact(p,{x:-dz/d,y:.35,z:dx/d},{style:'prota',power:.95});slashVFX.splash(p,{power:.75,tint:0xffc14a});for(let i=0;i<14;i++){const ang=Math.random()*Math.PI*2,v=5+Math.random()*6;slashVFX.spark(p,{x:Math.cos(ang)*v,y:1+Math.random()*4,z:Math.sin(ang)*v},'vhazrael',.35,1.4);}
+ speedLines(1,.3);hitStop(110);if(!userSettings.reduceShake)cameraShake(.12);worldAudio.parry?.();showCombatCallout('CHOQUE DE LÂMINAS');
+ if(sq){sq.stagger(f,.42,false);sq.move(f,dx/d*.55,dz/d*.55);}
+ playerInvulnerableUntil=Math.max(playerInvulnerableUntil,performance.now()+300);prota302.counterUntil=prota302.clock+PROTA_DASH.counter.window;prota302.clashes=(prota302.clashes||0)+1;
+ return true;
+}
+/** Chefe acusa os golpes fortes (finalizador, contra-ataque, golpe saindo do dash): cambaleia e recua um passo — sem
+    furar a superarmadura do golpe especial nem cortar o golpe dele no meio da janela ativa. */
+function bossFlinch(dur){const f=squadOn&&squadFocus?.alive?squadFocus:null,sq=squadSq();if(!f||!sq||!f.T?.boss||f.pendingDeath)return;const act=f.act;if(act&&(act.unstoppable||act.armor||(act.type==='melee'&&act.phase==='active')||act.type==='phase2'))return;
+ const dx=f.x-player.position.x,dz=f.z-player.position.z,d=Math.hypot(dx,dz)||1;sq.stagger(f,dur,false);sq.move(f,dx/d*.4,dz/d*.4);prota302.flinches=(prota302.flinches||0)+1;}
 function protaPerfectDodge(){
  if(!newHero||prota302.dodged||!(prota302.clock<prota302.iframesUntil))return;prota302.dodged=true;
  prota302.counterUntil=prota302.clock+PROTA_DASH.counter.window;showCombatCallout('ESQUIVA PERFEITA');worldAudio.parry?.();hitStop(55);
@@ -3928,6 +3952,15 @@ sideReady=true;refreshSideQuests();
 /* MOD 193 — peso no combate: números de dano, pausa de impacto (hit-stop), tremor de câmera e faíscas. */
 let hitStopUntil=0,shakeAmt=0;const shakeOffset=new THREE.Vector3();
 let debugHitstopLeft=0;// MOD 302: no passo fixo do QA o hitstop vira tempo de jogo (a filmagem mostra a micro-pausa real)
+/* Combate de referência (7cd9ab51 0:01–0:03): linhas de velocidade radiais na tela nos dashes, finalizadores, contra-ataques
+   e choques de lâmina. Uma div com gradiente cônico repetido e máscara radial — sem custo de GPU no mundo 3D. */
+let speedLinesEl=null,speedLinesT=0;
+function speedLines(power=.6,dur=.3){if(userSettings?.reduceShake)return;if(!speedLinesEl){speedLinesEl=document.createElement('div');speedLinesEl.id='speed-lines';speedLinesEl.setAttribute('aria-hidden','true');speedLinesEl.style.cssText='position:fixed;inset:-10%;pointer-events:none;z-index:4;opacity:0;mix-blend-mode:screen;background:repeating-conic-gradient(from 0deg at 50% 52%,rgba(255,255,255,.0) 0deg,rgba(255,255,255,.0) 3.1deg,rgba(255,240,244,.85) 3.4deg,rgba(255,255,255,.0) 3.9deg,rgba(255,255,255,.0) 7.3deg);-webkit-mask-image:radial-gradient(circle at 50% 52%,transparent 0,transparent 36%,#000 72%);mask-image:radial-gradient(circle at 50% 52%,transparent 0,transparent 36%,#000 72%);transition:opacity .06s linear';document.body.appendChild(speedLinesEl);}
+ speedLinesEl.style.transform='rotate('+(Math.random()*8).toFixed(1)+'deg) scale('+(1+power*.08).toFixed(3)+')';speedLinesEl.style.opacity=String(Math.min(.9,.35+power*.55));clearTimeout(speedLinesT);speedLinesT=setTimeout(()=>{if(speedLinesEl){speedLinesEl.style.transition='opacity .22s ease-out';speedLinesEl.style.opacity='0';setTimeout(()=>{if(speedLinesEl)speedLinesEl.style.transition='opacity .06s linear';},240);}},Math.round(dur*1000));}
+/* Contador de combo (referência 7cd9ab51: números grandes no canto durante a sequência) — some 2,4 s depois do último acerto. */
+let comboHits=0,comboEl=null,comboT=0;
+function comboTick(){comboHits++;if(!comboEl){comboEl=document.createElement('div');comboEl.id='combo-count';comboEl.setAttribute('aria-live','off');comboEl.style.cssText='position:fixed;right:max(18px,env(safe-area-inset-right));top:32%;z-index:6;pointer-events:none;font:900 italic 34px/1 system-ui,sans-serif;color:#fff;text-shadow:0 0 10px #ff2346,0 2px 0 #3a0010;letter-spacing:.02em;text-align:right;opacity:0;transition:opacity .2s, transform .08s';document.body.appendChild(comboEl);}
+ if(comboHits<2)return;comboEl.innerHTML=comboHits+'<span style="display:block;font-size:13px;letter-spacing:.24em;font-style:normal;font-weight:800;color:#ffd6de">GOLPES</span>';comboEl.style.opacity='1';comboEl.style.transform='scale(1.18)';setTimeout(()=>{if(comboEl)comboEl.style.transform='scale(1)';},70);clearTimeout(comboT);comboT=setTimeout(()=>{comboHits=0;if(comboEl)comboEl.style.opacity='0';},2400);}
 function hitStop(ms){hitStopUntil=Math.max(hitStopUntil,performance.now()+ms);debugHitstopLeft=Math.max(debugHitstopLeft,ms/1000);}
 function cameraShake(amount){shakeAmt=Math.min(.35,shakeAmt+amount);}
 const dmgPool=[];
@@ -4491,7 +4524,7 @@ function squadEvent(type,d){
   case 'judgmentBlast':worldAudio.dark&&worldAudio.dark('blast');if(squadNear(s.mx,s.mz,12))cameraShake(.24);break;
   case 'clash':showCombatCallout(d.outcome==='enemy'?'CONTRA-SELO!':d.outcome==='foreign'?'SUA MAGIA VENCEU':'CHOQUE DE MAGIAS');worldAudio.parry();hitStop(70);cameraShake(.14);break;
   case 'counterCast':if(squadAlive().length<=2)showCombatCallout('CONTRA-SELO');break;
-  case 'blocked':worldAudio.block();break;
+  case 'blocked':worldAudio.block();if(a&&a.T?.boss&&newHero){const dx=player.position.x-a.x,dz=player.position.z-a.z,l=Math.hypot(dx,dz)||1,p={x:a.x+dx/l*.9,y:a.y+1.45,z:a.z+dz/l*.9};slashVFX.impact(p,{x:dx/l,y:.3,z:dz/l},{style:'vhazrael',power:.6});for(let i=0;i<10;i++){const ang=Math.random()*Math.PI*2,v=4+Math.random()*5;slashVFX.spark(p,{x:Math.cos(ang)*v,y:1+Math.random()*3,z:Math.sin(ang)*v},'vhazrael',.3,1.2);}hitStop(45);}/* referência 25b05adf: aparar = faíscas douradas no cruzamento */break;
   case 'guardBreak':showCombatCallout('GUARDA DO INIMIGO QUEBRADA');worldAudio.parry();break;
   case 'dodge':worldAudio.whoosh();break;
   case 'reap':showCombatCallout('CEIFA DO ABISMO');break;
@@ -7081,9 +7114,27 @@ function computeCameraTarget(base,dt){
  return{focus:camFocus,engaged};
 }
 /** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+/**
+ * Câmera de duelo automática (estilo Genshin / referência 25b05adf: câmera às costas do herói, inimigo no centro), SEM
+ * travar nada: em combate (inimigo a ≤ 12 m) e sem o jogador mexer na câmera há 1,2 s, o ângulo desliza até o herói ficar
+ * entre a câmera e o inimigo. Zona morta de 20°: se o inimigo já está no quadro, não mexe. Arrastar a câmera manda sempre.
+ * Em duelo aproxima a câmera (≈ 4,6 m, abrindo até 7 m com a separação), como a referência e o Genshin em combate.
+ */
+let duelPull=0,lastCamEngaged=false;
+function autoDuelCamera(dt,now,engaged){
+ const want=engaged&&newHero&&!lockOnActive&&cameraDistance>=1.05?1:0;
+ const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z);
+ /* referência 25b05adf: em duelo a câmera chega mais perto, às costas do herói (≈ 4,6 m colados, abre até 7 m com a separação), nunca além do zoom do jogador */
+ duelPull+=((want?Math.min(0,Math.max(3.6,Math.min(7,4.6+Math.max(0,sep-2.2)*.5))-cameraDistance):0)-duelPull)*Math.min(1,dt*2.2);
+ if(!want||!userSettings.autoCamera||now-lastLookInputAt<1200||sep<1.2)return false;
+ const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=.35;
+ if(Math.abs(d)<=dead)return true;
+ cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(rites.busy||dashRemaining>0?3.2:2));return true;
+}
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
+ if(autoDuelCamera(dt,now,lastCamEngaged))return;
  if(rites.busy||!userSettings.autoCamera||lockOnActive||cameraDistance<1.05)return;
  if(now-lastLookInputAt<1600)return;const sp=Math.hypot(moveVX,moveVZ);if(sp<1.2)return;
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
@@ -8207,6 +8258,7 @@ const rites=new SwordRites({
   if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
   // MOD 315: espada inicial — crescente varrido amostrado da lâmina real, onda (= volume de dano) e impacto estrelado
+  if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'&&e.a.def?.drive)tryBladeClash(e.a,e.blade);
   if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'){const d=e.a.def||{},gain=d.finisher?1.2:e.a.mode==='air'||e.a.mode==='plunge'?1:d.launcher?1.05:.92;slashVFX.sample(e.a.serial,e.blade.base,e.blade.tip,{style:'prota',gain,extend:d.finisher?1.65:d.launcher||e.a.mode==='plunge'?1.4:1.2});}
   else if(type==='energy'&&e.sword==='prota'&&!(e.kind==='sector'&&e.span>6)){slashVFX.wave(e,{style:'prota',gain:e.owner?.def?.finisher?1.1:.85});worldAudio.whoosh();e.vfx314=true;}
   if(type==='start'){
@@ -8214,7 +8266,7 @@ const rites=new SwordRites({
    e.layered=e.kind==='basic'&&!e.def?.drive&&grounded&&(Math.hypot(moveVX,moveVZ)>.12&&e.mode!=='dash');if(e.def?.drive){moveVX=moveVZ=0;prota302.landT=prota302.arriveT=0;if(e.mode==='air')prota302.airAttacks++;if(e.lockId===undefined){const pk=protaPick();e.lockId=pk.target?pk.target.id:null;if(pk.target)e.yaw=pk.yaw;}}const clip=e.layered&&riteLayers?riteLayers.upper[e.clip]:riteClips[e.clip];if(!clip)return;riteContext=siegeContext();pendingEnemyHitAt=0;if(e.kind!=='basic'){moveVX=moveVZ=0;dashRemaining=0;}setDefending(false);
    for(const j of poseJobs)if(j.root===model)j.dead=true;
    const next=mixer.clipAction(clip);if(activeAction&&activeAction!==next)activeAction.fadeOut(.075);next.reset().setLoop(THREE.LoopOnce,1).setEffectiveWeight(1);next.clampWhenFinished=true;next.fadeIn(.075).play();next.paused=true;activeAction=riteAnimation=next;actionUntil=Infinity;if(e.kind==='basic')updateRiteLocomotion(0);
-   if(e.kind==='basic'){if(e.mode==='plunge')verticalVelocity=Math.min(verticalVelocity,e.def?.drive?-14:-9);attackCooldown=performance.now()+e.duration*1000;comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing(e.step,e.sword);}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
+   if(e.kind==='basic'){if(e.mode==='plunge')verticalVelocity=Math.min(verticalVelocity,e.def?.drive?-14:-9);attackCooldown=performance.now()+e.duration*1000/(e.def?.speed||1);comboCount=e.step+1;fpSwingDir=e.step;startFpSwing();worldAudio.swing(e.step,e.sword);}else{showCombatCallout(SWORD_RITES[e.sword].name.toUpperCase());worldAudio.whoosh();}
   }else if(type==='finish'||type==='cancel'){
    riteCinematicView=false;
    if(riteLower){riteLower.fadeOut(.13);riteLower=null;}if(riteAnimation){riteAnimation.paused=false;riteAnimation.fadeOut(.13);if(activeAction===riteAnimation){if(grounded){activeAction=null;play('idle',.13);}else{riteAnimation.stopFading();riteAnimation.setEffectiveWeight(1);riteAnimation.paused=true;}}riteAnimation=null;}actionUntil=performance.now()+70;pendingEnemyHitAt=0;
@@ -8223,7 +8275,7 @@ const rites=new SwordRites({
   else if(type==='energy'){if(!e.vfx314){protaVFX.energy(e);worldAudio.whoosh();}}
   else if(type==='impact'&&e.hitstop!==undefined){// MOD 302: impacto do repertório do protagonista — micro hitstop, clarão no ponto real do contato, tremor só nos golpes grandes
    if(e.pattern==='rise'&&squadFocus&&!squadFocus.T.boss){squadFocus.airV=6;squadFocus.airY=.01;squadSq()?.stagger(squadFocus,.72,false);}
-   worldAudio.hit();enemyHitFlash=.07;hitStop(Math.round(e.hitstop*1000));if(e.sword==='prota'){const p=e.p||e.target,fx=Math.sin(playerYaw),fz=Math.cos(playerYaw);slashVFX.impact(p,{x:fx,y:.2,z:fz},{style:'prota',power:e.final?1:e.by==='energy'?.55:.42});}else protaVFX.impact(e.p||e.target,e.final,e.sword);
+   worldAudio.hit();enemyHitFlash=.07;hitStop(Math.round(e.hitstop*1000));if(e.sword==='prota'){const p=e.p||e.target,fx=Math.sin(playerYaw),fz=Math.cos(playerYaw);slashVFX.impact(p,{x:fx,y:.2,z:fz},{style:'prota',power:e.final?1:e.by==='energy'?.55:.42});/* referência 7cd9ab51: respingo branco de borda escura + linhas de velocidade nos golpes fortes */const big=e.final||e.mode==='dash'||e.mode==='run'||e.mode==='plunge';comboTick();if(big||rites.active?.counterHit)bossFlinch(e.final||rites.active?.counterHit?.46:.3);slashVFX.splash(p,{power:big?(e.final?1:.8):.38});if(big)speedLines(e.final?.95:.7,e.final?.32:.22);}else protaVFX.impact(e.p||e.target,e.final,e.sword);
    if(e.shake&&!userSettings.reduceShake)cameraShake(e.shake);if(e.final)prota302.punch=Math.max(prota302.punch,3.2);}
   else if(type==='impact'||type==='judgment'){if(type==='impact'&&e.pattern==='rise'&&squadFocus&&!squadFocus.T.boss){squadFocus.airV=6;squadFocus.airY=.01;squadSq()?.stagger(squadFocus,.72,false);}if(type!=='judgment'||e.n%4===0||e.final)worldAudio.hit();enemyHitFlash=.07;if(type!=='judgment'||e.final)hitStop(e.final?45:18);if(e.final&&!userSettings.reduceShake)cameraShake(.055);}
  }
@@ -8254,7 +8306,7 @@ function protaAttack(){
  if(counter){prota302.counterUntil=0;if(pick.target&&Math.hypot(pick.target.x-player.position.x,pick.target.z-player.position.z)>2.6)mode='run';showCombatCallout('CONTRA-ATAQUE');}
  if(dashRemaining>0){dashRemaining=0;protaDashEnd();}
  const ok=rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()*(counter?PROTA_DASH.counter.damage:1)),yaw:mode==='dash'&&!pick.target?Math.atan2(dashDirX,dashDirZ):pick.yaw,target:pick.target||riteTarget(),mode});
- if(ok&&rites.active)rites.active.lockId=pick.target?pick.target.id:null;
+ if(ok&&rites.active){rites.active.lockId=pick.target?pick.target.id:null;rites.active.counterHit=counter;}
 }
 function castSwordRite(){
  if(!riteReady()||!grounded||dashRemaining>0||(activeAction===actions.hit&&performance.now()<actionUntil)||siege.active||whiteLease.locked){status.textContent='Conclua a ação atual antes de usar o rito.';return;}
@@ -8350,7 +8402,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
 
  combatStudio(boss=false){player.visible=!boss;const keep=new Set([player,camera]);for(const a of squadSq()?.actors||[]){const b=squadRT.body(a.id);if(b){keep.add(b.holder);keep.add(b.weaponRoot);for(const c of b.claws||[])keep.add(c.root);}}for(const o of scene.children){if(o.isDirectionalLight||o.isHemisphereLight||o.isAmbientLight||o.name==='SwordRites231')keep.add(o);if(!keep.has(o))o.visible=false;}scene.background=new THREE.Color(0x18202c);scene.fog=new THREE.Fog(0x18202c,100,200);const floor=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0x3b4659,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.set(player.position.x,terrainHeightAt(player.position.x,player.position.z)-.04,player.position.z);scene.add(floor);const light=new THREE.HemisphereLight(0xf2e7d1,0x555776,1.8);scene.add(light);renderer.render(scene,camera);},
  combatMoveQA(sword,mode='ground',step=0){rites.cancel('qa');this.riteEquip(sword);rites.next=step;rites.lastEnd=rites.time;return rites.attack(sword,{damage:SWORDS[sword].damage,mode,target:riteTarget(),yaw:playerYaw});},
- combatStep(seconds,{fps=60,draw=true}={}){for(let i=0;i<Math.round(seconds*fps);i++){const dt=1/fps;mixer.update(dt);restoreRiteScales();updatePlayerMovement(dt,performance.now()+i*1000/fps);updateRites(dt);updateSquadCombat(dt,performance.now()+i*1000/fps);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());if(!debugCameraOverride)updatePlayerCamera(dt);slashVFX.update(dt,camera,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium');/* Mod 320: VFX de corte envelhece no mesmo relógio do passo */updateJourney(dt,performance.now());if(typeof vzUpdateLock==='function')vzUpdateLock();}if(!player.visible){if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;}if(draw){if(draw==='cine'){applyVzTint();if(!vzCinematic()){renderer.render(scene,camera);}vzCamRestore();}else renderer.render(scene,camera);} /* Mod 320: draw:'cine' desenha como o laço real (tomadas da Extinção + tinta) */return{hero:this.riteState(),squad:this.squadState()};},
+ combatStep(seconds,{fps=60,draw=true}={}){for(let i=0;i<Math.round(seconds*fps);i++){const dt=1/fps;mixer.update(dt);restoreRiteScales();updatePlayerMovement(dt,performance.now()+i*1000/fps);updateRites(dt);updateSquadCombat(dt,performance.now()+i*1000/fps);updatePlayerSwordMount();updateFirstPerson(dt,performance.now());if(!debugCameraOverride){autoRecenterCamera(dt,performance.now()+i*1000/fps);updatePlayerCamera(dt);}slashVFX.update(dt,camera,graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium');/* Mod 320: VFX de corte envelhece no mesmo relógio do passo */updateJourney(dt,performance.now());if(typeof vzUpdateLock==='function')vzUpdateLock();}if(!player.visible){if(swordMount)swordMount.visible=false;if(swordView)swordView.root.visible=false;}if(draw){if(draw==='cine'){applyVzTint();if(!vzCinematic()){renderer.render(scene,camera);}vzCamRestore();}else renderer.render(scene,camera);} /* Mod 320: draw:'cine' desenha como o laço real (tomadas da Extinção + tinta) */return{hero:this.riteState(),squad:this.squadState()};},
  combatAction(kind){action(kind);return this.riteState();},
  /** QA: joystick/correr determinísticos para combatStep e um quadro desenhado depois de posicionar a câmera. */
  /** QA (Mod 316): programas de shader já compilados (nome + chave) — detecta compilação tardia durante o jogo. */
@@ -8401,7 +8453,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
- dashProbe(){/* missão combate (QA): alvos do dash, aproximação e janela de contra-ataque */return{cands:protaCandidates().map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),alive:c.alive})),dist:prota302.dashDist,target:prota302.dashTarget,counter:+(prota302.counterUntil-prota302.clock).toFixed(2),dodged:prota302.dodged,lock:lockOnActive,lockId:prota302.lockId,hidden:prota302.hidden,visible:!!model?.visible,gate:{cine:cineActive,vz:typeof vzLocked!=="undefined"&&!!vzLocked,dlg:dialogueOpen,paused:gamePaused,cosmic:cosmicLock()}};},
+ dashProbe(){/* missão combate (QA): alvos do dash, aproximação e janela de contra-ataque */return{clashes:prota302.clashes||0,flinches:prota302.flinches||0,duelPull:+duelPull.toFixed(2),camYaw:+cameraYaw.toFixed(3),slash:slashVFX.stats(),cands:protaCandidates().map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),alive:c.alive})),dist:prota302.dashDist,target:prota302.dashTarget,counter:+(prota302.counterUntil-prota302.clock).toFixed(2),dodged:prota302.dodged,lock:lockOnActive,lockId:prota302.lockId,hidden:prota302.hidden,visible:!!model?.visible,gate:{cine:cineActive,vz:typeof vzLocked!=="undefined"&&!!vzLocked,dlg:dialogueOpen,paused:gamePaused,cosmic:cosmicLock()}};},
  enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},
  heroState(){return{p:player.position.toArray().map(v=>+v.toFixed(3)),yaw:+playerYaw.toFixed(3),grounded,vy:+verticalVelocity.toFixed(3),dash:+dashRemaining.toFixed(3),clip:activeAction?.getClip().name||null,speed:+Math.hypot(moveVX,moveVZ).toFixed(2),sprint:isSprinting(),cam:camera.position.toArray().map(v=>+v.toFixed(2)),hp:enemyHP,e:enemy.position.toArray().map(v=>+v.toFixed(2))};},
  riteCast(){action('sword-skill');return this.riteState();},

@@ -67,7 +67,9 @@ const VHAZ = {
   ...E1.common, hp: VZ_HP, radius: .55, height: 2.3, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.6, 2.4], phase2: .4, furyCd: .8,
   speed: { walk: 2.86, run: 5.63, strafe: 2.86, back: 3.5, turn: 10 },
   melee: { max: 2.8, reach: 2.7, arc: .1, windup: .42, hits: [.42, .76], dur: 1.05, dmg: 13, cd: 1.1, knock: .8 },
-  dash: VZ_DASH, block: { chance: .32, dur: .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? 0 : .42, cd: VZ_DASH.cd },
+  /* Combate de referência (esgrima rápida com dashes): no modo de espada o bispo também esquiva com dash (é físico, não
+     poder) e defende menos e mais curto — a defesa vira aparar e responder (riposta), não parede. */
+  dash: VZ_DASH, block: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .24 : .32, dur: VHAZRAEL_SWORD_ONLY_TEST ? .48 : .7, cd: 1.6, cost: 12, reduce: .8 }, dodge: { chance: VHAZRAEL_SWORD_ONLY_TEST ? .3 : .42, cd: VZ_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 },
   leap: VHAZRAEL_SWORD_ONLY_TEST ? null : VZ_LEAP, shield: VHAZRAEL_SWORD_ONLY_TEST ? null : SHIELD_SPECS.vhazrael, shieldAI: { react: .22, chanceVsCast: .5, chanceVsMelee: .26, minGap: 1.1, maxGap: 10, gap: 2.4 },
   decide: [.16, .26], gap: .42, spellGap: VZ_MIX.minSpellGap, maxBig: 1, interrupt: !VHAZRAEL_SWORD_ONLY_TEST, feint: VHAZRAEL_SWORD_ONLY_TEST ? null : 'throne',
@@ -81,7 +83,9 @@ BOSS_MOVES.vhazrael = (VHAZRAEL_SWORD_ONLY_TEST ? VZ_MOVES.filter(m => !m.range)
    pesados ~1,4 s em tempo real. A janela de dano, o traço da lâmina, o avanço e o clipe andam juntos no tempo do clipe
    (enemy1-squad3d.stepAction × rate), então o telegraph continua legível (1º impacto ≥ 0,33 s). */
 const VZ_RATE = { Trono_Duplo: 1.55, Trono_Queda: 1.2, Trono_Moinho: 1.35, Trono_Riposta: 1.3, Trono_Triplo: 1.6, Trono_Danca: 1.6, Trono_Estocada: 1.15 };
-for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.rate = VZ_RATE[m.id] || 1; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
+/* combate de referência: no modo de espada, cadência 12 % maior (o telegraph do 1º impacto continua ≥ 0,3 s) */
+const VZ_RATE_MUL = VHAZRAEL_SWORD_ONLY_TEST ? 1.12 : 1;
+for (const m of BOSS_MOVES.vhazrael) { m.kind = 'vhazrael'; m.rate = (VZ_RATE[m.id] || 1) * VZ_RATE_MUL; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.35 : m.fast ? .8 : m.range ? 1.1 : m.hits.length > 2 ? .85 : 1; }
 /** Escolha do golpe: fase, situação observada (guarda → golpe pesado; alvo de lado/atrás → giro; janela de castigo →
     abertura rápida) e anti-repetição (nunca o mesmo duas vezes seguidas; peso cai para os recentes). */
 export function vhazraelPickMove(sq, a, t, pool) {
@@ -117,14 +121,14 @@ export function vhazraelBrain(sq, a, dt, t) {
     S.guard += (t.blocking ? 1 : 0) * dt; S.aggr += (t.attacking && d < 3.5 ? 1 : 0) * dt; S.far += (d > 7 ? 1 : 0) * dt; S.near += (d < 3 ? 1 : 0) * dt; S.cast += (t.casting ? 1 : 0) * dt; S.samples += dt;
     // adaptação dentro de limites (nunca infalível): mais defesa contra quem ataca muito, espinhos que cortam o lado preferido
     const aggr = clamp(S.aggr / 4, 0, 1), guard = clamp(S.guard / 4, 0, 1);
-    a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = VHAZRAEL_SWORD_ONLY_TEST ? 0 : clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
+    a.T.block.chance = clamp(VHAZ.block.chance + aggr * .22, 0, .55); a.T.dodge.chance = VHAZRAEL_SWORD_ONLY_TEST ? clamp(VHAZ.dodge.chance + aggr * .12, 0, .5) : clamp(VHAZ.dodge.chance + aggr * .12 + clamp(S.cast / 3, 0, 1) * .1, 0, .6);
     a.T.thorns.bias = clamp(S.side, -1, 1) * clamp(S.dash / 3, 0, 1); a.T.thorns.delay = clamp(S.dash / 4, 0, 1) * .35; a.T.throne.guardBreak = guard > .35;
     // quem foge e mantém distância: dash de aproximação emendando o golpe (com recarga própria)
-    if (!VHAZRAEL_SWORD_ONLY_TEST && !a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
+    if (!a.act && a.alert <= 0 && clamp(S.far / 4, 0, 1) > .45 && d > 6.5 && d < 14 && !a.cds.close && sq.los(a.x, a.z, t.x, t.z)) {
       a.cds.close = 4.5; sq.begin(a, { type: 'dodge', dur: a.T.dash.time * 1.6, anim: 'dash', dx: dx / d, dz: dz / d, face: true, chain: 'melee', token: 'melee', tid: t.id }); sq.event('vzClose', { actor: a });
     }
     // contra quem ataca sem parar: passo atrás logo depois de bloquear, e contra-ataque rápido
-    if (a.act && a.act.type === 'block' && aggr > .4 && a.act.t > .3 && !a.cds.riposte) { a.cds.riposte = 3; a.act = null; a.cds.melee = 0; sq.startMelee(a, t); sq.event('vzRiposte', { actor: a }); }
+    if (a.act && a.act.type === 'block' && aggr > (VHAZRAEL_SWORD_ONLY_TEST ? .12 : .4) && a.act.t > (VHAZRAEL_SWORD_ONLY_TEST ? .16 : .3) && !a.cds.riposte) { a.cds.riposte = VHAZRAEL_SWORD_ONLY_TEST ? 1.6 : 3; a.act = null; a.cds.melee = 0; sq.startMelee(a, t); sq.event('vzRiposte', { actor: a }); }
     // strafe para o lado OPOSTO ao dash preferido (fecha a rota de fuga favorita)
     if (Math.abs(S.side) > .3) a.intent.side = -Math.sign(S.side);
   }
