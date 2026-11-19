@@ -50,3 +50,26 @@ Questione tecnicamente a qualidade **real** do jogo, não apenas comparação de
 
 ## REGRA MÁXIMA — SILÊNCIO NO CHAT
 Trabalhe com o máximo de eficiência de contexto/tokens. **NÃO enviar mensagens de planejamento, comentários, progresso, pedidos de confirmação, recapitulação ou resumo final. AO TERMINAR, NÃO ENVIAR NENHUMA MENSAGEM DE RESUMO.** Coloque resultados no GitHub (commits, PRs, evidências); só interrompa o silêncio diante de bloqueio real impossível de resolver autonomamente, com frase mínima. Não pare cedo só porque testes unitários passaram. Não confunda silêncio com deixar de trabalhar.
+
+
+## ADENDO DE DIREÇÃO — 19/11: CINCO MELHORIAS DE COMBATE PROFISSIONAL
+Este adendo complementa os itens anteriores, sem mudar o escopo nem justificar novos sistemas redundantes.
+
+1. **Magnetismo de golpe e motion warping CONTROLADOS**. Dentro de uma janela curta de início/contato, ajustar suavemente facing, avanço e alcance plausível ao alvo válido. Incluir limites por distância, ângulo e visibilidade (LOS). Nunca puxar personagem através de parede, de outro inimigo ou vários metros para “garantir acerto”; em alvos distantes, errar é correto. Instrumentar erro de posição da lâmina, raiz e orientação do alvo por frame.
+
+2. **Strafe + alvo estável + intenção explícita de mira**. Separar comando de deslocamento da direção do ataque; com lock-on, stick lateral/trás = orbitar/recuar com tronco/arma voltados ao inimigo. Fora de lock-on, assist aim escolhe alvo ponderando cone da câmera, proximidade, distância ao centro da tela, LOS e alvo atacado recentemente, com histerese. Oferecer troca manual de alvo e escape do auto-target. Não imitar indiscriminadamente Genshin: sua mira automática também é criticada por errar o inimigo escolhido.
+
+3. **Defesa responsiva e contrajogo justo**. Testar guarda normal, aparada de precisão (*parry*, somente se compatível com o sistema de defesa existente), dash com i-frames, resposta de stagger, recuperação e contra-ataque. Conservar o escudo canônico, sem introduzir botão extra de block já removido pelo criador. Não tornar Bispo invulnerável em cadeias permanentes de dash/escudo/salto; cada comportamento tem recuperação e contra-jogada visível.
+
+4. **IA de intenção e distância mensurável**. Criar *decision matrix* compacta para VHAZRAEL por faixas (muito perto, alcance de espada, alcance de dash, alcance de magia), estado do jogador (preparando magia, ataque ativo, exaustão, recuo) e fase do chefe. Ações com objetivo: entrar, flanquear, bait, punir, defender, sair, conjurar; evitar alternância aleatória ou infinitos dashes. Priorizar o jogador entender *por que* o Bispo agiu assim: telegrafia do corpo, som, espaço de perigo e oportunidade de resposta. Medir frequência de repetição e tempo passivo entre ações.
+
+5. **Postura, interrupções e legibilidade audiovisual**. Respeitar peso e identidade de cada golpe, janelas startup/ativo/recovery/cancel, buffering de entrada e reações ao contato. Hitstop curto deve manter entradas no buffer; golpes leves não devem interromper ataques ininterruptíveis e ataques pesados só devem ser inevitáveis se houver aviso e contrajogo justo. Estabelecer orçamento de câmera/shake/efeitos por FPS mobile. Incluir cenários QA de 30 FPS, 45 FPS e 60 FPS para assegurar timings independentes do frame rate.
+
+**Prioridade concreta de execução:** restauração do kit público (P0) → direção do ataque independente do stick (P0) → facing/câmera com lock-on (P1) → IA ofensiva/defensiva VHAZRAEL (P1) → polish/efeitos (P2). Não pular fases para maquiar vídeo com partículas.
+
+**Leituras técnicas indicadas (referências de princípios, não instruções para copiar):**
+- https://www.jasondeheras.com/gamedesign/2021/2/11/meleecombatdesign — design de targeting, cancelamentos e motion warping.
+- https://www.gamedeveloper.com/design/enemy-attacks-and-telegraphing — avisos legíveis e oportunidades de reação.
+- https://www.gamedeveloper.com/design/enemy-design-and-enemy-ai-for-melee-combat-systems — limites, recuperação e regras de ataque de inimigos.
+- https://genshin-impact.fandom.com/wiki/Targeting — observação de targeting automatizado, que deve ser adaptado criticamente.
+
