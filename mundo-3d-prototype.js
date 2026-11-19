@@ -2381,6 +2381,7 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
  }else{caveArmLen=0;caveSide=0;camera.position.lerp(desired,1-Math.exp(-8*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
+ if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }
@@ -3002,8 +3003,12 @@ function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
  voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
- player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;cameraYaw=0;cameraPitch=.12;moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
- camera.position.set(spots.player.x,sp.y+3.5,spots.player.z+8.5);
+ player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
+ const abyssEntry=key==='greed';
+ if(abyssEntry)camFocusReady=false;
+ cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
+ moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
+ camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
 }
 function warmTextures(root){const seen=new Set();root.traverse(o=>{const ms=o.material?[].concat(o.material):[];for(const m of ms)for(const k of ['map','emissiveMap','normalMap','roughnessMap']){const t=m&&m[k];if(t&&!seen.has(t)){seen.add(t);try{renderer.initTexture(t);}catch(e){}}}});}
 function startDimensionBattle(key,opts){
@@ -6737,7 +6742,12 @@ function startGreedBattle(){
  startDimensionBattle('greed',{hp:GREED_FORMS[0].hp,returnTo:{x:DS.offer.x-18,z:DS.offer.z+4},onVictory:greedVictory,onAbort:()=>{stopAllies6();if(act6Sandra){disposeClone(act6Sandra);act6Sandra=null;}guidePinned=false;status.textContent='Sem corações. Recupere um e coloque os fragmentos na estátua de novo.';}});
 }
 function greedIntro(){if(!dimBattle||dimBattle.key!=='greed'||questStep!==ACT6N.greed)return;playStory('ganancia',greedIntroScene(),{focus:'enemy',face:'enemy'});}
-function revealGreedForm(i){const f=GREED_FORMS[i],sp=arenaSpots('greed').boss;loadRig(f.rig).then(()=>{useRig(f.rig);revealEncounter(f.profile,sp,f.hp,'');enemy.visible=true;enemyAlive=true;bossRageAnnounced=false;if(enemyActions.arise)playEnemyAnimation('arise',.1,true);enemyAttackCooldown=2.4;const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}syncEnemyLabel();});}
+function revealGreedForm(i){const battle=dimBattle,f=GREED_FORMS[i],sp=arenaSpots('greed').boss;loadRig(f.rig).then(()=>{
+ if(!battle||dimBattle!==battle||!battle.active||act6Form!==i)return;
+ useRig(f.rig);
+ // The outgoing form stays on screen during the transformation. Re-arm
+ // encounter initialization for the new rig, health pool and attack profile.
+ enemy.visible=false;revealEncounter(f.profile,sp,f.hp,'');bossRageAnnounced=false;if(enemyActions.arise)playEnemyAnimation('arise',.1,true);enemyAttackCooldown=2.4;const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}syncEnemyLabel();});}
 /** Chamado quando uma forma da Ganância cai (true = tratado). */
 function act6GreedDefeat(){
  if(!dimBattle||dimBattle.key!=='greed'||questStep!==ACT6N.greed)return false;
@@ -7015,7 +7025,7 @@ function syncFinalPortal(){
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
 const savedSky={};
 function enterVoid(){enterDimensionArena('greed');}
-function leaveVoid(){if(ascKey)ascHide();if((dimKey==='bishop3'||dimKey==='bishop4')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
