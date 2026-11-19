@@ -21,7 +21,41 @@ export const PROTA_JUMP = Object.freeze({ gravity: 22, impulse: 7.2, clip: 'Jump
 export const PROTA_DASH = Object.freeze({ distance: 5.4, travel: .17, vanish: .03, reappear: .20, total: .34, iframes: .30, cooldown: MOBILITY.dashCooldown, recover: .14,
   /* Mod 327: chegada = amortecimento do pouso (quadril de frente, ±15°). Antes era a cauda do Quick_Step_and_Spin_Dodge
    * (.82–1.16 s), que começa no MEIO do giro com o quadril a −131° (postura −52°): o herói reaparecia de lado e girava. */
-  arrive: Object.freeze({ clip: 'Jump_Over_Obstacle_2', start: .62, end: .86 }) });
+  arrive: Object.freeze({ clip: 'Jump_Over_Obstacle_2', start: .62, end: .86 }),
+  /* Missão combate cinematográfico: o MESMO dash (botão, recarga, i-frames e fumaça) agora é VISÍVEL — o corpo desliza
+   * baixo com o trecho de deslize do `slide_right` (quadril desce de 0,9 para 0,4 m e avança; antes não usado) e
+   * levanta com o fim do mesmo clipe (quadril volta a 0,9 m e o tronco desgira de ~50° para ~5°), com silhuetas
+   * escuras deixadas no caminho. Some/reaparece só em 1ª pessoa (câmera dentro do corpo). */
+  pose: Object.freeze({ clip: 'slide_right', start: .06, end: .55 }),
+  rise: Object.freeze({ clip: 'slide_right', start: 1.15, end: 1.65 }),
+  ghostEvery: .055,
+  /* Dash de aproximação: com um inimigo à frente do dash (cone 40°, até 9 m), o dash vai direto a ele e para na
+   * distância de golpe (raio + 1,5 m); mais perto que 2,3 m vira um passo curto. Dash para o lado/trás: 5,4 m livres. */
+  approach: Object.freeze({ range: 9, cone: .7, stop: 1.5, min: .8, max: 7.5 }),
+  /* Esquiva perfeita: um golpe inimigo absorvido pelos i-frames do dash abre 0,8 s de contra-ataque (dano ×1,5). */
+  counter: Object.freeze({ window: .8, damage: 1.5 }) });
+
+/**
+ * Dash de aproximação (puro, testável). `dir` = direção pedida (unitária). Retorna { dir, dist, target }:
+ * com um alvo vivo dentro do cone/alcance, a direção vira a do alvo e a distância para no ponto de golpe
+ * (sem entrar no corpo); sem alvo, a direção pedida e a distância padrão.
+ */
+export function dashApproach(from, dir, targets, { blocked = () => false, cfg = PROTA_DASH.approach, distance = PROTA_DASH.distance } = {}) {
+  let best = null, score = Infinity;
+  const yaw = Math.atan2(dir.x, dir.z);
+  for (const t of targets || []) {
+    if (!t || !t.alive) continue;
+    const dx = t.x - from.x, dz = t.z - from.z, d = Math.hypot(dx, dz);
+    if (d > cfg.range || d < 1e-3) continue;
+    const a = Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - yaw), Math.cos(Math.atan2(dx, dz) - yaw)));
+    if (a > cfg.cone || blocked(from, t)) continue;
+    const s = d + a * 4;
+    if (s < score) { score = s; best = { t, d, dx, dz }; }
+  }
+  if (!best) return { dir: { x: dir.x, z: dir.z }, dist: distance, target: null };
+  const { t, d, dx, dz } = best, stop = (t.radius || .5) + cfg.stop;
+  return { dir: { x: dx / d, z: dz / d }, dist: Math.max(cfg.min, Math.min(cfg.max, d - stop)), target: t };
+}
 
 /**
  * Mod 327 — onde o dash termina. `soft(x,z)`: o herói não pode PARAR ali (corpo, NPC, água funda + tudo de `hard`);
@@ -79,6 +113,8 @@ export function protaSegments() {
   out.push({ id: 'Prota302_jump', clip: PROTA_JUMP.clip, start: PROTA_JUMP.takeoff, end: PROTA_JUMP.airTo, vertical: true });
   out.push({ id: 'Prota302_land', clip: PROTA_JUMP.clip, start: PROTA_JUMP.land, end: PROTA_JUMP.landEnd, vertical: true });
   out.push({ id: 'Prota302_arrive', clip: PROTA_DASH.arrive.clip, start: PROTA_DASH.arrive.start, end: PROTA_DASH.arrive.end, vertical: true });
+  out.push({ id: 'Prota302_dash', clip: PROTA_DASH.pose.clip, start: PROTA_DASH.pose.start, end: PROTA_DASH.pose.end, vertical: true });
+  out.push({ id: 'Prota302_rise', clip: PROTA_DASH.rise.clip, start: PROTA_DASH.rise.start, end: PROTA_DASH.rise.end, vertical: true });
   return out;
 }
 export function moveDuration(m) { return m.end - m.start; }

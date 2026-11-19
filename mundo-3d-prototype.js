@@ -5,7 +5,7 @@ import {createSeatPose} from './seated-pose3d.js';
 import {buildShelter} from './eldoria-shelter3d.js';
 import './bandit-squad3d.js';
 import {newHero,heroURL,heroFallbackURL,moveWorldHero,prepareWorldHero,nativeWorldCombos,retargetWorldRites,worldSwordLayers,worldHeroShadows,installHeroSelector,protaClips} from './protagonist-aerial3d.js';
-import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,dashSettle} from './prota-combat3d.js';
+import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,warpStep,dashSettle,dashApproach} from './prota-combat3d.js';
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
 import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,CITY_PROPS,JOURNEY_HOLES,ROUTE,polyProject} from './jornada3d.js';
@@ -1247,7 +1247,7 @@ function heroShieldAbsorb(raw,info){
 }
 function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE,info=null){
  if(whiteLease.locked)return false;
- const now=performance.now();if(playerHP<=0||now<playerInvulnerableUntil||cineActive)return false;
+ const now=performance.now();if(playerHP<=0||cineActive)return false;if(now<playerInvulnerableUntil){protaPerfectDodge();return false;}
  if(rites.invulnerable)return false;
  let raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
  // MOD 315: a MESMA resolução de dano para golpe, espada, arco, projétil e magia — i-frames acima, escudo aqui, corpo abaixo
@@ -1867,7 +1867,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  if(newHero){const run=clips.find(c=>c.name==='Run');if(run)actions.run=mixer.clipAction(run);}if(idle)actions.idle=mixer.clipAction(idle);if(walk){actions.walk=mixer.clipAction(walk);walkName=walk.name;}if(attackClips.length)actions.attack=mixer.clipAction(attackClips[0]);if(jump)actions.jump=mixer.clipAction(jump);
  if(hit)actions.hit=mixer.clipAction(hit);{const kip=chooseClip(clips,/kip/i);if(kip)actions.kipUp=mixer.clipAction(kip);}if(death)actions.death=mixer.clipAction(death);if(dash)actions.dash=mixer.clipAction(dash);if(block)actions.block=mixer.clipAction(block);
  play(actions.idle?'idle':actions.walk?'walk':'idle',0);
- if(newHero){const pc=protaClips(protaSegments());protaRoots=pc.roots;protaClipSet=pc.clips;for(const k of ['Prota302_jump','Prota302_land','Prota302_arrive'])if(pc.clips[k])actions[k]=mixer.clipAction(pc.clips[k]);}
+ if(newHero){const pc=protaClips(protaSegments());protaRoots=pc.roots;protaClipSet=pc.clips;for(const k of ['Prota302_jump','Prota302_land','Prota302_arrive','Prota302_dash','Prota302_rise'])if(pc.clips[k])actions[k]=mixer.clipAction(pc.clips[k]);}
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
@@ -1890,7 +1890,7 @@ let actionUntil=0,verticalVelocity=0;const gravity=15,jumpImpulse=7.2;let ground
 let dashRemaining=0,dashCooldownUntil=0,dashDirX=0,dashDirZ=0;
 /* MOD 302 — estado do protagonista em tempo de JOGO (segundos): não depende do relógio real, então a filmagem em passo
    fixo e o jogo a 30/60/120 FPS veem a mesma coisa. */
-const prota302={clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashTrail:[],dashSpent:0,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
+const prota302={clock:0,hidden:false,wasVisible:true,dashFrom:new THREE.Vector3(),dashTrail:[],dashSpent:0,dashDist:0,dashTarget:null,ghostT:0,counterUntil:0,dodged:false,attackAfterDash:0,landT:0,arriveT:0,airAttacks:0,airborneT:0,punch:0,lockId:null};
 const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0};
 
 
@@ -2178,7 +2178,19 @@ if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
 });
 const lookPointers=new Map();let lastPinchDistance=0;
 function pinchDistance(){const pts=Array.from(lookPointers.values());return pts.length<2?0:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);}
-let mouseLookStart=null;lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{const r2=lookArea.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{});}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
+let mouseLookStart=null;const touchTapStart=new Map();
+/* Missão combate cinematográfico — lock-on OPCIONAL no celular sem botão novo: tocar no inimigo trava a câmera nele
+ * (enquadra os dois); tocar de novo no mesmo inimigo solta. Arrastar continua girando a câmera. PC: R ou botão do meio. */
+const _tapV=new THREE.Vector3();
+function tapLock(x,y){
+ if(cineActive||dialogueOpen||gamePaused||!combatStepNow())return false;const r=renderer.domElement.getBoundingClientRect();let best=null,bd=Math.max(70,Math.min(r.width,r.height)*.16);
+ for(const c of protaCandidates()){if(!c.alive)continue;_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);if(_tapV.z>1)continue;const sx=r.left+(_tapV.x+1)/2*r.width,sy=r.top+(1-_tapV.y)/2*r.height,d=Math.hypot(sx-x,sy-y);if(d<bd){bd=d;best=c;}}
+ if(!best)return false;
+ if(lockOnActive&&prota302.lockId===best.id){toggleLockOn();return true;}
+ prota302.lockId=best.id;if(best.actor&&squadOn){squadFocus=best.actor;squadManual=true;writeSquadProxy();}
+ if(!lockOnActive)toggleLockOn();else worldAudio.lockOn();return true;
+}
+lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType!=='mouse')touchTapStart.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{const r2=lookArea.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{});}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
 lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
 if(mouseLocked&&e.pointerType==='mouse')return; // com o ponteiro travado o olhar vem do movementX/Y (sem limite da borda da tela)
 lookDelta(dx,dy);});
@@ -2189,7 +2201,7 @@ function lookDelta(dx,dy){const s=.004*userSettings.sensitivity;lastLookInputAt=
 let mouseLocked=false;
 document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerLockElement===lookArea;document.body.classList.toggle('mouse-locked',mouseLocked);});
 document.addEventListener('mousemove',e=>{if(!mouseLocked)return;if(cineActive||dialogueOpen||namePromptOpen||gamePaused||menuGate){try{document.exitPointerLock();}catch(_){}return;}const dx=Math.max(-240,Math.min(240,e.movementX||0)),dy=Math.max(-240,Math.min(240,e.movementY||0));lookDelta(dx,dy);});
-function endLook(e){const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
+function endLook(e){const tap=touchTapStart.get(e.pointerId);touchTapStart.delete(e.pointerId);if(tap&&e.type==='pointerup'&&lookPointers.size<=1&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<14&&e.timeStamp-tap.t<320)tapLock(e.clientX,e.clientY);const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
 lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
 function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
@@ -2413,7 +2425,7 @@ if(Math.abs(moveVX)<.015)moveVX=0;if(Math.abs(moveVZ)<.015)moveVZ=0;
 const moving=Math.hypot(moveVX,moveVZ)>.12;
 // Pedras pequenas e o tronco baixo são degraus transponíveis; árvores e rochas altas continuam bloqueando.
 if(dashRemaining>0){
- const dashDt=Math.min(dt,dashRemaining),dashU=newHero?1-dashRemaining/PROTA_DASH.travel:0,dashSpeed=newHero?PROTA_DASH.distance/PROTA_DASH.travel*(1.55-1.1*dashU):12.5;/* MOD 315: saída explosiva e desaceleração (mesma distância total, sem freada seca) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
+ const dashDt=Math.min(dt,dashRemaining),dashU=newHero?1-dashRemaining/PROTA_DASH.travel:0,dashSpeed=newHero?(prota302.dashDist||PROTA_DASH.distance)/PROTA_DASH.travel*(1.55-1.1*dashU):12.5;if(newHero&&!prota302.hidden&&(prota302.ghostT-=dt)<=0){prota302.ghostT=PROTA_DASH.ghostEvery;heroShadows?.emit();}/* MOD 315: saída explosiva e desaceleração (mesma distância total, sem freada seca) */const nextX=THREE.MathUtils.clamp(player.position.x+dashDirX*dashSpeed*dashDt,-6000,6000);const nextZ=THREE.MathUtils.clamp(player.position.z+dashDirZ*dashSpeed*dashDt,-6000,6000);
  if(newHero){const bx=player.position.x,bz=player.position.z;moveWorldHero(player.position,nextX-player.position.x,nextZ-player.position.z,dashBlockedAt);const got=Math.hypot(player.position.x-bx,player.position.z-bz);prota302.dashSpent+=got;if(prota302.dashTrail.length<64)prota302.dashTrail.push(player.position.x,player.position.z);/* Mod 327: trajeto varrido (só pontos já validados) — o fim do dash recua por ele, nunca às cegas */if(got<Math.hypot(nextX-bx,nextZ-bz)*.35)dashRemaining=dashDt;/* parede: o dash termina ali, sem atravessar */}
  else{
  // MOD 292: o ponto do meio também é testado (o dash anda até 0,5 m por quadro e não pode atravessar guarda-corpo fino)
@@ -2488,17 +2500,29 @@ function protaLand(fall){
 /** Dash da referência 3900: o corpo some numa coluna de fumaça escura que sobe, atravessa o trecho invisível
  *  (com colisão de parede: não passa por obstáculo) e reaparece adiante dentro de um rastro horizontal que se fecha. */
 function protaDashStart(now){
- const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dashFrom.copy(player.position);prota302.dashTrail.length=0;prota302.dashTrail.push(player.position.x,player.position.z);
+ const fp=cameraDistance<1.05;dashRemaining=PROTA_DASH.travel;prota302.dashSpent=0;prota302.dodged=false;prota302.ghostT=0;
+ /* Missão combate cinematográfico — dash de aproximação: inimigo à frente do dash (cone 40°, ≤ 9 m) → vai direto a ele e para
+  * na distância de golpe; senão, os 5,4 m de sempre. Mesmo botão, mesma recarga, mesmos i-frames. */
+ {const ap=dashApproach(player.position,{x:dashDirX,z:dashDirZ},protaCandidates(),{blocked:protaBlocked});dashDirX=ap.dir.x;dashDirZ=ap.dir.z;prota302.dashDist=ap.dist;prota302.dashTarget=ap.target?ap.target.id:null;if(ap.target&&!lockOnActive)prota302.lockId=ap.target.id;}prota302.dashFrom.copy(player.position);prota302.dashTrail.length=0;prota302.dashTrail.push(player.position.x,player.position.z);
  // MOD 315: sem mira travada, o herói reaparece olhando para onde foi; com mira, mantém o rosto no alvo (dash lateral/para trás)
- if(!lockOnActive){playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;}
+ if(!lockOnActive||prota302.dashTarget!=null){playerYaw=Math.atan2(dashDirX,dashDirZ);player.rotation.y=playerYaw;}
  playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+PROTA_DASH.iframes*1000);prota302.iframesUntil=prota302.clock+PROTA_DASH.iframes;
  heroShadows?.emit();protaVFX.vanish(player.position,{x:dashDirX,z:dashDirZ});worldAudio.whoosh();
- if(!fp&&model){prota302.wasVisible=model.visible;model.visible=false;if(swordMount)swordMount.visible=false;prota302.hidden=true;}
+ /* O corpo agora fica VISÍVEL: deslize baixo (slide_right) esticado para o tempo da travessia + silhuetas no caminho.
+  * Sem o clipe (rig antigo), volta ao dash invisível de antes. Em 1ª pessoa nada muda. */
+ const pose=actions.Prota302_dash;
+ if(!fp&&model&&pose&&!rites.busy){playOnce('Prota302_dash',.04);const d=pose.getClip().duration;pose.setEffectiveTimeScale(d/(PROTA_DASH.travel+.05));prota302.arriveT=prota302.clock+PROTA_DASH.travel+.02;}
+ else if(!fp&&model){prota302.wasVisible=model.visible;model.visible=false;if(swordMount)swordMount.visible=false;prota302.hidden=true;}
  actionUntil=now+40;
+}
+/** Esquiva perfeita: um golpe absorvido pelos i-frames do dash abre a janela de contra-ataque (uma vez por dash). */
+function protaPerfectDodge(){
+ if(!newHero||prota302.dodged||!(prota302.clock<prota302.iframesUntil))return;prota302.dodged=true;
+ prota302.counterUntil=prota302.clock+PROTA_DASH.counter.window;showCombatCallout('ESQUIVA PERFEITA');worldAudio.parry?.();hitStop(55);
 }
 function dirOrZero(v){return Number.isFinite(v)?v:0;}
 function protaDashEnd(){
- if(!prota302.hidden&&!(dashRemaining>0)){prota302.attackAfterDash=prota302.clock+.26;return;}
+ if(!prota302.hidden&&!(dashRemaining>0)&&!(prota302.dashDist>0)){prota302.attackAfterDash=prota302.clock+.26;return;}
  const dir={x:dashDirX,z:dashDirZ},tr=prota302.dashTrail;
  /* Mod 327: morte, cena, portal ou teletransporte (troca de dimensão/checkpoint) no meio do dash: o corpo só volta a
   * aparecer onde está — sem pose de chegada por cima do clipe de morte, sem rastro no destino e sem impulso residual. */
@@ -2511,6 +2535,12 @@ function protaDashEnd(){
  if(prota302.hidden){prota302.hidden=false;if(model)model.visible=prota302.wasVisible;if(swordMount)swordMount.visible=cameraDistance>=1.05;
   if(!quiet){protaVFX.reappear(player.position,dir,Math.max(1.2,Math.min(3,prota302.dashSpent*.55)));
   if(actions.Prota302_arrive&&!rites.busy&&grounded){playOnce('Prota302_arrive',.05);actions.Prota302_arrive.setEffectiveTimeScale(1.2);prota302.arriveT=prota302.clock+PROTA_DASH.recover+.06;}}}
+ else if(!quiet&&prota302.dashDist>0){
+  // dash visível: o rastro horizontal fecha no corpo e ele levanta do deslize com o fim do mesmo clipe (sem pose de salto)
+  protaVFX.reappear(player.position,dir,Math.max(1.2,Math.min(3,prota302.dashSpent*.55)));
+  const r=actions.Prota302_rise;if(r&&!rites.busy&&grounded&&cameraDistance>=1.05){playOnce('Prota302_rise',.07);r.setEffectiveTimeScale(r.getClip().duration/(PROTA_DASH.recover+.12));prota302.arriveT=prota302.clock+PROTA_DASH.recover+.1;}
+ }
+ prota302.dashDist=0;
  // MOD 315: o corpo sai do dash ainda deslizando na direção do avanço (a velocidade decai pela aceleração normal), sem freada seca
  if(!quiet&&dashRemaining<=0&&!rites.busy){const k=grounded?3.1:2.2;moveVX=dirOrZero(dashDirX)*k;moveVZ=dirOrZero(dashDirZ)*k;}
  prota302.attackAfterDash=prota302.clock+.26;
@@ -2541,6 +2571,11 @@ function protaPick(){
 }
 /** Root motion do trecho do clipe + aproximação curta ao alvo (motion warping), sempre com colisão. */
 function protaDrive(a,dt,target){
+ /* Missão combate cinematográfico — causa real da espada que "corta o vento" nos chefes: no esquadrão (Bispos, VHAZRAEL,
+  * Enemy1–4) o alvo que o SwordRites passa é o alvo de cerco (id = época do cerco), enquanto o golpe trava o id do ator
+  * ('e1'…). Os ids nunca batiam → a aproximação (motion warping) nunca rodava e o golpe só acertava colado (≤ 1,2 m).
+  * Agora o alvo travado é resolvido pelo próprio id entre os candidatos. */
+ if(a.lockId!=null&&(!target||target.id!==a.lockId)){const c=protaCandidates().find(x=>x.id===a.lockId);if(c)target=c;}
  const def=a.def,root=protaRoots[def.id],valid=target&&target.alive&&a.lockId!=null&&target.id===a.lockId;
  // manual: sem alvo, o startup ainda obedece ao analógico (vira até 10 rad/s)
  if(!valid&&a.t<def.open*.8){const it=protaIntentYaw();if(it.input){const d=Math.atan2(Math.sin(it.yaw-a.yaw),Math.cos(it.yaw-a.yaw));a.yaw+=Math.max(-10*dt,Math.min(10*dt,d));}}
@@ -3160,13 +3195,14 @@ function lockTargetValid(){return enemy.visible&&enemyAlive&&combatStepNow()&&Ma
 function cycleSoftTarget(){if(squadOn&&squadCycleFocus()){prota302.lockId=squadFocus?.id??prota302.lockId;return;}const c=protaCandidates().filter(x=>x.alive&&x.id!==prota302.lockId).sort((a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0];if(c){prota302.lockId=c.id;worldAudio.lockOn();}}
 function toggleLockOn(){
  if(squadOn&&lockOnActive&&squadCycleFocus())return;// MOD 237: com vários inimigos, MIRAR alterna o alvo antes de soltar
- if(lockOnActive){lockOnActive=false;squadManual=false;}else if(lockTargetValid()){lockOnActive=true;squadManual=squadOn;squadCycleN=0;worldAudio.lockOn();}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
+ if(lockOnActive){lockOnActive=false;squadManual=false;}else if(lockTargetValid()){lockOnActive=true;squadManual=squadOn;squadCycleN=0;worldAudio.lockOn();if(squadOn&&squadFocus)prota302.lockId=squadFocus.id;}else{status.textContent='Nenhum inimigo por perto para travar a mira.';}
  const b=document.getElementById('aim');if(b)b.classList.toggle('on',lockOnActive);
 }
+let lockSep=0;
 function updateLockOn(dt){
  if(lockOnActive&&!lockTargetValid()){lockOnActive=false;const b=document.getElementById('aim');if(b)b.classList.remove('on');}
  lockRing.visible=lockOnActive;if(!lockOnActive)return;if(rites.locksMovement)return;
- const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;
+const dx=enemy.position.x-player.position.x,dz=enemy.position.z-player.position.z;lockSep=Math.hypot(dx,dz);
  const want=cameraDistance<1.05?Math.atan2(-dx,-dz):Math.atan2(-dx,-dz);
  const diff=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=diff*Math.min(1,dt*6);
  if(cameraDistance<1.05)cameraPitch+=(.05-cameraPitch)*Math.min(1,dt*4);
@@ -3176,10 +3212,10 @@ function updateLockOn(dt){
  const def=document.getElementById('defend');
  if(def){def.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();try{def.setPointerCapture(e.pointerId);}catch(_){}setDefending(true);});for(const t of ['pointerup','pointercancel','lostpointercapture'])def.addEventListener(t,()=>setDefending(false));}
  /* CLAUDE (P2): botão MIRAR removido (trava suave automática em protaPick/riteFacing) */
- addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();cycleSoftTarget();}});
+ addEventListener('keydown',e=>{const typing=document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);if(typing)return;if(e.code==='KeyK'&&!e.repeat)setDefending(true);if((e.code==='KeyQ'||e.code==='Tab')&&!e.repeat){e.preventDefault();cycleSoftTarget();}if(e.code==='KeyR'&&!e.repeat&&!dialogueOpen&&!namePromptOpen)toggleLockOn();});
  addEventListener('keyup',e=>{if(e.code==='KeyK')setDefending(false);});
  lookArea.addEventListener('contextmenu',e=>e.preventDefault());
- lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(true);});
+ lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(true);if(e.pointerType==='mouse'&&e.button===1){e.preventDefault();toggleLockOn();}});
  addEventListener('pointerup',e=>{if(e.pointerType==='mouse'&&e.button===2)setDefending(false);});
  addEventListener('blur',()=>setDefending(false));
 })();
@@ -4567,7 +4603,7 @@ function updateSquadCombat(dt,now){
  if(playerHP>0&&!dashing){const pl=pullOn(s,targets[0]);if(pl.x||pl.z){const nx=player.position.x+pl.x*dt,nz=player.position.z+pl.z*dt;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;}}
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
- const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado');
+ const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')
  squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});
  updateAllies(dt);
  // 5) foco e procurador
@@ -7033,12 +7069,13 @@ function computeCameraTarget(base,dt){
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
  const engaged=combatStepNow()&&foeOn&&Math.hypot(foe.x-player.position.x,foe.z-player.position.z)<12;
  if(engaged&&!lockOnActive){const k=newHero&&rites.active?.def?.drive?.3:.22;t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
+ else if(lockOnActive&&foeOn){/* lock-on: enquadra os dois — o foco vai ~35 % para o alvo (no máx. 4 m), herói sempre no quadro */const fx=foe.x-player.position.x,fz=foe.z-player.position.z,fd=Math.hypot(fx,fz)||1,k=Math.min(.35,4/fd);t.x+=fx*k;t.z+=fz*k;}
  if(!camFocusReady){camFocus.copy(t);camFocusReady=true;}
  camFocus.x+=(t.x-camFocus.x)*Math.min(1,dt*12);camFocus.z+=(t.z-camFocus.z)*Math.min(1,dt*12);camFocus.y+=(t.y-camFocus.y)*Math.min(1,dt*6);
  return{focus:camFocus,engaged};
 }
 /** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance;camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
  if(rites.busy||!userSettings.autoCamera||lockOnActive||cameraDistance<1.05)return;
@@ -8203,11 +8240,14 @@ function tryRiteAttack(){if(!riteReady()){status.textContent='Preparando os movi
 /** MOD 302: modo do golpe (chão, corrida, saída do dash, aéreo, mergulho), alvo escolhido e aproximação travada nele. */
 function protaAttack(){
  const air=!grounded,high=air&&player.position.y-terrainHeightAt(player.position.x,player.position.z)>1.1;
- const mode=air?((verticalVelocity<-.6&&high)||prota302.airAttacks>=2?'plunge':'air'):(dashRemaining>0||prota302.clock<prota302.attackAfterDash)?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>PROTA_LOCO.walk*1.3?'run':'ground';
+ const counter=!air&&prota302.clock<prota302.counterUntil;
+ let mode=air?((verticalVelocity<-.6&&high)||prota302.airAttacks>=2?'plunge':'air'):(counter||dashRemaining>0||prota302.clock<prota302.attackAfterDash)?'dash':isSprinting()&&Math.hypot(moveVX,moveVZ)>PROTA_LOCO.walk*1.3?'run':'ground';
  if(rites.busy){rites.attack(equippedSword,{mode});return;}// só enfileira (o buffer do golpe atual decide)
  const pick=protaPick();
+ /* contra-ataque depois da esquiva perfeita: alvo a mais de 2,6 m → Estocada em corrida (avanço 3,6 m a 24 m/s); perto → Corte do retorno */
+ if(counter){prota302.counterUntil=0;if(pick.target&&Math.hypot(pick.target.x-player.position.x,pick.target.z-player.position.z)>2.6)mode='run';showCombatCallout('CONTRA-ATAQUE');}
  if(dashRemaining>0){dashRemaining=0;protaDashEnd();}
- const ok=rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()),yaw:mode==='dash'&&!pick.target?Math.atan2(dashDirX,dashDirZ):pick.yaw,target:pick.target||riteTarget(),mode});
+ const ok=rites.attack(equippedSword,{damage:Math.round(SWORDS[equippedSword].damage*(1+statsForLevel(playerLevel()).damageBonus)*scrollMul()*(counter?PROTA_DASH.counter.damage:1)),yaw:mode==='dash'&&!pick.target?Math.atan2(dashDirX,dashDirZ):pick.yaw,target:pick.target||riteTarget(),mode});
  if(ok&&rites.active)rites.active.lockId=pick.target?pick.target.id:null;
 }
 function castSwordRite(){
@@ -8353,6 +8393,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  async ashDemo(rig='enemy2',boss=false){/* Mod 327 (QA): um clone real do rig morre na frente do herói e vira cinza pelo caminho do jogo */await loadRig(rig);const P=player.position,c=makeFoeClone(rig,{x:P.x+Math.sin(playerYaw)*3,z:P.z+Math.cos(playerYaw)*3});if(!c)return null;c.boss=boss;hordeClones.push(c);foeFinalBlow(c,false);return{n:fallenFoes.length};},ashState(){return{jobs:ashFx.count,fallen:fallenFoes.map(f=>({t:+f.t.toFixed(2),ash:!!f.ash,done:!!f.ashDone,vis:f.c.holder.visible})),heroAsh:{...heroAsh},hp:playerHP,heroVisible:!!(model&&model.visible)};},killHeroQA(){checkpointX=player.position.x;checkpointZ=player.position.z;playerHP=0;playerRespawnAt=performance.now()+1250;if(actions.death)playOnce('death',.08);return true;},auroraProbe(){const gl=renderer.getContext();return renderer.info.programs.map(p=>({name:p.name,aur:/aurGround/.test(gl.getShaderSource(p.fragmentShader)||''),n:p.usedTimes})).filter(x=>x.aur||/Standard/.test(x.name));},auroraMatProbe(){const out=[];scene.traverse(o=>{if(o.isMesh&&/jornada-bloco|terrain-mod186/.test(o.name)&&out.length<3){const pr=renderer.properties.get(o.material);const u=pr&&pr.uniforms;out.push({name:o.name,has:!!(u&&u.uAurK),k:u&&u.uAurK?u.uAurK.value:null,same:u&&u.uAurK===auroraUniforms(THREE).uAurK,key:o.material.customProgramCacheKey().slice(-40),prog:!!(pr&&pr.currentProgram)});}});return out;},auroraOff(v=true){auroraQAOff=!!v;return v;},auroraLight(){const u=auroraUniforms(THREE);return{k:+u.uAurK.value.toFixed(3),c:u.uAurC.value.toArray().map(v=>+v.toFixed(2)),sky:+skyAtmo.aurora.toFixed(3)};},audioBank(){/* missão áudio (QA) */return worldAudio.bankStats?worldAudio.bankStats():null;},faunaState(){/* Mod 327 (QA) */return fauna?{...JSON.parse(JSON.stringify(fauna.stats)),list:fauna.list()}:null;},async faunaSpawn(kind,x,z,yaw=0){if(!fauna)return false;await fauna.load(kind);return fauna.debugSpawnAt(kind,x,z,yaw);},faunaBiome(x,z){return faunaBiome(x,z);},act2Label(){/* Mod 327 (QA) */return act2StoryLabel();},leaveVolcanoQA(){/* Mod 327 (QA): sai do interior pelo caminho real */if(inVolcano)leaveVolcano();return{...this.walkState(),inVolcano,yaw:+playerYaw.toFixed(2)};},freeze(on=true){/* Mod 327 (QA): congela o laço real (dt 0) para capturar quadro a quadro só com combatStep */debugDtScale=on?0:1;return debugDtScale;},realtime(){debugDtScale=1;return true;},
  combatQA(on=true,hp=0){debugCombat=!!on;if(hp>0){enemyHP=enemyMaxHP=hp;}return debugCombat;},
  protaReport(){const a=rites.active;return{move:a?{id:a.def?.id||a.clip,name:a.def?.name||null,t:+a.t.toFixed(3),phase:a.phase,hit:!!a.hit,by:a.hitBy||null,lock:a.lockId??null,closest:a.closest!=null&&isFinite(a.closest)?+a.closest.toFixed(2):null}:null,energies:rites.energies.map(e=>({kind:e.kind,r:+(e.radius||0).toFixed(2),travel:+(e.travel||0).toFixed(2),age:+e.age.toFixed(2)})),grip:+swordGrip.k.toFixed(2),hidden:prota302.hidden,vfx:protaVFX.stats(),hp:enemyHP,visible:!!model?.visible};},
+ projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
+ camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
+ dashProbe(){/* missão combate (QA): alvos do dash, aproximação e janela de contra-ataque */return{cands:protaCandidates().map(c=>({id:c.id,x:+c.x.toFixed(2),z:+c.z.toFixed(2),alive:c.alive})),dist:prota302.dashDist,target:prota302.dashTarget,counter:+(prota302.counterUntil-prota302.clock).toFixed(2),dodged:prota302.dodged,lock:lockOnActive,lockId:prota302.lockId,hidden:prota302.hidden,visible:!!model?.visible,gate:{cine:cineActive,vz:typeof vzLocked!=="undefined"&&!!vzLocked,dlg:dialogueOpen,paused:gamePaused,cosmic:cosmicLock()}};},
  enemyAt(x,y,z,visible=true){enemy.position.set(x,y===null?terrainHeightAt(x,z):y,z);enemy.visible=visible;enemyAlive=visible;return enemy.position.toArray();},
  heroState(){return{p:player.position.toArray().map(v=>+v.toFixed(3)),yaw:+playerYaw.toFixed(3),grounded,vy:+verticalVelocity.toFixed(3),dash:+dashRemaining.toFixed(3),clip:activeAction?.getClip().name||null,speed:+Math.hypot(moveVX,moveVZ).toFixed(2),sprint:isSprinting(),cam:camera.position.toArray().map(v=>+v.toFixed(2)),hp:enemyHP,e:enemy.position.toArray().map(v=>+v.toFixed(2))};},
  riteCast(){action('sword-skill');return this.riteState();},
