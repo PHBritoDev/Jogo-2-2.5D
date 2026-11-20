@@ -113,11 +113,11 @@ test('golpes: herói parado à frente/lado/costas a 1,5/2,5/3,5 m é atingido (t
   assert.ok(hit / n >= .9, `acertos ${hit}/${n}: ${miss.slice(0, 6).join(' ')}`); assert.equal(falsos, 0, 'esquiva na janela não sofre dano');
 });
 
-test('integração: dimensão III usa a esquadra com NewBispo3 só no treino dos Bispos; poderes completos mantêm o Bispo 3 clássico', () => {
+test('integração: dimensão III usa SEMPRE a esquadra com NewBispo3 (campanha e TESTAR; nenhum parâmetro devolve o Bispo 3 clássico)', () => {
   const m = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
-  assert.ok(/else if\(b\.key==='bishop3'&&BISHOP_DUEL_ONLY&&!SQUAD_LEGACY\)\{pack=\{squad:true,dim:true,rig:'bishop3n'/.test(m));
+  assert.ok(/else if\(b\.key==='bishop3'\)\{pack=\{squad:true,dim:true,rig:'bishop3n'/.test(m));
   assert.ok(/RIG_DEFS\.bishop3n=\{file:ZK_FILE/.test(m) && /k==='zarkhael'\?'bishop3n'/.test(m) && /P\.rig==='bishop3n'\?'zarkhael'/.test(m) && /function zarkhaelSquadDone\(\)/.test(m));
-  assert.ok(/revealEncounter\(d\.profile,sp\.boss,b\.hp,d\.line\)/.test(m), 'caminho clássico preservado');
+  assert.ok(/revealEncounter\(d\.profile,sp\.boss,b\.hp,d\.line\)/.test(m), 'caminho genérico ainda existe para os outros chefes');
   const r = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
   assert.ok(/if\(a\.kind==='zarkhael'\)\{/.test(r) && /zkfx\.release\(/.test(r) && /style: 'zarkhael'/.test(r));
   assert.deepEqual([zkPhaseOf(100, 100), zkPhaseOf(60, 100), zkPhaseOf(30, 100), zkPhaseOf(10, 100)], [0, 1, 2, 3]);
