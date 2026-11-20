@@ -42,7 +42,7 @@ export function sampleTrace(trace,t,actor){
  const point=(a,b)=>{const x=a[0]+(b[0]-a[0])*u,y=a[1]+(b[1]-a[1])*u,z=a[2]+(b[2]-a[2])*u;return{x:actor.x+x*c+z*s,y:actor.y+y,z:actor.z+z*c-x*s};};
  return trace.frames[i].map((v,k)=>({base:point(v[0],trace.frames[j][k][0]),tip:point(v[1],trace.frames[j][k][1])}));
 }
-export function bossTraceContact(trace,t0,t1,actor,target,blocked=()=>false,fromPose=actor){
- const prev=sampleTrace(trace,t0,fromPose),next=sampleTrace(trace,t1,actor),capsule={...target,y:(target.y||0)+(target.height||1.7)*.5};
+export function bossTraceContact(trace,t0,t1,actor,target,blocked=()=>false){
+ const prev=sampleTrace(trace,t0,actor),next=sampleTrace(trace,t1,actor),capsule={...target,y:(target.y||0)+(target.height||1.7)*.5};
  return next.some((v,i)=>bladeContact(prev[i].base,prev[i].tip,v.base,v.tip,capsule,(target.radius||.35)+.08)&&!segmentBlocked(v.base,v.tip,blocked)&&!segmentBlocked(actor,capsule,blocked));
 }

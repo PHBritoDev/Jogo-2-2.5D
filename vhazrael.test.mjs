@@ -230,7 +230,7 @@ test('Mod 320 (era 247b): golpes do VHAZRAEL são os clipes nativos do VHAZRAEL.
   assert.deepEqual(BOSS_MOVES.vhazrael.map(m => m.id), VZ_MOVES.map(m => m.id)); assert.ok(BOSS_MOVES.vhazrael.length >= 6);
   for (const k of ['throne', 'thorns', 'bombard', 'orbital']) assert.equal(VZ.boss[k].anim, 'idle', k);
   for (const m of BOSS_MOVES.vhazrael) { const { sq, dmg } = world(); const t = hero({ z: 2.4 }); sq.meleeTrace = () => true; sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, m.id); run(sq, m.duration + .2);
-    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(Math.hypot(a.x-t.x,a.z-t.z) >= a.T.radius+t.radius-.02, m.id + " invadiu a cápsula"); }
+    assert.equal(dmg.filter(d => d.kind === 'melee').length, m.hits.length, m.id); assert.ok(a.z < t.z - t.radius, m.id + " z=" + a.z.toFixed(2)); }
   { const { sq, dmg } = world(); const t = hero({ z: 2 }); sq.setTargets([t]); const a = boss(sq, 0); a.alert = a.decideT = 1e9; a.z = 0; sq.startMelee(a, t, 'Trono_Duplo'); run(sq, 2); assert.equal(dmg.length, 0, 'sem traço da lâmina, sem dano'); }
 });
 

@@ -76,9 +76,7 @@ export function poseCarry(T, b, a, squad, dt) {
   if (a.kind !== 'vhazrael' || CARRY_OFF) return;
   const R = b.arms || (b.arms = findArms(b.model)); if (!R) return;
   const act = a.act, free = a.alive && (!act || act.type === 'dodge' || act.type === 'hop' || act.type === 'move') && !(a.airY > .35);
-  b.carryW = (b.carryW || 0) + ((free ? 1 : 0) - (b.carryW || 0)) * Math.min(1, dt * VZ_CARRY.rate); // Fade clears before the first active frame even at the fastest clip rate.
-  if (act?.move) b.carryW *= Math.max(0,1-act.t / act.move.open);
-  const w = b.carryW; if (w < .01) return;
+  b.carryW = (b.carryW || 0) + ((free ? 1 : 0) - (b.carryW || 0)) * Math.min(1, dt * VZ_CARRY.rate); const w = b.carryW; if (w < .01) return;
   const t = squad && squad.targets ? squad.targets.find(x => x.id === a.targetId) || squad.targets[0] : null, d = t ? Math.hypot(t.x - a.x, t.z - a.z) : 99;
   const want = act && act.type === 'dodge' ? 1 : d < VZ_CARRY.near ? .5 : 0; b.carryMode = (b.carryMode ?? want) + (want - (b.carryMode ?? want)) * Math.min(1, dt * 5);
   const m = b.carryMode, A = VZ_CARRY.march, G = VZ_CARRY.guard, D2 = VZ_CARRY.dash, mix = (k) => m <= .5 ? A[k].map((v, i) => v + (G[k][i] - v) * (m / .5)) : G[k].map((v, i) => v + (D2[k][i] - v) * ((m - .5) / .5));
