@@ -38,7 +38,7 @@ const quantumShowcaseRequested=new URLSearchParams(location.search).has('testeQu
 const swordTrainingRequested=combatLabRequested||(testAllSkills&&new URLSearchParams(location.search).has('treinoEspadas'))||quantumShowcaseRequested;
 let swordTrainingRequestedStarted=false,trainingEpoch=0;
 var swordTraining=false,riteCinematicView=false;
-import {CelestialWhiteHole,CinematicLease,whiteFlash} from './celestial-whitehole3d.js';
+import {CelestialWhiteHole,CinematicLease,whiteFlash,whiteHitOptions} from './celestial-whitehole3d.js';
 import {createWhiteHoleVFX} from './celestial-whitehole-vfx3d.js';
 import {CelestialPhoenix} from './celestial-phoenix3d.js';
 import {createPhoenixVFX} from './celestial-phoenix-vfx3d.js';
@@ -2022,7 +2022,7 @@ const whiteHole=new CelestialWhiteHole({actors:whiteActors,clear:whiteClear,palm
  solid:p=>p.y<=terrainHeightAt(p.x,p.z)+.16||extraBlocked(p),hit:(d,id,stage)=>{
  if(squadOn){
   const actor=squadSq()?.actor(id);if(!actor?.alive)return;
-  const dealt=squadSq().damageActor(id,actor.kind==='vhazrael'?Math.round(d*VZ_HERO_DMG):d,{x:whiteHole.target.x,z:whiteHole.target.z,kind:stage==='contact'?'spell':'area',source:'juizo-'+stage,by:'hero'});
+  const dealt=squadSq().damageActor(id,actor.kind==='vhazrael'?Math.round(d*VZ_HERO_DMG):d,whiteHitOptions(whiteHole,stage));
   squadHitFx(actor,dealt);if(actor===squadFocus){enemyHP=actor.hp;squadProxy.hp=actor.hp;}return;
  }
  if(id!==siegeEpoch||!enemyAlive)return;enemyHP=Math.max(0,enemyHP-d);whitePendingDeath=enemyHP===0;

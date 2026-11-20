@@ -2,6 +2,10 @@
 export const WHITE_HOLE=Object.freeze({duration:17,damage:160,range:24,compression:.2,radius:7});
 export const WHITE_PHASES=Object.freeze([['ascent',0],['sword',3],['rift',4.5],['growth',6],['silence',10],['launch',11],['return',14.3]]);
 export function whiteFlash(t){return .12*Math.max(0,1-Math.abs(t-13.08)/.14);}
+export function whiteHitOptions(cast,stage){
+ const direct=stage==='contact',origin=direct?cast.release:cast.contact;
+ return {x:origin.x,z:origin.z,kind:direct?'spell':'area',source:'juizo-'+stage,by:'hero'};
+}
 export function impactVictims(center,actors,damage,clear){
  const seen=new Set(),hits=[];
  for(const a of actors){

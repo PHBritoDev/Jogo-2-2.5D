@@ -1,4 +1,4 @@
-import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
+import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease,whiteHitOptions}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
 const source={x:0,y:0,z:0},target=()=>({id:1,x:0,y:0,z:8,alive:true});
 test('sweep e onda independem da frequência do renderer',()=>{
  for(const dt of [1/120,1/60,1/30,.1,3,17]){
@@ -47,4 +47,17 @@ test('nova conjuração não herda a posição de soltura do ataque anterior',()
  s.start(source,t);s.update(17,t);assert(s.release);
  s.start({x:4,y:0,z:2},t);s.update(5,t);
  assert.equal(s.release,null);assert.equal(s.shot,null);
+});
+
+test('o contato vem da palma para a guarda frontal; a onda segue a regra do escudo',async()=>{
+ const {Enemy1Squad}=await import('./enemy1-squad3d.js');
+ const {EnergyShield,SHIELD_SPECS}=await import('./combat-defense3d.js');
+ const squad=new Enemy1Squad(),[actor]=squad.spawn([{x:0,z:8,yaw:Math.PI,hp:500}]);
+ actor.guard=true;
+ const cast={release:{x:0,z:0},contact:{x:0,z:8}};
+ const direct=squad.damageActor(actor.id,64,whiteHitOptions(cast,'contact'));
+ assert(direct>0 && direct<64);
+ actor.shield=new EnergyShield(SHIELD_SPECS.demon1);actor.shield.activate(squad.time);
+ const wave=squad.damageActor(actor.id,96,whiteHitOptions(cast,'wave'));
+ assert(wave<96 && actor.shield.hp<SHIELD_SPECS.demon1.durability);
 });
