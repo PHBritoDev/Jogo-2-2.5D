@@ -71,8 +71,70 @@ export function calibrateGrip(T, model, clone, idleClip) {
   out.copy(qh).invert().multiply(qw); mixer.stopAllAction(); mixer.uncacheRoot(rig); return out;
 }
 
+// Preserve the native footwork. Adjust the sword arm of the vault used for
+// the thrust and the chest turn of the axe combo used for the double cut.
+function duelistClip(T, rig, source, hand, grip, move) {
+  const thrust = move.id === 'Trono_Estocada';
+  if (!thrust && move.id !== 'Trono_Duplo') return source.clone();
+  const first = move.hits[0], last = move.hits.at(-1);
+  const forearm = hand.parent, arm = forearm.parent;
+  const clip = source.clone();
+  const joints = thrust ? [arm, forearm, hand] : ['Chest','UpperChest'].map(name => rig.getObjectByName(name));
+  if (joints.some(j => !j)) return clip;
+  const tracks = joints.map(j => clip.tracks.find(t => t.name === j.name + '.quaternion'));
+  if (tracks.some(t => !t)) return clip;
+  const mixer = new T.AnimationMixer(rig);
+  mixer.clipAction(source).play();
+  const times = [], values = joints.map(() => []);
+  const rotations = joints.map(() => new T.Quaternion());
+  const origin = new T.Vector3(), direction = new T.Vector3(), aim = new T.Vector3();
+  const before = new T.Quaternion(), parent = new T.Quaternion(), delta = new T.Quaternion();
+  const up = new T.Vector3(0,1,0);
+  const total = Math.ceil(Math.min(move.duration,source.duration) * 60);
+  for (let i = 0; i <= total; i++) {
+    const t = Math.min(source.duration,move.duration) * i / total;
+    mixer.setTime(Math.min(t, source.duration - .0001));
+    rig.updateMatrixWorld(true);
+    const k = Math.max(0, Math.min(1, (t-first+.32)/.22, (last+.36-t)/.20));
+    const weight = k*k*(3-2*k);
+    for (let j = 0; j < joints.length; j++) {
+      const joint = joints[j];
+      rotations[j].copy(joint.quaternion);
+      joint.getWorldQuaternion(before);
+      joint.getWorldPosition(origin);
+      if (!thrust) {
+        // Both native axe cuts pass to the right of a frontal opponent.
+        // Distribute the turn between the two chest bones; the feet stay planted.
+        delta.setFromAxisAngle(up,-.25);
+      } else if (j < 2) {
+        joints[j+1].getWorldPosition(direction).sub(origin).normalize();
+        aim.set(.16, origin.y + (j ? .03 : -.09), 1.5).sub(origin).normalize();
+        delta.setFromUnitVectors(direction,aim);
+      } else {
+        direction.set(0,1,0).applyQuaternion(grip).applyQuaternion(before);
+        aim.set(-.10,-.08,1).normalize();
+        delta.setFromUnitVectors(direction,aim);
+      }
+      delta.multiply(before);
+      joint.parent.getWorldQuaternion(parent).invert();
+      joint.quaternion.slerp(parent.multiply(delta),weight);
+      joint.updateWorldMatrix(false,true);
+      joint.quaternion.toArray(values[j],values[j].length);
+    }
+    times.push(t);
+    joints.forEach((joint,j) => joint.quaternion.copy(rotations[j]));
+  }
+  mixer.stopAllAction();
+  mixer.uncacheRoot(rig);
+  clip.tracks = clip.tracks.map(track => {
+    const j = tracks.indexOf(track);
+    return j < 0 ? track : new T.QuaternionKeyframeTrack(track.name,times,values[j]);
+  });
+  return clip;
+}
+
 /**
- * Clipes dos golpes nativos + traço da lâmina amostrado do MESMO clipe (30 Hz), no espaço do ator (origem no chão,
+ * Clipes dos golpes nativos + traço da lâmina amostrado do MESMO clipe (120 Hz, calculado uma vez por modelo), no espaço do ator (origem no chão,
  * frente +Z), no formato que bossTraceContact já consome. clipFor(role) → AnimationClip in-place.
  */
 export function nativeMoveClips(T, model, clone, clipFor, moves, grip, blade = [[0, .15, 0], [0, 1.55, 0]]) {
@@ -81,10 +143,12 @@ export function nativeMoveClips(T, model, clone, clipFor, moves, grip, blade = [
   const out = {}, p = new T.Vector3(), q = new T.Quaternion();
   for (const m of moves) {
     const src = clipFor(m.clip); if (!src || !hand) continue;
-    const clip = src.clone(); clip.name = m.id; const frames = [], N = Math.ceil(m.duration * 30);
-    mixer.stopAllAction(); const a = mixer.clipAction(clip); a.play();
+    mixer.stopAllAction();
+    const clip = duelistClip(T,rig,src,hand,grip,m);
+    clip.name = m.id; const frames = [], N = Math.ceil(m.duration * 120);
+    mixer.clipAction(clip).play();
     for (let i = 0; i <= N; i++) {
-      mixer.setTime(Math.min(m.duration, clip.duration - 1e-3) * i / N); rig.updateMatrixWorld(true);
+      mixer.setTime(Math.min(m.duration * i / N, clip.duration - 1e-3)); rig.updateMatrixWorld(true);
       hand.getWorldPosition(p); hand.getWorldQuaternion(q).multiply(grip);
       frames.push([blade.map(b => new T.Vector3(...b).applyQuaternion(q).add(p).toArray())]);
     }

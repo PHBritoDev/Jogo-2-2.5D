@@ -182,7 +182,7 @@ export class Enemy1Squad {
     if (!a.react && !a.act && tgt) this.perceive(a, tgt);
     if (a.react && (a.react.t -= dt) <= 0) { const r = a.react; a.react = null; if (!a.act || a.act.type === 'move') this.startReaction(a, r, tgt); }
     if (a.act) { this.stepAction(a, dt, tgt); if (!a.alive) return; }
-    else if ((a.decideT -= dt) <= 0) { a.decideT = a.T.decide[0] + this.rand() * (a.T.decide[1] - a.T.decide[0]); if (a.alert <= 0) this.decide(a, tgt); }
+    else if (!(a.kind==='vhazrael' && a.react) && (a.decideT -= dt) <= 0) { a.decideT = a.T.decide[0] + this.rand() * (a.T.decide[1] - a.T.decide[0]); if (a.alert <= 0) this.decide(a, tgt); }
     this.locomote(a, dt, tgt);
   }
   pickTarget(a, dt) {
@@ -301,7 +301,7 @@ export class Enemy1Squad {
     if(BOSS_MOVES[a.kind]){
       const pool=BOSS_MOVES[a.kind],near=pool.filter(m=>!m.range&&!((m.minPhase||0)>(a.vzPhase||0))),move=pool.find(m=>m.id===forcedMove)||(a.T.pickMove&&a.T.pickMove(this,a,t,near))||near[(a.meleeCycle||0)%near.length];a.meleeCycle=(a.meleeCycle||0)+1; // Mod 320: espécie pode escolher o golpe (VHAZRAEL: fase, anti-repetição, situação)
       this.begin(a,{type:'melee',dur:move.duration,hits:move.hits,done:0,anim:move.id,token:'melee',tid:t.id,landed:false,move,contacts:new Set(),phase:'windup'});
-      a.vx=a.vz=0;if(move.aim)a.yaw=Math.atan2(t.x-a.x,t.z-a.z); /* Mod 320: estocada trava a direção no alvo ao começar (telegrafada, sem leitura de input depois) */a.cds.melee=move.rate?(move.duration/move.rate+bossGap(a))*a.cdMul:(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
+      a.vx=a.vz=0;if(move.aim && a.kind!=='vhazrael')a.yaw=Math.atan2(t.x-a.x,t.z-a.z); /* Mod 320: estocada trava a direção no alvo ao começar (telegrafada, sem leitura de input depois) */a.cds.melee=move.rate?(move.duration/move.rate+bossGap(a))*a.cdMul:(move.duration+.45)*a.cdMul;this.event('windup',{actor:a,kind:move.id,at:move.open,label:move.label});return;
     }
     if (a.T.native) return this.startNative(a, t, forcedMove);
     const M = a.T.melee, hits = a.phase2 && a.T.boss ? [...M.hits, M.hits[M.hits.length - 1] + .4] : M.hits;
@@ -330,6 +330,7 @@ export class Enemy1Squad {
     this.event('leap', { actor: a, target: t.id });
   }
   stepLeap(a, act, t, dt) {
+    if (a.T.stepJudgment) return a.T.stepJudgment(this,a,act,t,dt);
     const L = a.T.leap;
     if (act.phase === 'crouch') { if (act.t >= L.crouch) { act.phase = 'rise'; a.airV = L.v1; a.jumps = 1; act.air = 0; this.event('jump', { actor: a, n: 1 }); } return; }
     if (act.phase === 'land') { if (act.t >= act.landAt + L.recover) act.t = act.dur; return; }
@@ -356,9 +357,23 @@ export class Enemy1Squad {
     this.event('cast', { actor: a, skill, target: t.id });
   }
   stepAction(a, dt, t) {
-    const act = a.act, previous=act.t; act.t += dt * (act.move?.rate || 1); // CLAUDE (P3): golpe de chefe com cadência própria — tudo (janelas, traço, avanço, clipe) anda no tempo do clipe
-    if (act.type === 'dodge') { const s = a.T.dash.speed * (1 - act.t / act.dur * .4); this.move(a, act.dx * s * dt, act.dz * s * dt); }
-    if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
+    const act = a.act, previous=act.t;
+    if (a.kind==='vhazrael' && act.move) act.fromPose={x:a.x,y:a.y,z:a.z,yaw:a.yaw};
+    act.t += dt * (act.move?.rate || 1); // CLAUDE (P3): golpe de chefe com cadência própria — tudo (janelas, traço, avanço, clipe) anda no tempo do clipe
+    if (act.type === 'dodge') { const s = a.T.dash.speed * (1 - act.t / act.dur * .4); if (a.kind==='vhazrael') {
+      const distance=Math.max(0,s)*dt, steps=Math.max(1,Math.ceil(distance/.15));
+      for (let i=0;i<steps;i++) {
+        const dx=act.dx*distance/steps,dz=act.dz*distance/steps;
+        const floor=this.ground(a.x+dx,a.z+dz);
+        if (!Number.isFinite(floor) || Math.abs(floor-this.ground(a.x,a.z))>.45 || this.blocked(a.x+dx,a.z+dz)) break;
+        this.move(a,dx,dz);
+      }
+    } else this.move(a, act.dx * s * dt, act.dz * s * dt); }
+    if (a.kind==='vhazrael' && act.move?.aim && t && act.t<=act.move.close) {
+      const error=wrap(Math.atan2(t.x-a.x,t.z-a.z)-a.yaw);
+      const limit=(act.t<act.move.open?5:.45)*dt;
+      a.yaw=wrap(a.yaw+Math.max(-limit,Math.min(limit,error)));
+    } else if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
     if(act.move){
       const m=act.move;act.phase=act.t<m.open?'windup':act.t<=m.close?'active':'recovery';
       let travel=bossTravel(m,act.t)-bossTravel(m,previous);if(t&&travel>0){const room=Math.hypot(t.x-a.x,t.z-a.z)-(a.radius||.5)-(t.radius||.4)-.05;travel=Math.max(0,Math.min(travel,room));} /* Mod 320: avanço longo (Estocada) para no contato, nunca atravessa o alvo */this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);
@@ -368,6 +383,10 @@ export class Enemy1Squad {
           act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:a.T.melee.knock,combo:n+1});
           if(result==='hit')act.landed=true;this.event('meleeHit',{actor:a,target:t.id,result,n:n+1});
         }
+      }
+      if (a.kind==='vhazrael') for (let n=0;n<m.hits.length;n++) {
+        const end=m.hits[n]+.11;
+        if(previous<=end && act.t>end && !act.contacts.has(n)) this.event('meleeMiss',{actor:a,move:m.id,n:n+1});
       }
       act.done=m.hits.filter(h=>act.t>h+.11).length;
       if(m.after&&!act.after&&act.t>=m.hits.at(-1)&&SKILLS[m.after]){act.after=true;SKILLS[m.after].spawn(this,a,t,{move:m,landed:act.landed});}
