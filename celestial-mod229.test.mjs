@@ -18,16 +18,16 @@ test('MOD 229: Skill 2 — estrelas pesadas pontuam cada salva sem mudar o dano 
   s.start({ x: 0, y: 1.7, z: 0 }, t); for (let i = 0; i < 1300; i++) s.update(1 / 120, t);
   assert.equal(s.stars.filter(x => x.heavy).length, 9); assert.equal(hits.length, 60); assert.equal(STARFALL.count, 90);
 });
-test('MOD 229: Ultimate — asas antes da subida, tempestade com restauração e sem nuvens de esferas', () => {
-  const m = src('mundo-3d-prototype.js'), vfx = src('celestial-whitehole-vfx3d.js'), storm = src('celestial-storm3d.js');
-  assert(/rise=clamp\(\(t-\.8\)\/2\.4\)/.test(m), 'a subida espera as asas abrirem');
-  assert(m.includes("Asas.glb?v=mod229"), 'reaproveita as asas do prólogo');
-  for (const k of ['hemiSky', 'hemiGround', 'sunColor', 'fogNear']) assert(m.includes(k), 'snapshot guarda ' + k);
-  assert(m.includes('whiteStorm?.hide()'), 'restauração esconde a tempestade');
-  assert(!/SphereGeometry\(1,10,6\)/.test(vfx), 'sem nuvens de bolinhas');
-  assert(!/LineSegments/.test(vfx), 'sem a chuva local embaixo do disco');
-  assert(/cam\+rel/.test(storm), 'chuva relativa à câmera');
-  assert(/MeshBasicMaterial\(\{ color: 0x000000/.test(vfx), 'disco negro absoluto preservado');
+test('Ultimate — as duas metades da asa autoral têm posição, normais e material', () => {
+  const file = readFileSync(new URL('./Asas.glb', import.meta.url));
+  const gltf = JSON.parse(file.subarray(20, 20 + file.readUInt32LE(12)));
+  for (const name of ['AsaEsquerda', 'AsaDireita']) {
+    const node = gltf.nodes.find(n => n.name === name);
+    const primitive = gltf.meshes[node.mesh].primitives[0];
+    assert(gltf.accessors[primitive.attributes.POSITION].count > 100);
+    assert.equal(gltf.accessors[primitive.attributes.NORMAL].count, gltf.accessors[primitive.attributes.POSITION].count);
+    assert.equal(gltf.materials[primitive.material].name, 'Pena');
+  }
 });
 test('MOD 229: Skill 3 — lease do alvo capturado sempre devolve o inimigo ao chão', () => {
   const m = src('mundo-3d-prototype.js');

@@ -1,9 +1,10 @@
-"""Final pass: latest corona, audio controls during pause and lethal-hit handoff."""
+"""Final pass: accretion disc, audio controls during pause and lethal-hit handoff."""
 import asyncio,os,json
 from pathlib import Path
 from playwright.async_api import async_playwright
-out=Path('docs/evidencias/mod228')
+out=Path(os.getenv('WHITEHOLE_QA_OUT','docs/evidencias/ultimate-acrecao'))
 async def main():
+ out.mkdir(parents=True,exist_ok=True)
  async with async_playwright() as p:
   b=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,proxy={'server':os.environ.get('HTTPS_PROXY','http://proxy:8080'),'bypass':'127.0.0.1,localhost'},args=['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader'])
   page=await b.new_page(viewport={'width':800,'height':500},ignore_https_errors=True);page.set_default_timeout(120000);errors=[]
@@ -28,6 +29,33 @@ async def main():
   impact=await page.evaluate('SevenSinsDebug3D.whiteState()');assert impact['hp']==0 and impact['locked'],impact
   result=await page.evaluate('SevenSinsDebug3D.whiteFrame(4)');assert not result['locked'],result
   assert not (await page.evaluate('SevenSinsDebug3D.state()'))['enemy']['alive']
+  await page.evaluate("""() => {
+    const game = SevenSinsDebug3D;
+    game.whiteQA();
+    game.packQA('enemy1', 'captor', 3, 450);
+  }""")
+  await page.wait_for_function("SevenSinsDebug3D.squadState().snap?.actors.length === 3")
+  damage = await page.evaluate("""() => {
+    const game = SevenSinsDebug3D;
+    const squad = game.squadState();
+    const focus = squad.snap.actors.find(a => a.id === squad.focus);
+    const [near, far] = squad.snap.actors.filter(a => a.id !== focus.id);
+    game.squadPose(near.id, focus.x + 2, focus.z, 0);
+    game.squadPose(far.id, focus.x + 15, focus.z, 0);
+    game.placeAt(focus.x, game.groundAt(focus.x, focus.z + 3), focus.z + 3, Math.PI);
+    game.skills();
+    const hp = () => Object.fromEntries(game.squadState().snap.actors.map(a => [a.id, a.hp]));
+    const before = hp();
+    document.querySelector('#ultimate').dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true, pointerId: 4, pointerType: 'touch'
+    }));
+    game.whiteFrame(13.25);
+    const impact = hp();
+    game.whiteFrame(3.75);
+    const end = hp();
+    return [focus, near, far].map(a => [before[a.id] - impact[a.id], impact[a.id] - end[a.id]]);
+  }""")
+  assert damage == [[160, 0], [153, 0], [0, 0]], damage
   assert not errors,errors
   print('PASS: pause key, audio controls, stale camera gesture cleared, 160 damage, lethal encounter handed back after restoration; no page errors',flush=True)
   await b.close()
