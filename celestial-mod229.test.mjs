@@ -18,16 +18,13 @@ test('MOD 229: Skill 2 — estrelas pesadas pontuam cada salva sem mudar o dano 
   s.start({ x: 0, y: 1.7, z: 0 }, t); for (let i = 0; i < 1300; i++) s.update(1 / 120, t);
   assert.equal(s.stars.filter(x => x.heavy).length, 9); assert.equal(hits.length, 60); assert.equal(STARFALL.count, 90);
 });
-test('Ultimate — as duas metades da asa autoral têm posição, normais e material', () => {
-  const file = readFileSync(new URL('./Asas.glb', import.meta.url));
-  const gltf = JSON.parse(file.subarray(20, 20 + file.readUInt32LE(12)));
-  for (const name of ['AsaEsquerda', 'AsaDireita']) {
-    const node = gltf.nodes.find(n => n.name === name);
-    const primitive = gltf.meshes[node.mesh].primitives[0];
-    assert(gltf.accessors[primitive.attributes.POSITION].count > 100);
-    assert.equal(gltf.accessors[primitive.attributes.NORMAL].count, gltf.accessors[primitive.attributes.POSITION].count);
-    assert.equal(gltf.materials[primitive.material].name, 'Pena');
-  }
+test('Ultimate carrega o par Meshy com a malha indexada e a textura autoral',()=>{
+ const file=readFileSync(new URL('./AsasAnjo_leve.glb',import.meta.url));
+ const gltf=JSON.parse(file.subarray(20,20+file.readUInt32LE(12)));
+ const prim=gltf.meshes[0].primitives[0];
+ assert.equal(gltf.accessors[prim.indices].count,609993);
+ assert(gltf.accessors[prim.attributes.TEXCOORD_0]);
+ assert(gltf.images.length>0);
 });
 test('MOD 229: Skill 3 — lease do alvo capturado sempre devolve o inimigo ao chão', () => {
   const m = src('mundo-3d-prototype.js');

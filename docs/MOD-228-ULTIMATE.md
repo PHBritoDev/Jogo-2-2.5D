@@ -2,7 +2,7 @@
 
 ## Contrato atual da reconstrução
 
-A habilidade conserva o ID, o desbloqueio, 80 de mana, 30 s de recarga, 24 m de alcance e os 17 s de apresentação. A mira acompanha o alvo até o lançamento aos 11 s. Aos 13 s há um único pulso em volume de 7 m com linha de visão. Cada hostil recebe no máximo um acerto, de 160 no centro a 72 na borda, antes do multiplicador de nível e das defesas. O esquadrão resolve escudos e invulnerabilidade no próprio ator. A entidade física do jogador permanece no solo. O disco de acreção nasce diante da mão, e as duas malhas de Asas.glb articulam-se nas costas.
+O disco nasce no socket da palma. Ao soltar, a trajetória passa a usar posição e velocidade próprias, gravidade e varredura contra cápsulas hostis, terreno e obstáculos. No primeiro contato há até 64 de dano direto. Após 0,20 s de compressão, a onda entrega até 96 de dano aos hostis até 7 m da borda da cápsula com linha de visão, antes dos multiplicadores de nível e defesa. Um projétil que toca somente cenário não aplica a parcela direta. O custo continua em 80 de mana, o alcance de aquisição em 24 m e a recarga em 30 s. A apresentação de 17 s restaura a pose e câmera pelo mesmo lease. As asas Meshy originais usam articulação bilateral por vértice e seguem o torso.
 
 ## Histórico da Mod 228
 
