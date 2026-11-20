@@ -22,7 +22,8 @@ export function attachAfterimages(T, scene, b, clone) {
 /** Chamado a cada quadro depois do mixer: nasce uma silhueta a cada EVERY s enquanto o ator estiver em dash. */
 export function tickAfterimages(b, a, dt, quality = 1) {
   const A = b.after; if (!A) return;
-  const dashing = !!(a.act && a.act.type === 'dodge') && b.holder.visible && a.alive !== false;
+  const dash = a.act?.type === 'dodge' || (a.act?.type === 'leap' && a.act.phase === 'airDash');
+  const dashing = dash && b.holder.visible && a.alive !== false;
   if (dashing) {
     if (!A.wasDash) { A.spawned = 0; A.clock = 0; } else A.clock -= dt;
     const cap = quality === 0 ? 1 : GHOSTS;
@@ -44,6 +45,14 @@ export function tickAfterimages(b, a, dt, quality = 1) {
 }
 
 export function clearAfterimages(b) { if (!b.after) return; for (const G of b.after.ghosts) { G.root.visible = false; G.mat.opacity = 0; } }
-export function disposeAfterimages(b) { if (!b.after) return; for (const G of b.after.ghosts) { G.root.removeFromParent(); G.mat.dispose(); } b.after = null; }
+export function disposeAfterimages(b) {
+  if (!b.after) return;
+  for (const ghost of b.after.ghosts) {
+    ghost.root.removeFromParent();
+    ghost.g.traverse(mesh => { if (mesh.isSkinnedMesh) mesh.skeleton.dispose(); });
+    ghost.mat.dispose();
+  }
+  b.after = null;
+}
 /** Estado para QA (debug): quantas silhuetas visíveis e a maior opacidade. */
 export function afterimageStats(b) { const g = b?.after?.ghosts || []; return { visible: g.filter(x => x.root.visible).length, peak: Math.max(0, ...g.map(x => x.mat.opacity)) }; }

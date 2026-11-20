@@ -139,3 +139,16 @@ test('o elo de espada começa na recuperação, termina na terceira ação e pre
   a.T.brain(sq,a,1/120,h);
   assert.equal(a.act,heavy);
 });
+
+test('o impulso aéreo acontece antes de alcançar a marca e move o corpo até ela', () => {
+  const {sq,log}=world(), a=boss(sq,6), h=hero();
+  sq.setTargets([h]);sq.startLeap(a,h);
+  while (a.act.phase!=='airDash' && a.act.t<2) sq.stepAction(a,1/120,h);
+  assert.equal(a.act.phase,'airDash');
+  const mark=a.act.mark;
+  const remaining=()=>Math.hypot(a.x-mark.x,a.z-mark.z);
+  assert.ok(remaining()>1 && a.airY>3);
+  while(a.act.phase==='airDash') sq.stepAction(a,1/120,h);
+  assert.ok(remaining()<.05);
+  assert.equal(log.filter(e=>e.type==='airDash').length,1);
+});

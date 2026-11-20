@@ -81,10 +81,15 @@ function judgment(sq, a, act, target, dt) {
   if (air<0 || act.phase==='land') return;
   if (act.phase==='crouch') {act.phase='rise';sq.event('jump',{actor:a,n:1});}
   const u=Math.min(1,air/rise), dive=Math.max(0,Math.min(1,(air-rise-hover)/fall));
-  const travel=u*u*(3-2*u);
-  if (u<1 || act.phase==='rise') {
+  // Start the lateral burst while there is still distance to the fixed mark.
+  const burstAt=rise*.72, burst=clamp((air-burstAt)/(rise+hover-burstAt),0,1);
+  if (air>=burstAt && act.phase==='rise') {
+    act.phase='airDash';sq.event('airDash',{actor:a});
+  }
+  if (act.phase!=='dive') {
+    const travel=.48*smooth(u)+.52*smooth(burst);
     sq.move(a,act.start.x+(act.mark.x-act.start.x)*travel-a.x,act.start.z+(act.mark.z-act.start.z)*travel-a.z);
-    if (u===1) {act.phase='dive';sq.event('airDash',{actor:a});}
+    if (burst===1) act.phase='dive';
   }
   a.airY=L.height*(1-(1-u)*(1-u))*(1-dive*dive);
   a.y=sq.ground(a.x,a.z)+a.airY;
