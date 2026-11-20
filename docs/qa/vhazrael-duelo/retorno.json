@@ -11,9 +11,9 @@
         "cells": 162,
         "tris": 960
       },
-      "geometry": 832,
+      "geometry": 829,
       "programs": 231,
-      "drawCalls": 116,
+      "drawCalls": 118,
       "heavy": {
         "damage": 50,
         "state": "cooldown"
@@ -39,7 +39,7 @@
         "cells": 162,
         "tris": 960
       },
-      "geometry": 833,
+      "geometry": 830,
       "programs": 255,
       "drawCalls": 102,
       "heavy": {
@@ -73,6 +73,108 @@
       "heavy": {
         "damage": 50,
         "state": "cooldown"
+      },
+      "touch": {
+        "start": {
+          "p": [
+            400,
+            -2000,
+            0
+          ],
+          "yaw": 3.142,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Idle",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            403.01,
+            -1998.18,
+            1.97
+          ],
+          "hp": 2597,
+          "e": [
+            400,
+            -2000,
+            -2
+          ]
+        },
+        "moved": {
+          "p": [
+            399.496,
+            -2000,
+            0.33
+          ],
+          "yaw": 5.418,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Walk",
+          "speed": 2.58,
+          "sprint": false,
+          "cam": [
+            375.93,
+            -1614.81,
+            -2.94
+          ],
+          "hp": 2547,
+          "e": [
+            400,
+            -2000,
+            -2
+          ]
+        },
+        "attacking": {
+          "p": [
+            400.017,
+            -2000,
+            -0.57
+          ],
+          "yaw": 2.587,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0,
+          "clip": "Prota302_ground_0",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            385.15,
+            -1768.21,
+            -1.25
+          ],
+          "hp": 2547,
+          "e": [
+            400,
+            -2000,
+            -2
+          ]
+        },
+        "dodging": {
+          "p": [
+            400.075,
+            -2000,
+            1.637
+          ],
+          "yaw": 3.005,
+          "grounded": true,
+          "vy": 0,
+          "dash": 0.17,
+          "clip": "Prota302_dash",
+          "speed": 0,
+          "sprint": false,
+          "cam": [
+            397.79,
+            -1998.28,
+            4.28
+          ],
+          "hp": 2507,
+          "e": [
+            400.57,
+            -2000,
+            -1.97
+          ]
+        }
       },
       "afterDeath": {
         "hp": 500,

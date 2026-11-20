@@ -22,6 +22,37 @@ async function frame(page, name) {
   });
   fs.writeFileSync(output+'/'+name+'.jpg', Buffer.from(encoded, 'base64'));
 }
+async function touchDuel(page) {
+  const apiState=()=>page.evaluate(()=>SevenSinsDebug3D.heroState());
+  await page.evaluate(()=>{
+    const api=SevenSinsDebug3D,b=api.vzBladeClearance().boss;
+    api.squadCam(null);
+    api.teleport(b[0]+Math.sin(b[3])*2,b[2]+Math.cos(b[3])*2,b[3]+Math.PI);
+  });
+  const start=await apiState();
+  const cdp=await page.context().newCDPSession(page);
+  const stick=await page.locator('#stick').boundingBox();
+  const x=Math.round(stick.x+stick.width/2),y=Math.round(stick.y+stick.height/2);
+  try {
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+stick.width*.36,y}]});
+    await page.evaluate(()=>SevenSinsDebug3D.combatStep(.32,{fps:60}));
+  } finally {
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await cdp.detach();
+  }
+  const moved=await apiState();
+  assert.ok(Math.hypot(moved.p[0]-start.p[0],moved.p[2]-start.p[2])>.05,'joystick');
+  await page.locator('#attack').tap();
+  await page.evaluate(()=>SevenSinsDebug3D.combatStep(.12,{fps:60}));
+  const attacking=await apiState();
+  await page.evaluate(()=>SevenSinsDebug3D.combatStep(1.25,{fps:60}));
+  await page.locator('#dash').tap();
+  const dodging=await apiState();
+  assert.ok(dodging.dash>0,'dash por toque');
+  await page.evaluate(()=>SevenSinsDebug3D.combatStep(.75,{fps:60}));
+  return {start,moved,attacking,dodging};
+}
 async function run() {
   const browser = await chromium.launch({args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
   try {
@@ -58,7 +89,7 @@ async function run() {
         return {damage,state:api.combat315().enemies.find(e=>e.id===id).shield};
       }, result.id);
       assert.equal(result.heavy.state,'cooldown');
-      if (!round && !process.env.VZ_SKIP_LEAP) {
+      if (!round && !process.env.VZ_LIFECYCLE_ONLY) {
         await page.evaluate(() => {
           SevenSinsDebug3D.squadCam([6,3.4,9,0,3,0]);
           SevenSinsDebug3D.squadLeap();
@@ -87,6 +118,7 @@ async function run() {
           fs.rmSync(temp,{recursive:true,force:true});
         }
       }
+      if(round===2)result.touch=await touchDuel(page);
       await page.evaluate(() => {SevenSinsDebug3D.freeze(false);SevenSinsDebug3D.killPlayer();});
       await page.waitForFunction(() => !SevenSinsDebug3D.dimState().battle, null, {timeout:30000});
       result.afterDeath=await page.evaluate(() => {
@@ -101,7 +133,7 @@ async function run() {
         await page.getByRole('button',{name:/TESTE DAS DIMENSÕES/}).click();
         await page.getByRole('button',{name:/Dimensão I — VHAZRAEL/}).click();
       }
-      if (round===1) await page.reload({waitUntil:'domcontentloaded'});
+      if (round===1) await page.reload({waitUntil:'domcontentloaded',timeout:180000});
     }
     assert.deepEqual(errors,[]);
     fs.writeFileSync(output+'/retorno.json', JSON.stringify({quality:'medium',rounds,errors},null,2));

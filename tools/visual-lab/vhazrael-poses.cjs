@@ -11,6 +11,14 @@ const dir='docs/qa/vhazrael-duelo';
   const r=await route.fetch();
   await route.fulfill({response:r,body:await r.text()+`
   window.duelActorId=()=>squadSq().actors.find(a=>a.kind==='vhazrael').id;
+  window.duelPhoto=side=>{
+    const a=squadSq().actor(duelActorId()), h=player.position;
+    const x=(a.x+h.x)/2,z=(a.z+h.z)/2,y=a.y+1.3,angle=a.yaw+side;
+    const distance=5.8+Math.hypot(a.x-h.x,a.z-h.z)*.4;
+    SevenSinsDebug3D.fly([x+Math.sin(angle)*distance,y+1.1,z+Math.cos(angle)*distance],[x,y,z]);
+    SevenSinsDebug3D.combatStep(0,{draw:true});
+    return document.querySelector('#scene').toDataURL('image/jpeg',.86).split(',')[1];
+  };
   window.duelFixture=(id,side,elevation)=>{
     const sq=squadSq(), a=sq.actors.find(v=>v.kind==='vhazrael'), b=squadRT.body(a.id),t=sq.targets.find(v=>v.id==='hero');
     if(id){
@@ -40,10 +48,10 @@ const dir='docs/qa/vhazrael-duelo';
  for(const id of ids)for(const fps of [30,45,60])for(const side of [0,Math.PI/2,Math.PI]){
   const r=await page.evaluate(({id,fps,side})=>{
    const api=SevenSinsDebug3D;api.freeze(true);api.heroHeal();
-   const until=duelFixture(id,side,0);api.squadCam([Math.sin(side)*4,1.6,Math.cos(side)*4,0,1.1,0]);
+   const until=duelFixture(id,side,0);api.squadCam([Math.sin(side)*5.8,2.1,Math.cos(side)*5.8,0,1.1,0],duelActorId());
    api.combatStep(until,{fps,draw:true});
    const sample=duelFixture();
-   const photo=fps===45?document.querySelector('#scene').toDataURL('image/jpeg',.8).split(',')[1]:null;
+   const photo=fps===45?duelPhoto(side):null;
    return {sample,photo};
   },{id,fps,side});
   assert.ok(!r.sample.missing,id);assert.ok(Math.max(...r.sample.error)<.05,id+" pose divergiu do rastro");if(r.photo)fs.writeFileSync(dir+'/'+id+'-'+Math.round(side*180/Math.PI)+'.jpg',Buffer.from(r.photo,'base64'));
