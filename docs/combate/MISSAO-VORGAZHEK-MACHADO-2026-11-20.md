@@ -20,7 +20,7 @@ Arma 3D original, procedural, volumétrica (extrusões biseladas, não planos):
   ciano-glaciais** em faixa fina à frente do corpo; **orbe-núcleo** branco-azulado contido, preso por garras, com halo
   Fresnel; espinho superior, colares hexagonais na haste e ponta inferior em espinho. Nada roxo.
 - 1 775 triângulos, **7 chamadas de desenho** (as 25 peças são fundidas por material), sem luz dinâmica.
-- Haste 1,95 m × 1,12 (o chefe tem ~2,1 m); a cabeça fica a 0,69 m da palma.
+- 2,1 m do espinho inferior ao espinho do topo (o chefe tem ~2,1 m); o centro da cabeça fica a 0,69 m da palma.
 - `userData.edges`: 4 segmentos de dano (haste alta, gume frontal, gume traseiro, ponta do gume frontal) → o traço de
   dano cobre **as duas lâminas**. `charge(k)` acende núcleo, canais e a **lâmina de energia longa** ao longo da cabeça.
 
@@ -86,5 +86,38 @@ Medição do traço da cabeça do machado (30 Hz, clipe real) e da raiz de cada 
 Recarga 9,5 s; só com o herói entre 3,2 e 9,5 m (nunca à queima-roupa). O salto evasivo do Atravessamento Aéreo continua
 separado. Nada do Bispo 1 foi tocado.
 
-## Duelos reais
-_(preenchido abaixo com os números dos duelos)_
+## Duelos reais (Dimensão II, treino dos Bispos, IA ativa, bot com entradas reais)
+Passo fixo de simulação (SwiftShader roda a 3–13 FPS reais). `aim` = erro de ângulo entre a cabeça do machado e o herói
+no início de cada janela de dano (mediana); erros grandes só aparecem quando o herói dá dash para as costas depois da trava.
+
+| sessão | dash (2 / 3 seguidos / isolados) | Maré (salto→acerto) | Atravessamento | escudo/guarda | janelas: acerto / erro (motivo) | aim mediana | maior tempo parado |
+|---|---|---|---|---|---|---|---|
+| orgânica 60 s #1 (30 FPS) | 31 (5 / 7 / **0**) | 1 → 1 | 4 | 1 / 0 | 21 / 27 (esquiva 17, longe 9, ângulo 1) | 0,6° | 0,77 s |
+| orgânica 60 s #2 (30 FPS) | 21 (7 / 2 / 1) | 3 → 2 | 4 | 1 / 0 | 17 / 27 (esquiva 18, longe 3, ângulo 6) | 1,4° | 0,67 s |
+| herói parado 30 s, 30 FPS | 10 | — | 2 | 2 / 2 | 13 / 5 (esquiva 5) | 0,6° | 1,1 s |
+| herói parado 30 s, 45 FPS | 8 | — | 2 | 3 / 3 | 16 / 3 (longe 2, esquiva 1) | 0,6° | 1,1 s |
+| herói parado 30 s, 60 FPS | 9 | — | 2 | 2 / 1 | 17 / 3 (longe 3) | 1,3° | 0,9 s |
+| herói andando em círculo 30 s | 17 (3 / 3 / 2) | 1 → 0 (saiu do arco) | 2 | 2 / 2 | 13 / 3 | 9,2° | 0,8 s |
+| herói mantendo distância + dash para trás 40 s | 13 (2 / 3 / 0) | 3 → **0** (dash depois da trava) | 6 | 0 / 0 | 4 / 7 | — | — |
+
+- “Esquiva” = o herói estava em i-frames de dash no quadro do corte (contra-jogo funcionando, não erro de mira).
+- Magias do chefe: 0 em todas as sessões. Erros de console: 0. Machado (`Nucleo`) presente e visível na cena em todas.
+- Render do duelo: 45–81 chamadas de desenho, 117–212 mil triângulos (arena inteira); o machado soma 7 chamadas.
+
+Vídeo do jogo real (arena original, sem iluminação extra): `docs/combate/evidencias/vorgazhek/vorgazhek-machado-duelo.mp4`.
+
+## Testes
+`tests/vorgazhek-machado.test.mjs` (12 testes, no CI `combat315.yml`):
+- P0: arma na cena para os 4 chefes, uma por corpo, `dispose`; regra contra `scene.add` comentado;
+- machado: volume, assimetria, chamadas de desenho, traço das duas lâminas, lâmina de energia;
+- empunhadura constante, cabeça acima do piso, carregamento na marcha;
+- raiz ancorada; janelas de dano; mira e trava; ganchos que não vazam para outras espécies;
+- dashes em sequência > isolados, triplas presentes; Maré: fases, altura, corte antes do pouso, dano único, trava, fuga
+  depois da trava, 30/45/60 FPS, nunca à queima-roupa, morte no ar;
+- **alinhamento real com o GLB** (traço do clipe + motor + mira): ≥ 85 % a 1,5/2,5/3,5 m, de frente/lado/costas, 30 e 60 FPS.
+
+## Riscos e limites
+- **Sem Android físico**: o SwiftShader roda a 3–13 FPS; a lógica foi validada em passo fixo de 30/45/60 FPS.
+- A arena da Dimensão II é muito escura: o machado lê pelos gumes ciano, mas o corpo do chefe some ao fundo (iluminação
+  da dimensão não foi alterada nesta missão — o briefing pede não mexer em mapa/câmera geral).
+- Sentença Tripla e Órbita em avanço só aparecem abaixo de 70 % de vida (fases), como antes.
