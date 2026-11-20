@@ -18,6 +18,8 @@ import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
 import { calibrateGrip, nativeMoveClips, inPlaceClip } from './vhazrael-rig3d.js';
 import { vgGrip, vgMoveClips } from './vorgazhek3d.js'; // mesma URL do mundo-3d-prototype (uma instância do módulo)
+import { zkGrip } from './zarkhael-squad3d.js';
+import { createZarkhaelSpiralVFX } from './zarkhael-spiral-vfx3d.js?v=mod332';
 import { createVorgazhekVFX } from './vorgazhek-vfx3d.js?v=mod331';
 import { attachAfterimages, tickAfterimages, clearAfterimages, disposeAfterimages, afterimageStats } from './vhazrael-afterimage3d.js';
 import { attachKatana, poseKatana, poseCaster, poseCarry, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
@@ -42,7 +44,7 @@ const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast:
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
-  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1 }, vgfx = createVorgazhekVFX(T, scene), vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
+  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1 }, vgfx = createVorgazhekVFX(T, scene), zkfx = createZarkhaelSpiralVFX(T, scene), vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
   // impacto sakuga do Enemy2: casca agressiva, anéis irregulares, rachaduras no terreno ao longo do golpe, placas e pedras
   const sak = createSakugaImpacts(T, scene, { ground: ctx.ground, capacity: 8 });
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
@@ -59,7 +61,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     measured = { h: Math.max(.5, (top !== null && top > b.min.y + .3 ? top : b.max.y) - b.min.y), minY: b.min.y }; measuredBy.set(src.model, measured); return measured;
   }
   /** Altura-alvo (topo da cabeça) por classe: comum ≈ a do herói (1,72–1,95 m), Guardião 1,22× o comum, sem virar gigante. */
-  function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : kind === 'e3' ? c * 1.04 : kind === 'e3boss' ? c * 1.36 : kind === 'e4' ? c * 1.05 : kind === 'e4boss' ? c * 1.42 : kind === 'vhazrael' ? c * 1.22 : kind === 'vorgazhek' ? c * 1.16 : c; }
+  function heightFor(kind) { const hero = Math.max(1.4, Math.min(2.1, ctx.heroHeight() || 1.8)); const c = Math.min(1.95, Math.max(1.72, hero * .97)); return kind === 'warden' ? c * 1.22 : kind === 'e2' ? c * 1.03 : kind === 'e2boss' ? c * 1.3 : kind === 'e3' ? c * 1.04 : kind === 'e3boss' ? c * 1.36 : kind === 'e4' ? c * 1.05 : kind === 'e4boss' ? c * 1.42 : kind === 'vhazrael' ? c * 1.22 : kind === 'vorgazhek' ? c * 1.16 : kind === 'zarkhael' ? c * 1.2 : c; }
   const combatCache=new Map();
   function makeBody(a) {
     const src = ctx.source(a.kind); if (!src || !src.model) return null;
@@ -67,7 +69,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     const k = heightFor(a.kind) / m.h; model.scale.copy(src.model.scale).multiplyScalar(k); model.position.y = -m.minY * k;
     const mats = [];
     model.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
-      o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'vorgazhek' && c.emissive) { c.emissive.setHex(0x1c1650); c.emissiveIntensity = .7; if (c.map && !c.emissiveMap) c.emissiveMap = c.map; } /* missão 19/11: o corpo novo é escuro e a Dimensão II também — brilho próprio contido (índigo) para a silhueta ler */ if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } if (a.kind === 'e4boss') { if (c.color) c.color.multiplyScalar(.68); if (c.emissive) { c.emissive.setHex(0x22041e); c.emissiveIntensity = .5; } } mats.push(c); return c; });
+      o.material = [].concat(o.material).map(mt => { const c = mt.clone(); if (a.kind === 'zarkhael' && c.emissive) { c.emissive.setHex(0x2a0a3a); c.emissiveIntensity = .55; if (c.map && !c.emissiveMap) c.emissiveMap = c.map; } /* missão 20/11: silhueta legível na Dimensão III */ if (a.kind === 'vorgazhek' && c.emissive) { c.emissive.setHex(0x1c1650); c.emissiveIntensity = .7; if (c.map && !c.emissiveMap) c.emissiveMap = c.map; } /* missão 19/11: o corpo novo é escuro e a Dimensão II também — brilho próprio contido (índigo) para a silhueta ler */ if (a.kind === 'e2boss') { if (c.color) c.color.multiplyScalar(.62); if (c.emissive) { c.emissive.setHex(0x2a0a02); c.emissiveIntensity = .5; } } if (a.kind === 'warden') { if (c.color) c.color.multiplyScalar(.5); if (c.emissive) { c.emissive.setHex(0x2a0306); c.emissiveIntensity = .55; } } if (a.kind === 'e3boss') { if (c.color) c.color.multiplyScalar(.7); if (c.emissive) { c.emissive.setHex(0x2a0208); c.emissiveIntensity = .45; } } if (a.kind === 'e4boss') { if (c.color) c.color.multiplyScalar(.68); if (c.emissive) { c.emissive.setHex(0x22041e); c.emissiveIntensity = .5; } } mats.push(c); return c; });
       if (o.material.length === 1) o.material = o.material[0]; });
     if (a.kind === 'common') for (const mt of mats) demonAura(mt); // Mod 315: aura violeta (contorno elétrico, não mancha preta)
     for (const mt of mats) if (mt.emissive) { mt.userData.e0 = mt.emissive.getHex(); mt.userData.i0 = mt.emissiveIntensity || 0; }
@@ -79,7 +81,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     model.traverse(o => { if (!b.hand && /^(mixamorig)?RightHand$/i.test(o.name)) b.hand = o; if (!b.lhand && /^(mixamorig)?LeftHand$/i.test(o.name)) b.lhand = o; if (!b.head && /^(mixamorig)?Head$/i.test(o.name)) b.head = o; });
     if(a.kind==='common')attachDemonClaws(b);
     if(a.kind==='e2boss')attachScythe(b,a.kind);
-    if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'||a.kind==='vorgazhek')attachKatana(T,scene,b,a.kind);
+    if(a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'||a.kind==='vorgazhek'||a.kind==='zarkhael')attachKatana(T,scene,b,a.kind);
     if(BOSS_MOVES[a.kind]){
       if(a.kind==='warden')attachClaws(b);
       if(a.kind==='vorgazhek'){ // missão 19/11: corpo novo — golpes nativos do NewBispo2_Otimizado.glb, empunhadura calibrada pela pose de guarda e traço da lâmina do mesmo clipe
@@ -88,6 +90,12 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
           const clips=vgMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.vorgazhek,grip,b.weapon.userData.edges);clips.__grip=grip;combatCache.set('vorgazhek',clips);}
         attachAfterimages(T,scene,b,ctx.clone);for(const [i,g] of (b.after?.ghosts||[]).entries())g.mat.color.setHex([0x1a1250,0x2c1a78,0x0e1a46][i%3]); // rastro índigo (não carmesim)
         b.grip=combatCache.get('vorgazhek').__grip;const jc=clipOf('jump');if(jc)acts.jump=mixer.clipAction(inPlaceClip(jc,{vertical:true}));
+      }
+      if(a.kind==='zarkhael'){ // missão 20/11: NewBispo3.glb — golpes nativos, foice com empunhadura medida (duas mãos) e traço da lâmina do mesmo clipe
+        const clipOf=r=>src.actions?.[r]?.getClip?.()||null;
+        if(!combatCache.has('zarkhael')){const grip=zkGrip(T),clips=vgMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.zarkhael,grip,b.weapon.userData.edges,b.weapon.userData.head.toArray());clips.__grip=grip;combatCache.set('zarkhael',clips);}
+        attachAfterimages(T,scene,b,ctx.clone);for(const [i,g] of (b.after?.ghosts||[]).entries())g.mat.color.setHex([0x3a0a5a,0x5a1240,0x1e0636][i%3]); // rastro violeta-rubro
+        b.grip=combatCache.get('zarkhael').__grip;
       }
       if(a.kind==='vhazrael'){ // Mod 320: VHAZRAEL.glb — golpes NATIVOS (clipes reais), empunhadura calibrada e traço da lâmina do mesmo clipe
         const clipOf=r=>src.actions?.[r]?.getClip?.()||null;
@@ -101,8 +109,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         combatCache.set(a.kind,bakeCombatClips(T,model,ctx.clone,acts.idle?.getClip(),BOSS_MOVES[a.kind],a.kind==='e3boss'||a.kind==='e4boss'||a.kind==='vhazrael'?katanaPose:bossPose,specs));
       }
       for(const [id,clip]of Object.entries(combatCache.get(a.kind)))if(id!=='__grip')acts[id]=mixer.clipAction(clip);
-      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'||a.kind==='vorgazhek'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'||a.kind==='vorgazhek'?3:3.2;
-      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:a.kind==='vorgazhek'?0x5fe8ff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
+      const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'||a.kind==='vorgazhek'||a.kind==='zarkhael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'||a.kind==='vorgazhek'?3:a.kind==='zarkhael'?3.3:3.2;
+      b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:a.kind==='vorgazhek'?0x5fe8ff:a.kind==='zarkhael'?0xc64dff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
     if (a.kind==='vhazrael') b.seal=makeJudgmentSeal(T,scene,a.T.leap.strike.r);
     play(b, 'idle', false, 1, 0);
@@ -222,6 +230,10 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'common') { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'demon', power: d.move === 'salto' ? .85 : .45 }); }
       if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vorgazhek') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vorgazhek', power: m?.heavy ? .9 : .5 }); }
+      if (type === 'zkSpiral' && d.actor) { const b = bodies.get(d.actor.id), W = b && b.weapon; // missão 20/11: Espiral do Carrasco — nasce no ponto REAL da lâmina
+        if (d.phase === 'release' && d.bolt) { let from = null; if (W) { W.updateWorldMatrix(true, false); from = _v.copy(W.userData.tip).applyMatrix4(W.matrixWorld); d.bolt.y = Math.max(d.actor.y + .6, Math.min(d.actor.y + 2.2, from.y)); } zkfx.release(d.bolt, from); }
+        if (d.phase === 'impact' && d.bolt) zkfx.impact(d.bolt, { wall: d.wall, fade: d.fade }); }
+      if (type === 'meleeHit' && d.result !== 'evaded' && d.actor && d.actor.kind === 'zarkhael' && ctx.slash) { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'zarkhael', power: d.move === 'espiral' ? 1 : d.actor.act?.move?.heavy ? .9 : .55 }); }
       if (type === 'leapStrike' && d.actor && d.actor.kind === 'vorgazhek') vgfx.land({ x: d.actor.x, y: d.actor.y, z: d.actor.z }, 3.4);
       if (type === 'vgRise' && d.actor) { const b = bodies.get(d.actor.id), w = b && b.weapon; if (d.phase === 'rise' || d.phase === 'lock') vgfx.mark({ x: d.mark.x, y: ctx.ground(d.mark.x, d.mark.z), z: d.mark.z }, d.phase === 'lock'); if (d.phase === 'land') vgfx.impact({ x: d.x, y: d.y, z: d.z }, d.yaw, d.landed); if (d.phase === 'prep' && w) b.vgPrep = 0; } // missão 20/11: Ascensão da Maré Abissal
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vhazrael') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vhazrael', power: m?.heavy ? .95 : m && d.n === m.hits.length ? .75 : .5 }); }
@@ -234,7 +246,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
   function stop() {
     for (const b of bodies.values()) { ctx.ash?.cancel(b.holder); disposeAfterimages(b); b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}b.seal?.dispose();if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } if (b.proc) b.proc.dispose(); }
     if (squad && ctx.shields) for (const a of squad.actors) ctx.shields.release(a.id);
-    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
+    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); vgfx.clear(); zkfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
     vfx,
@@ -243,7 +255,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     /** Escurecimento local pedido pela Tempestade de Nadir (0..1); o jogo aplica e restaura. */
     get dim() { return stormDim(squad); },
     /** Extinção Orbital em curso (fase, tempo, magia) — o jogo usa para câmera, cena orbital e bloqueio de controle. */
-    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
+    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
@@ -291,6 +303,9 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
         if (b.after) tickAfterimages(b, a, dt, quality);
         if (a.kind === 'vorgazhek') { const dashing = !!(a.act && a.act.type === 'dodge'); if (dashing && !b.vgDash) b.vgDash = { x: a.x, y: a.y, z: a.z }; else if (!dashing && b.vgDash) { vgfx.dash(b.vgDash, { x: a.x, y: a.y, z: a.z }); b.vgDash = null; } }
+        if (a.kind === 'zarkhael' && b.weapon && a.act && a.act.type === 'zkSpiral' && (a.act.phase === 'spin' || a.act.phase === 'out') && !a.act.released) { b.weapon.updateWorldMatrix(true, false); const W = b.weapon.userData; // missão 20/11: energia atraída para a foice a cada volta + riscos orbitais no arco real
+          zkfx.charge(_v.copy(W.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(W.tip).applyMatrix4(b.weapon.matrixWorld), a.act.glow || 0, dt);
+          if (ctx.slash) { a.act.vzKey = a.act.vzKey || ++vzSlashSerial; ctx.slash.sample('zks' + a.act.vzKey + ':' + (a.act.loop ?? 9), _v, _v2, { style: 'zarkhael', gain: .5 + (a.act.glow || 0) * .7, extend: .8, inner: .2 }); } }
         if (a.kind === 'vorgazhek' && b.weapon) { const W = b.weapon.userData, ac = a.act; // missão 20/11: carga do núcleo (Maré Abissal) e rastro longo da lâmina de energia no corte descendente
           if ((b.vgCharge || 0) > .05) { b.weapon.updateWorldMatrix(true, false); vgfx.charge(_v.copy(W.core).applyMatrix4(b.weapon.matrixWorld), b.vgCharge); }
           if (ac && ac.rise && typeof ac.cut === 'number' && ac.cut < .3 && ctx.slash) { ac.vzKey = ac.vzKey || ++vzSlashSerial; b.weapon.updateWorldMatrix(true, false); ctx.slash.sample('vgr' + ac.vzKey, _v.copy(W.tipB).applyMatrix4(b.weapon.matrixWorld), W.energyTip(_v2).applyMatrix4(b.weapon.matrixWorld), { style: 'vorgazhek', gain: 1.35, extend: 1, inner: .05 }); } }
@@ -304,11 +319,13 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
           charges.push({ skill: act.skill || 'counter', k, x: (hp.x + lp.x) / 2 + Math.sin(a.yaw) * .25, y: (hp.y + lp.y) / 2, z: (hp.z + lp.z) / 2 + Math.cos(a.yaw) * .25, dx: Math.sin(a.yaw), dz: Math.cos(a.yaw), gx: tgt ? tgt.x : a.x, gz: tgt ? tgt.z : a.z, kind: a.kind });
         }
         if(b.claws&&act?.move&&act.move.hits.some(h=>Math.abs(act.t-h)<.12)){for(const c of b.claws){c.root.updateMatrixWorld(true);vfx.scythe(_v.set(0,.08,0).applyMatrix4(c.root.matrixWorld),_v2.set(0,.53,0).applyMatrix4(c.root.matrixWorld));}}
-        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); if (a.kind !== 'vhazrael' && a.kind !== 'vorgazhek') abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss');
+        if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); if (a.kind !== 'vhazrael' && a.kind !== 'vorgazhek' && a.kind !== 'zarkhael') abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss');
           if (a.kind === 'vorgazhek' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // missão 19/11: crescente fina índigo/ciano no arco real da lâmina; arco elétrico só nos cortes 'arc', no quadro do contato
             if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const E = b.weapon.userData.edges, A = _v.fromArray(E[2][0]).applyMatrix4(b.weapon.matrixWorld), B = _v2.fromArray(E[2][1]).applyMatrix4(b.weapon.matrixWorld); ctx.slash.sample('vgb' + act.vzKey + ':' + n, A, B, { style: 'vorgazhek', gain: .55, extend: .35, inner: .4 }); // missão 20/11: rastro também no gume traseiro
               A.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld); B.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); ctx.slash.sample('vg' + act.vzKey + ':' + n, A, B, { style: 'vorgazhek', gain: act.move.heavy ? 1.1 : .95, extend: .9, inner: .1 });
               if (act.move.arc && Math.abs(act.t - hs[n]) < .03 && act.vgArc !== n) { act.vgArc = n; vgfx.arc(A, B, act.move.heavy ? 1 : .8); } } }
+          if (a.kind === 'zarkhael' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // missão 20/11: rastro violeta-rubro no gume REAL da foice
+            if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; ctx.slash.sample('zk' + act.vzKey + ':' + n, _v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), { style: 'zarkhael', gain: act.move.heavy ? 1.15 : .95, extend: .9, inner: .12 }); } }
           if (a.kind === 'vhazrael' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // Mod 320: crescente carmesim que segue o arco VISÍVEL da lâmina, um rastro por golpe do combo
             if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const fin = n === hs.length - 1 && hs.length > 1, heavy = !!act.move.heavy; ctx.slash.sample('vz' + act.vzKey + ':' + n, _v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), { style: 'vhazrael', gain: heavy || fin ? 1.15 : .95, extend: heavy ? 1.05 : .75, inner: .12 }); } } }
         else if (b.weapon && act && act.type === 'melee' && (act.move?act.move.hits.some(h=>Math.abs(act.t-h)<.12):act.t > .3 && act.t < act.hits[act.hits.length - 1] + .18)) {
@@ -319,7 +336,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       for (const s of squad.spells) if (s.type === 'spiral' && s.phase === 'fly' && !trails.some(t => t.id === s.id)) { const free = trails.find(t => t.id === null); if (free) { free.id = s.id; free.trail.clear(); } }
       for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); t.trail.update(time, s ? _tp.set(s.x, s.y, s.z) : _tp, !!(s && s.phase === 'fly'), quality); }
       impacts.update(time, quality); if (camera) sak.update(time, camera, quality);
-      vgfx.update(dt, quality);
+      vgfx.update(dt, quality); zkfx.update(dt, quality);
       const info = camera ? vfx.update(dt, camera, squad.spells, charges, quality) : null;
       if (camera) chaos.update(dt, camera, squad.spells, charges, quality);
       if (camera) abyss.update(dt, camera, squad.spells, charges, quality, targets[0] || null);

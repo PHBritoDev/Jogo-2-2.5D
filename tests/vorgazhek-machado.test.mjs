@@ -99,9 +99,10 @@ function organic(seed, secs = 30, fps = 60) {
 }
 test('dashes em SEQUÊNCIA: 2–3 passos são a regra (não dashes isolados), orçamento respeitado', () => {
   const g = { 1: 0, 2: 0, 3: 0, 4: 0 }; let ends = 0, cut = 0;
-  for (let seed = 1; seed <= 8; seed++) { const { a, ev } = organic(seed); for (const k in g) g[k] += a.vgStats.groups?.[k] || 0; for (const e of ev) if (e.type === 'vgChainEnd') { ends++; if (e.cut) cut++; } }
-  assert.ok(g[2] + g[3] > g[1], 'sequências ' + JSON.stringify(g)); assert.ok(g[3] > 0, 'triplas ocorrem'); assert.ok(ends > 10 && cut <= ends);
-  assert.ok(VG_DASH.cd === .35, 'recarga do dash intocada (o que mudou foi a sequência)');
+  let minGap = 9;
+  for (let seed = 1; seed <= 8; seed++) { const { a, ev } = organic(seed); minGap = Math.min(minGap, a.vgStats.minDashGap ?? 9); for (const k in g) g[k] += a.vgStats.groups?.[k] || 0; for (const e of ev) if (e.type === 'vgChainEnd') { ends++; if (e.cut) cut++; } }
+  assert.ok(g[2] + g[3] > g[1], 'sequências ' + JSON.stringify(g)); assert.ok(g[3] > 0, 'triplas ocorrem'); assert.ok(minGap >= .5 - 1e-6, 'menor intervalo entre inícios ' + minGap); assert.ok(ends > 10 && cut <= ends);
+  assert.ok(VG_DASH.cd === .5 && VG_DASH.minStart === .5, 'regra do criador (20/11): início a início de dash ≥ 0,5 s');
 });
 
 test('Ascensão da Maré Abissal: preparo no chão → salto alto → trava do pouso → corte ANTES do pouso → impacto → recuperação; dano único', () => {
