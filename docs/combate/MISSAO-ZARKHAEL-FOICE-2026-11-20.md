@@ -94,6 +94,28 @@ Prova: `docs/combate/evidencias/zarkhael/foice-poses-4-vistas.jpg` (página `too
 
 **A mesma regra de 0,5 s foi aplicada ao VORGAZHEK** (isolado em `vorgazhek3d.js`, testado). O Bispo 1 (Codex) não foi tocado.
 
+## Jogo real (Dimensão III, treino dos Bispos, bot com entradas reais, IA ativa; sem erros de console)
+| sessão | golpes acertados / janelas sem contato (motivo) | Espiral (acerto / fuga / i-frames) | dash (menor início a início) | maior tempo parado |
+|---|---|---|---|---|
+| orgânica 60 s, 30 FPS | 17 / 21 (esquiva 18) | 5: 3 / 2 / 2 evadidas | 13 (0,508 s) | 0,87 s |
+| orgânica 60 s, 45 FPS | 18 / 24 (esquiva 12, ângulo 7) | 4: 2 / 2 / 2 | 11 (0,517 s) | 1,09 s |
+| herói parado 30 s | **11 / 1** | 2: 2 / 0 | 9 (0,508 s) | — |
+| herói parado 15 s, 45 FPS | 461 de dano no chefe, golpes sem erro de mira | 1: 1 | 4 | — |
+| herói circulando 30 s | 12 / 0 | 2: 0 / 2 | 10 (0,508 s) | 1,2 s |
+| herói mantendo distância + dash para trás 40 s | 1 / 8 (longe 4, fora do arco 4) | 4: 0 / 2 | 13 (0,508 s) | 2,5 s |
+
+- Antes do ajuste (empurrão 0,8 e passo de encurtamento curto), o herói parado tomava o 1º corte e escapava dos seguintes por empurrão (6 acertos / 9 erros). Agora o empurrão é 0,5 e o encurtamento vai até 2,4 m a 8 m/s (com colisão, para antes da cápsula): 11 / 1.
+- A Espiral à queima-roupa era impossível de reagir (massa a 3,8 m acertava logo ao sair). Agora a Espiral exige ≥ 4,5 m, a massa sai a 0,9 m da lâmina e voa a 11 m/s: são 0,25 s de trava + ≥ 0,25 s de voo.
+- Smoke: desktop 1280×720 e celular (Pixel 7) carregam a luta com o kind `zarkhael`, 0 erros, sem “Failed to mount” (55 e 53 chamadas de desenho). `?bisposComPoderes=1` volta ao Bispo 3 clássico.
+- Suíte completa (`*.test.mjs` e `tests/*.test.mjs`): as mesmas 9 falhas da main antes desta branch (luzes, energia, ciclone do Bispo 4, tornado/ultimate do Bispo 2, Mod 278). Nenhuma falha nova.
+
+Evidências: `docs/combate/evidencias/zarkhael/`:
+- `espiral-do-carrasco-arena.mp4` (arena real);
+- `espiral-quadros-arena.jpg`;
+- `duelo-foice-31s.mp4` (piso neutro de QA);
+- `foice-poses-4-vistas.jpg`;
+- `espiral-vfx-isolado.jpg`.
+
 ## Onde entra
 - **Treino dos Bispos** (padrão): a Dimensão III abre com o kind `zarkhael` na esquadra (`bishop3n`).
   - Kit de magias vazio; a Espiral é técnica da foice.
