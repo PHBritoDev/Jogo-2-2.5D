@@ -1,0 +1,86 @@
+{
+  "renderer": "Chromium WebGL / SwiftShader",
+  "controlled_timeline_seconds": 17,
+  "samples": 171,
+  "hp_events": [
+    [
+      0.0,
+      10000
+    ],
+    [
+      12.3,
+      9936
+    ],
+    [
+      12.5,
+      9840
+    ]
+  ],
+  "contact": {
+    "x": 40.015790716669024,
+    "y": 2.024171800976927,
+    "z": 14.433313069422441,
+    "time": 12.25596199268968,
+    "actor": 2
+  },
+  "desktop_dodge": {
+    "x": 39.987522726094156,
+    "y": 0.15944076822694714,
+    "z": 13.657611116253063,
+    "time": 12.424305555555621
+  },
+  "wing": {
+    "asset": "AsasAnjo_leve.glb",
+    "lodReady": true,
+    "attached": true,
+    "visible": true,
+    "triangles": 26428,
+    "orb": [
+      40.24717856535828,
+      11.631401037976053,
+      20.232461761261522
+    ]
+  },
+  "palm_at_4_8s": [
+    40.24717856535828,
+    11.631401037976053,
+    20.232461761261522
+  ],
+  "restored_camera": true,
+  "restored_facing": true,
+  "profiles_before_impact": [
+    {
+      "mode": "low",
+      "calls": 84,
+      "tris": 318917,
+      "geos": 733,
+      "tex": 92,
+      "programs": 168,
+      "dim": 0,
+      "hemi": 1.383,
+      "sun": 1.287,
+      "gpuMs": null,
+      "ms": 19.340000000596046,
+      "barrier": 0.29999999701976776,
+      "heap": 177000000,
+      "timer": true
+    },
+    {
+      "mode": "medium",
+      "calls": 86,
+      "tris": 357143,
+      "geos": 734,
+      "tex": 93,
+      "programs": 218,
+      "dim": 0,
+      "hemi": 1.383,
+      "sun": 1.287,
+      "gpuMs": null,
+      "ms": 338,
+      "barrier": 0.10000000149011612,
+      "heap": 177000000,
+      "timer": true
+    }
+  ],
+  "profile_method": "Cinco frames de conjuração por perfil, SwiftShader, sem GPU física. gpuMs nulo significa que a consulta GPU não devolveu resultado válido."
+}
