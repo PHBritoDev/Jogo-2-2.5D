@@ -50,7 +50,7 @@ function mergeStatic(T, root, keep) {
 export function buildAbyssAxe(T, { quality = 1 } = {}) {
   const A = ABYSS_AXE, root = new T.Group(); root.name = 'VorgazhekMachado';
   const hex = hexTexture(T), seg = quality ? 1 : .6;
-  const metal = new T.MeshStandardMaterial({ color: 0x23252e, metalness: .88, roughness: .34, emissive: 0x1a2a8a, emissiveMap: hex, emissiveIntensity: .14 });
+  const metal = new T.MeshStandardMaterial({ color: 0x454a5c, metalness: .8, roughness: .3, emissive: 0x1a2a8a, emissiveMap: hex, emissiveIntensity: .22 }); // grafite claro o bastante para ler na Dimensão II escura
   const dark = new T.MeshStandardMaterial({ color: 0x0d0e15, metalness: .7, roughness: .5, emissive: 0x0a0c2a, emissiveIntensity: .4 });
   const recess = new T.MeshStandardMaterial({ color: 0x10123a, metalness: .5, roughness: .6, emissive: 0x2433b8, emissiveMap: hex, emissiveIntensity: .85 });
   const edgeM = new T.MeshBasicMaterial({ color: 0x8ff2ff, toneMapped: false });
@@ -78,8 +78,8 @@ export function buildAbyssAxe(T, { quality = 1 } = {}) {
   for (const z of [.032, -.032]) { add(new T.ShapeGeometry(bladeShape(T, inset(F, .5)), 8), recess, 0, 0, z); add(new T.ShapeGeometry(bladeShape(T, inset(Bk, .45)), 8), recess, 0, 0, z); }
   // gumes ciano-glaciais (faixas finas que avançam além do corpo)
   const fe = arcPts(.13, .62, .38, 1.2, -1.15, 16), be = arcPts(-.1, .63, .28, 1.95, 4.3, 12);
-  add(new T.ExtrudeGeometry(edgeBand(T, fe.map(p => [p[0] + .012, p[1]]), .035), { depth: .012, bevelEnabled: false }), edgeM, 0, 0, -.006).name = 'GumeFrontal';
-  add(new T.ExtrudeGeometry(edgeBand(T, be.map(p => [p[0] - .01, p[1]]), .03), { depth: .012, bevelEnabled: false }), edgeM, 0, 0, -.006).name = 'GumeTraseiro';
+  add(new T.ExtrudeGeometry(edgeBand(T, fe.map(p => [p[0] + .012, p[1]]), .045), { depth: .012, bevelEnabled: false }), edgeM, 0, 0, -.006).name = 'GumeFrontal';
+  add(new T.ExtrudeGeometry(edgeBand(T, be.map(p => [p[0] - .01, p[1]]), .04), { depth: .012, bevelEnabled: false }), edgeM, 0, 0, -.006).name = 'GumeTraseiro';
   // espinhos da lombada (massa e ameaça, sem cobrir o orbe)
   for (const [x, y, r] of [[.1, .9, -.5], [-.09, .88, .55]]) { const c = add(new T.ConeGeometry(.022, .12, 5), dark, x, y); c.rotation.z = r; }
   // ---- coroa: garras que seguram o orbe-núcleo + espinho superior ----
@@ -109,7 +109,7 @@ export function buildAbyssAxe(T, { quality = 1 } = {}) {
     updateFx(time, phase, low, visible) {
       shellM.uniforms.time.value = time; enM.uniforms.time.value = time; const c = charge;
       shellM.uniforms.k.value = .35 + c * .65 + (phase ? .1 : 0); shell.scale.setScalar(1 + c * (1.4 + .15 * Math.sin(time * 9)));
-      core.scale.setScalar(1 + c * .45); metal.emissiveIntensity = .14 + c * .8 + .04 * Math.sin(time * 2.3); recess.emissiveIntensity = .85 + c * 1.8;
+      core.scale.setScalar(1 + c * .45); metal.emissiveIntensity = .22 + c * .8 + .04 * Math.sin(time * 2.3); recess.emissiveIntensity = .85 + c * 1.8;
       energy.visible = visible && c > .02; enM.uniforms.k.value = c; energy.scale.set(1, 1, 1);
     },
     dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); for (const m of [metal, dark, recess, edgeM, coreM, shellM, enM]) m.dispose(); hex.dispose(); }

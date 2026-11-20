@@ -104,7 +104,14 @@ no início de cada janela de dano (mediana); erros grandes só aparecem quando o
 - Magias do chefe: 0 em todas as sessões. Erros de console: 0. Machado (`Nucleo`) presente e visível na cena em todas.
 - Render do duelo: 45–81 chamadas de desenho, 117–212 mil triângulos (arena inteira); o machado soma 7 chamadas.
 
-Vídeo do jogo real (arena original, sem iluminação extra): `docs/combate/evidencias/vorgazhek/vorgazhek-machado-duelo.mp4`.
+Vídeos do jogo real (31,5 s cada: herói parado → luta livre → herói mantendo distância e dando dash → morte):
+- arena original, sem luz extra: `docs/combate/evidencias/vorgazhek/vorgazhek-machado-duelo.mp4`;
+- mesma luta com o piso neutro de QA (`combatStudio`), 960×540: `docs/combate/evidencias/vorgazhek/vorgazhek-machado-estudio.mp4`.
+  Quadros recortados (machado erguido, chefe no ápice da Maré, gume ciano no corte): `machado-no-jogo-quadros.jpg`.
+
+**Smoke da Dimensão II**: desktop 1280×720 e celular (Pixel 7) carregam a luta com o kind `vorgazhek`, machado na cena e
+visível, 0 erros e sem “Failed to mount world 3D” (69 e 51 chamadas de desenho). `?bisposComPoderes=1` volta ao Bispo 2
+clássico (nenhum ator `vorgazhek` na esquadra).
 
 ## Testes
 `tests/vorgazhek-machado.test.mjs` (12 testes, no CI `combat315.yml`):
