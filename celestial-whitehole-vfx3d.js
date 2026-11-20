@@ -81,17 +81,11 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
  function setWings(obj){
   obj.traverse(m=>{if(m.isMesh)wingMesh=m;});if(!wingMesh)return;
   fullWing=wingMesh.geometry;
-  // Collapse only nearby vertices sharing UV coordinates, retaining the original atlas.
-  const pos=fullWing.attributes.position,uv=fullWing.attributes.uv,grid=new Map(),map=new Uint32Array(pos.count);
-  for(let i=0;i<pos.count;i++){
-   const key=[Math.round(pos.getX(i)*110),Math.round(pos.getY(i)*110),Math.round(pos.getZ(i)*100),Math.round(uv.getX(i)*95),Math.round(uv.getY(i)*95)].join('/');
-   if(!grid.has(key))grid.set(key,i);map[i]=grid.get(key);
-  }
-  const indices=[],src=fullWing.index.array;
-  for(let i=0;i<src.length;i+=3){const a=map[src[i]],b=map[src[i+1]],c=map[src[i+2]];if(a!==b&&b!==c&&a!==c)indices.push(a,b,c);}
-  lowWing=new T.BufferGeometry();for(const [name,attr] of Object.entries(fullWing.attributes))lowWing.setAttribute(name,attr);
-  lowWing.setIndex(indices);lowWing.computeVertexNormals();if(!fullWing.attributes.normal)fullWing.computeVertexNormals();
+  if(!fullWing.attributes.normal)fullWing.computeVertexNormals();
   wingMesh.material=wingMesh.material.clone();wingMesh.frustumCulled=false;
+  wingMesh.material.metalness=.12;wingMesh.material.roughness=.6;
+  wingMesh.material.emissive.setHex(0x9facae);wingMesh.material.emissiveIntensity=.30;
+  wingMesh.material.emissiveMap=wingMesh.material.map;
   wingMesh.material.onBeforeCompile=shader=>{
    shader.uniforms.hinge=hinge;shader.uniforms.sweep=sweep;
    shader.vertexShader='uniform float hinge,sweep;\n'+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
@@ -114,13 +108,18 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
    if(hero.back&&wings.parent!==hero.back){
     wings.removeFromParent();wings.position.copy(hero.pos);wings.rotation.set(0,hero.yaw,0);wings.scale.setScalar(1);wings.updateMatrixWorld(true);hero.back.attach(wings);
    }
-   if(wingMesh){wingMesh.geometry=low?lowWing:fullWing;hero.back?.getWorldScale(backScale);
+   if(wingMesh){wingMesh.geometry=low&&lowWing?lowWing:fullWing;hero.back?.getWorldScale(backScale);
     wings.scale.setScalar(4.3*(.28+.72*open)/Math.max(.001,backScale.x||1));hinge.value=(1-open)*1.15+flap*.75;sweep.value=t*4.65;}
    for(let i=0;i<(low?8:20);i++){const age=t-(.68+(i%2)*1.32+Math.floor(i/2)*.065);if(age<0||age>3)continue;const side=i%2?1:-1;
     feathers.add(hero.pos.x+side*Math.cos(hero.yaw)*(.6+age*.5),y+.4-age*.85+hash(i)*.45,hero.pos.z-side*Math.sin(hero.yaw)*(.6+age*.5)+Math.sin(age+i)*.23,.035,.24,1,.83,.55,(1-age/3)*.8,3,age+i,i);}
-   if(t<10)for(let j=0;j<(low?12:20);j++)for(let i=0;i<8;i++){
-    const strand=(k,out)=>{const u=k/8,a=t*3+j*2.4+u*2.6,r=.2+Math.sin(Math.PI*u)*.58+(1-u)*.4;out.set(hero.pos.x+r*Math.cos(a),y-1.3+2.8*u,hero.pos.z+r*Math.sin(a));};
-    strand(i,p);strand(i+1,q);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.028,.016,dim,[1,.96,.80,.88]);}
+   if(t<11)for(let j=0;j<(low?12:24);j++)for(let i=0;i<7;i++){
+    const strand=(k,out)=>{const u=k/7,side=j%2?1:-1,phase=j*.31+t*.85;
+     const span=side*(.18+u*u*(.52+hash(j)*1.15))+.07*Math.sin(phase+u*3.);
+     const depth=-.19-u*.14+.04*Math.cos(phase+u*5.);
+     out.set(hero.pos.x+Math.cos(hero.yaw)*span+Math.sin(hero.yaw)*depth,
+      y-1.05+u*(1.55+hash(j+5)*.95),hero.pos.z-Math.sin(hero.yaw)*span+Math.cos(hero.yaw)*depth);};
+    strand(i,p);strand(i+1,q);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.009,.012,dim,gold);}
+
   }
   const grow=smooth((t-5)/4.9),flight=Math.min(1,Math.max(0,(t-11)/2))**1.65;
   start.copy(s.release||hero?.hand||o);aim.set(g.x,g.y,g.z);
@@ -170,5 +169,5 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   }
   threads.end();marks.end(t);feathers.end();
  }
- return {root,update,setWings,audit(){return {asset:wings.userData.asset,attached:!!wings.parent?.isBone,visible:wings.visible,triangles:wingMesh?.geometry.index.count/3,orb:portal.position.toArray()};},clear(){root.visible=false;wings.visible=false;root.attach(wings);},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,stream,gas,lens,photon,horizon,...ruptures,debris,veil]){m.geometry.dispose();m.material.dispose();}lowWing?.dispose();wings.removeFromParent();wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
+ return {root,update,setWings,get ready(){return !!wingMesh;},setWingLOD(obj){obj.traverse(m=>{if(m.isMesh)lowWing=m.geometry;});},audit(){return {asset:wings.userData.asset,lodReady:!!lowWing,attached:!!wings.parent?.isBone,visible:wings.visible,triangles:wingMesh?.geometry.index.count/3,orb:portal.position.toArray()};},clear(){root.visible=false;wings.visible=false;root.attach(wings);},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,stream,gas,lens,photon,horizon,...ruptures,debris,veil]){m.geometry.dispose();m.material.dispose();}lowWing?.dispose();wings.removeFromParent();wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
 }

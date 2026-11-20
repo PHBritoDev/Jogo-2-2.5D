@@ -40,7 +40,7 @@ export class CelestialWhiteHole{
  update(dt,target,{paused=false,valid=true}={}){
   if(!this.active||paused)return;
   if(!valid||(this.time<11&&(!target?.alive||target.id!==this.id))){this.cancel();return;}
-  const end=Math.min(17,this.time+Math.max(0,dt));
+  const next=this.time+Math.max(0,dt),end=next>=17-1e-9?17:next;
   if(this.time<11)Object.assign(this.target,target);
   for(const [phase,at] of WHITE_PHASES){if(this.time<at&&end>=at&&phase!=='impact'&&phase!=='return'){this.phase=phase;this.event(phase);}}
   if(end>11){
