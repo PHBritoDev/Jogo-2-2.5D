@@ -1,0 +1,90 @@
+{
+  "quality": "medium",
+  "rounds": [
+    {
+      "id": "e1",
+      "weakDamage": 3,
+      "state": "active",
+      "vfx": {
+        "pool": 2,
+        "visible": 1,
+        "cells": 162,
+        "tris": 960
+      },
+      "geometry": 832,
+      "programs": 231,
+      "drawCalls": 116,
+      "heavy": {
+        "damage": 50,
+        "state": "cooldown"
+      },
+      "afterDeath": {
+        "hp": 500,
+        "enemies": 0,
+        "vfx": {
+          "pool": 1,
+          "visible": 0,
+          "cells": 162,
+          "tris": 960
+        }
+      }
+    },
+    {
+      "id": "e1",
+      "weakDamage": 3,
+      "state": "active",
+      "vfx": {
+        "pool": 2,
+        "visible": 1,
+        "cells": 162,
+        "tris": 960
+      },
+      "geometry": 833,
+      "programs": 255,
+      "drawCalls": 102,
+      "heavy": {
+        "damage": 50,
+        "state": "cooldown"
+      },
+      "afterDeath": {
+        "hp": 500,
+        "enemies": 0,
+        "vfx": {
+          "pool": 1,
+          "visible": 0,
+          "cells": 162,
+          "tris": 960
+        }
+      }
+    },
+    {
+      "id": "e1",
+      "weakDamage": 3,
+      "state": "active",
+      "vfx": {
+        "pool": 2,
+        "visible": 1,
+        "cells": 162,
+        "tris": 960
+      },
+      "geometry": 832,
+      "programs": 231,
+      "drawCalls": 117,
+      "heavy": {
+        "damage": 50,
+        "state": "cooldown"
+      },
+      "afterDeath": {
+        "hp": 500,
+        "enemies": 0,
+        "vfx": {
+          "pool": 1,
+          "visible": 0,
+          "cells": 162,
+          "tris": 960
+        }
+      }
+    }
+  ],
+  "errors": []
+}

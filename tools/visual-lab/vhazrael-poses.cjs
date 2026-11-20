@@ -10,6 +10,7 @@ const dir='docs/qa/vhazrael-duelo';
  await page.route('**/mundo-3d-prototype.js*',async route=>{
   const r=await route.fetch();
   await route.fulfill({response:r,body:await r.text()+`
+  window.duelActorId=()=>squadSq().actors.find(a=>a.kind==='vhazrael').id;
   window.duelFixture=(id,side,elevation)=>{
     const sq=squadSq(), a=sq.actors.find(v=>v.kind==='vhazrael'), b=squadRT.body(a.id),t=sq.targets.find(v=>v.id==='hero');
     if(id){
@@ -29,6 +30,12 @@ const dir='docs/qa/vhazrael-duelo';
  });
  await page.goto('http://localhost:4219/mundo-3d-prototype.html?testeDimensao=bishop1&debug3d=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>{const api=window.SevenSinsDebug3D;if(api?.dimState().vs)api.vsGo();return window.duelFixture && api?.dimState().battle?.active&&api.vzStats()?.alive},null,{timeout:180000});
+ const reach=await page.evaluate(()=>SevenSinsDebug3D.bossTraces(duelActorId()));
+ fs.writeFileSync(dir+'/alcance-frontal.json',JSON.stringify(reach,null,2));
+ for(const id of ['Trono_Estocada','Trono_Duplo']){
+   const move=reach.find(move=>move.id===id);
+   assert.ok(move.ranges[1]>0,id+' precisa cruzar a cápsula a 1,5 m à frente');
+ }
  const ids=['Trono_Duplo','Trono_Queda','Trono_Moinho','Trono_Riposta','Trono_Triplo','Trono_Danca','Trono_Estocada'],rows=[];
  for(const id of ids)for(const fps of [30,45,60])for(const side of [0,Math.PI/2,Math.PI]){
   const r=await page.evaluate(({id,fps,side})=>{

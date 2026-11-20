@@ -62,7 +62,7 @@ import {buildForestPlaces} from './eldoria-forest-places3d.js';
 import {buildFarRidges} from './eldoria-far-ridges3d.js';
 import { MASSACRE_SPOT, SEWER_DOOR, SEWER_TRAIL, JOURNEY_ENEMIES, CAGE_CLEARING, CAGE_TRAIL, PROLOGUE_MEADOW, FALL_SPOT, ROAD_JUNCTION, TEREN_ROAD, TEREN_ORIGIN, ORIGIN_LIMIT, nearestAlong as nearestAlongRoad, ROAD_TERRAIN_PATCH, BROKEN_WHEEL, TEREN_STOP, CART_ROUTE, ROAD_BANDITS, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, insideMeadow, ELDORIA_DROP } from './act1-world-layout.js';
 import {mountEldoriaLiveVillage} from './eldoria-live-village3d.js';
-import {VZ_FILE,VZ_ROLES,VZ_IN_PLACE,VZ_TIME} from './vhazrael-rig3d.js';
+import {VZ_FILE,VZ_ROLES,VZ_IN_PLACE,VZ_TIME,VZ_MOVES} from './vhazrael-rig3d.js';
 import {loadTorchSource,placeTorches} from './eldoria-torches3d.js';
 import {ELDORIA_PLOTS,ELDORIA_MARKET,ELDORIA_DRY_FOUNTAIN} from './eldoria-live-village3d.js';
 import {createVillageSolidQuery} from './eldoria-village-solids.js';
@@ -4463,11 +4463,14 @@ function vzAuditTick(dt){if(!vzA.on||!squadOn)return;vzA.t+=dt;for(const a of sq
  if(a.act&&a.act!==vzA._act[a.id]){vzA._act[a.id]=a.act;const k=a.act.type+(a.act.move?':'+a.act.move.id:a.act.skill?':'+a.act.skill:a.act.goal?':'+a.act.goal:'');vzA.acts[k]=(vzA.acts[k]||0)+1;if(k===vzA.lastAct&&a.act.type!=='stagger')vzA.repeats++;vzA.lastAct=k;
   vzA.idleRun=0;if(vzA.log.length<400)vzA.log.push([+vzA.t.toFixed(2),k,+d.toFixed(1)]);}
  if(!a.act){vzA.passive+=dt;vzA.idleRun=(vzA.idleRun||0)+dt;vzA.passiveMax=Math.max(vzA.passiveMax,vzA.idleRun);}}}
-function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzLink'){const k='combo:'+d.links;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
+function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
 function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;vzAuditEvent(type,d);
  switch(type){
   case 'windup':if(a?.kind==='vhazrael'){const m=a.act?.move,r=m?.rate||1;if(d.label)status.textContent=d.label;setTimeout(()=>worldAudio.bossSwing&&worldAudio.bossSwing(!!m?.heavy),Math.max(0,(d.at||0)/r*1000-60));} /* áudio: o "vush" da espada cai no corte, não no início do gesto */else if(d.label&&a?.T.boss){status.textContent=d.label;worldAudio.whoosh();}break;
+  case 'vzLink':
+   if(vzA.on && a?.kind==='vhazrael'){const k='combo:'+d.links;vzA.events[k]=(vzA.events[k]||0)+1;}
+   break;
   case 'leapStrike':
    if(a?.kind==='vhazrael' && d.mark && !userSettings.reduceShake){
     const distance=Math.hypot(player.position.x-d.mark.x,player.position.z-d.mark.z);
@@ -8467,7 +8470,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  enemyClipProbe(role,step=1/30){const r=enemy1Rig;if(!r)return null;const act=r.actions[role];if(!act)return null;const clip=act.getClip(),m=cloneSkinned(r.model),mx=new THREE.AnimationMixer(m),a=mx.clipAction(clip);a.play();const bones={};m.traverse(o=>{if(/^(RightHand|LeftHand|RightFoot|LeftFoot|Hips|RightMiddleDistal|LeftMiddleDistal)$/.test(o.name))bones[o.name]=o;});
   const out=[],prev={};for(let t=0;t<=clip.duration+1e-6;t+=step){mx.setTime(t);m.updateMatrixWorld(true);const row={t:+t.toFixed(3)};for(const [n,b] of Object.entries(bones)){const p=b.getWorldPosition(new THREE.Vector3());if(prev[n])row[n]=+(p.distanceTo(prev[n])/step).toFixed(2);prev[n]=p;if(n==='Hips')row.hy=+p.y.toFixed(2);}out.push(row);}return{name:clip.name,dur:clip.duration,out};},
  render(){renderer.render(scene,camera);return true;},
- bossTraces(){const a=squadFocus,b=a&&squadRT.body(a.id);if(!b)return null;return BOSS_MOVES[a.kind].map(m=>{const trace=b.acts[m.id]?.getClip().combatTrace;return{id:m.id,frames:trace?.frames.length,ranges:[1,1.5,2,2.5,3].map(z=>{let n=0;for(let t=0;t<m.duration;t+=1/120)if(m.hits.some(h=>Math.abs(t-h)<.1)&&bossTraceContact(trace,t,t+1/120,{x:0,y:bossLift(m,t),z:0,yaw:0},{x:0,y:0,z,radius:.42,height:1.8}))n++;return n;})};});},
+ bossTraces(id){const a=id?squadSq()?.actor(id):squadFocus,b=a&&squadRT.body(a.id);if(!b)return null;const moves=a.kind==='vhazrael'?VZ_MOVES:BOSS_MOVES[a.kind];return (moves||[]).map(m=>{const trace=b.acts[m.id]?.getClip().combatTrace;return{id:m.id,frames:trace?.frames.length,ranges:[1,1.5,2,2.5,3].map(z=>{let n=0;for(let t=0;t<m.duration;t+=1/120)if(m.hits.some(h=>Math.abs(t-h)<.1)&&bossTraceContact(trace,t,t+1/120,{x:0,y:bossLift(m,t),z:0,yaw:0},{x:0,y:0,z,radius:.42,height:1.8}))n++;return n;})};});},
  combatReport(){return{ready:player.userData.ready,training:swordTraining,bake:model?.userData.combatBake,clips:window.SwordRiteAnimationReport,draw:renderer.info.render,geometry:renderer.info.memory.geometries,programs:renderer.info.programs?.length,feet:model?model.userData.footBones?.map(b=>b.getWorldPosition(new THREE.Vector3()).y-player.position.y):[],boss:squadFocus?.act?.move?.id};},
  async combatBoss(kind){if(kind==='e2boss')await loadRig('enemy2');else loadEnemyModel();startEnemy1Lab(kind);return this.squadState();},
  bossPower(id){const s=squadSq(),a=squadFocus,t=s?.targets[0];if(a?.T[id]&&t){a.act=null;s.startCast(a,t,id);return true;}return false;},
