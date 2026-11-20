@@ -41,3 +41,10 @@ test('pausa na compressão conserva as duas janelas de dano separadas',()=>{
  assert.deepEqual(hits,['contact']);s.update(7,t,{paused:true});assert.deepEqual(hits,['contact']);
  s.update(.22,t);assert.deepEqual(hits,['contact','wave']);s.cancel();s.update(17,t);assert.equal(hits.length,2);
 });
+
+test('nova conjuração não herda a posição de soltura do ataque anterior',()=>{
+ const t=target(),s=new CelestialWhiteHole({palm:()=>({x:1,y:3,z:2})});
+ s.start(source,t);s.update(17,t);assert(s.release);
+ s.start({x:4,y:0,z:2},t);s.update(5,t);
+ assert.equal(s.release,null);assert.equal(s.shot,null);
+});

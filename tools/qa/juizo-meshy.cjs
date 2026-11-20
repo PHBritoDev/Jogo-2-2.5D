@@ -46,10 +46,12 @@ async function run() {
     const end=frames.at(-1);
     assert(!end.locked); assert.deepEqual(end.camera,frames[0].savedCamera);
     const dodge=await page.evaluate(()=>{
-      const d=SevenSinsDebug3D; d.skills(); d.cast('ultimate'); d.whiteFrame(11.03);
+      const d=SevenSinsDebug3D; d.skills(); d.cast('ultimate');
+      const charge=d.whiteFrame(5); d.whiteFrame(6.03);
       d.enemyAt(55,null,14); const impact=d.whiteFrame(4); const end=d.whiteFrame(2);
-      return {contact:impact.contact,hp:end.hp,locked:end.locked};
+      return {contact:impact.contact,hp:end.hp,locked:end.locked,hand:charge.hand,orb:charge.vfx.orb};
     });
+    assert.deepEqual(dodge.hand,dodge.orb);
     assert(dodge.contact && !dodge.contact.actor); assert.equal(dodge.hp,end.hp); assert(!dodge.locked);
     assert.deepEqual(errors,[]); fs.writeFileSync(path.join(out,'qa.json'),JSON.stringify({frames,dodge}));
   } finally { await browser.close(); }

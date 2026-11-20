@@ -32,7 +32,7 @@ export class CelestialWhiteHole{
  }
  start(source,target,multiplier=1){
   if(this.active||!target?.alive||Math.hypot(target.x-source.x,target.z-source.z)>WHITE_HOLE.range)return false;
-  Object.assign(this,{source:{...source},target:{...target},id:target.id,damage:Math.round(WHITE_HOLE.damage*multiplier),time:0,phase:'ascent',active:true,hitDone:false,shot:null,contact:null});
+  Object.assign(this,{source:{...source},target:{...target},id:target.id,damage:Math.round(WHITE_HOLE.damage*multiplier),time:0,phase:'ascent',active:true,hitDone:false,release:null,shot:null,contact:null});
   this.event('ascent');return true;
  }
  cancel(reason='cancel'){if(this.active){this.active=false;this.phase='idle';this.event(reason);}}
