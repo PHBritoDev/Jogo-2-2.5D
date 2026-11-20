@@ -6,7 +6,7 @@ export function masonry(T, group, seed, palette){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d'),im=ctx.createImageData(128,128);
  for(let y=0;y<128;y++)for(let x=0;x<128;x++){const t=(x+y*128)*4;
-  const grain=168+random()*37+15*Math.sin(y*.29+2*Math.sin(x*.17))+15*Math.sin(y*.7+x*.11);
+  const grain=187+random()*39+6*Math.sin(y*.29+2*Math.sin(x*.17))+4*Math.sin(y*.7+x*.11);
   im.data[t]=im.data[t+1]=im.data[t+2]=grain;im.data[t+3]=255;
  }ctx.putImageData(im,0,0);
  for(let i=0;i<90;i++){let x=random()*128,y=random()*128;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(random()-.4)*7;y+=random()*4;ctx.lineTo(x,y);}ctx.strokeStyle='rgba(20,15,23,.28)';ctx.stroke();}

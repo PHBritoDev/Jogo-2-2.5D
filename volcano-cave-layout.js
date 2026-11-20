@@ -34,8 +34,31 @@ export function supported(x,z){
   }if(inside)return true;
  }return false;
 }
-export const solids=[];
+// The ash basin remains walkable between the raised ceremonial paths.
+export const basin=[[-36,76],[8,80],[34,68],[41,44],[34,18],[15,5],[9,-6],[-19,-7],[-40,14],[-42,48]];
+export function inBasin(x,z){
+ let inside=false;for(let i=0,j=basin.length-1;i<basin.length;j=i++){
+  const [a,b]=basin[i],[c,d]=basin[j];if((b>z)!==(d>z)&&x<(c-a)*(z-b)/(d-b)+a)inside=!inside;
+ }return inside;
+}
+export function caveFloor(x,z){return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
+export const fixedRocks=[{x:15,z:20,base:-.2,r:2.4,h:3.3}];
+export const solids=[...fixedRocks];
 export function caveBlocked(x,z,doorOpen){return (!doorOpen&&x<-21.4&&Math.abs(z)<8.8)||solids.some(o=>Math.abs(z-o.z)<o.r&&Math.hypot(x-o.x,z-o.z)<o.r+.27);}
 export function caveWall(x,y,z){return y>94||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
 export const heatPools=[{x:3,z:110.3,r:1.15},{x:-2.9,z:114.2,r:.95},{x:1,z:26,r:1.65},{x:25.5,z:40,r:1.35}];
-export function caveHeat(x,z){return heatPools.some(o=>(x-o.x)**2+(z-o.z)**2<o.r**2)?1:0;}
+export const creek=[[-35,83,1.7],[-20,68,2],[-12,49,2.2],[9,33,1.7],[3,15,2.3],[-16,1,1.6]];
+export function caveHeat(x,z){
+ if(heatPools.some(o=>(x-o.x)**2+(z-o.z)**2<o.r**2))return 1;
+ if(z<=83&&z>=1&&!supported(x,z)&&inBasin(x,z)){
+  for(let i=1;i<creek.length;i++){const [ax,az,ar]=creek[i-1],[bx,bz,br]=creek[i];
+   if(z>az||z<bz)continue;const t=(az-z)/(az-bz);
+   return Math.abs(x-ax-(bx-ax)*t)<ar+(br-ar)*t?1:0;
+  }
+ }return 0;
+}
+export function nearestRest(x,z){
+ for(const name of ['overlook','falls','fork','grove','lab','lip','hall','gate']){
+  const [u,v]=nodes[name];if(Math.abs(x-u)<2&&Math.abs(z-v)<2)return nodes[name];
+ }return null;
+}

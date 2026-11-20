@@ -107,8 +107,7 @@ import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChall
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
-import { caveHeight, caveWall, supported } from './volcano-cave-layout.js';
-import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
+import { caveFloor, caveWall, supported, inBasin, nearestRest, VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
@@ -2326,6 +2325,7 @@ function playerBlockedAt(x,z){
  return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
 }
 function enemyBlockedAt(x,z){
+ if(inVolcano&&voidSpec.hazard?.(x-voidSpec.x,z-voidSpec.z))return true;
  if(blockedAt(x,z))return true;
  return Math.hypot(x-player.position.x,z-player.position.z)<.9;
 }
@@ -4152,6 +4152,7 @@ function updateJourney(dt,now){
  {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
  journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
+ if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
  if(voidMode)return;
  for(const c of JOURNEY_CHECKPOINTS)if(Math.hypot(P.x-c.x,P.z-c.z)<9&&grounded&&playerHP>0){if(!journeyFall.reached.has(c.id))journeyFall.reached.add(c.id);if(checkpointX!==c.x||checkpointZ!==c.z){checkpointX=c.x;checkpointZ=c.z;}}
@@ -5698,8 +5699,8 @@ function clearVolcanoVictims(){for(const c of volcanoVictims.splice(0))disposeCl
 function enterVolcano(at){
  inVolcano=true;volcanoArena=getDimArena('vulcao');enterDimensionArena('vulcao');
  voidSpec.walk=(lx,lz)=>volcanoWalkable(lx,lz,{doorOpen:questStep>ACT2.volcano||act1Sub>=2});
- voidSpec.floor=(x,z)=>caveHeight(z);voidSpec.ceil=()=>94;voidSpec.solid=true;voidSpec.camSolid=caveWall;
- voidSpec.hazard=(x,z)=>!supported(x,z);ascFallFrom=null;
+ voidSpec.floor=caveFloor;voidSpec.ceil=()=>94;voidSpec.solid=true;voidSpec.camSolid=caveWall;
+ voidSpec.hazard=(x,z)=>!supported(x,z)&&!inBasin(x,z);ascFallFrom=null;
  const c=volcanoLocal(at||volcanoCheckpoint(questStep>ACT2.volcano?4:act1Sub));player.position.set(c.x,terrainHeightAt(c.x,c.z),c.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;
  checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x,player.position.y+3,c.z+6);
  const r=volcanoArena.refs;
@@ -5713,7 +5714,7 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){ascFallFrom=null;clearVolcanoVictims();
+function leaveVolcano(to){lavaBurn.until=lavaBurn.next=lavaBurn.contactNext=0;lavaBurn.onLava=false;ascFallFrom=null;clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const p=to||DISTRICT_SPOTS.volcanoExit;player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);playerYaw=Math.atan2(p.x-DISTRICT_SPOTS.volcanoGate.x,p.z-DISTRICT_SPOTS.volcanoGate.z);player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;checkpointX=p.x;checkpointZ=p.z;setGameHour(16); /* Mod 327: sai pela boca da caverna, de costas para ela */
 }

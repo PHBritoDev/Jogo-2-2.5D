@@ -1,4 +1,5 @@
-import { supported, caveBlocked } from './volcano-cave-layout.js';
+export { caveFloor, caveWall, supported, inBasin, nearestRest } from './volcano-cave-layout.js';
+import { supported, inBasin, caveBlocked } from './volcano-cave-layout.js';
 /**
  * MOD 205 — Marco 3: o interior do "vulcão falso" do Ato II (roteiro: caveiras e ossos pelo chão, o laboratório com
  * mortos e acorrentados, a porta escondida da sala do ouro, a galeria dos cinco Enemy2 e a sala secreta com o trono,
@@ -39,7 +40,7 @@ export const VOLCANO = {
 
 /** Suporte e obstáculos locais do Ato II, incluindo a porta da chave. */
 export function volcanoWalkable(x,z,opts={}) {
-  return supported(x,z) && !caveBlocked(x,z,opts.doorOpen);
+  return (supported(x,z)||inBasin(x,z)) && !caveBlocked(x,z,opts.doorOpen);
 }
 
 /** Ponto de volta conforme a sub-etapa dentro do vulcão. */
