@@ -77,6 +77,29 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
  const ruptures=Array.from({length:3},(_,i)=>{
   const m=new T.Mesh(arcGeometry(T,1,.032+i*.01,1,i+1),line([0xffc36a,0xff7230,0xc05438][i],1));root.add(m);return m;
  });
+ // Polar ejecta twist around the pinch point. The bright spine and cooler
+ // filaments share an open 3D surface, so the silhouette changes with the shot.
+ const jetSurface=new T.CylinderGeometry(1,1,1,32,18,true);
+ const pole=new T.Mesh(jetSurface,new T.ShaderMaterial({
+  uniforms:{age:{value:0}},transparent:true,depthWrite:false,side:T.DoubleSide,
+  blending:T.AdditiveBlending,toneMapped:false,
+  vertexShader:`varying vec2 v;uniform float age;void main(){
+   v=uv;float h=uv.y,a=atan(position.z,position.x);
+   float width=.20+.62*pow(h,2.)+.76*exp(-15.*h);
+   width*=1.+.18*sin(a*5.+h*21.-age*7.);
+   vec3 p=vec3(position.x*width,h,position.z*width);
+   p.x+=h*h*.28*sin(h*8.-age*4.);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+  fragmentShader:`varying vec2 v;uniform float age;void main(){
+   float a=v.x*6.2831853,h=v.y;
+   float twist=a*5.-h*24.+age*7.+1.1*sin(a*3.+h*14.-age*4.);
+   float core=pow(.5+.5*cos(twist),4.);
+   float fine=pow(.5+.5*cos(twist*3.+h*12.),8.);
+   vec3 color=mix(vec3(.95,.10,.03),vec3(1.,.82,.52),core);
+   color=mix(color,vec3(.80,.86,1.),fine*.85);
+   float fade=(1.-smoothstep(.48,1.,h))*(1.-smoothstep(.48,1.48,age));
+   gl_FragColor=vec4(color,fade*(.36+core*.6+fine*.3));}`}));
+ pole.frustumCulled=false;root.add(pole);
+ const shockDisc=new T.Mesh(gas.geometry,gas.material.clone());root.add(shockDisc);
  const debris=new T.InstancedMesh(new T.TetrahedronGeometry(.11),new T.MeshStandardMaterial({color:0x59414a,roughness:.85}),36);debris.frustumCulled=false;root.add(debris);
  const pose=new T.Object3D(),start=new T.Vector3(),aim=new T.Vector3(),p=new T.Vector3(),q=new T.Vector3(),rot=new T.Quaternion(),roll=new T.Quaternion(),axis=new T.Vector3(0,0,1);
  const normal=[0,1,0],ember=[1,.17,.025,.8],gold=[1,.78,.33,.9],dim=[.65,.82,1,.55],clear=[1,.06,.015,0];
@@ -145,11 +168,22 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   veil.material.uniforms.opening.value.copy(portal.position).sub(camera.position).normalize();
   const age=s.contact?t-s.contact.time-.20:-1,gy=ground(g.x,g.z),n=groundNormal(ground,g.x,g.z,normal),R=WHITE_HOLE.radius;
   if(t>=10&&age<0)marks.add(g.x,gy,g.z,R/.86,1,.31,.08,.3+.14*Math.sin(t*6),0,.2,8,n);
+  pole.visible=age>=0&&age<1.48;
+  shockDisc.visible=pole.visible;
+  if(pole.visible){
+   const bloom=easeOut(Math.min(1,(age+.025)/.46)),fade=1-smooth((age-.65)/.83);
+   pole.position.copy(aim);pole.scale.set(1.75*bloom*fade,12*bloom,1.75*bloom*fade);
+   pole.material.uniforms.age.value=age;
+   shockDisc.position.copy(aim);shockDisc.position.y+=.22;
+   shockDisc.rotation.set(-1.28,.16,age*.74);
+   shockDisc.scale.setScalar((.18+1.7*bloom)*Math.max(.015,fade));
+   shockDisc.material.uniforms.time.value=18+age*4.;
+  }
   for(let j=0;j<ruptures.length;j++){
    const band=ruptures[j],k=(age-j*.09)/1.5;band.visible=k>=0&&k<1;
    if(band.visible){const r=.12+(8+j*2)*easeOut(k);band.position.copy(aim);band.position.y+=k*k*(3+j);
     band.rotation.set(-1.13+j*.5,.32*j,.5*j+k*.65);band.scale.set(r*(1+.45*k),r*(1-.45*k),r);
-    band.material.opacity=(1-k)**1.2;}
+    band.material.opacity=.53*(1-k)**1.4;}
   }
   jets.count=age>=0&&age<.95?(low?22:44):0;
   if(jets.count){
@@ -184,5 +218,5 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
   }
   threads.end();marks.end(t);feathers.end();
  }
- return {root,update,setWings,get ready(){return !!wingMesh;},setWingLOD(obj){obj.traverse(m=>{if(m.isMesh)lowWing=m.geometry;});},audit(){return {asset:wings.userData.asset,lodReady:!!lowWing,attached:!!wings.parent?.isBone,visible:wings.visible,triangles:wingMesh?.geometry.index.count/3,orb:portal.position.toArray()};},clear(){root.visible=false;wings.visible=false;root.attach(wings);},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,stream,gas,lens,photon,horizon,...ruptures,debris,veil]){m.geometry.dispose();m.material.dispose();}lowWing?.dispose();wings.removeFromParent();wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
+ return {root,update,setWings,get ready(){return !!wingMesh;},setWingLOD(obj){obj.traverse(m=>{if(m.isMesh)lowWing=m.geometry;});},audit(){return {asset:wings.userData.asset,lodReady:!!lowWing,attached:!!wings.parent?.isBone,visible:wings.visible,triangles:wingMesh?.geometry.index.count/3,orb:portal.position.toArray()};},clear(){root.visible=false;wings.visible=false;root.attach(wings);},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,pole,stream,gas,lens,photon,horizon,...ruptures,debris,veil]){m.geometry.dispose();m.material.dispose();}shockDisc.material.dispose();lowWing?.dispose();wings.removeFromParent();wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
 }

@@ -2082,7 +2082,9 @@ function tickWhiteHole(dt){if(!whiteLease.locked)return;try{whiteLease.run(()=>{
  const close=step(t,2,3.6)*(1-step(t,9.5,11)),flight=step(t,11,12.55),wide=step(t,8.4,11);
  whiteLook.copy(whiteHero.pos);whiteLook.y+=.24;whiteLook.lerp(whiteHero.hand,.55*close);
  if(whiteHole.shot)whiteLook.lerp(whitePoint.set(whiteHole.shot.x,whiteHole.shot.y+.4,whiteHole.shot.z),flight);
- const range=(5.5-3.35*close+3*wide+4*flight)*(camera.aspect<1?1.35:1);
+ const blast=whiteHole.contact?step(t-whiteHole.contact.time,0,.55)*(1-land):0;
+ whiteLook.y+=2.55*blast;
+ const range=(5.5-3.35*close+3*wide+4*flight+5*blast)*(camera.aspect<1?1.35:1);
  whiteDest.copy(whiteLook);whiteDest.x+=range*(-fz*.53+fx*.86);whiteDest.z+=range*(fx*.53+fz*.86);whiteDest.y+=.32+1.1*(1-close)+3.7*flight;
  whiteDest.y=Math.min(whiteDest.y,ceil-.55);whiteDest.y=Math.max(groundHeightAt(whiteDest.x,whiteDest.z)+.6,whiteDest.y);
  // Sweep the cinematic sightline before placing the camera on the far side of scenery.
