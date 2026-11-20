@@ -142,3 +142,28 @@ test('integração: runtime usa a empunhadura/traço do machado, mesma URL do m�
   assert.ok(/BISHOP_DUEL_ONLY/.test(fs.readFileSync(new URL('../combat-melee-test-mode.js', import.meta.url), 'utf8')));
   assert.deepEqual(VORG.boss.kit, [], 'sem magia no treino dos Bispos');
 });
+
+test('alinhamento REAL: traço do machado no clipe do GLB + motor + mira acertam o herói parado em 1,5/2,5/3,5 m, de frente, de lado e de costas, a 30 e 60 FPS', { skip: !THREE && 'three.js indisponível' }, async () => {
+  const dir = (process.env.COMBAT_THREE_DIR || process.env.AERIAL_THREE_DIR || new URL('../node_modules/three', import.meta.url).pathname).replace(/\/$/, '');
+  const { GLTFLoader } = await import(dir + '/examples/jsm/loaders/GLTFLoader.js'), SK = await import(dir + '/examples/jsm/utils/SkeletonUtils.js');
+  const { vgSynthClips, vgMoveClips, vgGrip, VG_ROLES } = await import('../vorgazhek3d.js'), { bossTraceContact } = await import('../boss-choreography3d.js');
+  const { inPlaceClip } = await import('../vhazrael-rig3d.js'), { buildAbyssAxe } = await import('../vorgazhek-axe3d.js');
+  // GLB real sem as texturas JPEG (Node não decodifica imagem; geometria, skin e clipes ficam intactos)
+  const b = fs.readFileSync(new URL('../NewBispo2_Otimizado.glb', import.meta.url)), len = b.readUInt32LE(12), j = JSON.parse(b.slice(20, 20 + len).toString());
+  delete j.images; delete j.textures; delete j.samplers; for (const m of j.materials || []) { if (m.pbrMetallicRoughness) { delete m.pbrMetallicRoughness.baseColorTexture; delete m.pbrMetallicRoughness.metallicRoughnessTexture; } delete m.normalTexture; delete m.emissiveTexture; delete m.occlusionTexture; }
+  let js = Buffer.from(JSON.stringify(j)); js = Buffer.concat([js, Buffer.alloc((4 - js.length % 4) % 4, 0x20)]); const bin = b.slice(20 + len), out = Buffer.alloc(20 + js.length + bin.length);
+  out.writeUInt32LE(0x46546C67, 0); out.writeUInt32LE(2, 4); out.writeUInt32LE(out.length, 8); out.writeUInt32LE(js.length, 12); out.writeUInt32LE(0x4E4F534A, 16); js.copy(out, 20); bin.copy(out, 20 + js.length);
+  const g = await new Promise((res, rej) => new GLTFLoader().parse(out.buffer.slice(out.byteOffset, out.byteOffset + out.length), '', res, rej));
+  const clips = g.animations.concat(vgSynthClips(THREE, g.animations)), model = g.scene;
+  { const m0 = new THREE.AnimationMixer(model); m0.clipAction(clips.find(c => c.name === 'VG_idle')).play(); m0.setTime(0); model.updateMatrixWorld(true); let hy, fy; model.traverse(o => { if (o.name === 'head_end') hy = o.getWorldPosition(new THREE.Vector3()).y; if (o.name === 'LeftToes') fy = o.getWorldPosition(new THREE.Vector3()).y; }); const s = 2.1 / (hy - fy); model.scale.setScalar(s); model.position.y = -fy * s; m0.stopAllAction(); }
+  const role = r => { const c = clips.find(x => x.name === VG_ROLES[r]); return c ? inPlaceClip(c, { vertical: r === 'dash' }) : null; };
+  const cc = vgMoveClips(THREE, model, m => SK.clone(m), role, BOSS_MOVES.vorgazhek, vgGrip(THREE), buildAbyssAxe(THREE).userData.edges);
+  assert.ok(BOSS_MOVES.vorgazhek.every(m => m.aimAz && m.aimAz.length === m.hits.length), 'azimute medido por janela');
+  let hit = 0, n = 0; const miss = [];
+  for (const fps of [30, 60]) for (const dist of [1.5, 2.5, 3.5]) for (const ang of [0, 90, 180]) for (const m of BOSS_MOVES.vorgazhek) { if (m.range || m.retreatCut) continue;
+    const ev = [], sq = new Enemy1Squad({ seed: 5, damageTarget: () => 'hit', event: (t, d) => ev.push({ t, ...d }), meleeTrace: (a, act, t, lo, hi) => bossTraceContact(cc[act.move.id]?.combatTrace, lo, hi, a, t) });
+    const a = sq.spawn([{ x: 0, z: 0, yaw: 0, kind: 'vorgazhek' }])[0]; a.alert = 0; a.vzPhase = 3; a.T = { ...a.T, brain: () => {} }; const r = ang * Math.PI / 180, h = hero({ x: Math.sin(r) * dist, z: Math.cos(r) * dist }); sq.setTargets([h]);
+    sq.startMelee(a, h, m.id); for (let i = 0; a.act && a.act.move && i < fps * 5; i++) { sq.update(1 / fps); h.x = Math.sin(r) * dist; h.z = Math.cos(r) * dist; }
+    const k = ev.filter(e => e.t === 'meleeHit').length; hit += k; n += m.hits.length; if (k < m.hits.length) miss.push(`${m.id}@${dist}m/${ang}°/${fps}`); }
+  assert.ok(hit / n >= .85, `acertos ${hit}/${n}: ${miss.slice(0, 8).join(' ')}`);
+});
