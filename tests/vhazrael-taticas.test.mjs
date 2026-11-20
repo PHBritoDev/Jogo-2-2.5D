@@ -113,3 +113,29 @@ test('a estocada não vira instantaneamente para acertar quem ficou atrás',()=>
  sq.startMelee(a,h,'Trono_Estocada');assert.equal(a.yaw,yaw);
  sq.stepAction(a,1/60,h);assert.ok(Math.cos(a.yaw-yaw)>.9);
 });
+
+test('o elo de espada começa na recuperação, termina na terceira ação e preserva punição', () => {
+  const {sq, log} = world(), a = boss(sq, 1.7), h = hero();
+  sq.setTargets([h]);
+  sq.startMelee(a, h);
+  const first = a.act;
+  first.t = first.move.close;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act, first);
+  first.t = first.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act.links, 2);
+  a.act.t = a.act.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  const last = a.act;
+  assert.equal(last.links, 3);
+  last.t = last.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act, last);
+  assert.deepEqual(log.filter(e => e.type === 'vzLink').map(e => e.links), [2,3]);
+  sq.startMelee(a,h,'Trono_Queda');
+  const heavy = a.act;
+  heavy.t = heavy.move.close + .14;
+  a.T.brain(sq,a,1/120,h);
+  assert.equal(a.act,heavy);
+});

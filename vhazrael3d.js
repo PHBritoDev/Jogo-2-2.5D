@@ -57,9 +57,8 @@ export const VZ_HP = 2600, VZ_PHASES = [.7, .4, .15];
 /** Mod 320: o golpe do herói pesa 1,6× no VHAZRAEL — vida 4× maior sem virar desgaste (tempo de luta ≈ 2,5× o antigo, com herói 5× mais resistente). */
 export const VZ_HERO_DMG = 1.6;
 export const vzPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > VZ_PHASES[0] ? 0 : k > VZ_PHASES[1] ? 1 : k > VZ_PHASES[2] ? 2 : 3; };
-/** Duplo salto REAL (motor da esquadra: 2 impulsos, dash aéreo travado no alvo, corte descendente no pouso). */
+/** Salto ofensivo com destino anunciado, breve suspensão e impacto único no pouso. */
 export const VZ_LEAP = Object.freeze({ min: 3.4, max: 9, crouch: .46, height: 5.4, rise: .76, hover: .18, fall: .38, maxAir: 1.32, strike: { r: 2.1, dmg: 16, arc: -.3 }, recover: .55, cd: 7.5, role: 'jump', from: 1.45, speed: 1.2 });
-/** Dash: recarga de 0,5 s, mas com orçamento (no máximo 3 em 2,5 s) e compromisso — nunca vira teleporte em série. */
 // The announced destination is a safe point on the launch corridor. Stop short
 // of the player's capsule; dodging after the announcement never moves the seal.
 function judgment(sq, a, act, target, dt) {
@@ -99,6 +98,7 @@ function judgment(sq, a, act, target, dt) {
     sq.event('meleeHit',{actor:a,target:t.id,result,n:1,move:'salto'});
   }
 }
+/** Até três dashes na janela, incluindo o flanco que encerra a sequência. */
 export const VZ_DASH = Object.freeze({ speed: 13, time: .24, cd: .5, budget: 3, window: 2.5, lockout: 1.3 });
 /** Proporção de decisões ofensivas: a magia é pontuação de ritmo (alvo 25–40 % das últimas 12 decisões). */
 export const VZ_MIX = Object.freeze({ window: 12, maxSpell: .34, minSpellGap: 6 });

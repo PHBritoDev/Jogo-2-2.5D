@@ -72,7 +72,7 @@ export function calibrateGrip(T, model, clone, idleClip) {
 }
 
 /**
- * Clipes dos golpes nativos + traço da lâmina amostrado do MESMO clipe (30 Hz), no espaço do ator (origem no chão,
+ * Clipes dos golpes nativos + traço da lâmina amostrado do MESMO clipe (120 Hz, calculado uma vez por modelo), no espaço do ator (origem no chão,
  * frente +Z), no formato que bossTraceContact já consome. clipFor(role) → AnimationClip in-place.
  */
 export function nativeMoveClips(T, model, clone, clipFor, moves, grip, blade = [[0, .15, 0], [0, 1.55, 0]]) {
@@ -81,7 +81,7 @@ export function nativeMoveClips(T, model, clone, clipFor, moves, grip, blade = [
   const out = {}, p = new T.Vector3(), q = new T.Quaternion();
   for (const m of moves) {
     const src = clipFor(m.clip); if (!src || !hand) continue;
-    const clip = src.clone(); clip.name = m.id; const frames = [], N = Math.ceil(m.duration * 30);
+    const clip = src.clone(); clip.name = m.id; const frames = [], N = Math.ceil(m.duration * 120);
     mixer.stopAllAction(); const a = mixer.clipAction(clip); a.play();
     for (let i = 0; i <= N; i++) {
       mixer.setTime(Math.min(m.duration * i / N, clip.duration - 1e-3)); rig.updateMatrixWorld(true);

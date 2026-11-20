@@ -4468,6 +4468,12 @@ function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;vzAuditEvent(type,d);
  switch(type){
   case 'windup':if(a?.kind==='vhazrael'){const m=a.act?.move,r=m?.rate||1;if(d.label)status.textContent=d.label;setTimeout(()=>worldAudio.bossSwing&&worldAudio.bossSwing(!!m?.heavy),Math.max(0,(d.at||0)/r*1000-60));} /* áudio: o "vush" da espada cai no corte, não no início do gesto */else if(d.label&&a?.T.boss){status.textContent=d.label;worldAudio.whoosh();}break;
+  case 'leapStrike':
+   if(a?.kind==='vhazrael' && d.mark && !userSettings.reduceShake){
+    const distance=Math.hypot(player.position.x-d.mark.x,player.position.z-d.mark.z);
+    if(distance<8)cameraShake(.09*(1-distance/8));
+   }
+   break;
   case 'meleeHit':if(d.result==='hit'){if(a?.kind==='vhazrael'&&worldAudio.bossHit)worldAudio.bossHit();else worldAudio.hit();if(d.target==='hero')hitStop(a?.kind==='e2boss'?45:25);}break;
   case 'cast':if(worldAudio.abyss3&&/^(nadir|barrage|singularity|sanctum|constellation|drill|cage)$/.test(d.skill))worldAudio.abyss3(d.skill==='singularity'||d.skill==='constellation'?'gravity':d.skill==='nadir'||d.skill==='sanctum'?'storm':'tear',squadGain(a.x,a.z));else worldAudio.dark&&worldAudio.dark(d.skill);if(a.T.boss||squadAlive().length<=2||d.skill==='judgment'||d.skill==='vortex'||d.skill==='nadir'||d.skill==='cage')showCombatCallout(SQUAD_NAMES[d.skill]);break;
   case 'thornWave':squadSfx('warn',0,0,150);break;

@@ -39,7 +39,7 @@ const dir='docs/qa/vhazrael-duelo';
    const photo=fps===45?document.querySelector('#scene').toDataURL('image/jpeg',.8).split(',')[1]:null;
    return {sample,photo};
   },{id,fps,side});
-  assert.ok(!r.sample.missing,id);if(r.photo)fs.writeFileSync(dir+'/'+id+'-'+Math.round(side*180/Math.PI)+'.jpg',Buffer.from(r.photo,'base64'));
+  assert.ok(!r.sample.missing,id);assert.ok(Math.max(...r.sample.error)<.05,id+" pose divergiu do rastro");if(r.photo)fs.writeFileSync(dir+'/'+id+'-'+Math.round(side*180/Math.PI)+'.jpg',Buffer.from(r.photo,'base64'));
   rows.push({id,fps,side,...r.sample});
  }
  fs.writeFileSync(dir+'/poses.json',JSON.stringify(rows));
