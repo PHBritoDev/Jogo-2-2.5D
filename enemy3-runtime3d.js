@@ -1,5 +1,6 @@
 import { buildAbyssAxe } from './vorgazhek-axe3d.js?v=mod331';
 import { buildExecutionerScythe } from './zarkhael-scythe3d.js?v=mod332';
+import { buildRosarySword, buildAbyssJawSword } from './veraxion-swords3d.js?v=mod333';
 import { buildCrimsonKatana } from './crimson-katana3d.js';
 import { buildJawSword } from './jaw-sword3d.js';
 import { buildThroneBlade } from './vhazrael-vfx3d.js';
@@ -33,9 +34,10 @@ export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
 /** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
 export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', vg = kind === 'vorgazhek', zk = kind === 'zarkhael', w = zk ? buildExecutionerScythe(T) : vg ? buildAbyssAxe(T) : vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz || vg || zk ? 1 : jaw ? JAW_SCALE : KATANA_SCALE);
+  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', vg = kind === 'vorgazhek', zk = kind === 'zarkhael', vx = kind === 'veraxion', w = vx ? buildRosarySword(T) : zk ? buildExecutionerScythe(T) : vg ? buildAbyssAxe(T) : vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz || vg || zk || vx ? 1 : jaw ? JAW_SCALE : KATANA_SCALE);
   scene.add(root); if (w.userData.fx && !w.userData.fx.parent) scene.add(w.userData.fx); // fix 20/11: o comentário da missão 19/11 engolia estas chamadas (arma de TODOS os chefes com katana ficava fora da cena)
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
+  if (vx) { const w2 = buildAbyssJawSword(T), r2 = new T.Group(); r2.add(w2); scene.add(r2); b.weapon2 = w2; b.weaponRoot2 = r2; } // missão 20/11: segunda espada (mão esquerda)
 }
 /** Katana na mão: nos golpes nativos segue o osso (o assador alinhou +Y da mão com a lâmina); fora deles, guarda
     média apontando à frente/baixo e, ao conjurar, abaixada ao lado do corpo (troca espada ↔ magia). */
@@ -45,6 +47,7 @@ export function poseKatana(T, b, a, dt, time, low) {
   h.updateWorldMatrix(true, false); h.getWorldPosition(root.position);
   if (a.kind === 'vorgazhek') return poseAxe(T, b, a, dt, time, low, V);
   if (a.kind === 'zarkhael') return poseExecScythe(T, b, a, dt, time, low, V);
+  if (a.kind === 'veraxion') return poseDualSwords(T, b, a, dt, time, low, V);
   const thr = a.alive && a.kind === 'vhazrael' && a.act && a.act.skill === 'throne' && a.act.type === 'cast' ? a.act : null;
   if (thr) { // Ruptura: lâmina orientada pela coreografia (gume no plano do golpe), presa à mão; cruza com a guarda ao terminar
     const P = thronePose(thr.t), fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, e = smooth((thr.dur - thr.t) / .35);
@@ -77,6 +80,22 @@ function poseAxe(T, b, a, dt, time, low, V) {
   if (ax.y < floor) { const want = Math.asin(Math.max(-1, Math.min(1, floor / L))), cur = Math.asin(Math.max(-1, Math.min(1, ax.y / L))); V.d.set(-ax.z, 0, ax.x); if (V.d.lengthSq() < 1e-4) V.d.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); /* haste na vertical: gira pelo eixo lateral do corpo */ { V.q.setFromAxisAngle(V.d.normalize(), want - cur); root.quaternion.premultiply(V.q); } b.vgClear = (b.vgClear || 0) + 1; }
   const g = a.alive && a.act ? a.act.glow || 0 : 0; b.vgCharge = (b.vgCharge || 0) + (g - (b.vgCharge || 0)) * Math.min(1, dt * (g > (b.vgCharge || 0) ? 9 : 5)); w.userData.charge(b.vgCharge);
   root.visible = b.holder.visible; w.userData.updateFx(time, a.phase2 ? 1 : 0, low, root.visible);
+}
+/** Missão 20/11 — Duas espadas do VÉRAXION: A (Rosário Carmesim) no osso RightHand, B (Abismo Voraz) no LeftHand, mesma
+    empunhadura medida (lâmina em +Z do punho). Ponta acima do piso; brilho das duas segue act.glow. No Arremesso Voraz a B
+    SAI da mão: a raiz dela vai para a posição lógica da espada voadora (a.vxThrown), girando no próprio eixo; volta à mão
+    quando o ato termina (nunca duas cópias). */
+function clearFloor(T, V, root, a, L) { const ax = V.h.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .08 - root.position.y;
+  if (ax.y < floor) { const want = Math.asin(Math.max(-1, Math.min(1, floor / L))), cur = Math.asin(Math.max(-1, Math.min(1, ax.y / L))); V.d.set(-ax.z, 0, ax.x); if (V.d.lengthSq() < 1e-4) V.d.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); V.q.setFromAxisAngle(V.d.normalize(), want - cur); root.quaternion.premultiply(V.q); } }
+function poseDualSwords(T, b, a, dt, time, low, V) {
+  if (!V.q) { V.q = new T.Quaternion(); V.h = new T.Vector3(); }
+  const g = a.alive && a.act ? a.act.glow || 0 : 0; b.vxCharge = (b.vxCharge || 0) + (g - (b.vxCharge || 0)) * Math.min(1, dt * 8);
+  const R = b.weaponRoot; b.hand.getWorldQuaternion(R.quaternion); if (b.grip) R.quaternion.multiply(b.grip); clearFloor(T, V, R, a, 1.2);
+  b.weapon.userData.charge(b.vxCharge); R.visible = b.holder.visible; b.weapon.userData.updateFx(time, a.phase2 ? 1 : 0, low, R.visible);
+  const L = b.weaponRoot2, s = a.vxThrown; if (!L) return;
+  if (s && s.alive) { L.position.set(s.x, s.y, s.z); V.d.set(s.dx, 0, s.dz); V.q.setFromAxisAngle(V.h.set(0, 1, 0), Math.atan2(s.dx, s.dz)); L.quaternion.setFromAxisAngle(V.h.set(1, 0, 0), Math.PI / 2).premultiply(V.q); L.rotateOnAxis(V.h.set(0, 0, 1), s.spin || 0); b.vxThrowVis = true; }
+  else if (b.lhand) { b.lhand.updateWorldMatrix(true, false); b.lhand.getWorldPosition(L.position); b.lhand.getWorldQuaternion(L.quaternion); if (b.grip) L.quaternion.multiply(b.grip); clearFloor(T, V, L, a, 1.1); b.vxThrowVis = false; }
+  b.weapon2.userData.charge(b.vxCharge); L.visible = b.holder.visible && !(a.act && a.act.type === 'vxThrow' && a.act.phase === 'beat'); b.weapon2.userData.updateFx(time, a.phase2 ? 1 : 0, low, L.visible);
 }
 /** Missão 20/11 — Foice do Carrasco do ZAR'KHAEL: presa ao osso RightHand com a empunhadura medida; quando o clipe junta as
     duas mãos (< 0,36 m), a haste é girada para passar pela mão ESQUERDA (empunhadura a duas mãos real, sem IK no esqueleto);

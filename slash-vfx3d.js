@@ -22,6 +22,8 @@ const STYLES = {
   vhazrael: { core: 0xfff3dc, body: 0xd8142e, rim: 0x5c0b86, accent: 0xffc46a, dark: 0x2a0208, blend: 'normal', rakes: 1, width: 1.15, ext: .8, inner: .12, life: .4, sparks: 0xff5a4a, spark2: 0x8a1cff, star: 0xffe2c8 },
   /* missão 19/11: VORGAZHEK — crescente FINA de núcleo branco-gelo, corpo índigo-violeta e borda ciano glacial (lê sobre a água escura da Dimensão II) */
   vorgazhek: { core: 0xeefcff, body: 0x3a2aa8, rim: 0x5fe8ff, accent: 0xb68cff, dark: 0x05040f, blend: 'add', rakes: 1, width: .8, ext: .95, inner: .12, life: .3, sparks: 0x9ff4ff, spark2: 0x7a5cff, star: 0xe8fbff },
+  veraxionA: { core: 0xfff4f0, body: 0xe0204a, rim: 0xffc86a, accent: 0xff8ab4, dark: 0x200208, blend: 'add', rakes: 1, width: .85, ext: .9, inner: .12, life: .3, sparks: 0xffe0a0, spark2: 0xff4f7a, star: 0xfff2f6 }, // missão 20/11: Rosário Carmesim (rubi/dourado)
+  veraxionB: { core: 0xe8d0ff, body: 0x5a12a8, rim: 0x14041e, accent: 0xb44dff, dark: 0x050008, blend: 'normal', rakes: 3, width: .9, ext: .95, inner: .1, life: .28, sparks: 0xb44dff, spark2: 0x1a0626, star: 0xe0c0ff }, // Abismo Voraz (violeta/negro, rasgos)
   zarkhael: { core: 0xffe1fb, body: 0x7a16e8, rim: 0xff4a1e, accent: 0xff4fb4, dark: 0x0c0210, blend: 'add', rakes: 1, width: 1.05, ext: 1, inner: .12, life: .34, sparks: 0xff6a3a, spark2: 0xb44dff, star: 0xffd6f6 }, // missão 20/11: foice do Carrasco (violeta com borda rubra)
   demon: { core: 0xf3d9ff, body: 0x8b2cff, rim: 0x4a0f8f, accent: 0x1a0626, dark: 0x07010d, blend: 'add', rakes: 3, width: .55, ext: .9, inner: .1, life: .22, sparks: 0xc57cff, spark2: 0x2b0a40, star: 0xe7c2ff },
 };

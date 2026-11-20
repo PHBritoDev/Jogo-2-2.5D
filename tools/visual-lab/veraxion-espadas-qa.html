@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VÉRAXION — QA das duas espadas</title>
+<style>html,body{margin:0;background:#141118;color:#eee;font:12px system-ui}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head><body><div id="info">…</div>
+<script type="module">
+/* Missão 20/11 — prova isolada das espadas (frente, perfil, ¾) sob luz neutra, sem o rig. */
+import * as THREE from 'three';
+import { buildRosarySword, buildAbyssJawSword } from '../../veraxion-swords3d.js';
+const W = 1200, H = 700, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setScissorTest(true); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a2630); scene.add(new THREE.HemisphereLight(0xffffff, 0x404050, 1.6)); const sun = new THREE.DirectionalLight(0xffffff, 2); sun.position.set(2, 3, 4); scene.add(sun);
+const a = buildRosarySword(THREE), b = buildAbyssJawSword(THREE); a.position.x = -.45; b.position.x = .45; scene.add(a, b);
+let draws = 0; for (const s of [a, b]) s.traverse(o => { if (o.isMesh) draws++; });
+for (const s of [a, b]) s.userData.updateFx(1.2, 0, false, true);
+const cam = new THREE.PerspectiveCamera(32, (W / 3) / H, .05, 50);
+[[0, 0], [Math.PI / 2, 0], [-.6, .25]].forEach(([yaw, pitch], i) => { cam.position.set(Math.sin(yaw) * 3.2, .55 + pitch * 3, Math.cos(yaw) * 3.2); cam.lookAt(0, .5, 0); const x = i * W / 3; r.setViewport(x, 0, W / 3, H); r.setScissor(x, 0, W / 3, H); r.render(scene, cam); });
+document.getElementById('info').textContent = 'A Rosário Carmesim (esq.) · B Abismo Voraz (dir.) | malhas: ' + draws; window.__done = true;
+</script></body></html>
