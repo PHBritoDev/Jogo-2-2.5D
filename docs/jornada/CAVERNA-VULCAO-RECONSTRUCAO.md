@@ -17,3 +17,5 @@ A caverna anterior tem piso plano na rota, patamar no lago e corredor central es
 ## Propriedade
 
 Os módulos de cenário e colisão do vulcão pertencem a esta missão. O construtor de arenas e o controlador do mundo são compartilhados. Mudanças nesses arquivos exigem comparação com a base antes da integração. IA, rigs, ataques, dimensões dos Bispos e a missão do Claude ficam sob seus responsáveis.
+
+Amostragem de partida em Chromium/WebGL com SwiftShader, viewport de 800 × 450 e 12 intervalos de animação por vista. Entrada com 95 chamadas e 96.809 triângulos; patamar com 122 e 382.498; cela com 76 e 356.938; trono com 106 e 361.666. A câmera de QA posicionou o personagem em cada amostra. Os scripts narrativos reassumiram a câmera na cela e no trono. [Capturas da versão publicada](evidencias-vulcao/antes.jpg)

@@ -107,6 +107,7 @@ import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChall
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
+import { caveHeight, caveWall, supported } from './volcano-cave-layout.js';
 import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
@@ -2289,7 +2290,7 @@ function blockedAt(x,z,skipRocks=false){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
-  if(ascKey&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
+  if((ascKey||inVolcano)&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
@@ -2526,9 +2527,9 @@ updateRiteLocomotion(dt);
 heroShadows?.update(dt);
 // Caiu na borda? Conservar a queda ate morrer/respawn. Sem permitir que o
 // piso ficticio da ilha/escada volte a "teletransportar" o heroi para cima.
-const ascVoidEdge=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+const ascVoidEdge=!!((ascKey||inVolcano)&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
 if(ascVoidEdge&&ascFallFrom===null)ascFallFrom=player.position.y;
-const ascVoidFall=!!(ascKey&&ascFallFrom!==null);
+const ascVoidFall=!!((ascKey||inVolcano)&&ascFallFrom!==null);
 let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
 if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
@@ -5697,8 +5698,10 @@ function clearVolcanoVictims(){for(const c of volcanoVictims.splice(0))disposeCl
 function enterVolcano(at){
  inVolcano=true;volcanoArena=getDimArena('vulcao');enterDimensionArena('vulcao');
  voidSpec.walk=(lx,lz)=>volcanoWalkable(lx,lz,{doorOpen:questStep>ACT2.volcano||act1Sub>=2});
- const c=volcanoLocal(at||volcanoCheckpoint(questStep>ACT2.volcano?4:act1Sub));player.position.set(c.x,voidSpec.y,c.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;
- checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x,voidSpec.y+3,c.z+6);
+ voidSpec.floor=(x,z)=>caveHeight(z);voidSpec.ceil=()=>94;voidSpec.solid=true;voidSpec.camSolid=caveWall;
+ voidSpec.hazard=(x,z)=>!supported(x,z);ascFallFrom=null;
+ const c=volcanoLocal(at||volcanoCheckpoint(questStep>ACT2.volcano?4:act1Sub));player.position.set(c.x,terrainHeightAt(c.x,c.z),c.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;
+ checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x,player.position.y+3,c.z+6);
  const r=volcanoArena.refs;
  if(r.door){const open=questStep>ACT2.volcano||act1Sub>=2;r.door.position.y=open?-4.4:0;}
  if(r.bodies)r.bodies.visible=!(questStep>ACT2.volcano||act1Sub>=1);
@@ -5710,7 +5713,7 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){clearVolcanoVictims();
+function leaveVolcano(to){ascFallFrom=null;clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const p=to||DISTRICT_SPOTS.volcanoExit;player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);playerYaw=Math.atan2(p.x-DISTRICT_SPOTS.volcanoGate.x,p.z-DISTRICT_SPOTS.volcanoGate.z);player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;checkpointX=p.x;checkpointZ=p.z;setGameHour(16); /* Mod 327: sai pela boca da caverna, de costas para ela */
 }

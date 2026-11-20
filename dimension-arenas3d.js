@@ -12,7 +12,7 @@ import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=296';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
-import { VOLCANO } from './volcano3d.js';
+import { buildVolcanoCave } from './volcano-cave-scene.js';
 import { createLava } from './fluidos3d.js';
 import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
 import { TOWER_HALL } from './tower3d.js';
@@ -341,152 +341,7 @@ const THEMES = {
   },
   // MOD 205 — Interior do vulcão falso (Ato II; layout em volcano3d.js): rocha basáltica com veios incandescentes,
   // caveiras e ossos, o laboratório, a porta medonha, a sala do ouro, a galeria e a sala secreta do trono.
-  volcano(THREE, g, spec, ctx) {
-    const V = VOLCANO, r = rng(505), refs = ctx.refs;
-    const rockTex = canvasTex(THREE, 256, 256, (c, w, h) => {
-      c.fillStyle = '#1c1714'; c.fillRect(0, 0, w, h); const rr = rng(13);
-      for (let i = 0; i < 90; i++) { const v = 28 + rr() * 26 | 0; c.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v - 7) + ')'; c.beginPath(); c.ellipse(rr() * w, rr() * h, 10 + rr() * 30, 6 + rr() * 18, rr() * 3, 0, 6.3); c.fill(); }
-    });
-    rockTex.wrapS = rockTex.wrapT = THREE.RepeatWrapping;
-    const veinTex = canvasTex(THREE, 256, 256, (c, w, h) => {
-      c.fillStyle = '#000'; c.fillRect(0, 0, w, h); const rr = rng(29); c.lineCap = 'round';
-      for (let i = 0; i < 14; i++) { let x = rr() * w, y = rr() * h; c.strokeStyle = 'rgba(255,' + (70 + rr() * 60 | 0) + ',20,' + (.5 + rr() * .5) + ')'; c.lineWidth = 1 + rr() * 2.5; c.beginPath(); c.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (rr() - .5) * 60; y += (rr() - .5) * 60; c.lineTo(x, y); } c.stroke(); }
-    });
-    veinTex.wrapS = veinTex.wrapT = THREE.RepeatWrapping;
-    const wallMat = new THREE.MeshStandardMaterial({ map: rockTex, emissiveMap: veinTex, emissive: 0xff4a10, emissiveIntensity: .9, roughness: .95, side: THREE.BackSide });
-    const floorMat = new THREE.MeshStandardMaterial({ map: rockTex, emissiveMap: veinTex, emissive: 0xff5a18, emissiveIntensity: .7, roughness: .8 });
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xd9cfb8, roughness: .7 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x2a2420, metalness: .65, roughness: .45 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd8a032, metalness: .9, roughness: .3, emissive: 0x5a3008, emissiveIntensity: .7 });
-    const clothMat = new THREE.MeshStandardMaterial({ color: 0x6a5e4c, roughness: .95 });
-    const tex = (m, rx, ry) => { const c = m.clone(); c.map = m.map.clone(); c.map.repeat.set(rx, ry); c.map.needsUpdate = true; if (m.emissiveMap) { c.emissiveMap = m.emissiveMap.clone(); c.emissiveMap.repeat.set(rx, ry); c.emissiveMap.needsUpdate = true; } return c; };
-    function corridor(seg, R, h) {
-      const len = Math.hypot(seg.to.x - seg.from.x, seg.to.z - seg.from.z), grp = new THREE.Group();
-      grp.position.set((seg.from.x + seg.to.x) / 2, 0, (seg.from.z + seg.to.z) / 2); grp.rotation.y = Math.atan2(seg.to.x - seg.from.x, seg.to.z - seg.from.z); g.add(grp);
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(R * 2, len), tex(floorMat, R * .5, len / 5)); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; grp.add(floor);
-      const vg = new THREE.CylinderGeometry(R, R, len, 16, 1, true, Math.PI / 2, Math.PI); vg.rotateX(Math.PI / 2); vg.scale(1, h / R, 1);
-      grp.add(new THREE.Mesh(vg, tex(wallMat, len / 4, 2)));
-    }
-    function room(c, h, gaps) {
-      const R = c.r + .4;
-      const floor = new THREE.Mesh(new THREE.CircleGeometry(R, 40), tex(floorMat, c.r / 3, c.r / 3)); floor.rotation.x = -Math.PI / 2; floor.position.set(c.x, 0, c.z); floor.receiveShadow = true; g.add(floor);
-      const wm = tex(wallMat, c.r * 1.1, h / 3), cuts = gaps.map(a => ({ a, w: Math.asin(Math.min(.95, 3.3 / R)) })).sort((p, q) => p.a - q.a);
-      for (let i = 0; i < cuts.length; i++) {
-        const a0 = cuts[i].a + cuts[i].w, a1 = i + 1 < cuts.length ? cuts[i + 1].a - cuts[i + 1].w : cuts[0].a - cuts[0].w + Math.PI * 2;
-        const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 1.08, h, 36, 1, true, a0, a1 - a0), wm); wall.position.set(c.x, h / 2, c.z); g.add(wall);
-      }
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), wm); dome.scale.y = .5; dome.position.set(c.x, h, c.z); g.add(dome);
-    }
-    for (const seg of [{ from: V.tunnel.from, to: { x: 0, z: V.cells.z + V.cells.r - .4 } }, { from: { x: 0, z: V.cells.z - V.cells.r + .4 }, to: V.tunnel.to }]) corridor(seg, V.tunnel.r + .6, 5);
-    corridor(V.goldPath, V.goldPath.r + .6, 4); corridor(V.deepPath, V.deepPath.r + .6, 4.6); corridor(V.thronePath, V.thronePath.r + .6, 5);
-    room(V.lab, 5.4, [0, -Math.PI / 2, Math.PI]); room(V.cells, 4.8, [0, Math.PI]); room(V.gold, 4.6, [Math.PI / 2]);
-    // MOD 217 — cela das correntes: grilhões vazios nas paredes, jaulas abertas, roupas largadas, marcas de arrasto e
-    // manchas escuras no chão (sinais sombrios, sem nada explícito) antes do laboratório.
-    { const C = V.cells, cl = [], cages = [], rags = [], stains = [];
-      for (let k = 0; k < 8; k++) { const a = .5 + k * .72 + (k > 3 ? .9 : 0), x = C.x + Math.sin(a) * (C.r - .2), z = C.z + Math.cos(a) * (C.r - .2); for (let j = 0; j < 8; j++) cl.push({ x, y: 2.6 - j * .2, z, s: .09, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); cl.push({ x: x - Math.sin(a) * .2, y: 1.05, z: z - Math.cos(a) * .2, s: .2, rx: Math.PI / 2, ry: a }); }
-      g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, cl));
-      for (const [x, z] of [[-4.6, 47], [4.8, 53]]) for (let b = 0; b < 10; b++) { const a = b / 10 * Math.PI * 2; if (b === 2 || b === 3) continue; cages.push({ x: x + Math.sin(a) * .9, y: 1.1, z: z + Math.cos(a) * .9, sx: .06, sy: 2.2, sz: .06 }); }
-      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, cages));
-      for (let i = 0; i < 6; i++) rags.push({ x: (r() - .5) * 9, y: .03, z: C.z + (r() - .5) * 9, sx: .7 + r() * .5, sy: .04, sz: .5 + r() * .3, ry: r() * 6 });
-      g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, rags));
-      const stainMat = new THREE.MeshBasicMaterial({ color: 0x2a0806, transparent: true, opacity: .55, depthWrite: false });
-      for (let i = 0; i < 7; i++) stains.push({ x: (r() - .5) * 2.4, y: .02, z: C.z - 3 - i * 4.6, sx: .5 + r() * .6, sy: 1, sz: 1.4 + r() * 1.6, ry: (r() - .5) * .4 });
-      g.add(instanced(THREE, new THREE.CircleGeometry(.5, 10).rotateX(-Math.PI / 2), stainMat, stains)); } room(V.hall, 6, [0, Math.PI]); room(V.throne, 9, [0]);
-    // MOD 326-B — chegada pelo pé do cone e SALÃO DE MAGMA. Rocha orgânica (anéis deslocados por ruído, nada de cilindro
-    // liso), túnel que faz curva e se fecha, depois a abóbada enorme sobre um lago de lava em cota baixa, cortado por uma
-    // calçada de basalto com patamar no meio; colunas hexagonais nascem da lava; dois respiradouros de lava no patamar
-    // queimam quem pisar (mesmo sistema de fluxo/dano da jornada). Layout e colisão: volcano3d.js (approach, magma).
-    { const M = V.magma, nz = (a, b, c) => Math.sin(a * 1.7 + b * 2.3 + c) * .5 + Math.sin(a * 3.1 - b * 1.3 + c * 2) * .3 + Math.sin(a * 5.3 + b * 4.1 - c) * .2;
-      const lavaT = { value: 0 }; ctx.tick.push(t => { lavaT.value = t; });
-      // basalto: veios incandescentes FINOS e fracos (a luz forte vem da lava, de baixo), não o rabisco vermelho das salas antigas
-      const basalt = (m, rx, ry, k = .2) => { const c = tex(m, rx, ry); c.emissiveIntensity = k; c.color = new THREE.Color(0xa09088); return c; };
-      // túnel de chegada: anéis irregulares ao longo do caminho (teto baixando e alargando perto do salão)
-      const path = []; for (const sg of V.approach) { const L = Math.hypot(sg.to.x - sg.from.x, sg.to.z - sg.from.z), n = Math.ceil(L / 1.4); for (let i = path.length ? 1 : 0; i <= n; i++) { const u = i / n; path.push({ x: sg.from.x + (sg.to.x - sg.from.x) * u, z: sg.from.z + (sg.to.z - sg.from.z) * u, r: sg.r }); } }
-      { const RS = 18, pos = [], uv = [], idx = [], fpos = [], fuv = [], fidx = [];
-        for (let i = 0; i < path.length; i++) { const P = path[i], Q = path[Math.min(path.length - 1, i + 1)], O = path[Math.max(0, i - 1)], tx = Q.x - O.x, tz = Q.z - O.z, tl = Math.hypot(tx, tz) || 1, sx = -tz / tl, sz = tx / tl, k = i / (path.length - 1), R = P.r + 1 + 1.6 * k * k, H = 4.4 + 3.5 * k * k;
-          for (let j = 0; j <= RS; j++) { const a = -.12 + j / RS * (Math.PI + .24), w = 1 + .22 * nz(i * .35, j * .6, 1.3), c = Math.cos(a) * R * w, y = Math.max(-.6, Math.sin(a) * H * w); pos.push(P.x + sx * c, y, P.z + sz * c); uv.push(j / RS * 4, i * .35); }
-          for (const sd of [-1, 1]) { fpos.push(P.x + sx * sd * (R + .4), .01, P.z + sz * sd * (R + .4)); fuv.push(sd * R * .4, i * .5); } }
-        for (let i = 0; i < path.length - 1; i++) { for (let j = 0; j < RS; j++) { const a = i * (RS + 1) + j, b = a + RS + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } const f = i * 2; fidx.push(f, f + 1, f + 2, f + 1, f + 3, f + 2); } // chão com a face para cima (revisão #595)
-        const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); tg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); tg.setIndex(idx); tg.computeVertexNormals();
-        const tw = basalt(wallMat, 3, 3, .22); tw.side = THREE.DoubleSide; const tm = new THREE.Mesh(tg, tw); tm.name = 'vulcao-tunel-chegada'; g.add(tm);
-        const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fpos, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(fuv, 2)); fg.setIndex(fidx); fg.computeVertexNormals();
-        const fl = new THREE.Mesh(fg, basalt(floorMat, 1, 1, .12)); fl.receiveShadow = true; fl.name = 'vulcao-chao-chegada'; g.add(fl); }
-      for (const k of [.35, .75]) { const P = path[Math.round(k * (path.length - 1))], l = new THREE.PointLight(0xff6a2a, 1.6, 15, 1.7); l.position.set(P.x + 1.5, 1.2, P.z); l.name = 'vulcao-luz-tunel'; g.add(l); } // brasa nas frestas do túnel: o calor cresce até o salão
-      // abóbada do salão: esfera deslocada por ruído, com os dois vãos da calçada recortados
-      { const sg = new THREE.SphereGeometry(1, 56, 28), p = sg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), d = 1 + .13 * nz(x * 2.2, z * 2.2, y * 3) + .05 * nz(x * 7, z * 7, y * 9); p.setXYZ(i, M.x + x * M.r * d, 2 + y * 12 * (y > 0 ? 1 : 1.1) * d, M.z + z * M.r * d); }
-        const ix = sg.index.array, keep = []; for (let t = 0; t < ix.length; t += 3) { let cx = 0, cy = 0, cz = 0; for (let q = 0; q < 3; q++) { cx += p.getX(ix[t + q]) / 3; cy += p.getY(ix[t + q]) / 3; cz += p.getZ(ix[t + q]) / 3; } if (Math.abs(cx - M.x) < 4.2 && cy < 6.2 && (Math.abs(cz - (M.z + M.r)) < 5 || Math.abs(cz - (M.z - M.r)) < 5)) continue; keep.push(ix[t], ix[t + 1], ix[t + 2]); }
-        sg.setIndex(keep); sg.computeVertexNormals(); const dm = new THREE.Mesh(sg, basalt(wallMat, 22, 11, .16)); dm.name = 'vulcao-salao-magma'; g.add(dm); }
-      // calçada e patamar de basalto (topo y = 0), lados descendo até a lava
-      { const bm = basalt(floorMat, 1, 9, .1), cw = M.causeway, L = cw.from.z - cw.to.z, box = new THREE.BoxGeometry(cw.r * 2 + .3, 3.4, L, 6, 2, 40), bp = box.attributes.position;
-        for (let i = 0; i < bp.count; i++) { const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i); if (Math.abs(x) > cw.r) bp.setX(i, x + Math.sign(x) * (.35 * nz(z * .4, y, 2) + (y < 0 ? .6 : 0))); }
-        box.computeVertexNormals(); const cm = new THREE.Mesh(box, bm); cm.position.set(cw.to.x, -1.7, (cw.from.z + cw.to.z) / 2); cm.name = 'vulcao-calcada'; g.add(cm);
-        const lg = new THREE.CylinderGeometry(M.landing.r, M.landing.r + 1.2, 3.4, 18, 2), lp = lg.attributes.position; for (let i = 0; i < lp.count; i++) { const x = lp.getX(i), z = lp.getZ(i), a = Math.atan2(z, x), k = 1 + .08 * nz(a * 3, 0, 4); lp.setX(i, x * k); lp.setZ(i, z * k); } lg.computeVertexNormals();
-        const lm = new THREE.Mesh(lg, basalt(floorMat, 3, 3, .1)); lm.position.set(M.landing.x, -1.7, M.landing.z); lm.name = 'vulcao-patamar'; g.add(lm); }
-      // colunas de basalto nascendo da lava (fora da calçada)
-      { const cols = []; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283 + r() * .3, d = 12 + r() * (M.r - 15), x = M.x + Math.cos(a) * d, z = M.z + Math.sin(a) * d; if (Math.abs(x - M.x) < 8) continue; const k = .7 + r() * .6; cols.push({ x, y: 2, z, sx: k, sy: 1, sz: k, ry: r() * 6 }); }
-        const cg = new THREE.CylinderGeometry(1, 1.15, 24, 6, 6), cp = cg.attributes.position; for (let i = 0; i < cp.count; i++) { const y = cp.getY(i), k = 1 + .12 * Math.sin(y * .9 + cp.getX(i) * 2); cp.setX(i, cp.getX(i) * k); cp.setZ(i, cp.getZ(i) * k); } cg.computeVertexNormals();
-        const ci = instanced(THREE, cg, basalt(floorMat, 1, 5, .14), cols); ci.name = 'vulcao-colunas-basalto'; g.add(ci); }
-      // lago de lava (cota baixa) e respiradouros no patamar: o MESMO fluido da jornada (crosta que corre, borda que esfria)
-      const lake = createLava(THREE, { height: () => M.lava, time: lavaT, pools: [{ x: M.x, z: M.z, r: M.r * .8, seed: 3.3, light: false }] }); lake.group.name = 'vulcao-lago-magma'; g.add(lake.group);
-      const vents = createLava(THREE, { height: () => .02, time: lavaT, pools: M.vents.map(v => ({ ...v, light: false })) }); vents.group.name = 'vulcao-respiradouros'; g.add(vents.group);
-      refs.lavaHeat = (x, z) => vents.heatAt(x, z);
-      for (const [x, z] of [[M.x - 9, M.z - 6], [M.x + 9, M.z + 7]]) { const l = new THREE.PointLight(0xff5a1c, 3.2, 28, 1.6); l.position.set(x, -.5, z); l.name = 'vulcao-luz-magma'; g.add(l); }
-    }
-    // Caveiras e ossos pelo chão do túnel e das salas.
-    const skulls = [], bones = [];
-    for (let i = 0; i < 46; i++) {
-      const inT = i < 26, z = inT ? V.tunnel.to.z + r() * (V.tunnel.from.z - V.tunnel.to.z) : V.hall.z + (r() - .5) * 18, x = inT ? (r() - .5) * 4.6 : (r() - .5) * 18;
-      if (i % 2) skulls.push({ x, y: .14, z, s: .16 + r() * .05, ry: r() * 6 }); else bones.push({ x, y: .05, z, rz: Math.PI / 2, ry: r() * 6, s: .8 + r() * .5 });
-    }
-    g.add(instanced(THREE, new THREE.SphereGeometry(1, 9, 7), boneMat, skulls)); g.add(instanced(THREE, new THREE.CylinderGeometry(.04, .05, .7, 6), boneMat, bones));
-    // Laboratório: mesas com corpos sob panos, correntes nas paredes, roda e lâminas (sem sangue explícito).
-    const L = V.lab, tables = [], shrouds = [], links = [];
-    for (let i = 0; i < 5; i++) { const a = -2.4 + i * 1.2, x = L.x + Math.sin(a) * 6.6, z = L.z + Math.cos(a) * 6.6; tables.push({ x, y: .45, z, sx: 2.1, sy: .14, sz: .9, ry: a }); shrouds.push({ x, y: .66, z, sx: 1.7, sy: .28, sz: .55, ry: a }); }
-    const bodies = new THREE.Group(); g.add(bodies); refs.bodies = bodies;
-    g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), ironMat, tables)); bodies.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), clothMat, shrouds));
-    for (let k = 0; k < 6; k++) { const a = .6 + k * .9, x = L.x + Math.sin(a) * (L.r + .1), z = L.z + Math.cos(a) * (L.r + .1); for (let j = 0; j < 10; j++) links.push({ x, y: 3.8 - j * .2, z, s: .1, rx: j % 2 ? Math.PI / 2 : 0, ry: a }); }
-    g.add(instanced(THREE, new THREE.TorusGeometry(1, .3, 5, 10), ironMat, links));
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(1.1, .1, 6, 20), ironMat); wheel.position.set(L.x - 6, 1.4, L.z - 6); wheel.rotation.y = .7; g.add(wheel);
-    // Círculo mágico da purificação (o jogo acende e gira).
-    const circleTex = canvasTex(THREE, 512, 512, (c, w, h) => { c.strokeStyle = '#ffe6a0'; c.lineWidth = 8; c.beginPath(); c.arc(256, 256, 230, 0, 6.3); c.stroke(); c.lineWidth = 4; c.beginPath(); c.arc(256, 256, 180, 0, 6.3); c.stroke(); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283, b = (i + 3) / 7 * 6.283; c.beginPath(); c.moveTo(256 + Math.cos(a) * 180, 256 + Math.sin(a) * 180); c.lineTo(256 + Math.cos(b) * 180, 256 + Math.sin(b) * 180); c.stroke(); } c.font = 'bold 34px serif'; c.fillStyle = '#ffe6a0'; for (let i = 0; i < 12; i++) { c.save(); c.translate(256, 256); c.rotate(i / 12 * 6.283); c.fillText('✝', -10, -196); c.restore(); } });
-    const circle = new THREE.Mesh(new THREE.CircleGeometry(4.4, 48), new THREE.MeshBasicMaterial({ map: circleTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-    circle.rotation.x = -Math.PI / 2; circle.position.set(V.circle.x, .04, V.circle.z); g.add(circle); refs.circle = circle;
-    // A porta medonha: ferro com espinhos e uma caveira; o jogo a abre com a chave.
-    const door = new THREE.Group(); door.position.set(V.door.x, 0, V.door.z); door.rotation.y = Math.PI / 2; g.add(door);
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(4.4, 4.2, .35), ironMat); slab.position.y = 2.1; door.add(slab);
-    const spikes = []; for (let i = 0; i < 18; i++) spikes.push({ x: -1.9 + (i % 6) * .76, y: .7 + Math.floor(i / 6) * 1.3, z: .3, rx: Math.PI / 2, s: .5 });
-    door.add(instanced(THREE, new THREE.ConeGeometry(.12, .5, 6), ironMat, spikes));
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), boneMat); skull.position.set(0, 3.1, .3); door.add(skull);
-    for (const ex of [-.15, .15]) { const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 5), new THREE.MeshBasicMaterial({ color: 0xff3010 })); e.position.set(ex, 3.15, .68); door.add(e); }
-    refs.door = door;
-    // Sala do ouro: montes de moedas, barras e baús.
-    const G = V.gold, coins = [], bars = [];
-    for (let i = 0; i < 160; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * (G.r - 1.2), hgt = Math.max(0, 1.2 - d * .2) * r(); coins.push({ x: G.x + Math.cos(a) * d, y: .04 + hgt, z: G.z + Math.sin(a) * d, s: .2 + r() * .1, rx: r() * .6, ry: r() * 6 }); }
-    for (let i = 0; i < 24; i++) bars.push({ x: G.x - 2 + (i % 6) * .45, y: .12 + Math.floor(i / 6) * .14, z: G.z + 2.6, sx: .4, sy: .12, sz: .2 });
-    g.add(instanced(THREE, new THREE.CylinderGeometry(1, 1, .15, 10), goldMat, coins)); g.add(instanced(THREE, new THREE.BoxGeometry(1, 1, 1), goldMat, bars));
-    const goldLight = new THREE.Mesh(new THREE.SphereGeometry(.01), new THREE.MeshBasicMaterial()); goldLight.position.set(G.x, 1, G.z); g.add(goldLight); refs.goldSpot = { x: G.x, z: G.z };
-    // Galeria e sala do trono: colunas, braseiros, trono enorme e dois pedestais para as estátuas.
-    const pillars = []; for (const c of [V.hall, V.throne]) for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + .2; pillars.push({ x: c.x + Math.cos(a) * (c.r - 1.6), y: 3, z: c.z + Math.sin(a) * (c.r - 1.6), sx: 1, sy: 1, sz: 1 }); }
-    g.add(instanced(THREE, new THREE.CylinderGeometry(.6, .8, 6, 10), tex(floorMat, 1, 2), pillars));
-    const fireMat = new THREE.MeshBasicMaterial({ color: 0xff7a20, toneMapped: false }), braziers = [];
-    for (const c of [V.hall, V.throne]) for (let i = 0; i < 4; i++) { const a = i / 4 * 6.28 + .8; braziers.push({ x: c.x + Math.cos(a) * (c.r - 3), y: 1.3, z: c.z + Math.sin(a) * (c.r - 3), s: .3 }); }
-    g.add(instanced(THREE, new THREE.SphereGeometry(1, 8, 6), fireMat, braziers));
-    const T = V.throne, S = V.seat, stoneD = new THREE.MeshStandardMaterial({ color: 0x241c1a, roughness: .7, emissive: 0x200604, emissiveIntensity: .6 });
-    const tg = new THREE.Group(); tg.position.set(S.x, 0, S.z); g.add(tg);
-    for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(9 - i * 2, .5, 4 - i * .8), stoneD); st.position.set(0, .25 + i * .5, i * -.3); tg.add(st); }
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 2.4), stoneD); seat.position.set(0, 2.3, -.4); tg.add(seat);
-    const back = new THREE.Mesh(new THREE.BoxGeometry(3.4, 7, .7), stoneD); back.position.set(0, 5.5, -1.4); tg.add(back);
-    for (const sx of [-1, 1]) { const horn = new THREE.Mesh(new THREE.ConeGeometry(.45, 3, 8), goldMat); horn.position.set(sx * 1.5, 9.4, -1.4); horn.rotation.z = -sx * .4; tg.add(horn); }
-    refs.statues = [{ x: T.x - 7.5, z: T.z - 6 }, { x: T.x + 7.5, z: T.z - 6 }];
-    for (const s of refs.statues) { const p = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.9, 1.2, 10), stoneD); p.position.set(s.x, .6, s.z); g.add(p); }
-    refs.portal = V.portal;
-    // Brasas subindo (uma chamada de desenho).
-    const N = 120, ep = new Float32Array(N * 3), ev = []; for (let i = 0; i < N; i++) { const rm = [V.lab, V.hall, V.throne][i % 3]; ep[i * 3] = rm.x + (r() - .5) * rm.r * 1.6; ep[i * 3 + 1] = r() * 6; ep[i * 3 + 2] = rm.z + (r() - .5) * rm.r * 1.6; ev.push(.4 + r() * .8); }
-    const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(ep, 3));
-    const ember = new THREE.Points(eg, new THREE.PointsMaterial({ color: 0xff8a30, size: .07, transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); ember.frustumCulled = false; g.add(ember);
-    ctx.tick.push((t, dt) => { const a = eg.attributes.position; for (let i = 0; i < N; i++) { let y = a.array[i * 3 + 1] + ev[i] * dt; if (y > 6.5) y = 0; a.array[i * 3 + 1] = y; } a.needsUpdate = true; wallMat.emissiveIntensity = .8 + Math.sin(t * 1.1) * .15; });
-    return { bg: 0x0b0503, fog: 0x1a0805, fogNear: 10, fogFar: 62, hemi: [0xffc0a0, 0x401408, 1.15], sun: [0xffa070, .5], light: [0xffa060, 3.6, 30, [0, 3, 0]], exposure: 1.25, lightFollow: true };
-  },
+  volcano: buildVolcanoCave,
   // MOD 206 — Interior da estalagem da cidade de neve (Ato III; layout em snow3d.js): salão com lareira e balcão,
   // o quarto do andar de cima e o porão de pedra. Móveis do NeveKit (balcão, cama, correntes, escada) entram pelo jogo.
   inn(THREE, g, spec, ctx) {
@@ -665,7 +520,7 @@ export function buildDimensionArena(THREE, theme, spec) {
       for (const s of ctx.swirls) s.uniforms.uTime.value = t;
       for (const fn of ctx.tick) fn(t, dt, camera, options);
     },
-    dispose() { if (ctx.refs.greedAbyss) ctx.refs.greedAbyss.dispose(); else if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else if (ctx.refs.vorgazhekAbyss) ctx.refs.vorgazhekAbyss.dispose(); else dispose(group); }
+    dispose() { ctx.refs.caveDispose?.(); if (ctx.refs.greedAbyss) ctx.refs.greedAbyss.dispose(); else if (ctx.refs.goldenMeadow) ctx.refs.goldenMeadow.dispose(); else if (ctx.refs.mushrooms) ctx.refs.mushrooms.dispose(); else if (ctx.refs.hall) ctx.refs.hall.dispose(); else if (ctx.refs.vorgazhekAbyss) ctx.refs.vorgazhekAbyss.dispose(); else dispose(group); }
   };
 }
 
