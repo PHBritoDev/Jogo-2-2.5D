@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   capture:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ubuntu-latest virou 26.04 e o Playwright 1.56.1 não instala o Chromium lá
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

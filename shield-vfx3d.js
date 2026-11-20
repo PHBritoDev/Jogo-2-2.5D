@@ -11,6 +11,7 @@ const SKINS = {
   celeste: { core: 0x6fc6ff, edge: 0xeafcff, glow: 0x3f9cff, crack: 0xffffff, blend: 'add', fill: .045, edgeW: .12, runes: 0, ring: 0x9fe2ff, gain: .55 },
   obsidiana: { core: 0x070304, edge: 0xb3122a, glow: 0x50040e, crack: 0xff4a2e, blend: 'normal', fill: .34, edgeW: .07, runes: 1, ring: 0xc01a30, gain: .95 }, // Mod 320: VHAZRAEL
   abismo: { core: 0x14051f, edge: 0xa94cff, glow: 0x5d1ac0, crack: 0xd9a8ff, blend: 'normal', fill: .12, edgeW: .14, runes: 1, ring: 0x8a3cff, gain: .8 },
+  fenda: { core: 0x05061a, edge: 0x5fe8ff, glow: 0x2a1a7a, crack: 0xe8fbff, blend: 'normal', fill: .2, edgeW: .08, runes: 0, ring: 0x6a5cff, gain: .85 }, // missão 19/11: VORGAZHEK — vidro de vazio índigo, fissuras ciano glacial
 };
 let SHARED = null;
 function goldberg(T, detail = 3) {

@@ -1,6 +1,12 @@
 # Mod 228 — Julgamento Divino: Colapso da Luz Eterna
 
-A Ultimate do protagonista agora tem uma sequência 3D de 17 segundos: ascensão visual de 24 metros, espada erguida, fissura ramificada, disco negro com coroa branca, tempestade e sucção de fragmentos, silêncio, lançamento contra o alvo, impacto branco e retorno. O disco usa geometria volumétrica; a imagem de referência não foi usada como sprite.
+## Contrato atual da reconstrução
+
+O disco nasce no socket da palma. Ao soltar, a trajetória passa a usar posição e velocidade próprias, gravidade e varredura contra cápsulas hostis, terreno e obstáculos. No primeiro contato há até 64 de dano direto. Após 0,20 s de compressão, a onda entrega até 96 de dano aos hostis até 7 m da borda da cápsula com linha de visão, antes dos multiplicadores de nível e defesa. Um projétil que toca somente cenário não aplica a parcela direta. O custo continua em 80 de mana, o alcance de aquisição em 24 m e a recarga em 30 s. A apresentação de 17 s restaura a pose e câmera pelo mesmo lease. As asas Meshy originais usam articulação bilateral por vértice e seguem o torso.
+
+## Histórico da Mod 228
+
+Na versão original, a Ultimate do protagonista tem uma sequência 3D de 17 segundos: ascensão visual de 24 metros, espada erguida, fissura ramificada, disco negro com coroa branca, tempestade e sucção de fragmentos, silêncio, lançamento contra o alvo, impacto branco e retorno. O disco usa geometria volumétrica; a imagem de referência não foi usada como sprite.
 
 ## Combate e progressão
 

@@ -15,7 +15,7 @@ jobs:
       - name: Dash 0,5 s, saltos, escudo, dano único, VFX e IA do Demônio1
         env:
           COMBAT_THREE_DIR: /tmp/combat-deps/node_modules/three
-        run: node --test tests/combat315.test.mjs tests/prota-combat302.test.mjs enemy1-squad.test.mjs sword-rites3d.test.mjs tests/combate-cinematico.test.mjs tests/combate-referencias.test.mjs tests/carregamento-modulos.test.mjs
+        run: node --test tests/combat315.test.mjs tests/prota-combat302.test.mjs enemy1-squad.test.mjs sword-rites3d.test.mjs tests/combate-cinematico.test.mjs tests/combate-referencias.test.mjs tests/carregamento-modulos.test.mjs tests/vorgazhek.test.mjs tests/vorgazhek-machado.test.mjs
   evidence:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
