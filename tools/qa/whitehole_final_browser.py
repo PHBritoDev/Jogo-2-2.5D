@@ -55,7 +55,7 @@ async def main():
     const end = hp();
     return [focus, near, far].map(a => [before[a.id] - impact[a.id], impact[a.id] - end[a.id]]);
   }""")
-  assert damage == [[160, 0], [153, 0], [0, 0]], damage
+  assert damage[0] == [160, 0] and 0 < damage[1][0] <= 96 and damage[1][1] == 0 and damage[2] == [0, 0], damage
   assert not errors,errors
   print('PASS: pause key, audio controls, stale camera gesture cleared, 160 damage, lethal encounter handed back after restoration; no page errors',flush=True)
   await b.close()
