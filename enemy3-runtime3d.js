@@ -1,3 +1,4 @@
+import { buildVoidBlade } from './vorgazhek-vfx3d.js?v=mod330';
 import { buildCrimsonKatana } from './crimson-katana3d.js';
 import { buildJawSword } from './jaw-sword3d.js';
 import { buildThroneBlade } from './vhazrael-vfx3d.js';
@@ -31,7 +32,7 @@ export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
 /** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
 export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', w = vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz ? 1 : jaw ? JAW_SCALE : KATANA_SCALE); scene.add(root); scene.add(w.userData.fx);
+  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', vg = kind === 'vorgazhek', w = vg ? buildVoidBlade(T) : vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz || vg ? 1 : jaw ? JAW_SCALE : KATANA_SCALE); // missão 19/11: VORGAZHEK com a Espada Cósmica autoral (uma lâmina só) scene.add(root); scene.add(w.userData.fx);
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
 }
 /** Katana na mão: nos golpes nativos segue o osso (o assador alinhou +Y da mão com a lâmina); fora deles, guarda
