@@ -4463,7 +4463,7 @@ function vzAuditTick(dt){if(!vzA.on||!squadOn)return;vzA.t+=dt;for(const a of sq
  if(a.act&&a.act!==vzA._act[a.id]){vzA._act[a.id]=a.act;const k=a.act.type+(a.act.move?':'+a.act.move.id:a.act.skill?':'+a.act.skill:a.act.goal?':'+a.act.goal:'');vzA.acts[k]=(vzA.acts[k]||0)+1;if(k===vzA.lastAct&&a.act.type!=='stagger')vzA.repeats++;vzA.lastAct=k;
   vzA.idleRun=0;if(vzA.log.length<400)vzA.log.push([+vzA.t.toFixed(2),k,+d.toFixed(1)]);}
  if(!a.act){vzA.passive+=dt;vzA.idleRun=(vzA.idleRun||0)+dt;vzA.passiveMax=Math.max(vzA.passiveMax,vzA.idleRun);}}}
-function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
+function vzAuditEvent(type,d){if(!vzA.on)return;if(d?.actor&&d.actor.kind!=='vhazrael')return;vzA.events[type]=(vzA.events[type]||0)+1;if(type==='vzRead'){const k='read:'+d.answer;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzLink'){const k='combo:'+d.links;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzTactic'){const k='tactic:'+d.goal;vzA.events[k]=(vzA.events[k]||0)+1;}if(type==='vzSawCast'){const k='sawCast:'+d.busy;vzA.events[k]=(vzA.events[k]||0)+1;}}
 function squadEvent(type,d){
  const a=d&&d.actor,s=d&&d.spell;vzAuditEvent(type,d);
  switch(type){

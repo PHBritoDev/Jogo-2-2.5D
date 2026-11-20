@@ -93,9 +93,9 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       }
       for(const [id,clip]of Object.entries(combatCache.get(a.kind)))if(id!=='__grip')acts[id]=mixer.clipAction(clip);
       const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'?3:3.2;
-      if (a.kind==='vhazrael') b.seal=makeJudgmentSeal(T,scene,a.T.leap.strike.r);
       b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);
     }
+    if (a.kind==='vhazrael') b.seal=makeJudgmentSeal(T,scene,a.T.leap.strike.r);
     play(b, 'idle', false, 1, 0);
     return b;
   }
