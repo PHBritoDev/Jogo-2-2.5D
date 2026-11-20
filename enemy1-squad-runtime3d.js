@@ -16,8 +16,8 @@ import { createVhazraelVFX } from './vhazrael-vfx3d.js?v=mod276-feathered-wings'
 import { createEnemy4VFX } from './enemy4-vfx3d.js';
 import { createAbyssVFX } from './enemy3-abyss-vfx3d.js';
 import { calibrateGrip, nativeMoveClips, inPlaceClip } from './vhazrael-rig3d.js';
-import './vorgazhek3d.js?v=mod330';
-import { createVorgazhekVFX } from './vorgazhek-vfx3d.js?v=mod330';
+import { vgGrip, vgMoveClips } from './vorgazhek3d.js'; // mesma URL do mundo-3d-prototype (uma instância do módulo)
+import { createVorgazhekVFX } from './vorgazhek-vfx3d.js?v=mod331';
 import { attachAfterimages, tickAfterimages, clearAfterimages, disposeAfterimages, afterimageStats } from './vhazrael-afterimage3d.js';
 import { attachKatana, poseKatana, poseCaster, poseCarry, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
 /**
@@ -83,8 +83,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       if(a.kind==='warden')attachClaws(b);
       if(a.kind==='vorgazhek'){ // missão 19/11: corpo novo — golpes nativos do NewBispo2_Otimizado.glb, empunhadura calibrada pela pose de guarda e traço da lâmina do mesmo clipe
         const clipOf=r=>src.actions?.[r]?.getClip?.()||null;
-        if(!combatCache.has('vorgazhek')){const grip=calibrateGrip(T,model,ctx.clone,clipOf('idle')),wt=b.weapon?[b.weapon.userData.tipA.toArray(),b.weapon.userData.tipB.toArray()]:undefined;
-          const clips=nativeMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.vorgazhek,grip,wt);clips.__grip=grip;combatCache.set('vorgazhek',clips);}
+        if(!combatCache.has('vorgazhek')){const grip=vgGrip(T); // missão 20/11: empunhadura medida do Machado (haste no punho) e traço das DUAS lâminas + haste
+          const clips=vgMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES.vorgazhek,grip,b.weapon.userData.edges);clips.__grip=grip;combatCache.set('vorgazhek',clips);}
         attachAfterimages(T,scene,b,ctx.clone);for(const [i,g] of (b.after?.ghosts||[]).entries())g.mat.color.setHex([0x1a1250,0x2c1a78,0x0e1a46][i%3]); // rastro índigo (não carmesim)
         b.grip=combatCache.get('vorgazhek').__grip;const jc=clipOf('jump');if(jc)acts.jump=mixer.clipAction(inPlaceClip(jc,{vertical:true}));
       }
@@ -221,6 +221,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vorgazhek') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vorgazhek', power: m?.heavy ? .9 : .5 }); }
       if (type === 'leapStrike' && d.actor && d.actor.kind === 'vorgazhek') vgfx.land({ x: d.actor.x, y: d.actor.y, z: d.actor.z }, 3.4);
+      if (type === 'vgRise' && d.actor) { const b = bodies.get(d.actor.id), w = b && b.weapon; if (d.phase === 'rise' || d.phase === 'lock') vgfx.mark({ x: d.mark.x, y: ctx.ground(d.mark.x, d.mark.z), z: d.mark.z }, d.phase === 'lock'); if (d.phase === 'land') vgfx.impact({ x: d.x, y: d.y, z: d.z }, d.yaw, d.landed); if (d.phase === 'prep' && w) b.vgPrep = 0; } // missão 20/11: Ascensão da Maré Abissal
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vhazrael') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vhazrael', power: m?.heavy ? .95 : m && d.n === m.hits.length ? .75 : .5 }); }
       if (type === 'leapStrike') { const a = d.actor; ctx.slash.impact({ x: a.x + Math.sin(a.yaw) * .8, y: a.y + .25, z: a.z + Math.cos(a.yaw) * .8 }, { x: 0, y: 1, z: 0 }, { style: 'demon', power: .7 }); }
       if (type === 'jump' && d.n === 2) { const a = d.actor; ctx.slash.impact({ x: a.x, y: a.y + .1, z: a.z }, { x: 0, y: -1, z: 0 }, { style: 'demon', power: .2 }); }
@@ -288,6 +289,9 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
         if (b.after) tickAfterimages(b, a, dt, quality);
         if (a.kind === 'vorgazhek') { const dashing = !!(a.act && a.act.type === 'dodge'); if (dashing && !b.vgDash) b.vgDash = { x: a.x, y: a.y, z: a.z }; else if (!dashing && b.vgDash) { vgfx.dash(b.vgDash, { x: a.x, y: a.y, z: a.z }); b.vgDash = null; } }
+        if (a.kind === 'vorgazhek' && b.weapon) { const W = b.weapon.userData, ac = a.act; // missão 20/11: carga do núcleo (Maré Abissal) e rastro longo da lâmina de energia no corte descendente
+          if ((b.vgCharge || 0) > .05) { b.weapon.updateWorldMatrix(true, false); vgfx.charge(_v.copy(W.core).applyMatrix4(b.weapon.matrixWorld), b.vgCharge); }
+          if (ac && ac.rise && typeof ac.cut === 'number' && ac.cut < .3 && ctx.slash) { ac.vzKey = ac.vzKey || ++vzSlashSerial; b.weapon.updateWorldMatrix(true, false); ctx.slash.sample('vgr' + ac.vzKey, _v.copy(W.tipB).applyMatrix4(b.weapon.matrixWorld), W.energyTip(_v2).applyMatrix4(b.weapon.matrixWorld), { style: 'vorgazhek', gain: 1.35, extend: 1, inner: .05 }); } }
         demonSlashes(b, a); if (a.shield && ctx.shields) ctx.shields.sync(a.id, a.shield, a, b.height, squad.time, a.shield.spec?.skin || 'abismo', dt);
         poseClaws(b);if(b.tell){b.tell.visible=!!a.act?.move&&a.act.phase==='windup';b.tell.position.y=.05-(a.y-ctx.ground(a.x,a.z));b.tell.material.opacity=.12+.18*(a.act?.t/(a.act?.move?.open||1));}
         const act = a.act;
@@ -299,7 +303,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         if(b.claws&&act?.move&&act.move.hits.some(h=>Math.abs(act.t-h)<.12)){for(const c of b.claws){c.root.updateMatrixWorld(true);vfx.scythe(_v.set(0,.08,0).applyMatrix4(c.root.matrixWorld),_v2.set(0,.53,0).applyMatrix4(c.root.matrixWorld));}}
         if (b.katana && act && act.move && act.t > act.move.open - .14 && act.t < act.move.close + .06) { b.weapon.updateWorldMatrix(true, false); if (a.kind !== 'vhazrael' && a.kind !== 'vorgazhek') abyss.slash(_v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), a.phase2, a.kind === 'e4boss');
           if (a.kind === 'vorgazhek' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // missão 19/11: crescente fina índigo/ciano no arco real da lâmina; arco elétrico só nos cortes 'arc', no quadro do contato
-            if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const A = _v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), B = _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); ctx.slash.sample('vg' + act.vzKey + ':' + n, A, B, { style: 'vorgazhek', gain: act.move.heavy ? 1.1 : .95, extend: .9, inner: .1 });
+            if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const E = b.weapon.userData.edges, A = _v.fromArray(E[2][0]).applyMatrix4(b.weapon.matrixWorld), B = _v2.fromArray(E[2][1]).applyMatrix4(b.weapon.matrixWorld); ctx.slash.sample('vgb' + act.vzKey + ':' + n, A, B, { style: 'vorgazhek', gain: .55, extend: .35, inner: .4 }); // missão 20/11: rastro também no gume traseiro
+              A.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld); B.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld); ctx.slash.sample('vg' + act.vzKey + ':' + n, A, B, { style: 'vorgazhek', gain: act.move.heavy ? 1.1 : .95, extend: .9, inner: .1 });
               if (act.move.arc && Math.abs(act.t - hs[n]) < .03 && act.vgArc !== n) { act.vgArc = n; vgfx.arc(A, B, act.move.heavy ? 1 : .8); } } }
           if (a.kind === 'vhazrael' && ctx.slash) { const hs = act.move.hits, n = hs.findIndex(h => Math.abs(act.t - h) < .2); // Mod 320: crescente carmesim que segue o arco VISÍVEL da lâmina, um rastro por golpe do combo
             if (n >= 0) { act.vzKey = act.vzKey || ++vzSlashSerial; const fin = n === hs.length - 1 && hs.length > 1, heavy = !!act.move.heavy; ctx.slash.sample('vz' + act.vzKey + ':' + n, _v.copy(b.weapon.userData.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(b.weapon.userData.tipB).applyMatrix4(b.weapon.matrixWorld), { style: 'vhazrael', gain: heavy || fin ? 1.15 : .95, extend: heavy ? 1.05 : .75, inner: .12 }); } } }

@@ -330,6 +330,7 @@ export class Enemy1Squad {
     this.event('leap', { actor: a, target: t.id });
   }
   stepLeap(a, act, t, dt) {
+    if (act.rise && a.T.stepRise) return a.T.stepRise(this, a, act, t, dt); // missão 20/11: salto ofensivo próprio da espécie (VORGAZHEK)
     const L = a.T.leap;
     if (act.phase === 'crouch') { if (act.t >= L.crouch) { act.phase = 'rise'; a.airV = L.v1; a.jumps = 1; act.air = 0; this.event('jump', { actor: a, n: 1 }); } return; }
     if (act.phase === 'land') { if (act.t >= act.landAt + L.recover) act.t = act.dur; return; }
@@ -358,7 +359,8 @@ export class Enemy1Squad {
   stepAction(a, dt, t) {
     const act = a.act, previous=act.t; act.t += dt * (act.move?.rate || 1); // CLAUDE (P3): golpe de chefe com cadência própria — tudo (janelas, traço, avanço, clipe) anda no tempo do clipe
     if (act.type === 'dodge') { const s = a.T.dash.speed * (1 - act.t / act.dur * .4); this.move(a, act.dx * s * dt, act.dz * s * dt); }
-    if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
+    if (act.move && a.T.moveAim) a.T.moveAim(this, a, act, t, dt); // missão 20/11: espécie com mira própria por corte (só o VORGAZHEK define)
+    else if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
     if(act.move){
       const m=act.move;act.phase=act.t<m.open?'windup':act.t<=m.close?'active':'recovery';
       let travel=bossTravel(m,act.t)-bossTravel(m,previous);if(t&&travel>0){const room=Math.hypot(t.x-a.x,t.z-a.z)-(a.radius||.5)-(t.radius||.4)-.05;travel=Math.max(0,Math.min(travel,room));} /* Mod 320: avanço longo (Estocada) para no contato, nunca atravessa o alvo */this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);
