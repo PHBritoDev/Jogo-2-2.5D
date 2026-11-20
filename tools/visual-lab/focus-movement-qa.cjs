@@ -5,8 +5,27 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
  const report={pass:false,phase:'launch',screenshots:{},errors:[]};
  let browser,page,held=false,failed;
  const capture=async(name)=>{
-  try{await page.screenshot({path:path.join(dir,name+'.png'),timeout:10000});report.screenshots[name]='ok';}
-  catch(e){report.screenshots[name]='failed: '+e.message;report.errors.push('screenshot '+name+': '+e.message);}
+  const target=path.join(dir,name+'.png');
+  try{
+   await page.screenshot({path:target,timeout:10000});
+   report.screenshots[name]='playwright';
+  }catch(e){
+   report.errors.push('playwright screenshot '+name+': '+e.message);
+   // Chromium CDP bypasses Playwright's screenshot preparation (including font waits).
+   // It still captures actual browser pixels; never substitute a synthetic image.
+   let session;
+   try{
+    session=await page.context().newCDPSession(page);
+    const shot=await session.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true});
+    const bytes=Buffer.from(shot.data||'','base64');
+    if(bytes.length<8||bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw Error('CDP returned no valid PNG');
+    fs.writeFileSync(target,bytes);
+    report.screenshots[name]='cdp';
+   }catch(fallbackError){
+    report.screenshots[name]='failed: '+e.message+'; CDP: '+fallbackError.message;
+    report.errors.push('cdp screenshot '+name+': '+fallbackError.message);
+   }finally{if(session)try{await session.detach()}catch{}}
+  }
  };
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
@@ -30,7 +49,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.drift=Math.hypot(report.last.p[0]-report.after.p[0],report.last.p[2]-report.after.p[2]);
   report.motion=Math.hypot(report.forward.p[0]-report.start.p[0],report.forward.p[2]-report.start.p[2]);
   report.inputPass=report.motion>.2&&report.after.speed<.08&&report.last.speed<.08&&report.drift<.06;
-  report.capturePass=Object.values(report.screenshots).every(s=>s==='ok');
+  report.capturePass=Object.values(report.screenshots).length===2&&Object.values(report.screenshots).every(s=>s==='playwright'||s==='cdp');
   report.pass=report.inputPass&&report.capturePass;
   report.phase='complete';
   if(!report.inputPass)throw Error('Movimento fantasma: tecla persistente ou estado não validado');
