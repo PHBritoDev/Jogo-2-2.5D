@@ -51,7 +51,7 @@ export const ZK_MOVES = [
   { id: 'Sentenca_Ceifadora', clip: 'zk_sentence', label: 'Sentença Ceifadora', hits: [.9, 1.97, 3.0], duration: 3.35, advance: .8, weight: .9, rate: 1.55, minPhase: 1 },
   { id: 'Juizo_Triplo', clip: 'zk_triple', label: 'Juízo em Dois Tempos', hits: [1.6, 2.2], duration: 2.6, advance: 1.2, glide: true, weight: .8, rate: 1.5 },
   { id: 'Giro_Revés', clip: 'zk_spinax', label: 'Giro de Revés', hits: [.77], duration: 1.4, advance: .2, spin: true, weight: .5, rate: 1.3, aimMax: 3.2 },
-  { id: 'Salto_Ceifador', clip: 'zk_vault', label: 'Salto Ceifador', hits: [.27], duration: .8, advance: 2.4, range: [2.8, 6.2], score: .9, cd: 5, fast: true, aim: true, rate: 1.1 }
+  { id: 'Salto_Ceifador', clip: 'zk_vault', label: 'Salto Ceifador', hits: [.27], duration: .8, advance: 3.4, range: [2.8, 5.2], score: .9, cd: 5, fast: true, aim: true, rate: 1.1 }
 ];
 BOSS_MOVES.zarkhael = ZK_MOVES.map(m => ({ ...m, patterns: ['diagonal'] }));
 for (const m of BOSS_MOVES.zarkhael) { m.kind = 'zarkhael'; m.open = m.hits[0] - .11; m.close = m.hits.at(-1) + .11; m.recovery = m.duration - m.close; m.damageScale = m.heavy ? 1.3 : m.fast ? .85 : m.hits.length > 2 ? .85 : 1; }
@@ -64,14 +64,14 @@ export function zkGrip(T) { return new T.Quaternion().setFromRotationMatrix(new 
 /** Dash: início a início NUNCA abaixo de 0,5 s (regra do criador); o que muda é a intenção da sequência. */
 export const ZK_DASH = Object.freeze({ speed: 13.5, time: .2, cd: .5, minStart: .5, budget: 4, window: 3, lockout: 1.2 });
 /** ESPIRAL DO CARRASCO: prep a duas mãos → 3 voltas em laço com ritmo crescente → saída → lança a massa helicoidal. */
-export const ZK_SPIRAL = Object.freeze({ gap: [3.5, 13], cd: 9.5, prep: .45, loops: [.85, 1.05, 1.3], loopDur: 19 / 30, outDur: 16 / 30, outSpeed: 1.2, release: .2, lockLead: .25,
-  recover: .9, spinR: 2.35, spinDmg: 8, speed: 12.5, range: 18, radius: .95, dmg: 24, knock: 1.3, height: 1.15, spawn: 1.6 });
+export const ZK_SPIRAL = Object.freeze({ gap: [4.5, 13], cd: 9.5, prep: .45, loops: [.85, 1.05, 1.3], loopDur: 19 / 30, outDur: 16 / 30, outSpeed: 1.2, release: .2, lockLead: .25,
+  recover: .9, spinR: 2.35, spinDmg: 8, speed: 11, range: 18, radius: .95, dmg: 24, knock: 1.3, height: 1.15, spawn: .9 }); // ≥4,5 m e 11 m/s: trava 0,25 s + ≥0,25 s de voo para reagir
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 const ZK = {
   ...E1.common, hp: 2300, radius: .5, height: 2.15, poise: 70, flinch: 99, stamina: 160, sight: 40, leash: 60, boss: true, pref: [1.4, 2.4], phase2: .4, furyCd: .8, staggerArmor: 2,
   speed: { walk: 2.7, run: 6.0, strafe: 3, back: 3.4, turn: 10 },
-  melee: { max: 2.9, reach: 2.8, arc: .1, windup: .45, hits: [.45], dur: 1, dmg: 13, cd: 1, knock: .8 },
+  melee: { max: 2.9, reach: 2.8, arc: .1, windup: .45, hits: [.45], dur: 1, dmg: 13, cd: 1, knock: .5 }, aimWarp: { warp: 2.4, warpSpeed: 8 }, // empurrão curto: o combo segue legível; passo de encurtamento maior (foice longa)
   dash: ZK_DASH, block: { chance: .2, dur: .5, cd: 1.6, cost: 12, reduce: .75 }, dodge: { chance: .3, cd: ZK_DASH.cd },
   counter: { ...E1.common.counter, chance: 0, cd: 99 }, leap: null, shield: null,
   decide: [.14, .24], gap: .4, kit: [], interrupt: true, feint: null, maxBig: 1,

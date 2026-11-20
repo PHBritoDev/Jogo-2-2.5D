@@ -106,8 +106,8 @@ export function vgAim(sq, a, act, t, dt) {
   const h = m.hits[n]; if (act.t >= h - VG_AIM.lock) return; // travado: o arco não persegue o herói
   // magnetismo curto até o alcance REAL do corte (raio da cabeça do machado no quadro do contato): o recuo do 1º acerto não
   // deixa mais o 2º/3º corte no vazio; limitado por golpe, para antes da cápsula e anda com colisão (nunca atravessa parede)
-  if (!m.retreatCut && m.aimR) { const d = Math.hypot(t.x - a.x, t.z - a.z), want = (m.aimR[n] || 1.3) + (t.radius || .4) * .6, room = d - (t.radius || .4) - a.T.radius - .05, used = act.vgWarp || 0;
-    if (d > want && room > 0 && used < VG_AIM.warp) { const st = Math.min(d - want, room, VG_AIM.warpSpeed * dt, VG_AIM.warp - used); sq.move(a, (t.x - a.x) / d * st, (t.z - a.z) / d * st); act.vgWarp = used + st; } }
+  if (!m.retreatCut && m.aimR) { const d = Math.hypot(t.x - a.x, t.z - a.z), want = (m.aimR[n] || 1.3) + (t.radius || .4) * .6, room = d - (t.radius || .4) - a.T.radius - .05, used = act.vgWarp || 0, W = a.T.aimWarp || VG_AIM; // aimWarp: alcance/velocidade próprios da espécie (foice longa do Bispo 3)
+    if (d > want && room > 0 && used < W.warp) { const st = Math.min(d - want, room, W.warpSpeed * dt, W.warp - used); sq.move(a, (t.x - a.x) / d * st, (t.z - a.z) / d * st); act.vgWarp = used + st; } }
   const mx = m.aimMax ?? VG_AIM.max, az = Math.max(-mx, Math.min(mx, m.aimAz?.[n] || 0)), want = Math.atan2(t.x - a.x, t.z - a.z) - az, k = (n === 0 ? VG_AIM.turn : VG_AIM.between) * dt;
   const d = wrap(want - a.yaw); a.yaw = wrap(a.yaw + Math.max(-k, Math.min(k, d)));
 }
