@@ -2040,7 +2040,10 @@ const eclipseSky=new THREE.Color(0x25223d),eclipseHorizon=new THREE.Color(0x4032
 let whiteWingsLoading=false;
 const whiteHero={pos:new THREE.Vector3(),hand:new THREE.Vector3(),yaw:0,scale:1,alt:10};
 const whiteDir=new THREE.Vector3(),whiteSide=new THREE.Vector3(),whiteDest=new THREE.Vector3(),whitePoint=new THREE.Vector3();
-function whiteQuality(){return graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2;}
+function whiteQuality(){
+ if(graphics3DMode==='auto')return graphics3DScale<.75?0:1;
+ return graphics3DMode==='low'?0:graphics3DMode==='medium'?1:2;
+}
 function loadUltimateWings(){if(!whiteVFX||whiteWingsLoading)return;whiteWingsLoading=true;new GLTFLoader().load('./AsasAnjo_leve.glb',g=>{whiteVFX?.setWings(g.scene);new GLTFLoader().load('./AsasAnjo-juizo-lod.glb',lod=>whiteVFX?.setWingLOD(lod.scene));},undefined,e=>{whiteWingsLoading=false;console.warn('Asas da Ultimate',e);});}
 function tickWhiteHole(dt){if(!whiteLease.locked)return;try{whiteLease.run(()=>{
  if(whiteHole.time<11&&whiteHole.time+dt>11){const first=11-whiteHole.time;tickWhiteHole(first);dt-=first;if(!whiteLease.locked)return;}

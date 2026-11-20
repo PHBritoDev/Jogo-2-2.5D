@@ -112,7 +112,7 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
    if(hero.back&&wings.parent!==hero.back){
     wings.removeFromParent();wings.position.copy(hero.pos);wings.rotation.set(0,hero.yaw,0);wings.scale.setScalar(1);wings.updateMatrixWorld(true);hero.back.attach(wings);
    }
-   if(wingMesh){wingMesh.geometry=low&&lowWing?lowWing:fullWing;hero.back?.getWorldScale(backScale);
+   if(wingMesh){wingMesh.geometry=quality<2&&lowWing?lowWing:fullWing;hero.back?.getWorldScale(backScale);
     wings.scale.setScalar(4.3*(.28+.72*open)/Math.max(.001,backScale.x||1));hinge.value=(1-open)*1.15+flap*.75;sweep.value=t*4.65;}
    for(let i=0;i<(low?8:20);i++){const age=t-(.68+(i%2)*1.32+Math.floor(i/2)*.065);if(age<0||age>3)continue;const side=i%2?1:-1;
     feathers.add(hero.pos.x+side*Math.cos(hero.yaw)*(.6+age*.5),y+.4-age*.85+hash(i)*.45,hero.pos.z-side*Math.sin(hero.yaw)*(.6+age*.5)+Math.sin(age+i)*.23,.035,.24,1,.83,.55,(1-age/3)*.8,3,age+i,i);}
