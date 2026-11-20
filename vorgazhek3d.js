@@ -73,7 +73,7 @@ export function vgGrip(T) { return new T.Quaternion().setFromRotationMatrix(new 
  * +Z) no formato de bossTraceContact (vários segmentos por quadro). Também mede, por janela, o azimute da cabeça do
  * machado no quadro do contato (aimAz) — usado pela mira para que o arco VISÍVEL passe pelo herói.
  */
-export function vgMoveClips(T, model, clone, clipFor, moves, grip, edges) {
+export function vgMoveClips(T, model, clone, clipFor, moves, grip, edges, aimPoint = [.06, .62, 0]) { // aimPoint: ponto da arma que mede a mira (cabeça do machado; na foice, a cabeça)
   const rig = clone(model); rig.position.set(0, model.position.y, 0); rig.rotation.set(0, 0, 0); rig.scale.copy(model.scale);
   const mixer = new T.AnimationMixer(rig); let hand = null; rig.traverse(o => { if (!hand && o.isBone && /^RightHand$/i.test(o.name)) hand = o; });
   const out = {}, p = new T.Vector3(), q = new T.Quaternion(), v = new T.Vector3(), segs = edges.map(e => e.map(x => new T.Vector3(...x)));
@@ -83,7 +83,7 @@ export function vgMoveClips(T, model, clone, clipFor, moves, grip, edges) {
     mixer.stopAllAction(); mixer.clipAction(clip).play();
     const at = t => { mixer.setTime(t); rig.updateMatrixWorld(true); hand.getWorldPosition(p); hand.getWorldQuaternion(q).multiply(grip); };
     for (let i = 0; i <= N; i++) { at(D * i / N); frames.push(segs.map(sg => sg.map(x => v.copy(x).applyQuaternion(q).add(p).toArray()))); }
-    const rr = []; for (const h of m.hits) { at(Math.min(D, h)); const c = v.set(.06, .62, 0).applyQuaternion(q).add(p); az.push(+Math.atan2(c.x, c.z).toFixed(3)); rr.push(+Math.hypot(c.x, c.z).toFixed(2)); }
+    const rr = []; for (const h of m.hits) { at(Math.min(D, h)); const c = v.fromArray(aimPoint).applyQuaternion(q).add(p); az.push(+Math.atan2(c.x, c.z).toFixed(3)); rr.push(+Math.hypot(c.x, c.z).toFixed(2)); }
     clip.combatTrace = { duration: m.duration, frames, aimAz: az, aimR: rr }; out[m.id] = clip; m.aimAz = az; m.aimR = rr;
   }
   mixer.stopAllAction(); mixer.uncacheRoot(rig); return out;
@@ -106,9 +106,9 @@ export function vgAim(sq, a, act, t, dt) {
   const h = m.hits[n]; if (act.t >= h - VG_AIM.lock) return; // travado: o arco não persegue o herói
   // magnetismo curto até o alcance REAL do corte (raio da cabeça do machado no quadro do contato): o recuo do 1º acerto não
   // deixa mais o 2º/3º corte no vazio; limitado por golpe, para antes da cápsula e anda com colisão (nunca atravessa parede)
-  if (!m.retreatCut && m.aimR) { const d = Math.hypot(t.x - a.x, t.z - a.z), want = (m.aimR[n] || 1.3) + (t.radius || .4) * .6, room = d - (t.radius || .4) - a.T.radius - .05, used = act.vgWarp || 0;
-    if (d > want && room > 0 && used < VG_AIM.warp) { const st = Math.min(d - want, room, VG_AIM.warpSpeed * dt, VG_AIM.warp - used); sq.move(a, (t.x - a.x) / d * st, (t.z - a.z) / d * st); act.vgWarp = used + st; } }
-  const az = Math.max(-VG_AIM.max, Math.min(VG_AIM.max, m.aimAz?.[n] || 0)), want = Math.atan2(t.x - a.x, t.z - a.z) - az, k = (n === 0 ? VG_AIM.turn : VG_AIM.between) * dt;
+  if (!m.retreatCut && m.aimR) { const d = Math.hypot(t.x - a.x, t.z - a.z), want = (m.aimR[n] || 1.3) + (t.radius || .4) * .6, room = d - (t.radius || .4) - a.T.radius - .05, used = act.vgWarp || 0, W = a.T.aimWarp || VG_AIM; // aimWarp: alcance/velocidade próprios da espécie (foice longa do Bispo 3)
+    if (d > want && room > 0 && used < W.warp) { const st = Math.min(d - want, room, W.warpSpeed * dt, W.warp - used); sq.move(a, (t.x - a.x) / d * st, (t.z - a.z) / d * st); act.vgWarp = used + st; } }
+  const mx = m.aimMax ?? VG_AIM.max, az = Math.max(-mx, Math.min(mx, m.aimAz?.[n] || 0)), want = Math.atan2(t.x - a.x, t.z - a.z) - az, k = (n === 0 ? VG_AIM.turn : VG_AIM.between) * dt;
   const d = wrap(want - a.yaw); a.yaw = wrap(a.yaw + Math.max(-k, Math.min(k, d)));
 }
 
@@ -160,7 +160,7 @@ export function vgStepRise(sq, a, act, t, dt) {
 export const VG_SHIELD = Object.freeze({ id: 'vorgazhek', duration: 1.6, cooldown: 7.5, durability: 110, mitigation: .72, drain: 1, areaDrain: .5, areaTick: .3, breakAt: 36, radiusK: .6, skin: 'fenda',
   colors: { core: 0x05061a, edge: 0x5fe8ff, glow: 0x2a1a7a, crack: 0xe8fbff } });
 /** Dash curto e rápido; o que muda é a SEQUÊNCIA (1–3 passos com objetivo), não a recarga. */
-export const VG_DASH = Object.freeze({ speed: 15, time: .17, cd: .35, budget: 5, window: 3, lockout: 1.2, gap: .07 });
+export const VG_DASH = Object.freeze({ speed: 15, time: .17, cd: .5, minStart: .5, budget: 5, window: 3, lockout: 1.2, gap: .07 }); // 20/11: início a início ≥ 0,5 s (regra do criador para os Bispos)
 /** Salto com dash aéreo lateral (não é o salto alto do VHAZRAEL): baixo, curvo, pousa cortando. */
 export const VG_LEAP = Object.freeze({ min: 3, max: 8, crouch: .14, v1: 6.2, v2: 4.6, second: .3, dash: .22, dashSpeed: 14, fall: -16, maxAir: 1.2, gravity: 20, strike: { r: 2, dmg: 14, arc: -.2 }, recover: .4, cd: 6.5, role: 'jump', from: 1.45, speed: 1.3 });
 
@@ -204,7 +204,7 @@ export const vgPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return 
 function vgStepChain(sq, a, t, dt) {
   const c = a.vgChain; if (!c || !c.steps.length || a.act) return false;
   a.decideT = Math.max(a.decideT || 0, .15); a.react = null; // missão 20/11: o motor não "rouba" o intervalo entre passos (decisão/reação genérica cortava a sequência no 1º dash)
-  if ((c.wait -= dt) > 0) return true; // pequeno respiro entre passos
+  if ((c.wait -= dt) > 0 || sq.time - (a.vgLastDashStart ?? -9) < VG_DASH.minStart) return true; // respiro entre passos; nunca dois inícios de dash a menos de 0,5 s
   const s = c.steps.shift(), d = Math.hypot(t.x - a.x, t.z - a.z) || 1, ux = (t.x - a.x) / d, uz = (t.z - a.z) / d;
   const dir = side => { let dx = s.f * ux + side * uz, dz = s.f * uz - side * ux; const l = Math.hypot(dx, dz) || 1; return [dx / l, dz / l]; };
   const reach = VG_DASH.speed * VG_DASH.time * (s.len || 1), free = ([x, z]) => !sq.blocked(a.x + x * reach, a.z + z * reach) && !sq.blocked(a.x + x * reach * .5, a.z + z * reach * .5);
@@ -229,7 +229,7 @@ export function vorgBrain(sq, a, dt, t) {
   const ph = vgPhaseOf(a.hp, a.maxHp); if (ph !== a.vgPhase) { const was = a.vgPhase; a.vgPhase = ph; a.vzPhase = ph; if (was !== undefined) sq.event('vgPhase', { actor: a, phase: ph }); }
   a.cdMul = Math.min(a.cdMul || 1, [1, .92, .82, .72][ph]);
   // orçamento de dash (contado pelos atos de dash iniciados)
-  const S = a.vgStats; if (a.act && a.act !== a._vgAct) { a._vgAct = a.act; if (a.act.type === 'dodge') { S.dash++; (a.vgDashAt || (a.vgDashAt = [])).push(sq.time); const g = S.groups || (S.groups = { 1: 0, 2: 0, 3: 0, 4: 0 }); if (sq.time - (a._vgDashT ?? -9) < VG_DASH.time + .32) { a._vgRun++; } else a._vgRun = 1; a._vgDashT = sq.time; if (a._vgRun > 1) g[Math.min(4, a._vgRun - 1)]--; g[Math.min(4, a._vgRun)]++; } if (a.act.type === 'leap' && !a.act.rise) S.leap++; if (a.act.type === 'melee') S.combos++; }
+  const S = a.vgStats; if (a.act && a.act !== a._vgAct) { a._vgAct = a.act; if (a.act.type === 'dodge') { S.dash++; (a.vgDashAt || (a.vgDashAt = [])).push(sq.time); S.minDashGap = Math.min(S.minDashGap ?? 9, +(sq.time - (a.vgLastDashStart ?? -9)).toFixed(3)); a.vgLastDashStart = sq.time; a.cds.dodge = Math.max(a.cds.dodge || 0, VG_DASH.minStart); const g = S.groups || (S.groups = { 1: 0, 2: 0, 3: 0, 4: 0 }); if (sq.time - (a._vgDashT ?? -9) < VG_DASH.minStart + .3) { a._vgRun++; } else a._vgRun = 1; a._vgDashT = sq.time; if (a._vgRun > 1) g[Math.min(4, a._vgRun - 1)]--; g[Math.min(4, a._vgRun)]++; } if (a.act.type === 'leap' && !a.act.rise) S.leap++; if (a.act.type === 'melee') S.combos++; }
   a.vgDashAt = (a.vgDashAt || []).filter(x => sq.time - x < VG_DASH.window); if (a.vgDashAt.length >= VG_DASH.budget) { a.cds.dodge = Math.max(a.cds.dodge || 0, VG_DASH.lockout); a.cds.vgChain = Math.max(a.cds.vgChain || 0, VG_DASH.lockout); }
   if (!t || a.pendingDeath || a.alert > 0) return;
   // estilo observado do herói (decai em ~6 s)

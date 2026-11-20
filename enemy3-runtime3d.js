@@ -1,4 +1,5 @@
 import { buildAbyssAxe } from './vorgazhek-axe3d.js?v=mod331';
+import { buildExecutionerScythe } from './zarkhael-scythe3d.js?v=mod332';
 import { buildCrimsonKatana } from './crimson-katana3d.js';
 import { buildJawSword } from './jaw-sword3d.js';
 import { buildThroneBlade } from './vhazrael-vfx3d.js';
@@ -32,7 +33,7 @@ export const KATANA_SCALE = 1.05, JAW_SCALE = 1.08;
 /** Arma do mini-chefe presa à mão: Katana Dragão Carmim (e3boss) ou Espada-Mandíbula (e4boss, Mod 246). */
 export function attachKatana(T, scene, b, kind = 'e3boss') {
   if (!b.hand) return;
-  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', vg = kind === 'vorgazhek', w = vg ? buildAbyssAxe(T) : vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz || vg ? 1 : jaw ? JAW_SCALE : KATANA_SCALE);
+  const jaw = kind === 'e4boss', vz = kind === 'vhazrael', vg = kind === 'vorgazhek', zk = kind === 'zarkhael', w = zk ? buildExecutionerScythe(T) : vg ? buildAbyssAxe(T) : vz ? buildThroneBlade(T) : jaw ? buildJawSword(T) : buildCrimsonKatana(T), root = new T.Group(); root.add(w); w.scale.setScalar(vz || vg || zk ? 1 : jaw ? JAW_SCALE : KATANA_SCALE);
   scene.add(root); if (w.userData.fx && !w.userData.fx.parent) scene.add(w.userData.fx); // fix 20/11: o comentário da missão 19/11 engolia estas chamadas (arma de TODOS os chefes com katana ficava fora da cena)
   b.weapon = w; b.weaponRoot = root; b.katana = true; b.wW = 0; b.kCast = 0; b.wDrop = 0;
 }
@@ -43,6 +44,7 @@ export function poseKatana(T, b, a, dt, time, low) {
   const V = b._kv || (b._kv = { p: new T.Vector3(), d: new T.Vector3(), f: new T.Vector3(), x: new T.Vector3(), m: new T.Matrix4() });
   h.updateWorldMatrix(true, false); h.getWorldPosition(root.position);
   if (a.kind === 'vorgazhek') return poseAxe(T, b, a, dt, time, low, V);
+  if (a.kind === 'zarkhael') return poseExecScythe(T, b, a, dt, time, low, V);
   const thr = a.alive && a.kind === 'vhazrael' && a.act && a.act.skill === 'throne' && a.act.type === 'cast' ? a.act : null;
   if (thr) { // Ruptura: lâmina orientada pela coreografia (gume no plano do golpe), presa à mão; cruza com a guarda ao terminar
     const P = thronePose(thr.t), fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fy, e = smooth((thr.dur - thr.t) / .35);
@@ -72,8 +74,24 @@ function poseAxe(T, b, a, dt, time, low, V) {
   b.axeCarry = (b.axeCarry || 0) + (carry - (b.axeCarry || 0)) * Math.min(1, dt * (carry ? 10 : 7));
   if (b.axeCarry > .01) { const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = -fz, rz = fy; V.d.set(-.25 * fy + .45 * rx, -.85, -.25 * fz + .45 * rz).normalize(); V.f.set(fy, 0, fz); V.x.copy(V.f).addScaledVector(V.d, -V.f.dot(V.d)).normalize(); V.f.crossVectors(V.x, V.d); V.m.makeBasis(V.x, V.d, V.f); if (!V.q2) V.q2 = new T.Quaternion(); V.q2.setFromRotationMatrix(V.m); root.quaternion.slerp(V.q2, b.axeCarry); }
   const L = .78, ax = V.h.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .12 - root.position.y;
-  if (ax.y < floor) { const want = Math.asin(Math.max(-1, Math.min(1, floor / L))), cur = Math.asin(Math.max(-1, Math.min(1, ax.y / L))); V.d.set(-ax.z, 0, ax.x); if (V.d.lengthSq() > 1e-6) { V.q.setFromAxisAngle(V.d.normalize(), want - cur); root.quaternion.premultiply(V.q); } b.vgClear = (b.vgClear || 0) + 1; }
+  if (ax.y < floor) { const want = Math.asin(Math.max(-1, Math.min(1, floor / L))), cur = Math.asin(Math.max(-1, Math.min(1, ax.y / L))); V.d.set(-ax.z, 0, ax.x); if (V.d.lengthSq() < 1e-4) V.d.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); /* haste na vertical: gira pelo eixo lateral do corpo */ { V.q.setFromAxisAngle(V.d.normalize(), want - cur); root.quaternion.premultiply(V.q); } b.vgClear = (b.vgClear || 0) + 1; }
   const g = a.alive && a.act ? a.act.glow || 0 : 0; b.vgCharge = (b.vgCharge || 0) + (g - (b.vgCharge || 0)) * Math.min(1, dt * (g > (b.vgCharge || 0) ? 9 : 5)); w.userData.charge(b.vgCharge);
+  root.visible = b.holder.visible; w.userData.updateFx(time, a.phase2 ? 1 : 0, low, root.visible);
+}
+/** Missão 20/11 — Foice do Carrasco do ZAR'KHAEL: presa ao osso RightHand com a empunhadura medida; quando o clipe junta as
+    duas mãos (< 0,36 m), a haste é girada para passar pela mão ESQUERDA (empunhadura a duas mãos real, sem IK no esqueleto);
+    cabeça e ponta inferior nunca abaixo do piso; brilho das fendas segue act.glow (Espiral do Carrasco). */
+function poseExecScythe(T, b, a, dt, time, low, V) {
+  const root = b.weaponRoot, w = b.weapon; if (!V.q) { V.q = new T.Quaternion(); V.h = new T.Vector3(); } if (!V.l) { V.l = new T.Vector3(); V.y = new T.Vector3(); V.i = new T.Quaternion(); }
+  b.hand.getWorldQuaternion(root.quaternion); if (b.grip) root.quaternion.multiply(b.grip);
+  if (b.lhand && a.alive) { b.lhand.getWorldPosition(V.l); const d = V.l.distanceTo(root.position), k = d < .36 ? 1 : d < .5 ? (.5 - d) / .14 : 0; b.zkTwo = (b.zkTwo || 0) + (k - (b.zkTwo || 0)) * Math.min(1, dt * 12);
+    if (b.zkTwo > .01 && d > .05) { V.y.set(0, 1, 0).applyQuaternion(root.quaternion); V.l.sub(root.position).normalize(); if (V.l.dot(V.y) > -.2) { V.q.setFromUnitVectors(V.y, V.l); V.q.slerp(V.i, 1 - b.zkTwo); root.quaternion.premultiply(V.q); } } }
+  // parado: a foice em pé ao lado do corpo, cabeça acima do ombro e lâmina pendendo à frente (presença do Carrasco)
+  const idle = a.alive && !a.act && Math.hypot(a.vx || 0, a.vz || 0) < .6 ? 1 : 0; b.zkIdle = (b.zkIdle || 0) + (idle - (b.zkIdle || 0)) * Math.min(1, dt * (idle ? 4 : 10));
+  if (b.zkIdle > .01) { if (!V.q2) V.q2 = new T.Quaternion(); const fy = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = -fz, rz = fy; V.d.set(.12 * fy + .22 * rx, .95, .12 * fz + .22 * rz).normalize(); V.f.set(fy, 0, fz); V.x.copy(V.f).addScaledVector(V.d, -V.f.dot(V.d)).normalize(); V.f.crossVectors(V.x, V.d); V.m.makeBasis(V.x, V.d, V.f); V.q2.setFromRotationMatrix(V.m); root.quaternion.slerp(V.q2, b.zkIdle * .9); }
+  for (const L of [1.65, -.6]) { const ax = V.h.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .1 - root.position.y;
+    if (ax.y < floor) { const R = Math.abs(L), want = Math.asin(Math.max(-1, Math.min(1, floor / R))), cur = Math.asin(Math.max(-1, Math.min(1, ax.y / R))); V.d.set(-ax.z, 0, ax.x); if (V.d.lengthSq() < 1e-4) V.d.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); /* haste na vertical: gira pelo eixo lateral do corpo */ { V.q.setFromAxisAngle(V.d.normalize(), want - cur); root.quaternion.premultiply(V.q); } } }
+  const g = a.alive && a.act ? a.act.glow || 0 : 0; b.zkCharge = (b.zkCharge || 0) + (g - (b.zkCharge || 0)) * Math.min(1, dt * 8); w.userData.charge(b.zkCharge);
   root.visible = b.holder.visible; w.userData.updateFx(time, a.phase2 ? 1 : 0, low, root.visible);
 }
 /**
