@@ -68,3 +68,87 @@ test('timings independentes do FPS: 30/45/60 dão a mesma sequência de golpes e
   assert.equal(r30.first, r60.first); assert.equal(r45.first, r60.first);
   assert.deepEqual(r30.hits.slice(0, 2), r60.hits.slice(0, 2));
 });
+
+for (const fps of [30,45,60]) {
+  test('Julgamento anuncia ponto fixo, salta e resolve uma vez a '+fps+' FPS',()=>{
+    for (const answer of ['stay','escape','jump']) {
+      const {sq,log}=world(), a=boss(sq,5), h=hero();
+      sq.setTargets([h]);sq.startLeap(a,h);
+      let apex=0,mark;
+      for(let i=0;i<fps*3 && a.act;i++){
+        sq.stepAction(a,1/fps,h);apex=Math.max(apex,a.airY||0);
+        if(!mark)mark={...a.act.mark};
+        if(i===fps){if(answer==='escape')h.x=mark.x+3;if(answer==='jump')h.y=1.3;}
+        if(a.act)assert.deepEqual(a.act.mark,mark);
+      }
+      assert.ok(apex>5);assert.equal(a.airY,0);assert.equal(log.filter(e=>e.type==='leapStrike').length,1);
+      assert.equal(log.filter(e=>e.type==='meleeHit').length,answer==='stay'?1:0);
+    }
+  });
+}
+test('recuperação permite escudo e preserva o último quadro ativo',()=>{
+  const {sq,log}=world(),a=boss(sq,2),h=hero({attacking:true});sq.setTargets([h]);sq.startMelee(a,h,'Trono_Duplo');
+  const act=a.act;sq.rand=()=>.01;act.t=act.move.close-.05;
+  a.T.brain(sq,a,.01,h);assert.equal(a.act,act);assert.equal(a.react,null);
+  act.t=act.move.close+.1;a.T.brain(sq,a,.01,h);assert.equal(a.react.type,'shield');
+  for(let i=0;i<15;i++)sq.update(1/60);
+  assert.equal(log.filter(e=>e.type==='shield').length,1);assert.equal(a.shield.canActivate(sq.time),false);
+});
+test('avanço emenda flanco apenas uma vez no mesmo orçamento',()=>{
+  const {sq,log}=world(),a=boss(sq,5),h=hero();sq.setTargets([h]);
+  sq.begin(a,{type:'dodge',anim:'dash',goal:'entrar',dx:0,dz:-1,dur:.24});a.act.t=.23;
+  a.T.brain(sq,a,.02,h);assert.equal(a.act.goal,'flanco-duplo');
+  a.act.t=.2;a.T.brain(sq,a,.02,h);assert.equal(log.filter(e=>e.goal==='flanco-duplo').length,1);
+});
+
+test('Julgamento escolhe solo anterior ao muro; um alvo atrás dele fica ileso',()=>{
+ const log=[],sq=new Enemy1Squad({blocked:(_x,z)=>z<3.4,los:(_x,z,_tx,tz)=>z>=3.4&&tz>=3.4,
+   damageTarget:()=>{throw Error('dano atravessou o muro');},event:(type,d)=>log.push({type,...d})});
+ const a=boss(sq,5),h=hero();sq.setTargets([h]);sq.startLeap(a,h);
+ for(let i=0;i<100 && a.act;i++){sq.stepAction(a,1/30,h);assert.ok(a.z>=3.4);}
+ assert.ok(log.some(e=>e.type==='vzMark'&&e.mark.z>=3.4));
+});
+test('a estocada não vira instantaneamente para acertar quem ficou atrás',()=>{
+ const {sq}=world(),a=boss(sq,2),h=hero({z:5});sq.setTargets([h]);const yaw=a.yaw;
+ sq.startMelee(a,h,'Trono_Estocada');assert.equal(a.yaw,yaw);
+ sq.stepAction(a,1/60,h);assert.ok(Math.cos(a.yaw-yaw)>.9);
+});
+
+test('o elo de espada começa na recuperação, termina na terceira ação e preserva punição', () => {
+  const {sq, log} = world(), a = boss(sq, 1.7), h = hero();
+  sq.setTargets([h]);
+  sq.startMelee(a, h);
+  const first = a.act;
+  first.t = first.move.close;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act, first);
+  first.t = first.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act.links, 2);
+  a.act.t = a.act.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  const last = a.act;
+  assert.equal(last.links, 3);
+  last.t = last.move.close + .14;
+  a.T.brain(sq, a, 1/120, h);
+  assert.equal(a.act, last);
+  assert.deepEqual(log.filter(e => e.type === 'vzLink').map(e => e.links), [2,3]);
+  sq.startMelee(a,h,'Trono_Queda');
+  const heavy = a.act;
+  heavy.t = heavy.move.close + .14;
+  a.T.brain(sq,a,1/120,h);
+  assert.equal(a.act,heavy);
+});
+
+test('o impulso aéreo acontece antes de alcançar a marca e move o corpo até ela', () => {
+  const {sq,log}=world(), a=boss(sq,6), h=hero();
+  sq.setTargets([h]);sq.startLeap(a,h);
+  while (a.act.phase!=='airDash' && a.act.t<2) sq.stepAction(a,1/120,h);
+  assert.equal(a.act.phase,'airDash');
+  const mark=a.act.mark;
+  const remaining=()=>Math.hypot(a.x-mark.x,a.z-mark.z);
+  assert.ok(remaining()>1 && a.airY>3);
+  while(a.act.phase==='airDash') sq.stepAction(a,1/120,h);
+  assert.ok(remaining()<.05);
+  assert.equal(log.filter(e=>e.type==='airDash').length,1);
+});
