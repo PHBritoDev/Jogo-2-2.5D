@@ -78,5 +78,48 @@ Os dois vídeos citados no briefing **não chegaram** nesta sessão; clipes e po
 
 **Rota:** a Dimensão IV (campanha, TESTAR e a sombra no céu) usa sempre `bishop4n`. Demônio 4 e mini-chefes não mudam.
 
-## Medições
-_(preenchido abaixo)_
+## Medições no jogo real
+Bot com entradas reais, IA ativa, 0 erros de console em todas as sessões. A simulação roda em passo fixo; o SwiftShader
+não mede o desempenho de aparelho.
+
+**VÉRAXION (Dimensão IV)**
+
+| sessão | janelas acertadas / sem contato (motivo) | arremesso: acerto / erro / teleportes | corte ascendente: acerto / esquiva / alcance | dash: menor intervalo entre inícios |
+|---|---|---|---|---|
+| herói parado, 30 s a 45 FPS | **43 / 2** | — | 1 / 0 / 0 | — |
+| orgânica 60 s | 18 / 37 (longe 16, ângulo 9, esquiva 7) | 1 / 0 / 1 | 2 / 1 / 1 | 0,617 s |
+| herói mantendo distância + dash, 40 s | 22 / 4 | 1 / 1 / 2 | 2 / 0 / 0 | 0,617 s |
+| técnicas forçadas (QA isolado) | — | 1 / 1 / 2 | 2 / 0 / 0 | — |
+
+- Na sessão orgânica apareceram aparo (Guarda das Lâminas), chute 3×, Passo do Carrasco e flanco 5×.
+- Maior tempo parado: 1,1 s.
+- **Alinhamento com o traço real do GLB** (teste): herói parado de frente, de lado e de costas, a 1,5/2,5/3,5 m, em 30 e 60 FPS → **≥ 90 %** dos golpes conectam. Com i-frames na janela: **0** danos falsos.
+- **Raiz:** o quadril horizontal fica constante em todos os clipes de combate (teste). Não há salto de posição entre golpes.
+
+**ZAR'KHAEL (Dimensão III)**
+- A Espiral sai da cabeça da foice e acerta (cúpula no herói).
+- Com o herói fora do alcance, a massa expira a 18 m e a cúpula aparece no fim do voo, sem dano.
+
+**Smoke e regressões**
+- Desktop 1280×720 e celular (Pixel 7) carregam as duas dimensões com 0 erros.
+
+  | dimensão | chamadas de desenho (desktop) | chamadas (celular) | triângulos |
+  |---|---|---|---|
+  | III | 58 | 54 | ~208 mil |
+  | IV | 76 | 64 | ~133 mil |
+
+- `?bisposComPoderes=1` **continua** abrindo os Bispos novos.
+- Suíte completa (`*.test.mjs`, `tests/*.test.mjs`): exatamente as mesmas 9 falhas pré-existentes da main.
+- Testes novos: `tests/veraxion-duas-espadas.test.mjs` (8), no CI `combat315.yml`.
+
+**Evidências** (`docs/combate/evidencias/bispos-3-4/`):
+- `veraxion-luta-completa.mp4` — guarda, aparo, combos, pós-imagem dupla, morte;
+- `veraxion-arremesso-e-corte-ascendente.mp4`;
+- `zarkhael-espiral-acerto.mp4` e `zarkhael-espiral-expira-cupula.mp4`;
+- quadros de cada um;
+- espadas isoladas, espadas no rig em 4 vistas e projétil/cúpula isolados.
+
+## Limites
+- Sem Android físico (Galaxy A55): FPS de aparelho não foi medido.
+- Os clipes Meshy usam muito mais a mão direita. Os golpes da espada B vêm dos quadros em que a mão esquerda realmente
+  golpeia; não há animação nova inventada.
