@@ -1,7 +1,6 @@
 /** Deterministic cinematic timeline; no renderer, timers, quality or camera-dependent damage. */
-export const WHITE_HOLE=Object.freeze({duration:17,damage:160,range:24,impact:13,radius:7});
-export const WHITE_PHASES=Object.freeze([['ascent',0],['sword',3],['rift',4.5],['growth',6],['silence',10],['launch',11],['impact',13],['return',14.3]]);
-export function whitePhase(t){let result=WHITE_PHASES[0];for(const p of WHITE_PHASES)if(t>=p[1])result=p;return {name:result[0],age:t-result[1]};}
+export const WHITE_HOLE=Object.freeze({duration:17,damage:160,range:24,compression:.2,radius:7});
+export const WHITE_PHASES=Object.freeze([['ascent',0],['sword',3],['rift',4.5],['growth',6],['silence',10],['launch',11],['return',14.3]]);
 export function whiteFlash(t){return .12*Math.max(0,1-Math.abs(t-13.08)/.14);}
 export function impactVictims(center,actors,damage,clear){
  const seen=new Set(),hits=[];
@@ -42,7 +41,7 @@ export class CelestialWhiteHole{
   if(!valid||(this.time<11&&(!target?.alive||target.id!==this.id))){this.cancel();return;}
   const next=this.time+Math.max(0,dt),end=next>=17-1e-9?17:next;
   if(this.time<11)Object.assign(this.target,target);
-  for(const [phase,at] of WHITE_PHASES){if(this.time<at&&end>=at&&phase!=='impact'&&phase!=='return'){this.phase=phase;this.event(phase);}}
+  for(const [phase,at] of WHITE_PHASES){if(this.time<at&&end>=at&&phase!=='return'){this.phase=phase;this.event(phase);}}
   if(end>11){
    if(!this.shot){
     const hand=this.palm?.()||{...this.source,y:this.source.y+1.4},g=this.target;
@@ -61,7 +60,7 @@ export class CelestialWhiteHole{
     if(first!==Infinity){this.contact={x:p.x,y:p.y,z:p.z,time:p.t,actor:victim?.id};this.phase='impact';this.event('impact');
      if(victim&&!victim.invulnerable)this.hit(Math.round(this.damage*.4),victim.id,'contact');}
    }
-   if(this.contact&&!this.hitDone&&end>=this.contact.time+.20){this.hitDone=true;
+   if(this.contact&&!this.hitDone&&end>=this.contact.time+WHITE_HOLE.compression){this.hitDone=true;
     for(const [d,id] of impactVictims(this.contact,this.actors?this.actors():actors,Math.round(this.damage*.6),this.clear))this.hit(d,id,'wave');}
   }
   if(this.time<14.3&&end>=14.3){this.phase='return';this.event('return');}

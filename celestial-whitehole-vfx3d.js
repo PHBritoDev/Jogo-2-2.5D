@@ -15,11 +15,15 @@ void main(){
  emission=mix(emission,vec3(1.,.94,.60),pow(hot,4.));
  gl_FragColor=vec4(emission*1.45,min(1.,lumin*1.65));
 }`;
-function arcGeometry(T,radius,width,lift){
+function arcGeometry(T,radius,width,lift,tear=0){
  const v=[],ix=[];
  for(let i=0;i<=96;i++){const a=TAU*i/96;
-  for(const side of [-1,1]){const r=radius+width*side;v.push(Math.cos(a)*r,Math.sin(a)*r*lift,.12*Math.cos(a));}
-  if(i){const j=i*2;ix.push(j-2,j-1,j,j,j-1,j+1);}
+  for(const side of [-1,1]){
+   const edge=tear?1+.11*Math.sin(a*5+tear)+.07*Math.cos(a*8):1;
+   const r=radius*edge+width*side*(tear?1.3+Math.sin(a*7+tear):1);
+   v.push(Math.cos(a)*r,Math.sin(a)*r*lift,.12*Math.cos(a)+tear*.12*Math.sin(a*3+side*.3));
+  }
+  if(i&&(!tear||Math.sin(a*3+tear)>-.85)){const j=i*2;ix.push(j-2,j-1,j,j,j-1,j+1);}
  }
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setIndex(ix);return g;
 }
@@ -71,7 +75,7 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
  const feathers=softParticles(T,120),threads=ribbons(T,420,{flow:10}),marks=groundDecals(T,5);
  root.add(feathers.mesh,threads.mesh,marks.mesh);
  const ruptures=Array.from({length:3},(_,i)=>{
-  const m=new T.Mesh(arcGeometry(T,1,.018+i*.007,1),line([0xffc36a,0xff7230,0xc05438][i],1));root.add(m);return m;
+  const m=new T.Mesh(arcGeometry(T,1,.032+i*.01,1,i+1),line([0xffc36a,0xff7230,0xc05438][i],1));root.add(m);return m;
  });
  const debris=new T.InstancedMesh(new T.TetrahedronGeometry(.11),new T.MeshStandardMaterial({color:0x59414a,roughness:.85}),36);debris.frustumCulled=false;root.add(debris);
  const pose=new T.Object3D(),start=new T.Vector3(),aim=new T.Vector3(),p=new T.Vector3(),q=new T.Vector3(),rot=new T.Quaternion(),roll=new T.Quaternion(),axis=new T.Vector3(0,0,1);
@@ -158,6 +162,17 @@ export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
     pose.scale.set(width,reach*(1-k),width*.62);pose.updateMatrix();jets.setMatrixAt(i,pose.matrix);
    }
    jets.instanceMatrix.needsUpdate=true;flareMat.opacity=1-k*k;
+  }
+  // Gas torn out of the equatorial plane curls into two opposite polar streams.
+  if(age>=0&&age<1.65){
+   const k=age/1.65;
+   for(let j=0;j<(low?7:14);j++){
+    const a0=j*2.39996,r=(.45+3.8*Math.sin(Math.PI*k))*(.62+.38*hash(j+2));
+    const polar=(u,out)=>{const a=a0+u*(3.8-2*k)+k*3,rr=r*(1-u*.65);
+     out.set(aim.x+Math.cos(a)*rr,aim.y+u*(2+12*easeOut(k))*(.7+.3*hash(j)),aim.z+Math.sin(a)*rr);};
+    for(let i=0;i<8;i++){polar(i/8,p);polar((i+1)/8,q);
+     threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.095*(1-k),.035*(1-k),j%3?ember:gold,ember);}
+   }
   }
   debris.count=age>0&&age<1.65?(low?12:36):0;
   if(age>=0&&age<1.65){const k=age/1.65,travel=easeOut(k);

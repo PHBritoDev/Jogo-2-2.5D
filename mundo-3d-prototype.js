@@ -2082,6 +2082,14 @@ function tickWhiteHole(dt){if(!whiteLease.locked)return;try{whiteLease.run(()=>{
  const range=(5.5-3.35*close+3*wide+4*flight)*(camera.aspect<1?1.35:1);
  whiteDest.copy(whiteLook);whiteDest.x+=range*(-fz*.53+fx*.86);whiteDest.z+=range*(fx*.53+fz*.86);whiteDest.y+=.32+1.1*(1-close)+3.7*flight;
  whiteDest.y=Math.min(whiteDest.y,ceil-.55);whiteDest.y=Math.max(groundHeightAt(whiteDest.x,whiteDest.z)+.6,whiteDest.y);
+ // Sweep the cinematic sightline before placing the camera on the far side of scenery.
+ const length=whiteLook.distanceTo(whiteDest),samples=Math.ceil(length/.42);
+ for(let i=1;i<=samples;i++){
+  whitePoint.copy(whiteLook).lerp(whiteDest,i/samples);
+  if(extraBlocked(whitePoint)||whitePoint.y<terrainHeightAt(whitePoint.x,whitePoint.z)+.22){
+   whiteDest.lerpVectors(whiteLook,whiteDest,Math.max(.075,(i-1)/samples));break;
+  }
+ }
  whiteCam.copy(s.cam).lerp(whiteDest,step(t,0,1)).lerp(s.cam,land);camera.position.copy(whiteCam);camera.lookAt(whiteLook);camera.quaternion.slerp(s.q,1-step(t,0,.7)*(1-land));
  camera.fov=s.fov+(48-s.fov)*step(t,0,1)*(1-land);camera.updateProjectionMatrix();
  const eclipse=(.23*step(t,0,2)+.42*step(t,2.8,5.8)+.35*step(t,6,10))*(1-step(t,13.5,16.8));

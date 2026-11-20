@@ -1,4 +1,4 @@
-import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease,WHITE_PHASES,whiteFlash,impactVictims}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
+import test from'node:test';import assert from'node:assert/strict';import{CelestialWhiteHole,CinematicLease}from'./celestial-whitehole3d.js';import{SKILLS,canCast,unlockedSkills}from'./skills3d.js';import{readFileSync}from'node:fs';
 const source={x:0,y:0,z:0},target=()=>({id:1,x:0,y:0,z:8,alive:true});
 test('sweep e onda independem da frequência do renderer',()=>{
  for(const dt of [1/120,1/60,1/30,.1,3,17]){
@@ -28,3 +28,16 @@ test('lease rollback even when enter or frame throws; idempotent cleanup',()=>{f
 test('purchase, mana and cooldown remain required outside ephemeral debug unlock',()=>{assert(!unlockedSkills().has('ultimate'));assert(unlockedSkills({testAll:true}).has('ultimate'));const u=unlockedSkills({owned:['ultimate']});assert(!canCast('ultimate',{unlocked:u,mana:79}).ok);assert(canCast('ultimate',{unlocked:u,mana:80}).ok);assert(!canCast('ultimate',{unlocked:u,mana:80,cooldownUntil:{ultimate:30000},now:100}).ok);assert.equal(SKILLS.ultimate.cooldown,30000);});
 test('physical position never set by cinematic integration; public test flag forwarded',()=>{const text=readFileSync('mundo-3d-prototype.js','utf8'),a=text.indexOf('// Protagonist Ultimate owns'),b=text.indexOf('function castHolyMagic',a),part=text.slice(a,b);assert(!/player\.position\.(?:set|copy)/.test(part));assert(part.includes('webglcontextlost'));assert(part.includes('stopImmediatePropagation'));assert(readFileSync('index.html','utf8').includes("params.has('todasHabilidades')"));});
 
+
+test('morte antes da soltura cancela; após a soltura a trajetória continua até o chão',()=>{
+ const t=target(),s=new CelestialWhiteHole(),hits=[];
+ s.hit=(...e)=>hits.push(e);s.start(source,t);s.update(10.9,t);t.alive=false;s.update(.2,t);assert(!s.active);
+ t.alive=true;s.start(source,t);s.update(11.1,t);t.alive=false;s.update(4,t);
+ assert(s.contact&&!s.contact.actor);assert.deepEqual(hits,[]);
+});
+test('pausa na compressão conserva as duas janelas de dano separadas',()=>{
+ const t=target(),hits=[],s=new CelestialWhiteHole({hit:(d,id,kind)=>hits.push(kind)});
+ s.start(source,t);while(!s.contact)s.update(1/120,t);
+ assert.deepEqual(hits,['contact']);s.update(7,t,{paused:true});assert.deepEqual(hits,['contact']);
+ s.update(.22,t);assert.deepEqual(hits,['contact','wave']);s.cancel();s.update(17,t);assert.equal(hits.length,2);
+});
