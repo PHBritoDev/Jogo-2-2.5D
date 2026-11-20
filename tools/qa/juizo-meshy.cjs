@@ -45,7 +45,6 @@ async function run() {
     assert.equal(new Set(frames.map(s=>s.hp)).size,3);
     const end=frames.at(-1);
     assert(!end.locked); assert.deepEqual(end.camera,frames[0].savedCamera);
-    await page.setViewportSize({width:900,height:540});
     const dodge=await page.evaluate(()=>{
       const d=SevenSinsDebug3D; d.skills(); d.cast('ultimate'); d.whiteFrame(11.03);
       d.enemyAt(55,null,14); const impact=d.whiteFrame(4); const end=d.whiteFrame(2);
