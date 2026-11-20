@@ -369,7 +369,11 @@ export class Enemy1Squad {
         this.move(a,dx,dz);
       }
     } else this.move(a, act.dx * s * dt, act.dz * s * dt); }
-    if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
+    if (a.kind==='vhazrael' && act.move?.aim && t && act.t<=act.move.close) {
+      const error=wrap(Math.atan2(t.x-a.x,t.z-a.z)-a.yaw);
+      const limit=(act.t<act.move.open?5:.45)*dt;
+      a.yaw=wrap(a.yaw+Math.max(-limit,Math.min(limit,error)));
+    } else if (act.face !== false && t && (act.type !== 'melee' || act.t < (act.move?.open||a.T.melee.windup) * .65)) this.face(a, t.x, t.z, dt);
     if(act.move){
       const m=act.move;act.phase=act.t<m.open?'windup':act.t<=m.close?'active':'recovery';
       let travel=bossTravel(m,act.t)-bossTravel(m,previous);if(t&&travel>0){const room=Math.hypot(t.x-a.x,t.z-a.z)-(a.radius||.5)-(t.radius||.4)-.05;travel=Math.max(0,Math.min(travel,room));} /* Mod 320: avanço longo (Estocada) para no contato, nunca atravessa o alvo */this.move(a,Math.sin(a.yaw)*travel,Math.cos(a.yaw)*travel);a.y=this.ground(a.x,a.z)+bossLift(m,act.t);

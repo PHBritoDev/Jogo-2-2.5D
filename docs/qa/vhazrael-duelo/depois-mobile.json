@@ -1,0 +1,7157 @@
+{
+ "audit": {
+  "on": true,
+  "t": 90.67,
+  "roles": {
+   "idle": 51,
+   "walk": 61,
+   "run": 26,
+   "Trono_Duplo": 9,
+   "Trono_Riposta": 14,
+   "Trono_Estocada": 11,
+   "jump": 8,
+   "block": 8,
+   "Trono_Moinho": 6,
+   "Trono_Queda": 9,
+   "hit": 5,
+   "dash": 15
+  },
+  "acts": {
+   "melee:Trono_Duplo": 9,
+   "melee:Trono_Riposta": 14,
+   "melee:Trono_Estocada": 11,
+   "leap": 8,
+   "block": 8,
+   "melee:Trono_Moinho": 6,
+   "melee:Trono_Queda": 9,
+   "stagger": 5,
+   "dodge:sair": 2,
+   "dodge:flanco-duplo": 4,
+   "dodge:entrar": 3,
+   "dodge:flanquear": 3,
+   "dodge": 3
+  },
+  "events": {
+   "shield": 5,
+   "windup": 49,
+   "meleeMiss": 35,
+   "vzLink": 10,
+   "meleeHit": 19,
+   "leap": 8,
+   "vzMark": 8,
+   "jump": 8,
+   "airDash": 8,
+   "leapStrike": 8,
+   "guard": 8,
+   "vzRiposte": 8,
+   "vzTactic": 13,
+   "tactic:sair": 2,
+   "tactic:flanco-duplo": 4,
+   "tactic:entrar": 3,
+   "tactic:flanquear": 3,
+   "tactic:punir": 1,
+   "dodge": 3
+  },
+  "log": [
+   [
+    1.07,
+    "melee:Trono_Duplo",
+    2.7
+   ],
+   [
+    1.9,
+    "melee:Trono_Riposta",
+    2.1
+   ],
+   [
+    2.67,
+    "melee:Trono_Estocada",
+    5.3
+   ],
+   [
+    3.6,
+    "leap",
+    9.3
+   ],
+   [
+    6.3,
+    "block",
+    1.6
+   ],
+   [
+    6.47,
+    "melee:Trono_Moinho",
+    1.5
+   ],
+   [
+    7.27,
+    "melee:Trono_Queda",
+    2.6
+   ],
+   [
+    8.17,
+    "stagger",
+    1.8
+   ],
+   [
+    8.6,
+    "dodge:sair",
+    2
+   ],
+   [
+    8.87,
+    "dodge:flanco-duplo",
+    4.5
+   ],
+   [
+    9.43,
+    "melee:Trono_Estocada",
+    5.5
+   ],
+   [
+    11.3,
+    "dodge:entrar",
+    6.1
+   ],
+   [
+    11.87,
+    "melee:Trono_Duplo",
+    1.6
+   ],
+   [
+    13.37,
+    "melee:Trono_Riposta",
+    2.8
+   ],
+   [
+    14.13,
+    "leap",
+    5
+   ],
+   [
+    16.6,
+    "melee:Trono_Estocada",
+    5
+   ],
+   [
+    18.27,
+    "block",
+    2
+   ],
+   [
+    18.43,
+    "melee:Trono_Moinho",
+    1.9
+   ],
+   [
+    19.7,
+    "melee:Trono_Queda",
+    2.6
+   ],
+   [
+    21.4,
+    "melee:Trono_Estocada",
+    3.9
+   ],
+   [
+    22.37,
+    "block",
+    3.1
+   ],
+   [
+    22.53,
+    "melee:Trono_Riposta",
+    3.3
+   ],
+   [
+    24.03,
+    "dodge:sair",
+    1.5
+   ],
+   [
+    24.33,
+    "dodge:flanco-duplo",
+    3.1
+   ],
+   [
+    25.07,
+    "melee:Trono_Duplo",
+    2.8
+   ],
+   [
+    25.9,
+    "melee:Trono_Moinho",
+    0.9
+   ],
+   [
+    26.77,
+    "melee:Trono_Riposta",
+    1.7
+   ],
+   [
+    28.37,
+    "dodge:flanquear",
+    2.9
+   ],
+   [
+    29.2,
+    "block",
+    2.6
+   ],
+   [
+    29.37,
+    "melee:Trono_Queda",
+    2.5
+   ],
+   [
+    30.78,
+    "melee:Trono_Riposta",
+    2.7
+   ],
+   [
+    31.44,
+    "leap",
+    4.5
+   ],
+   [
+    33.91,
+    "melee:Trono_Estocada",
+    4.5
+   ],
+   [
+    34.24,
+    "stagger",
+    3
+   ],
+   [
+    35.31,
+    "block",
+    3
+   ],
+   [
+    35.49,
+    "melee:Trono_Duplo",
+    3.2
+   ],
+   [
+    37.36,
+    "melee:Trono_Moinho",
+    2.5
+   ],
+   [
+    38.18,
+    "melee:Trono_Riposta",
+    2.6
+   ],
+   [
+    39,
+    "leap",
+    8.3
+   ],
+   [
+    41.47,
+    "melee:Trono_Estocada",
+    5
+   ],
+   [
+    42.49,
+    "block",
+    1.3
+   ],
+   [
+    42.67,
+    "melee:Trono_Queda",
+    1.2
+   ],
+   [
+    44.47,
+    "stagger",
+    1.3
+   ],
+   [
+    45.04,
+    "block",
+    2.1
+   ],
+   [
+    45.22,
+    "melee:Trono_Riposta",
+    2.6
+   ],
+   [
+    46.62,
+    "leap",
+    7.8
+   ],
+   [
+    49.09,
+    "melee:Trono_Duplo",
+    2
+   ],
+   [
+    50.73,
+    "dodge",
+    1.3
+   ],
+   [
+    51.22,
+    "melee:Trono_Riposta",
+    2.5
+   ],
+   [
+    51.87,
+    "dodge:entrar",
+    4.7
+   ],
+   [
+    52.36,
+    "dodge:flanco-duplo",
+    1.2
+   ],
+   [
+    53.31,
+    "melee:Trono_Estocada",
+    6.3
+   ],
+   [
+    54.11,
+    "leap",
+    4.7
+   ],
+   [
+    56.58,
+    "melee:Trono_Queda",
+    1.6
+   ],
+   [
+    56.73,
+    "stagger",
+    1.3
+   ],
+   [
+    57.38,
+    "block",
+    1.3
+   ],
+   [
+    57.56,
+    "melee:Trono_Duplo",
+    1.6
+   ],
+   [
+    58.38,
+    "melee:Trono_Moinho",
+    2.5
+   ],
+   [
+    59.62,
+    "dodge:flanquear",
+    3.7
+   ],
+   [
+    60.68,
+    "melee:Trono_Estocada",
+    6
+   ],
+   [
+    63.02,
+    "melee:Trono_Riposta",
+    2.7
+   ],
+   [
+    63.82,
+    "leap",
+    5.8
+   ],
+   [
+    66.42,
+    "dodge:flanquear",
+    3
+   ],
+   [
+    67,
+    "melee:Trono_Estocada",
+    5
+   ],
+   [
+    67.52,
+    "melee:Trono_Queda",
+    2.1
+   ],
+   [
+    69.08,
+    "dodge",
+    1.2
+   ],
+   [
+    69.45,
+    "melee:Trono_Riposta",
+    2.1
+   ],
+   [
+    71.12,
+    "dodge:entrar",
+    3.8
+   ],
+   [
+    71.55,
+    "dodge:flanco-duplo",
+    1.2
+   ],
+   [
+    71.77,
+    "melee:Trono_Duplo",
+    3.1
+   ],
+   [
+    72.92,
+    "melee:Trono_Riposta",
+    1.8
+   ],
+   [
+    73.72,
+    "melee:Trono_Queda",
+    2.1
+   ],
+   [
+    75.17,
+    "melee:Trono_Estocada",
+    5
+   ],
+   [
+    77.45,
+    "melee:Trono_Riposta",
+    2.9
+   ],
+   [
+    78.7,
+    "melee:Trono_Duplo",
+    2.8
+   ],
+   [
+    79.53,
+    "melee:Trono_Riposta",
+    2.4
+   ],
+   [
+    80,
+    "melee:Trono_Queda",
+    2.4
+   ],
+   [
+    81.53,
+    "leap",
+    6.7
+   ],
+   [
+    83.98,
+    "melee:Trono_Estocada",
+    4.7
+   ],
+   [
+    84.52,
+    "melee:Trono_Moinho",
+    2.3
+   ],
+   [
+    86.55,
+    "melee:Trono_Duplo",
+    2.8
+   ],
+   [
+    86.87,
+    "stagger",
+    3.3
+   ],
+   [
+    87.73,
+    "melee:Trono_Riposta",
+    2.9
+   ],
+   [
+    88.92,
+    "dodge",
+    2.7
+   ],
+   [
+    89.62,
+    "melee:Trono_Queda",
+    2.9
+   ]
+  ],
+  "passive": 26.75,
+  "passiveMax": 1.63,
+  "lastActT": 0,
+  "repeats": 0,
+  "lastAct": "melee:Trono_Queda",
+  "dist": [
+   10.6,
+   33.9,
+   38.6,
+   7.5
+  ],
+  "idleRun": 0
+ },
+ "samples": [
+  {
+   "t": 0.5,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": null
+   },
+   "blade": {
+    "min": 0.542,
+    "bone": "Chest",
+    "tip": [
+     400.18,
+     -1997.51,
+     -0.21
+    ],
+    "base": [
+     399.99,
+     -1998.31,
+     -1.34
+    ],
+    "carryW": 0.99,
+    "mode": 0.47,
+    "boss": [
+     400.30732657824365,
+     -2000,
+     -2.2518835947644007,
+     0.1488241142768461
+    ]
+   }
+  },
+  {
+   "t": 1,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": null
+   },
+   "blade": {
+    "min": 0.493,
+    "bone": "Chest",
+    "tip": [
+     400.07,
+     -1997.42,
+     -0.97
+    ],
+    "base": [
+     400.75,
+     -1998.18,
+     -1.93
+    ],
+    "carryW": 1,
+    "mode": 0.5,
+    "boss": [
+     401.61871248231444,
+     -2000,
+     -2.337475124370516,
+     -0.6758921923988622
+    ]
+   }
+  },
+  {
+   "t": 1.5,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 1,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.492,
+    "bone": "LeftUpperLeg",
+    "tip": [
+     404.27,
+     -1999.64,
+     -3.37
+    ],
+    "base": [
+     403.19,
+     -1999.21,
+     -2.59
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     401.3652506912161,
+     -2000,
+     -2.0782960662034218,
+     -1.0187683460263603
+    ]
+   }
+  },
+  {
+   "t": 2,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 2,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.787,
+    "bone": "Head",
+    "tip": [
+     398.25,
+     -1998.97,
+     -1.67
+    ],
+    "base": [
+     399.51,
+     -1998.62,
+     -2.16
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     400.67774858578707,
+     -2000,
+     -1.7166150393271378,
+     -1.7902196457913189
+    ]
+   }
+  },
+  {
+   "t": 2.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 2,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.511,
+    "bone": "Hips",
+    "tip": [
+     398.82,
+     -1999.46,
+     -3.13
+    ],
+    "base": [
+     399.92,
+     -1998.76,
+     -2.63
+    ],
+    "carryW": 0.41,
+    "mode": 0.35,
+    "boss": [
+     400.21593835888115,
+     -2000,
+     -1.8376799465938902,
+     -1.9981034386363299
+    ]
+   }
+  },
+  {
+   "t": 3,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.738,
+    "bone": "RightUpperLeg",
+    "tip": [
+     399.9,
+     -1999.66,
+     -4.66
+    ],
+    "base": [
+     398.92,
+     -1998.66,
+     -4.55
+    ],
+    "carryW": 0,
+    "mode": 0.07,
+    "boss": [
+     398.3734563376666,
+     -2000,
+     -3.7323964475431652,
+     -2.411788566639863
+    ]
+   }
+  },
+  {
+   "t": 3.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.529,
+    "bone": "Chest",
+    "tip": [
+     398.87,
+     -1997.27,
+     -5.38
+    ],
+    "base": [
+     398.33,
+     -1998.27,
+     -4.56
+    ],
+    "carryW": 0.74,
+    "mode": 0.03,
+    "boss": [
+     398.2996306459445,
+     -2000,
+     -3.691283448117016,
+     -2.220109471187424
+    ]
+   }
+  },
+  {
+   "t": 4,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.533,
+    "bone": "Head",
+    "tip": [
+     397.32,
+     -1996.14,
+     -3.12
+    ],
+    "base": [
+     398.24,
+     -1997.14,
+     -3.46
+    ],
+    "carryW": 0.03,
+    "mode": 0,
+    "boss": [
+     398.1385721177217,
+     -2000,
+     -3.601665283283854,
+     -2.1883080126838044
+    ]
+   }
+  },
+  {
+   "t": 4.5,
+   "act": "leap",
+   "air": 4.44,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.741,
+    "bone": "RightLowerLeg",
+    "tip": [
+     394.5,
+     -1996.75,
+     -6.63
+    ],
+    "base": [
+     394.43,
+     -1995.37,
+     -6.81
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     394.70167266658717,
+     -1995.5573407202216,
+     -6.053244369999498,
+     -2.1883080126838044
+    ]
+   }
+  },
+  {
+   "t": 5,
+   "act": "leap",
+   "air": 5.4,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.678,
+    "bone": "RightLowerLeg",
+    "tip": [
+     392.6,
+     -1994.59,
+     -9.27
+    ],
+    "base": [
+     392.7,
+     -1993.45,
+     -8.46
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     392.524371460742,
+     -1994.6,
+     -7.545657001445767,
+     -2.1883080126838044
+    ]
+   }
+  },
+  {
+   "t": 5.5,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.377,
+    "bone": "RightLowerLeg",
+    "tip": [
+     393.38,
+     -2000.39,
+     -8.33
+    ],
+    "base": [
+     393.07,
+     -1999.08,
+     -7.92
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     392.5243713958299,
+     -2000,
+     -7.5456569653496395,
+     -2.1883080126838044
+    ]
+   }
+  },
+  {
+   "t": 6,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 3,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.583,
+    "bone": "Chest",
+    "tip": [
+     392.07,
+     -1998.35,
+     -9.7
+    ],
+    "base": [
+     392.2,
+     -1998.51,
+     -8.31
+    ],
+    "carryW": 0.55,
+    "mode": 0,
+    "boss": [
+     392.50570485437754,
+     -2000,
+     -7.469889286485444,
+     -1.7304310293261722
+    ]
+   }
+  },
+  {
+   "t": 6.5,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 4,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.753,
+    "bone": "Chest",
+    "tip": [
+     390.56,
+     -1999.45,
+     -8.15
+    ],
+    "base": [
+     391.76,
+     -1998.75,
+     -7.98
+    ],
+    "carryW": 0.13,
+    "mode": 0.46,
+    "boss": [
+     392.3872788088657,
+     -2000,
+     -7.149146615619967,
+     -1.008610886471269
+    ]
+   }
+  },
+  {
+   "t": 7,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 4,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.29,
+    "bone": "LeftLowerArm",
+    "tip": [
+     393.92,
+     -1997.79,
+     -7.23
+    ],
+    "base": [
+     392.76,
+     -1998.19,
+     -6.56
+    ],
+    "carryW": 0,
+    "mode": 0.48,
+    "boss": [
+     392.3872788088657,
+     -2000,
+     -7.149146615619967,
+     -0.6804090159573419
+    ]
+   }
+  },
+  {
+   "t": 7.5,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 5,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.6,
+    "bone": "Chest",
+    "tip": [
+     393.04,
+     -1998.25,
+     -5.37
+    ],
+    "base": [
+     392.15,
+     -1998.12,
+     -6.45
+    ],
+    "carryW": 0,
+    "mode": 0.48,
+    "boss": [
+     392.381714795157,
+     -2000,
+     -7.142271844967162,
+     -0.4405796438832053
+    ]
+   }
+  },
+  {
+   "t": 8,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 5,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.358,
+    "bone": "LeftLowerArm",
+    "tip": [
+     392.81,
+     -1996.37,
+     -5.32
+    ],
+    "base": [
+     392.16,
+     -1997.49,
+     -5.85
+    ],
+    "carryW": 0,
+    "mode": 0.48,
+    "boss": [
+     392.2007798109281,
+     -2000,
+     -6.7114055162036115,
+     -0.39757102528409843
+    ]
+   }
+  },
+  {
+   "t": 8.5,
+   "act": "stagger",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 5,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.516,
+    "bone": "RightLowerLeg",
+    "tip": [
+     391.58,
+     -2000.43,
+     -6.79
+    ],
+    "base": [
+     391.58,
+     -1999.09,
+     -7.22
+    ],
+    "carryW": 0,
+    "mode": 0.48,
+    "boss": [
+     392.48394138555886,
+     -2000,
+     -7.085907128955353,
+     -0.39757102528409843
+    ]
+   }
+  },
+  {
+   "t": 9,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 5,
+    "leap": 1,
+    "dash": 2,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.67,
+    "bone": "Chest",
+    "tip": [
+     393.13,
+     -1998.33,
+     -7.84
+    ],
+    "base": [
+     394.48,
+     -1998.12,
+     -7.52
+    ],
+    "carryW": 0.98,
+    "mode": 0.95,
+    "boss": [
+     395.6094532328038,
+     -2000,
+     -7.334985962136031,
+     -1.1994995518488483
+    ]
+   }
+  },
+  {
+   "t": 9.5,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 6,
+    "leap": 1,
+    "dash": 2,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.734,
+    "bone": "Head",
+    "tip": [
+     392.84,
+     -1997.15,
+     -7.23
+    ],
+    "base": [
+     393.95,
+     -1997.98,
+     -7.44
+    ],
+    "carryW": 0.28,
+    "mode": 0.07,
+    "boss": [
+     395.0806335264188,
+     -2000,
+     -6.867171741461953,
+     -1.5597082290972866
+    ]
+   }
+  },
+  {
+   "t": 10,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 6,
+    "leap": 1,
+    "dash": 2,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.599,
+    "bone": "Hips",
+    "tip": [
+     393.22,
+     -1999.98,
+     -7.74
+    ],
+    "base": [
+     392.88,
+     -1998.65,
+     -7.43
+    ],
+    "carryW": 0,
+    "mode": 0.04,
+    "boss": [
+     392.48132133358524,
+     -2000,
+     -6.807648730059983,
+     -1.547003025657479
+    ]
+   }
+  },
+  {
+   "t": 10.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 6,
+    "leap": 1,
+    "dash": 2,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.526,
+    "bone": "Chest",
+    "tip": [
+     391.19,
+     -1997.03,
+     -7.93
+    ],
+    "base": [
+     391.28,
+     -1998.18,
+     -7.15
+    ],
+    "carryW": 0.96,
+    "mode": 0,
+    "boss": [
+     391.95174351497826,
+     -2000,
+     -6.643536325673606,
+     -1.271280438931185
+    ]
+   }
+  },
+  {
+   "t": 11,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 6,
+    "leap": 1,
+    "dash": 2,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.473,
+    "bone": "Chest",
+    "tip": [
+     389.07,
+     -1996.87,
+     -7.1
+    ],
+    "base": [
+     389.21,
+     -1998.03,
+     -6.34
+    ],
+    "carryW": 1,
+    "mode": 0,
+    "boss": [
+     389.8710905605424,
+     -2000,
+     -5.872478760686006,
+     -1.1783584491493162
+    ]
+   }
+  },
+  {
+   "t": 11.5,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 6,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.771,
+    "bone": "Head",
+    "tip": [
+     383.49,
+     -1997.53,
+     -2.81
+    ],
+    "base": [
+     384.72,
+     -1997.93,
+     -3.33
+    ],
+    "carryW": 1,
+    "mode": 0.72,
+    "boss": [
+     385.96888773694985,
+     -2000,
+     -3.6237048766641236,
+     -0.9250207456903833
+    ]
+   }
+  },
+  {
+   "t": 12,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 7,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.631,
+    "bone": "Head",
+    "tip": [
+     380.83,
+     -1997.62,
+     -2.32
+    ],
+    "base": [
+     381.96,
+     -1997.57,
+     -3.14
+    ],
+    "carryW": 0.07,
+    "mode": 0.68,
+    "boss": [
+     383.040877966542,
+     -2000,
+     -1.7924479335364456,
+     0.32487843248155
+    ]
+   }
+  },
+  {
+   "t": 12.5,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 7,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.678,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     384.42,
+     -2000.26,
+     -2.36
+    ],
+    "base": [
+     383.88,
+     -1999.02,
+     -1.99
+    ],
+    "carryW": 0,
+    "mode": 0.68,
+    "boss": [
+     383.3011820002097,
+     -2000,
+     -1.0300723972598924,
+     0.32902699885259856
+    ]
+   }
+  },
+  {
+   "t": 13,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 7,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.563,
+    "bone": "Chest",
+    "tip": [
+     383.28,
+     -1998.57,
+     1.52
+    ],
+    "base": [
+     383.06,
+     -1998.51,
+     0.14
+    ],
+    "carryW": 0.65,
+    "mode": 0.59,
+    "boss": [
+     383.3994622486125,
+     -2000,
+     -0.7066276359675984,
+     0.14592276242012103
+    ]
+   }
+  },
+  {
+   "t": 13.5,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.844,
+    "bone": "Head",
+    "tip": [
+     383.28,
+     -1998.7,
+     2.31
+    ],
+    "base": [
+     382.92,
+     -1998.49,
+     0.97
+    ],
+    "carryW": 0.02,
+    "mode": 0.51,
+    "boss": [
+     383.3664768376242,
+     -2000,
+     -0.27007987228852415,
+     -0.20436883175866136
+    ]
+   }
+  },
+  {
+   "t": 14,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 1,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.507,
+    "bone": "Hips",
+    "tip": [
+     382.06,
+     -1999.46,
+     1.59
+    ],
+    "base": [
+     382.5,
+     -1998.76,
+     0.46
+    ],
+    "carryW": 0.41,
+    "mode": 0.35,
+    "boss": [
+     383.2755978958482,
+     -2000,
+     0.13512451393616917,
+     -0.37880190885927545
+    ]
+   }
+  },
+  {
+   "t": 14.5,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.582,
+    "bone": "Head",
+    "tip": [
+     383.84,
+     -1996.04,
+     0.69
+    ],
+    "base": [
+     383.37,
+     -1997.17,
+     0.01
+    ],
+    "carryW": 0.03,
+    "mode": 0.02,
+    "boss": [
+     383.1937071101653,
+     -2000,
+     0.26503059176191235,
+     -0.5124071954502606
+    ]
+   }
+  },
+  {
+   "t": 15,
+   "act": "leap",
+   "air": 4.34,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.743,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.5,
+     -1996.86,
+     2.27
+    ],
+    "base": [
+     381.33,
+     -1995.48,
+     2.39
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     382.04236935541616,
+     -1995.65966066482,
+     2.0486632015011983,
+     -0.5124071954502606
+    ]
+   }
+  },
+  {
+   "t": 15.5,
+   "act": "leap",
+   "air": 5.4,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.7,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.56,
+     -1994.71,
+     3.53
+    ],
+    "base": [
+     380.25,
+     -1993.51,
+     3.35
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     381.1990464037389,
+     -1994.6,
+     3.3559133243154124,
+     -0.5124071954502606
+    ]
+   }
+  },
+  {
+   "t": 16,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.387,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.32,
+     -2000.37,
+     2.56
+    ],
+    "base": [
+     380.78,
+     -1999.07,
+     2.84
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     381.19904636563655,
+     -2000,
+     3.355913384452791,
+     -0.5124071954502606
+    ]
+   }
+  },
+  {
+   "t": 16.5,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 8,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.572,
+    "bone": "Hips",
+    "tip": [
+     379.37,
+     -1999.73,
+     3.34
+    ],
+    "base": [
+     380.32,
+     -1998.7,
+     3.32
+    ],
+    "carryW": 0.41,
+    "mode": 0.01,
+    "boss": [
+     381.16612804167863,
+     -2000,
+     3.387504877870257,
+     -0.6461108258025399
+    ]
+   }
+  },
+  {
+   "t": 17,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 9,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 1,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.72,
+    "bone": "Hips",
+    "tip": [
+     379.88,
+     -1998.81,
+     3.45
+    ],
+    "base": [
+     379.21,
+     -1998.34,
+     4.58
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.3045280725481,
+     -2000,
+     5.365213007580317,
+     -0.7512508410794656
+    ]
+   }
+  },
+  {
+   "t": 17.5,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 9,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.536,
+    "bone": "Chest",
+    "tip": [
+     378.23,
+     -1996.94,
+     7.53
+    ],
+    "base": [
+     378.95,
+     -1998.1,
+     7.21
+    ],
+    "carryW": 0.98,
+    "mode": 0,
+    "boss": [
+     379.2262019953401,
+     -2000,
+     6.354593337737585,
+     0.6288089760090482
+    ]
+   }
+  },
+  {
+   "t": 18,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 9,
+    "leap": 2,
+    "dash": 3,
+    "block": 1,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.518,
+    "bone": "Chest",
+    "tip": [
+     379.24,
+     -1997.01,
+     8.74
+    ],
+    "base": [
+     379.87,
+     -1998.17,
+     8.27
+    ],
+    "carryW": 1,
+    "mode": 0,
+    "boss": [
+     380.02484249666816,
+     -2000,
+     7.414859084419845,
+     0.8595975816955149
+    ]
+   }
+  },
+  {
+   "t": 18.5,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 10,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.515,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.52,
+     -2000.05,
+     9.29
+    ],
+    "base": [
+     380.18,
+     -1998.91,
+     8.55
+    ],
+    "carryW": 0.09,
+    "mode": 0.46,
+    "boss": [
+     380.4493164846413,
+     -2000,
+     7.760422472781307,
+     1.192507034017342
+    ]
+   }
+  },
+  {
+   "t": 19,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 10,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.542,
+    "bone": "Chest",
+    "tip": [
+     381.06,
+     -1998.85,
+     5.88
+    ],
+    "base": [
+     381.28,
+     -1998.68,
+     7.25
+    ],
+    "carryW": 0,
+    "mode": 0.48,
+    "boss": [
+     380.4493164846413,
+     -2000,
+     7.765776800085325,
+     1.401266540275734
+    ]
+   }
+  },
+  {
+   "t": 19.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 10,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.479,
+    "bone": "Hips",
+    "tip": [
+     382.22,
+     -1999.41,
+     7.84
+    ],
+    "base": [
+     381.12,
+     -1998.66,
+     8.28
+    ],
+    "carryW": 0.41,
+    "mode": 0.48,
+    "boss": [
+     380.4779287017839,
+     -2000,
+     7.774644028379769,
+     1.7996360562265643
+    ]
+   }
+  },
+  {
+   "t": 20,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 11,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.584,
+    "bone": "LeftLowerArm",
+    "tip": [
+     381.18,
+     -1997.49,
+     6.13
+    ],
+    "base": [
+     381.19,
+     -1997.75,
+     7.51
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.5544393425425,
+     -2000,
+     7.8651334256459595,
+     2.1315439203410667
+    ]
+   }
+  },
+  {
+   "t": 20.5,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 11,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.533,
+    "bone": "LeftLowerArm",
+    "tip": [
+     379.79,
+     -2000.12,
+     6.68
+    ],
+    "base": [
+     380.95,
+     -1999.38,
+     6.9
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.57479085719126,
+     -2000,
+     7.845754029621664,
+     2.152960464104994
+    ]
+   }
+  },
+  {
+   "t": 21,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 11,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.533,
+    "bone": "RightLowerLeg",
+    "tip": [
+     382.47,
+     -1999.61,
+     7.02
+    ],
+    "base": [
+     381.57,
+     -1998.85,
+     7.77
+    ],
+    "carryW": 0.41,
+    "mode": 0.5,
+    "boss": [
+     380.57848855951784,
+     -2000,
+     7.853958326587192,
+     2.095601217423353
+    ]
+   }
+  },
+  {
+   "t": 21.5,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 12,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.689,
+    "bone": "Head",
+    "tip": [
+     382.26,
+     -1996.29,
+     7.08
+    ],
+    "base": [
+     382.05,
+     -1997.42,
+     7.87
+    ],
+    "carryW": 0.08,
+    "mode": 0.5,
+    "boss": [
+     380.9897545125316,
+     -2000,
+     7.860102294859677,
+     1.9286548709136029
+    ]
+   }
+  },
+  {
+   "t": 22,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 12,
+    "leap": 2,
+    "dash": 3,
+    "block": 2,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.394,
+    "bone": "Hips",
+    "tip": [
+     384.39,
+     -1999.97,
+     7.35
+    ],
+    "base": [
+     383.64,
+     -1998.8,
+     7.52
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     383.2235284062315,
+     -2000,
+     7.027526283207737,
+     1.9275120615071477
+    ]
+   }
+  },
+  {
+   "t": 22.5,
+   "act": "block",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 12,
+    "leap": 2,
+    "dash": 3,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.722,
+    "bone": "RightLowerLeg",
+    "tip": [
+     384.78,
+     -2000.05,
+     7.22
+    ],
+    "base": [
+     384.17,
+     -1998.91,
+     7.75
+    ],
+    "carryW": 0.23,
+    "mode": 0.5,
+    "boss": [
+     383.38336947265566,
+     -2000,
+     6.952758358928389,
+     2.0452753627961444
+    ]
+   }
+  },
+  {
+   "t": 23,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 13,
+    "leap": 2,
+    "dash": 3,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.734,
+    "bone": "RightLowerLeg",
+    "tip": [
+     386.04,
+     -1998.69,
+     7.27
+    ],
+    "base": [
+     384.67,
+     -1998.93,
+     7.36
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     383.87418068605064,
+     -2000,
+     6.683892353732003,
+     2.074185798966372
+    ]
+   }
+  },
+  {
+   "t": 23.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 13,
+    "leap": 2,
+    "dash": 3,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.572,
+    "bone": "Chest",
+    "tip": [
+     385.29,
+     -1997.61,
+     4.72
+    ],
+    "base": [
+     384.81,
+     -1998.31,
+     5.83
+    ],
+    "carryW": 0.96,
+    "mode": 0.5,
+    "boss": [
+     384.0381146247576,
+     -2000,
+     6.4261376448031235,
+     2.6582180354988614
+    ]
+   }
+  },
+  {
+   "t": 24,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 13,
+    "leap": 2,
+    "dash": 3,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.631,
+    "bone": "Chest",
+    "tip": [
+     385.1,
+     -1997.5,
+     3.24
+    ],
+    "base": [
+     384.98,
+     -1998.26,
+     4.42
+    ],
+    "carryW": 1,
+    "mode": 0.5,
+    "boss": [
+     384.3744476071579,
+     -2000,
+     5.306375225545931,
+     2.9788235163149164
+    ]
+   }
+  },
+  {
+   "t": 24.5,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 13,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.703,
+    "bone": "Chest",
+    "tip": [
+     386.75,
+     -1998.35,
+     5.83
+    ],
+    "base": [
+     386.28,
+     -1998.14,
+     7.13
+    ],
+    "carryW": 1,
+    "mode": 0.97,
+    "boss": [
+     385.8997604920572,
+     -2000,
+     8.22831419556471,
+     -2.85475324609284
+    ]
+   }
+  },
+  {
+   "t": 25,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 13,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.524,
+    "bone": "Chest",
+    "tip": [
+     384.08,
+     -1997.54,
+     5.9
+    ],
+    "base": [
+     385.04,
+     -1998.26,
+     6.63
+    ],
+    "carryW": 1,
+    "mode": 0.53,
+    "boss": [
+     385.3992755188099,
+     -2000,
+     7.486206694226895,
+     -2.2448337488654624
+    ]
+   }
+  },
+  {
+   "t": 25.5,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 14,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.537,
+    "bone": "LeftUpperLeg",
+    "tip": [
+     387.28,
+     -1999.93,
+     9.32
+    ],
+    "base": [
+     386.27,
+     -1999.29,
+     8.6
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     385.052173825733,
+     -2000,
+     7.308374388995573,
+     -2.0061635102755577
+    ]
+   }
+  },
+  {
+   "t": 26,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 15,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.553,
+    "bone": "RightLowerLeg",
+    "tip": [
+     385.02,
+     -2000.09,
+     5.6
+    ],
+    "base": [
+     385.08,
+     -1998.88,
+     6.3
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     384.6488470391321,
+     -2000,
+     7.049244903693105,
+     -1.9397104823031528
+    ]
+   }
+  },
+  {
+   "t": 26.5,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 15,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.553,
+    "bone": "RightLowerLeg",
+    "tip": [
+     382.55,
+     -1999.71,
+     7.3
+    ],
+    "base": [
+     383.51,
+     -1998.96,
+     6.61
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     384.5397726870584,
+     -2000,
+     6.959647291649059,
+     -2.2584720872946904
+    ]
+   }
+  },
+  {
+   "t": 27,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 16,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.94,
+    "bone": "Head",
+    "tip": [
+     384.21,
+     -1997.92,
+     4.01
+    ],
+    "base": [
+     384.67,
+     -1998.31,
+     5.27
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     384.37030482745814,
+     -2000,
+     6.465018164983329,
+     -2.8351526735514607
+    ]
+   }
+  },
+  {
+   "t": 27.5,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 16,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.493,
+    "bone": "Chest",
+    "tip": [
+     384.5,
+     -1998,
+     4.36
+    ],
+    "base": [
+     384.76,
+     -1998.43,
+     5.67
+    ],
+    "carryW": 0.8,
+    "mode": 0.5,
+    "boss": [
+     384.35928610936,
+     -2000,
+     6.432355638481266,
+     -3.033054016437755
+    ]
+   }
+  },
+  {
+   "t": 28,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 16,
+    "leap": 2,
+    "dash": 5,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.587,
+    "bone": "Chest",
+    "tip": [
+     384.06,
+     -1997.55,
+     3.79
+    ],
+    "base": [
+     384.34,
+     -1998.3,
+     4.94
+    ],
+    "carryW": 1,
+    "mode": 0.5,
+    "boss": [
+     384.1069154875283,
+     -2000,
+     5.931077151682348,
+     -2.9697098820515384
+    ]
+   }
+  },
+  {
+   "t": 28.5,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 16,
+    "leap": 2,
+    "dash": 6,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.693,
+    "bone": "Chest",
+    "tip": [
+     382.22,
+     -1997.76,
+     2.54
+    ],
+    "base": [
+     382.21,
+     -1997.98,
+     3.92
+    ],
+    "carryW": 1,
+    "mode": 0.8,
+    "boss": [
+     382.07380194582674,
+     -2000,
+     5.094502577834732,
+     -2.781711800390023
+    ]
+   }
+  },
+  {
+   "t": 29,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 16,
+    "leap": 2,
+    "dash": 6,
+    "block": 3,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.591,
+    "bone": "Chest",
+    "tip": [
+     381.66,
+     -1997.61,
+     2.93
+    ],
+    "base": [
+     381.32,
+     -1998.32,
+     4.09
+    ],
+    "carryW": 1,
+    "mode": 0.54,
+    "boss": [
+     380.62932742589373,
+     -2000,
+     4.81743717407253,
+     2.846451449782984
+    ]
+   }
+  },
+  {
+   "t": 29.5,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 17,
+    "leap": 2,
+    "dash": 6,
+    "block": 4,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.461,
+    "bone": "Hips",
+    "tip": [
+     379.42,
+     -1999.62,
+     3.21
+    ],
+    "base": [
+     379.96,
+     -1998.71,
+     4.12
+    ],
+    "carryW": 0.03,
+    "mode": 0.5,
+    "boss": [
+     379.80921901755073,
+     -2000,
+     4.92170620491245,
+     2.9654886357369805
+    ]
+   }
+  },
+  {
+   "t": 30,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 17,
+    "leap": 2,
+    "dash": 6,
+    "block": 4,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.532,
+    "bone": "LeftLowerArm",
+    "tip": [
+     378.62,
+     -1996.49,
+     5.22
+    ],
+    "base": [
+     379.49,
+     -1997.25,
+     4.43
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.77626203118905,
+     -2000,
+     4.709954753468033,
+     -2.987191473340514
+    ]
+   }
+  },
+  {
+   "t": 30.51,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 17,
+    "leap": 2,
+    "dash": 6,
+    "block": 4,
+    "shield": 2,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.426,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     378.91,
+     -1999.83,
+     5.23
+    ],
+    "base": [
+     379.17,
+     -1999.41,
+     3.92
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.7246353805948,
+     -2000,
+     4.3782491151994485,
+     -2.987191473340514
+    ]
+   }
+  },
+  {
+   "t": 31.02,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 18,
+    "leap": 2,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.953,
+    "bone": "Head",
+    "tip": [
+     377.33,
+     -1997.86,
+     2.56
+    ],
+    "base": [
+     378.46,
+     -1998.21,
+     3.31
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.0697759024607,
+     -2000,
+     4.434610592748467,
+     -2.2539912970647276
+    ]
+   }
+  },
+  {
+   "t": 31.53,
+   "act": "leap",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 18,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.742,
+    "bone": "Chest",
+    "tip": [
+     377.12,
+     -1999.79,
+     4.38
+    ],
+    "base": [
+     378.13,
+     -1998.86,
+     4.12
+    ],
+    "carryW": 0.17,
+    "mode": 0.19,
+    "boss": [
+     379.1358467676263,
+     -2000,
+     4.429010006694456,
+     -0.6422929436957997
+    ]
+   }
+  },
+  {
+   "t": 32.04,
+   "act": "leap",
+   "air": 1.81,
+   "shield": "active",
+   "mix": {
+    "melee": 18,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.95,
+    "bone": "Head",
+    "tip": [
+     376.9,
+     -1997.28,
+     6.42
+    ],
+    "base": [
+     377.86,
+     -1996.83,
+     5.51
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     379.2144127995278,
+     -1998.1937673130194,
+     4.699127370662949,
+     -0.6422929436957997
+    ]
+   }
+  },
+  {
+   "t": 32.56,
+   "act": "leap",
+   "air": 5.28,
+   "shield": "active",
+   "mix": {
+    "melee": 18,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.72,
+    "bone": "RightLowerLeg",
+    "tip": [
+     378.68,
+     -1995.75,
+     7.6
+    ],
+    "base": [
+     378.69,
+     -1994.36,
+     7.55
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     379.5636684079634,
+     -1994.7165772160665,
+     7.308574119572329,
+     -0.6422929436957997
+    ]
+   }
+  },
+  {
+   "t": 33.07,
+   "act": "leap",
+   "air": 3.64,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 18,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.611,
+    "bone": "RightUpperLeg",
+    "tip": [
+     378.95,
+     -1996.3,
+     6.67
+    ],
+    "base": [
+     379.79,
+     -1995.22,
+     6.94
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     380.3356496885436,
+     -1996.355540166205,
+     7.487443741166339,
+     -0.6422929436957997
+    ]
+   }
+  },
+  {
+   "t": 33.58,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 18,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.404,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.41,
+     -2000.33,
+     6.67
+    ],
+    "base": [
+     379.91,
+     -1999.05,
+     6.94
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     380.33564969380194,
+     -2000,
+     7.487443741717832,
+     -0.6422929436957997
+    ]
+   }
+  },
+  {
+   "t": 34.09,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 19,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.831,
+    "bone": "Head",
+    "tip": [
+     377.52,
+     -1997.5,
+     5.16
+    ],
+    "base": [
+     378.78,
+     -1997.66,
+     5.74
+    ],
+    "carryW": 0,
+    "mode": 0.06,
+    "boss": [
+     379.3839358709094,
+     -2000,
+     6.923832776684904,
+     -2.262744160492867
+    ]
+   }
+  },
+  {
+   "t": 34.6,
+   "act": "stagger",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 19,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.523,
+    "bone": "RightLowerLeg",
+    "tip": [
+     378.59,
+     -2000.42,
+     5.35
+    ],
+    "base": [
+     379,
+     -1999.09,
+     5.48
+    ],
+    "carryW": 0,
+    "mode": 0.06,
+    "boss": [
+     378.60414792186236,
+     -2000,
+     6.3117511160381605,
+     -2.262744160492867
+    ]
+   }
+  },
+  {
+   "t": 35.11,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 19,
+    "leap": 3,
+    "dash": 6,
+    "block": 4,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.634,
+    "bone": "Chest",
+    "tip": [
+     376.23,
+     -1997.43,
+     4.54
+    ],
+    "base": [
+     377.2,
+     -1998.22,
+     5.17
+    ],
+    "carryW": 0.98,
+    "mode": 0.47,
+    "boss": [
+     377.78502336736585,
+     -2000,
+     6.118033277295663,
+     -2.1621726699900394
+    ]
+   }
+  },
+  {
+   "t": 35.62,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 20,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.637,
+    "bone": "Head",
+    "tip": [
+     378.62,
+     -1996.71,
+     4.55
+    ],
+    "base": [
+     378.83,
+     -1997.23,
+     5.83
+    ],
+    "carryW": 0.01,
+    "mode": 0.5,
+    "boss": [
+     377.2940161652159,
+     -2000,
+     5.841812965838576,
+     -1.7747726516425382
+    ]
+   }
+  },
+  {
+   "t": 36.13,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 20,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.956,
+    "bone": "Chest",
+    "tip": [
+     375.35,
+     -1999.11,
+     6.52
+    ],
+    "base": [
+     376.48,
+     -1998.35,
+     6.2
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     376.43170240616115,
+     -2000,
+     5.681386656809288,
+     -1.7547351229917416
+    ]
+   }
+  },
+  {
+   "t": 36.64,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 20,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.544,
+    "bone": "Chest",
+    "tip": [
+     374.04,
+     -1998.25,
+     4.87
+    ],
+    "base": [
+     375.42,
+     -1998.43,
+     5.03
+    ],
+    "carryW": 0.69,
+    "mode": 0.5,
+    "boss": [
+     376.1323104347513,
+     -2000,
+     5.622857118096048,
+     -1.7917844963178227
+    ]
+   }
+  },
+  {
+   "t": 37.16,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 20,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.56,
+    "bone": "Chest",
+    "tip": [
+     373.98,
+     -1997.56,
+     4.16
+    ],
+    "base": [
+     375.04,
+     -1998.31,
+     4.68
+    ],
+    "carryW": 0.99,
+    "mode": 0.5,
+    "boss": [
+     375.6351500581568,
+     -2000,
+     5.438287015715194,
+     -2.088489506563063
+    ]
+   }
+  },
+  {
+   "t": 37.67,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 21,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.278,
+    "bone": "LeftLowerArm",
+    "tip": [
+     376.49,
+     -1998.28,
+     3.99
+    ],
+    "base": [
+     376.07,
+     -1997.97,
+     5.29
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     375.5248871764847,
+     -2000,
+     5.765078628785273,
+     -2.6752145601780524
+    ]
+   }
+  },
+  {
+   "t": 38.18,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.835,
+    "bone": "Chest",
+    "tip": [
+     377.31,
+     -1999.28,
+     4.33
+    ],
+    "base": [
+     376.35,
+     -1998.52,
+     5.02
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     375.4649926055509,
+     -2000,
+     5.627555393029845,
+     -2.845605448995931
+    ]
+   }
+  },
+  {
+   "t": 38.69,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 3,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.759,
+    "bone": "Chest",
+    "tip": [
+     377.65,
+     -1998.79,
+     4.09
+    ],
+    "base": [
+     376.66,
+     -1998.92,
+     5.08
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     375.60244100495214,
+     -2000,
+     5.0957127647394564,
+     2.8690251439625176
+    ]
+   }
+  },
+  {
+   "t": 39.2,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.744,
+    "bone": "Head",
+    "tip": [
+     377.74,
+     -1997.01,
+     4.71
+    ],
+    "base": [
+     376.48,
+     -1997.48,
+     5.09
+    ],
+    "carryW": 0.16,
+    "mode": 0.04,
+    "boss": [
+     375.5131417184904,
+     -2000,
+     4.843621054205482,
+     2.3887162912447244
+    ]
+   }
+  },
+  {
+   "t": 39.71,
+   "act": "leap",
+   "air": 3.03,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.763,
+    "bone": "RightLowerLeg",
+    "tip": [
+     377.55,
+     -1998.2,
+     3.45
+    ],
+    "base": [
+     377.67,
+     -1996.81,
+     3.43
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     376.8747008152241,
+     -1996.968524930748,
+     3.6689412092971576,
+     2.3887162912447244
+    ]
+   }
+  },
+  {
+   "t": 40.22,
+   "act": "leap",
+   "air": 5.4,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.74,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.85,
+     -1995.32,
+     0.22
+    ],
+    "base": [
+     381.54,
+     -1993.95,
+     0.2
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     380.57967357834184,
+     -1994.6,
+     0.20708817270542457,
+     2.3887162912447244
+    ]
+   }
+  },
+  {
+   "t": 40.73,
+   "act": "leap",
+   "air": 1.24,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.465,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.45,
+     -1998.96,
+     1.27
+    ],
+    "base": [
+     380.9,
+     -1997.74,
+     0.84
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     380.5796734414581,
+     -1998.7551246537396,
+     0.2070877641363757,
+     2.3887162912447244
+    ]
+   }
+  },
+  {
+   "t": 41.24,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 22,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.474,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.59,
+     -2000.2,
+     1.19
+    ],
+    "base": [
+     380.99,
+     -1998.99,
+     0.83
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     380.57967344060893,
+     -2000,
+     0.20708776160230702,
+     2.3887162912447244
+    ]
+   }
+  },
+  {
+   "t": 41.76,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 23,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.794,
+    "bone": "RightLowerLeg",
+    "tip": [
+     383.42,
+     -1999.77,
+     -2.32
+    ],
+    "base": [
+     382.61,
+     -1998.65,
+     -2.54
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     381.4044053490235,
+     -2000,
+     -2.2358824832788957,
+     2.7578953357873424
+    ]
+   }
+  },
+  {
+   "t": 42.27,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 23,
+    "leap": 4,
+    "dash": 6,
+    "block": 5,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.514,
+    "bone": "Chest",
+    "tip": [
+     382.34,
+     -1997.8,
+     -4.23
+    ],
+    "base": [
+     381.94,
+     -1998.41,
+     -3.03
+    ],
+    "carryW": 0.64,
+    "mode": 0.25,
+    "boss": [
+     381.39929012568655,
+     -2000,
+     -2.3318228865734505,
+     -3.0641539445685324
+    ]
+   }
+  },
+  {
+   "t": 42.78,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 24,
+    "leap": 4,
+    "dash": 6,
+    "block": 6,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.449,
+    "bone": "Hips",
+    "tip": [
+     379.59,
+     -1999.73,
+     -2.69
+    ],
+    "base": [
+     380.63,
+     -1998.79,
+     -2.69
+    ],
+    "carryW": 0.04,
+    "mode": 0.48,
+    "boss": [
+     381.18657224196204,
+     -2000,
+     -2.0885354027166954,
+     -2.3814092385561505
+    ]
+   }
+  },
+  {
+   "t": 43.29,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 24,
+    "leap": 4,
+    "dash": 6,
+    "block": 6,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.544,
+    "bone": "LeftLowerArm",
+    "tip": [
+     381.15,
+     -1996.61,
+     -0.8
+    ],
+    "base": [
+     380.88,
+     -1997.26,
+     -2.01
+    ],
+    "carryW": 0,
+    "mode": 0.49,
+    "boss": [
+     381.18657224196204,
+     -2000,
+     -2.0885354027166954,
+     -2.021876756151016
+    ]
+   }
+  },
+  {
+   "t": 43.8,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 24,
+    "leap": 4,
+    "dash": 6,
+    "block": 6,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.443,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     381.41,
+     -1999.89,
+     -0.95
+    ],
+    "base": [
+     380.5,
+     -1999.41,
+     -1.9
+    ],
+    "carryW": 0,
+    "mode": 0.49,
+    "boss": [
+     381.18627906287946,
+     -2000,
+     -2.0886774152344154,
+     -2.021876756151016
+    ]
+   }
+  },
+  {
+   "t": 44.31,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 24,
+    "leap": 4,
+    "dash": 6,
+    "block": 6,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.442,
+    "bone": "Chest",
+    "tip": [
+     379.6,
+     -1997.67,
+     -3
+    ],
+    "base": [
+     380.71,
+     -1998.37,
+     -2.51
+    ],
+    "carryW": 0.95,
+    "mode": 0.5,
+    "boss": [
+     381.19808205468814,
+     -2000,
+     -1.7682211670644525,
+     -2.055677604569524
+    ]
+   }
+  },
+  {
+   "t": 44.82,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 24,
+    "leap": 4,
+    "dash": 6,
+    "block": 6,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.482,
+    "bone": "Chest",
+    "tip": [
+     379.94,
+     -1998.2,
+     -2.94
+    ],
+    "base": [
+     380.91,
+     -1998.51,
+     -1.98
+    ],
+    "carryW": 0.75,
+    "mode": 0.5,
+    "boss": [
+     381.0610407909919,
+     -2000,
+     -1.1084450582657772,
+     -2.4463101291428986
+    ]
+   }
+  },
+  {
+   "t": 45.33,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 4,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.805,
+    "bone": "Head",
+    "tip": [
+     380.78,
+     -1998.88,
+     -3.08
+    ],
+    "base": [
+     381.04,
+     -1998.57,
+     -1.74
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.4375339881983,
+     -2000,
+     -0.614935818555006,
+     2.790852604078432
+    ]
+   }
+  },
+  {
+   "t": 45.84,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 4,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.469,
+    "bone": "Hips",
+    "tip": [
+     381.31,
+     -1999.52,
+     -2.68
+    ],
+    "base": [
+     381.22,
+     -1998.76,
+     -1.5
+    ],
+    "carryW": 0.4,
+    "mode": 0.35,
+    "boss": [
+     380.5644935679344,
+     -2000,
+     -1.0431054673394102,
+     3.0544742618370786
+    ]
+   }
+  },
+  {
+   "t": 46.36,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 4,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.574,
+    "bone": "Chest",
+    "tip": [
+     381.59,
+     -1996.92,
+     -2.6
+    ],
+    "base": [
+     380.83,
+     -1998.09,
+     -2.59
+    ],
+    "carryW": 0.99,
+    "mode": 0.02,
+    "boss": [
+     380.2293614891222,
+     -2000,
+     -1.8366913247084016,
+     -2.979894108146401
+    ]
+   }
+  },
+  {
+   "t": 46.87,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.708,
+    "bone": "Head",
+    "tip": [
+     380.54,
+     -1995.91,
+     -4.2
+    ],
+    "base": [
+     380.5,
+     -1997.19,
+     -3.63
+    ],
+    "carryW": 0.13,
+    "mode": 0,
+    "boss": [
+     379.93575915298186,
+     -2000,
+     -3.622988962919163,
+     -2.9834538542598237
+    ]
+   }
+  },
+  {
+   "t": 47.38,
+   "act": "leap",
+   "air": 3.48,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.727,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.93,
+     -1997.74,
+     -6.01
+    ],
+    "base": [
+     379.98,
+     -1996.36,
+     -6.22
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.6489917185926,
+     -1996.5213296398892,
+     -5.508726422841483,
+     -2.9834538542598237
+    ]
+   }
+  },
+  {
+   "t": 47.89,
+   "act": "leap",
+   "air": 5.4,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.746,
+    "bone": "Hips",
+    "tip": [
+     379.94,
+     -1995.15,
+     -10.72
+    ],
+    "base": [
+     379.65,
+     -1993.81,
+     -10.43
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.0055047671046,
+     -1994.6,
+     -9.70303762068533,
+     -2.9834538542598237
+    ]
+   }
+  },
+  {
+   "t": 48.4,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.44,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.32,
+     -2000.26,
+     -9.67
+    ],
+    "base": [
+     379.68,
+     -1999.02,
+     -9.55
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.00550454525785,
+     -2000,
+     -9.703039014667253,
+     -2.9834538542598237
+    ]
+   }
+  },
+  {
+   "t": 48.91,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 25,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.51,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.47,
+     -2000.14,
+     -9.93
+    ],
+    "base": [
+     379.77,
+     -1998.96,
+     -9.64
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.00550454388195,
+     -2000,
+     -9.703039023313151,
+     -2.9834538542598237
+    ]
+   }
+  },
+  {
+   "t": 49.42,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 26,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.889,
+    "bone": "Head",
+    "tip": [
+     378.14,
+     -1996.48,
+     -9.62
+    ],
+    "base": [
+     378.95,
+     -1997.62,
+     -9.61
+    ],
+    "carryW": 0,
+    "mode": 0.39,
+    "boss": [
+     378.87812521251004,
+     -2000,
+     -9.784065830827004,
+     -2.1373424287936498
+    ]
+   }
+  },
+  {
+   "t": 49.93,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 26,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.809,
+    "bone": "Head",
+    "tip": [
+     380.02,
+     -1995.87,
+     -8.88
+    ],
+    "base": [
+     380.04,
+     -1997.22,
+     -9.25
+    ],
+    "carryW": 0,
+    "mode": 0.39,
+    "boss": [
+     378.1981889150598,
+     -2000,
+     -10.293432118596298,
+     -2.1373424287936498
+    ]
+   }
+  },
+  {
+   "t": 50.44,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 26,
+    "leap": 5,
+    "dash": 6,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.563,
+    "bone": "Chest",
+    "tip": [
+     376.73,
+     -1997.6,
+     -8.5
+    ],
+    "base": [
+     377.3,
+     -1998.31,
+     -9.57
+    ],
+    "carryW": 0.93,
+    "mode": 0.48,
+    "boss": [
+     378.1045172766748,
+     -2000,
+     -10.096803712996833,
+     -0.5442680115571982
+    ]
+   }
+  },
+  {
+   "t": 50.96,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 26,
+    "leap": 5,
+    "dash": 7,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.73,
+    "bone": "Chest",
+    "tip": [
+     374.76,
+     -1997.9,
+     -9.05
+    ],
+    "base": [
+     375.31,
+     -1998.1,
+     -10.32
+    ],
+    "carryW": 1,
+    "mode": 0.81,
+    "boss": [
+     375.9465890214864,
+     -2000,
+     -11.325581415825154,
+     -0.02670108924155035
+    ]
+   }
+  },
+  {
+   "t": 51.47,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 27,
+    "leap": 5,
+    "dash": 7,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.947,
+    "bone": "Head",
+    "tip": [
+     377.14,
+     -1997.88,
+     -8.48
+    ],
+    "base": [
+     376.36,
+     -1998.25,
+     -9.58
+    ],
+    "carryW": 0,
+    "mode": 0.54,
+    "boss": [
+     376.2648653349619,
+     -2000,
+     -10.837851214347348,
+     0.5473589460504206
+    ]
+   }
+  },
+  {
+   "t": 51.98,
+   "act": "dodge",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 27,
+    "leap": 5,
+    "dash": 8,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.814,
+    "bone": "Chest",
+    "tip": [
+     376.57,
+     -1997.78,
+     -6.46
+    ],
+    "base": [
+     376.45,
+     -1997.87,
+     -7.85
+    ],
+    "carryW": 0.78,
+    "mode": 0.69,
+    "boss": [
+     376.6437612202404,
+     -2000,
+     -9.15050867803962,
+     0.24824811754343315
+    ]
+   }
+  },
+  {
+   "t": 52.49,
+   "act": "dodge",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 27,
+    "leap": 5,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.633,
+    "bone": "Chest",
+    "tip": [
+     375.31,
+     -1998.4,
+     -3.43
+    ],
+    "base": [
+     375.54,
+     -1998.16,
+     -4.79
+    ],
+    "carryW": 1,
+    "mode": 0.98,
+    "boss": [
+     375.71780355127817,
+     -2000,
+     -5.894921086221007,
+     0.49028007296337545
+    ]
+   }
+  },
+  {
+   "t": 53,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 27,
+    "leap": 5,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.478,
+    "bone": "Chest",
+    "tip": [
+     374.98,
+     -1996.9,
+     -3.26
+    ],
+    "base": [
+     375.58,
+     -1998.11,
+     -3.61
+    ],
+    "carryW": 1,
+    "mode": 0.08,
+    "boss": [
+     375.9595655604753,
+     -2000,
+     -4.36345081416681,
+     0.4611399905297202
+    ]
+   }
+  },
+  {
+   "t": 53.51,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 5,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.89,
+    "bone": "Head",
+    "tip": [
+     378,
+     -1998.1,
+     0.17
+    ],
+    "base": [
+     377.21,
+     -1997.88,
+     -0.96
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     377.0856715085026,
+     -2000,
+     -2.376086942010866,
+     0.5604320601025614
+    ]
+   }
+  },
+  {
+   "t": 54.02,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 5,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.478,
+    "bone": "Chest",
+    "tip": [
+     377.98,
+     -2000.03,
+     -0.09
+    ],
+    "base": [
+     377.7,
+     -1998.7,
+     -0.43
+    ],
+    "carryW": 0.16,
+    "mode": 0.01,
+    "boss": [
+     377.7928882712778,
+     -2000,
+     -1.250480059019842,
+     0.620194241393135
+    ]
+   }
+  },
+  {
+   "t": 54.53,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.511,
+    "bone": "Head",
+    "tip": [
+     378.88,
+     -1996.2,
+     -1.52
+    ],
+    "base": [
+     377.86,
+     -1997.13,
+     -1.31
+    ],
+    "carryW": 0.02,
+    "mode": 0,
+    "boss": [
+     377.8724371576642,
+     -2000,
+     -1.1944925807559228,
+     0.8335854111525813
+    ]
+   }
+  },
+  {
+   "t": 55.04,
+   "act": "leap",
+   "air": 4.68,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.74,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.96,
+     -1996.52,
+     0.72
+    ],
+    "base": [
+     380,
+     -1995.13,
+     0.9
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     379.81654016692613,
+     -1995.3242641966758,
+     0.10956054391714248,
+     0.8335854111525813
+    ]
+   }
+  },
+  {
+   "t": 55.56,
+   "act": "leap",
+   "air": 5.31,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.675,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.3,
+     -1994.59,
+     2.41
+    ],
+    "base": [
+     380.33,
+     -1993.51,
+     1.53
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     380.6876402125675,
+     -1994.693490304709,
+     0.6944581905728102,
+     0.8335854111525813
+    ]
+   }
+  },
+  {
+   "t": 56.07,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 28,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.37,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.77,
+     -2000.39,
+     1.39
+    ],
+    "base": [
+     380.11,
+     -1999.09,
+     1.01
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     380.68764023750066,
+     -2000,
+     0.6944582079799299,
+     0.8335854111525813
+    ]
+   }
+  },
+  {
+   "t": 56.58,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 29,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.493,
+    "bone": "Hips",
+    "tip": [
+     378.77,
+     -1999.25,
+     1.17
+    ],
+    "base": [
+     379.85,
+     -1998.69,
+     0.46
+    ],
+    "carryW": 0.53,
+    "mode": 0.33,
+    "boss": [
+     380.687640237655,
+     -2000,
+     0.694458208087718,
+     -1.2143091926426182
+    ]
+   }
+  },
+  {
+   "t": 57.09,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 29,
+    "leap": 6,
+    "dash": 9,
+    "block": 7,
+    "shield": 3,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.492,
+    "bone": "Hips",
+    "tip": [
+     378.62,
+     -1998.29,
+     0.28
+    ],
+    "base": [
+     380,
+     -1998.5,
+     0.19
+    ],
+    "carryW": 0.7,
+    "mode": 0.49,
+    "boss": [
+     380.687640237655,
+     -2000,
+     0.694458208087718,
+     -1.5979696851667748
+    ]
+   }
+  },
+  {
+   "t": 57.6,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 30,
+    "leap": 6,
+    "dash": 9,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.763,
+    "bone": "Chest",
+    "tip": [
+     382.8,
+     -1999.04,
+     -0.95
+    ],
+    "base": [
+     382.78,
+     -1998.47,
+     0.33
+    ],
+    "carryW": 0.1,
+    "mode": 0.5,
+    "boss": [
+     381.1965976812649,
+     -2000,
+     0.4069006280193638,
+     -2.2003838806846914
+    ]
+   }
+  },
+  {
+   "t": 58.11,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 30,
+    "leap": 6,
+    "dash": 9,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.581,
+    "bone": "Hips",
+    "tip": [
+     382.56,
+     -1998.89,
+     2.54
+    ],
+    "base": [
+     381.47,
+     -1998.97,
+     1.66
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.6957405643217,
+     -2000,
+     -0.035918705311419385,
+     -2.294770075244081
+    ]
+   }
+  },
+  {
+   "t": 58.62,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 31,
+    "leap": 6,
+    "dash": 9,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.304,
+    "bone": "LeftLowerArm",
+    "tip": [
+     380.31,
+     -1998.96,
+     -2.26
+    ],
+    "base": [
+     380.65,
+     -1998.3,
+     -1.08
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.375922303879,
+     -2000,
+     -0.3186774085130305,
+     -2.0306444078700223
+    ]
+   }
+  },
+  {
+   "t": 59.13,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 31,
+    "leap": 6,
+    "dash": 9,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.791,
+    "bone": "Hips",
+    "tip": [
+     381.07,
+     -1999,
+     -2.4
+    ],
+    "base": [
+     380.46,
+     -1998.43,
+     -1.28
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.238328808359,
+     -2000,
+     -0.3784103976444836,
+     -1.9803717758305768
+    ]
+   }
+  },
+  {
+   "t": 59.64,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 31,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.641,
+    "bone": "Chest",
+    "tip": [
+     377.6,
+     -1997.93,
+     -1.72
+    ],
+    "base": [
+     378.94,
+     -1998.32,
+     -1.58
+    ],
+    "carryW": 0.84,
+    "mode": 0.6,
+    "boss": [
+     379.873742997163,
+     -2000,
+     -1.0404619798487036,
+     -1.6261788480430137
+    ]
+   }
+  },
+  {
+   "t": 60.16,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 31,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.553,
+    "bone": "Chest",
+    "tip": [
+     376.77,
+     -1996.95,
+     -1.96
+    ],
+    "base": [
+     377.45,
+     -1998.18,
+     -1.95
+    ],
+    "carryW": 1,
+    "mode": 0.19,
+    "boss": [
+     378.38963486742125,
+     -2000,
+     -2.1217343182398207,
+     -0.6257410352719782
+    ]
+   }
+  },
+  {
+   "t": 60.67,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 31,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.574,
+    "bone": "Chest",
+    "tip": [
+     375.87,
+     -1996.92,
+     0.54
+    ],
+    "base": [
+     376.55,
+     -1998.09,
+     0.89
+    ],
+    "carryW": 1,
+    "mode": 0.01,
+    "boss": [
+     377.43050755948485,
+     -2000,
+     0.5021303283887183,
+     -0.2958207432131826
+    ]
+   }
+  },
+  {
+   "t": 61.17,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 32,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.807,
+    "bone": "Chest",
+    "tip": [
+     376.75,
+     -1998.55,
+     0.89
+    ],
+    "base": [
+     376.45,
+     -1998.09,
+     2.18
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     376.69503980419927,
+     -2000,
+     2.9959396795316193,
+     -0.28655219507699947
+    ]
+   }
+  },
+  {
+   "t": 61.67,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 32,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.494,
+    "bone": "Chest",
+    "tip": [
+     375.13,
+     -1997.45,
+     4.1
+    ],
+    "base": [
+     375.9,
+     -1998.3,
+     3.3
+    ],
+    "carryW": 0.89,
+    "mode": 0.4,
+    "boss": [
+     376.7549218342302,
+     -2000,
+     3.0125391484337696,
+     -0.6725006917899549
+    ]
+   }
+  },
+  {
+   "t": 62.17,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 32,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.532,
+    "bone": "Chest",
+    "tip": [
+     375.5,
+     -1997.45,
+     3.54
+    ],
+    "base": [
+     376.65,
+     -1998.22,
+     3.34
+    ],
+    "carryW": 1,
+    "mode": 0.49,
+    "boss": [
+     377.5773146591018,
+     -2000,
+     3.6662791301174233,
+     -1.455433128673504
+    ]
+   }
+  },
+  {
+   "t": 62.67,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 32,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.604,
+    "bone": "Chest",
+    "tip": [
+     375.57,
+     -1997.53,
+     2.82
+    ],
+    "base": [
+     376.62,
+     -1998.29,
+     3.37
+    ],
+    "carryW": 1,
+    "mode": 0.5,
+    "boss": [
+     377.21363723344354,
+     -2000,
+     4.194782901692697,
+     -2.111368074105358
+    ]
+   }
+  },
+  {
+   "t": 63.17,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.861,
+    "bone": "Head",
+    "tip": [
+     374.33,
+     -1998.6,
+     2.6
+    ],
+    "base": [
+     375.7,
+     -1998.44,
+     2.89
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     376.6490999035909,
+     -2000,
+     3.8287780273455536,
+     -2.2093241976398534
+    ]
+   }
+  },
+  {
+   "t": 63.67,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 6,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.518,
+    "bone": "Hips",
+    "tip": [
+     375.44,
+     -1999.14,
+     1.73
+    ],
+    "base": [
+     376.29,
+     -1998.68,
+     2.73
+    ],
+    "carryW": 0.46,
+    "mode": 0.32,
+    "boss": [
+     376.33778271331664,
+     -2000,
+     3.5895297932464305,
+     -2.360170296148532
+    ]
+   }
+  },
+  {
+   "t": 64.17,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.623,
+    "bone": "Head",
+    "tip": [
+     375.85,
+     -1995.95,
+     3.92
+    ],
+    "base": [
+     376.5,
+     -1997.18,
+     3.71
+    ],
+    "carryW": 0.05,
+    "mode": 0.02,
+    "boss": [
+     376.22483277191327,
+     -2000,
+     3.43665036195688,
+     -2.4812375343836717
+    ]
+   }
+  },
+  {
+   "t": 64.67,
+   "act": "leap",
+   "air": 4.12,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.742,
+    "bone": "RightLowerLeg",
+    "tip": [
+     374.94,
+     -1997.08,
+     1.03
+    ],
+    "base": [
+     374.86,
+     -1995.7,
+     0.83
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     374.89403498476133,
+     -1995.8798822714682,
+     1.6063506739817994,
+     -2.4812375343836717
+    ]
+   }
+  },
+  {
+   "t": 65.17,
+   "act": "leap",
+   "air": 5.4,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.71,
+    "bone": "Hips",
+    "tip": [
+     374.05,
+     -1994.85,
+     -1.64
+    ],
+    "base": [
+     373.95,
+     -1993.59,
+     -1.04
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     373.6228834557468,
+     -1994.6,
+     -0.1414979805590996,
+     -2.4812375343836717
+    ]
+   }
+  },
+  {
+   "t": 65.67,
+   "act": "leap",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.406,
+    "bone": "RightLowerLeg",
+    "tip": [
+     374.74,
+     -2000.33,
+     -0.66
+    ],
+    "base": [
+     374.28,
+     -1999.06,
+     -0.32
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     373.62288339283043,
+     -2000,
+     -0.14149806645670718,
+     -2.4812375343836717
+    ]
+   }
+  },
+  {
+   "t": 66.17,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 10,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.326,
+    "bone": "RightLowerLeg",
+    "tip": [
+     373.52,
+     -2000.18,
+     -1.18
+    ],
+    "base": [
+     373.88,
+     -1998.89,
+     -0.78
+    ],
+    "carryW": 0.22,
+    "mode": 0.09,
+    "boss": [
+     373.6122485149279,
+     -2000,
+     -0.14357722714958712,
+     -2.3159685074991745
+    ]
+   }
+  },
+  {
+   "t": 66.67,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 33,
+    "leap": 7,
+    "dash": 11,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.756,
+    "bone": "RightLowerLeg",
+    "tip": [
+     369.6,
+     -1998.01,
+     -4.25
+    ],
+    "base": [
+     370.78,
+     -1998.09,
+     -3.5
+    ],
+    "carryW": 0.98,
+    "mode": 0.85,
+    "boss": [
+     371.8580319374266,
+     -2000,
+     -2.7900107045530564,
+     -1.6975247489986383
+    ]
+   }
+  },
+  {
+   "t": 67.17,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 34,
+    "leap": 7,
+    "dash": 11,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.8,
+    "bone": "Head",
+    "tip": [
+     374.63,
+     -1997.23,
+     -0.22
+    ],
+    "base": [
+     373.35,
+     -1997.57,
+     -0.67
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     372.7662537431531,
+     -2000,
+     -1.796163409061585,
+     0.8554696565621791
+    ]
+   }
+  },
+  {
+   "t": 67.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 35,
+    "leap": 7,
+    "dash": 11,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.458,
+    "bone": "Hips",
+    "tip": [
+     375.75,
+     -1999.63,
+     -1.04
+    ],
+    "base": [
+     374.84,
+     -1998.71,
+     -0.51
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     374.04305777457137,
+     -2000,
+     -0.6868335333308874,
+     1.3606514809389147
+    ]
+   }
+  },
+  {
+   "t": 68.17,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 35,
+    "leap": 7,
+    "dash": 11,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.532,
+    "bone": "LeftLowerArm",
+    "tip": [
+     373.62,
+     -1996.49,
+     -1.83
+    ],
+    "base": [
+     374.5,
+     -1997.25,
+     -1.06
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     374.250085012206,
+     -2000,
+     -0.7421920287605971,
+     1.8320805904745752
+    ]
+   }
+  },
+  {
+   "t": 68.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 35,
+    "leap": 7,
+    "dash": 11,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.437,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     373.43,
+     -1999.87,
+     -1.49
+    ],
+    "base": [
+     374.75,
+     -1999.41,
+     -1.37
+    ],
+    "carryW": 0,
+    "mode": 0.11,
+    "boss": [
+     374.3544650596096,
+     -2000,
+     -0.7701029570189484,
+     1.8320805904745752
+    ]
+   }
+  },
+  {
+   "t": 69.17,
+   "act": "dodge",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 35,
+    "leap": 7,
+    "dash": 12,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.756,
+    "bone": "Chest",
+    "tip": [
+     376.5,
+     -1997.53,
+     -2.77
+    ],
+    "base": [
+     376.09,
+     -1998,
+     -1.51
+    ],
+    "carryW": 0.94,
+    "mode": 0.65,
+    "boss": [
+     375.399750006451,
+     -2000,
+     -0.4528772062123494,
+     2.9523804183089957
+    ]
+   }
+  },
+  {
+   "t": 69.67,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 36,
+    "leap": 7,
+    "dash": 12,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.951,
+    "bone": "Head",
+    "tip": [
+     374.6,
+     -1997.95,
+     -2.24
+    ],
+    "base": [
+     375.74,
+     -1998.19,
+     -1.47
+    ],
+    "carryW": 0,
+    "mode": 0.58,
+    "boss": [
+     376.4420243457108,
+     -2000,
+     -0.3343732144049038,
+     -2.3428459243490405
+    ]
+   }
+  },
+  {
+   "t": 70.17,
+   "act": null,
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 36,
+    "leap": 7,
+    "dash": 12,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.549,
+    "bone": "Chest",
+    "tip": [
+     375.59,
+     -1998.04,
+     -2.54
+    ],
+    "base": [
+     376.28,
+     -1998.41,
+     -1.38
+    ],
+    "carryW": 0.67,
+    "mode": 0.39,
+    "boss": [
+     376.32300553540205,
+     -2000,
+     -0.45781769521881,
+     -2.5539702883108295
+    ]
+   }
+  },
+  {
+   "t": 70.67,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 36,
+    "leap": 7,
+    "dash": 12,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.512,
+    "bone": "Chest",
+    "tip": [
+     377.1,
+     -1996.99,
+     -2.03
+    ],
+    "base": [
+     376.38,
+     -1998.18,
+     -1.81
+    ],
+    "carryW": 0.99,
+    "mode": 0.03,
+    "boss": [
+     376.0123564291497,
+     -2000,
+     -1.0791719783790379,
+     -2.7086892707866657
+    ]
+   }
+  },
+  {
+   "t": 71.17,
+   "act": "dodge",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 36,
+    "leap": 7,
+    "dash": 13,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.679,
+    "bone": "Chest",
+    "tip": [
+     374.47,
+     -1997.25,
+     -5.19
+    ],
+    "base": [
+     374.98,
+     -1998.09,
+     -4.19
+    ],
+    "carryW": 1,
+    "mode": 0.46,
+    "boss": [
+     375.0337546290028,
+     -2000,
+     -3.033324833150811,
+     -2.6639194286341894
+    ]
+   }
+  },
+  {
+   "t": 71.67,
+   "act": "dodge",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 36,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.622,
+    "bone": "Chest",
+    "tip": [
+     373.5,
+     -1998.38,
+     -8.12
+    ],
+    "base": [
+     374.14,
+     -1998.18,
+     -6.89
+    ],
+    "carryW": 1,
+    "mode": 0.96,
+    "boss": [
+     374.6297881576905,
+     -2000,
+     -5.871442920544683,
+     -2.037132601511602
+    ]
+   }
+  },
+  {
+   "t": 72.17,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 37,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.657,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     376.26,
+     -1999.99,
+     -4.27
+    ],
+    "base": [
+     375.94,
+     -1999.19,
+     -5.37
+    ],
+    "carryW": 0,
+    "mode": 0.72,
+    "boss": [
+     375.00609510372885,
+     -2000,
+     -6.31643891057872,
+     -1.4854679163342033
+    ]
+   }
+  },
+  {
+   "t": 72.67,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 37,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.836,
+    "bone": "Head",
+    "tip": [
+     375.09,
+     -1995.98,
+     -6.97
+    ],
+    "base": [
+     375.72,
+     -1997.22,
+     -6.85
+    ],
+    "carryW": 0,
+    "mode": 0.72,
+    "boss": [
+     374.176039487081,
+     -2000,
+     -6.2454391856609055,
+     -1.4854679163342033
+    ]
+   }
+  },
+  {
+   "t": 73.17,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 38,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.953,
+    "bone": "Head",
+    "tip": [
+     371.14,
+     -1997.86,
+     -6.35
+    ],
+    "base": [
+     372.48,
+     -1998.21,
+     -6.6
+    ],
+    "carryW": 0,
+    "mode": 0.56,
+    "boss": [
+     373.69801376895896,
+     -2000,
+     -6.20395329813049,
+     -1.4884541774844826
+    ]
+   }
+  },
+  {
+   "t": 73.67,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 38,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.52,
+    "bone": "Hips",
+    "tip": [
+     371.81,
+     -1998.32,
+     -7.33
+    ],
+    "base": [
+     373.13,
+     -1998.51,
+     -6.92
+    ],
+    "carryW": 0.71,
+    "mode": 0.52,
+    "boss": [
+     373.62809417892635,
+     -2000,
+     -6.198182921416629,
+     -1.9493244599137924
+    ]
+   }
+  },
+  {
+   "t": 74.17,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 39,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.584,
+    "bone": "LeftLowerArm",
+    "tip": [
+     373.27,
+     -1996.54,
+     -7.61
+    ],
+    "base": [
+     373.92,
+     -1997.29,
+     -6.62
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     373.62809417892635,
+     -2000,
+     -6.198182921416629,
+     2.3425279036734294
+    ]
+   }
+  },
+  {
+   "t": 74.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 39,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.5,
+    "bone": "RightLowerLeg",
+    "tip": [
+     373.12,
+     -2000.3,
+     -6.87
+    ],
+    "base": [
+     374.14,
+     -1999.46,
+     -7.32
+    ],
+    "carryW": 0,
+    "mode": 0.28,
+    "boss": [
+     374.02228147916554,
+     -2000,
+     -6.581740442956816,
+     2.3425279036734294
+    ]
+   }
+  },
+  {
+   "t": 75.17,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 39,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.515,
+    "bone": "Chest",
+    "tip": [
+     376.02,
+     -1998.66,
+     -7.39
+    ],
+    "base": [
+     374.98,
+     -1998.45,
+     -6.47
+    ],
+    "carryW": 0.63,
+    "mode": 0.11,
+    "boss": [
+     374.107024781935,
+     -2000,
+     -6.626548946224483,
+     2.0292149639543346
+    ]
+   }
+  },
+  {
+   "t": 75.67,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 40,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.798,
+    "bone": "Chest",
+    "tip": [
+     374.89,
+     -1998.68,
+     -6.36
+    ],
+    "base": [
+     376.02,
+     -1998.13,
+     -6.97
+    ],
+    "carryW": 0,
+    "mode": 0.06,
+    "boss": [
+     376.4725395489961,
+     -2000,
+     -7.705535197992567,
+     1.9969729078347864
+    ]
+   }
+  },
+  {
+   "t": 76.17,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 40,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.554,
+    "bone": "Chest",
+    "tip": [
+     378.71,
+     -1997.47,
+     -7.53
+    ],
+    "base": [
+     377.58,
+     -1998.29,
+     -7.42
+    ],
+    "carryW": 0.91,
+    "mode": 0.42,
+    "boss": [
+     376.68799295034955,
+     -2000,
+     -7.731302211717118,
+     1.731013827734772
+    ]
+   }
+  },
+  {
+   "t": 76.67,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 40,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.576,
+    "bone": "Chest",
+    "tip": [
+     378.65,
+     -1996.9,
+     -6.74
+    ],
+    "base": [
+     378.48,
+     -1998.1,
+     -7.44
+    ],
+    "carryW": 1,
+    "mode": 0.06,
+    "boss": [
+     377.66627798954914,
+     -2000,
+     -7.954667431525175,
+     1.8339587701513986
+    ]
+   }
+  },
+  {
+   "t": 77.17,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 40,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.473,
+    "bone": "Chest",
+    "tip": [
+     380.92,
+     -1997.3,
+     -8.89
+    ],
+    "base": [
+     379.93,
+     -1998.16,
+     -8.42
+    ],
+    "carryW": 1,
+    "mode": 0.45,
+    "boss": [
+     378.99226566909505,
+     -2000,
+     -8.466944479875403,
+     2.0303837339293227
+    ]
+   }
+  },
+  {
+   "t": 77.67,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 41,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.951,
+    "bone": "Head",
+    "tip": [
+     381.97,
+     -1997.95,
+     -10.66
+    ],
+    "base": [
+     381.08,
+     -1998.19,
+     -9.61
+    ],
+    "carryW": 0,
+    "mode": 0.49,
+    "boss": [
+     379.8832798146071,
+     -2000,
+     -9.029815528873453,
+     2.2638966423322113
+    ]
+   }
+  },
+  {
+   "t": 78.17,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 41,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.483,
+    "bone": "Chest",
+    "tip": [
+     381.15,
+     -1998.38,
+     -10.92
+    ],
+    "base": [
+     380.72,
+     -1998.49,
+     -9.59
+    ],
+    "carryW": 0.67,
+    "mode": 0.5,
+    "boss": [
+     379.99973789028326,
+     -2000,
+     -9.14756971831537,
+     2.716735419654527
+    ]
+   }
+  },
+  {
+   "t": 78.67,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 41,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.565,
+    "bone": "Chest",
+    "tip": [
+     380.33,
+     -1997.56,
+     -11.91
+    ],
+    "base": [
+     380.43,
+     -1998.31,
+     -10.73
+    ],
+    "carryW": 0.99,
+    "mode": 0.5,
+    "boss": [
+     380.0575118506802,
+     -2000,
+     -9.818289112691565,
+     -3.1245276812504637
+    ]
+   }
+  },
+  {
+   "t": 79.17,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 42,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.536,
+    "bone": "LeftUpperLeg",
+    "tip": [
+     380.99,
+     -1999.33,
+     -6.72
+    ],
+    "base": [
+     380.27,
+     -1999.12,
+     -7.91
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     380.0342367818942,
+     -2000,
+     -9.881509985925497,
+     -2.764047055647113
+    ]
+   }
+  },
+  {
+   "t": 79.67,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 43,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.824,
+    "bone": "Head",
+    "tip": [
+     377.37,
+     -1998.79,
+     -10.59
+    ],
+    "base": [
+     378.73,
+     -1998.53,
+     -10.75
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.85766087114376,
+     -2000,
+     -10.095191331041406,
+     -1.957979548260438
+    ]
+   }
+  },
+  {
+   "t": 80.17,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.484,
+    "bone": "Hips",
+    "tip": [
+     378.07,
+     -1999.49,
+     -9.11
+    ],
+    "base": [
+     378.68,
+     -1998.64,
+     -10.04
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.4665268468498,
+     -2000,
+     -10.254682485945553,
+     -1.3090828918942983
+    ]
+   }
+  },
+  {
+   "t": 80.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.512,
+    "bone": "LeftLowerArm",
+    "tip": [
+     379.83,
+     -1996.39,
+     -9.03
+    ],
+    "base": [
+     378.96,
+     -1997.25,
+     -9.71
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     379.2247012427167,
+     -2000,
+     -10.138686356397448,
+     -1.1235457950809393
+    ]
+   }
+  },
+  {
+   "t": 81.17,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 7,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.426,
+    "bone": "LeftLowerLeg",
+    "tip": [
+     380.02,
+     -1999.83,
+     -9.49
+    ],
+    "base": [
+     378.69,
+     -1999.41,
+     -9.35
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     378.9706250551399,
+     -2000,
+     -10.01681400762397,
+     -1.1235457950809393
+    ]
+   }
+  },
+  {
+   "t": 81.67,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.765,
+    "bone": "Head",
+    "tip": [
+     380.7,
+     -1999.13,
+     -11.87
+    ],
+    "base": [
+     379.96,
+     -1998.49,
+     -10.87
+    ],
+    "carryW": 0.28,
+    "mode": 0.06,
+    "boss": [
+     379.0027293437427,
+     -2000,
+     -10.245099053772867,
+     3.1293348660954523
+    ]
+   }
+  },
+  {
+   "t": 82.17,
+   "act": "leap",
+   "air": 2.27,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.941,
+    "bone": "Head",
+    "tip": [
+     380.12,
+     -1997.79,
+     -13.37
+    ],
+    "base": [
+     379.71,
+     -1996.94,
+     -12.34
+    ],
+    "carryW": 0.01,
+    "mode": 0.01,
+    "boss": [
+     379.13537065695925,
+     -1997.7269650277008,
+     -10.949491129944821,
+     3.1293348660954523
+    ]
+   }
+  },
+  {
+   "t": 82.67,
+   "act": "leap",
+   "air": 5.34,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.717,
+    "bone": "RightLowerLeg",
+    "tip": [
+     380.55,
+     -1995.66,
+     -16.11
+    ],
+    "base": [
+     380.54,
+     -1994.26,
+     -16.04
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     379.95057695029965,
+     -1994.6573666897507,
+     -15.335970897617068,
+     3.1293348660954523
+    ]
+   }
+  },
+  {
+   "t": 83.17,
+   "act": "leap",
+   "air": 3.22,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.603,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.57,
+     -1996.74,
+     -15.63
+    ],
+    "base": [
+     380.74,
+     -1995.65,
+     -15.36
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     379.97986180435214,
+     -1996.784037396122,
+     -15.49354759150611,
+     3.1293348660954523
+    ]
+   }
+  },
+  {
+   "t": 83.67,
+   "act": "leap",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 44,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.402,
+    "bone": "RightLowerLeg",
+    "tip": [
+     381.2,
+     -2000.34,
+     -15.37
+    ],
+    "base": [
+     380.65,
+     -1999.05,
+     -15.3
+    ],
+    "carryW": 0,
+    "mode": 0.01,
+    "boss": [
+     379.9798618052797,
+     -2000,
+     -15.49354759740581,
+     3.1293348660954523
+    ]
+   }
+  },
+  {
+   "t": 84.17,
+   "act": "Trono_Estocada",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 45,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.831,
+    "bone": "Head",
+    "tip": [
+     378.75,
+     -1997.5,
+     -19.04
+    ],
+    "base": [
+     379.59,
+     -1997.66,
+     -17.93
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     379.55409867401215,
+     -2000,
+     -16.603974330361943,
+     -2.7571078387030843
+    ]
+   }
+  },
+  {
+   "t": 84.67,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 46,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.548,
+    "bone": "RightLowerLeg",
+    "tip": [
+     379.99,
+     -1999.92,
+     -19.18
+    ],
+    "base": [
+     379.66,
+     -1998.76,
+     -18.47
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     378.96448310094127,
+     -2000,
+     -18.061173979999893,
+     -2.448043940022787
+    ]
+   }
+  },
+  {
+   "t": 85.17,
+   "act": "Trono_Moinho",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 46,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.786,
+    "bone": "RightUpperLeg",
+    "tip": [
+     378.58,
+     -2000.2,
+     -20.05
+    ],
+    "base": [
+     378.65,
+     -1999.04,
+     -19.28
+    ],
+    "carryW": 0,
+    "mode": 0,
+    "boss": [
+     378.8685925860005,
+     -2000,
+     -18.176521321297365,
+     -2.448043940022788
+    ]
+   }
+  },
+  {
+   "t": 85.67,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 46,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.55,
+    "bone": "Chest",
+    "tip": [
+     379.89,
+     -1997.48,
+     -19.84
+    ],
+    "base": [
+     379.07,
+     -1998.32,
+     -19.09
+    ],
+    "carryW": 0.67,
+    "mode": 0,
+    "boss": [
+     378.8244189345942,
+     -2000,
+     -18.2296581018045,
+     -2.4480439400227807
+    ]
+   }
+  },
+  {
+   "t": 86.17,
+   "act": null,
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 46,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.552,
+    "bone": "Chest",
+    "tip": [
+     377.46,
+     -1997.42,
+     -20.56
+    ],
+    "base": [
+     378.15,
+     -1998.29,
+     -19.69
+    ],
+    "carryW": 0.99,
+    "mode": 0.44,
+    "boss": [
+     378.38009979603,
+     -2000,
+     -18.764132563148564,
+     -2.4480439400227794
+    ]
+   }
+  },
+  {
+   "t": 86.67,
+   "act": "Trono_Duplo",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 47,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.664,
+    "bone": "Head",
+    "tip": [
+     380.35,
+     -1997.77,
+     -19.65
+    ],
+    "base": [
+     379.53,
+     -1997.63,
+     -18.53
+    ],
+    "carryW": 0.04,
+    "mode": 0.5,
+    "boss": [
+     377.9443984725728,
+     -2000,
+     -19.385793854080536,
+     -2.42794528727357
+    ]
+   }
+  },
+  {
+   "t": 87.17,
+   "act": "stagger",
+   "air": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 47,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 4,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.482,
+    "bone": "RightLowerLeg",
+    "tip": [
+     378.39,
+     -2000.45,
+     -19.9
+    ],
+    "base": [
+     378.77,
+     -1999.11,
+     -19.71
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     378.24995224910396,
+     -2000,
+     -19.03444521132448,
+     -2.426972571032827
+    ]
+   }
+  },
+  {
+   "t": 87.67,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 47,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.579,
+    "bone": "Chest",
+    "tip": [
+     376.88,
+     -1997.63,
+     -21.22
+    ],
+    "base": [
+     377.77,
+     -1998.32,
+     -20.39
+    ],
+    "carryW": 0.95,
+    "mode": 0.5,
+    "boss": [
+     378.0891329214805,
+     -2000,
+     -19.465476251760713,
+     -2.39032943804487
+    ]
+   }
+  },
+  {
+   "t": 88.17,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 48,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.688,
+    "bone": "RightLowerLeg",
+    "tip": [
+     377.5,
+     -1998.63,
+     -22.1
+    ],
+    "base": [
+     378.12,
+     -1998.94,
+     -20.88
+    ],
+    "carryW": 0,
+    "mode": 0.5,
+    "boss": [
+     377.7630563769866,
+     -2000,
+     -19.927151851204226,
+     -2.3427067633272167
+    ]
+   }
+  },
+  {
+   "t": 88.67,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 48,
+    "leap": 8,
+    "dash": 14,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.415,
+    "bone": "Chest",
+    "tip": [
+     376.72,
+     -1997.74,
+     -21.55
+    ],
+    "base": [
+     377.72,
+     -1998.4,
+     -20.84
+    ],
+    "carryW": 0.93,
+    "mode": 0.5,
+    "boss": [
+     378.03012971097235,
+     -2000,
+     -20.033628722358742,
+     -2.2606668324978343
+    ]
+   }
+  },
+  {
+   "t": 89.17,
+   "act": null,
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 48,
+    "leap": 8,
+    "dash": 15,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.737,
+    "bone": "Chest",
+    "tip": [
+     376.41,
+     -1997.92,
+     -20.57
+    ],
+    "base": [
+     376.99,
+     -1998.15,
+     -19.32
+    ],
+    "carryW": 1,
+    "mode": 0.8,
+    "boss": [
+     377.37918118747217,
+     -2000,
+     -18.19321788478983,
+     -2.3372959326181446
+    ]
+   }
+  },
+  {
+   "t": 89.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "active",
+   "mix": {
+    "melee": 49,
+    "leap": 8,
+    "dash": 15,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.591,
+    "bone": "Hips",
+    "tip": [
+     376.04,
+     -1999.29,
+     -20.47
+    ],
+    "base": [
+     377.22,
+     -1998.75,
+     -19.95
+    ],
+    "carryW": 0.5,
+    "mode": 0.52,
+    "boss": [
+     377.47874889804467,
+     -2000,
+     -19.017426574933467,
+     -2.6444576510630373
+    ]
+   }
+  },
+  {
+   "t": 90.17,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 49,
+    "leap": 8,
+    "dash": 15,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.467,
+    "bone": "Head",
+    "tip": [
+     376.56,
+     -1996.7,
+     -18.04
+    ],
+    "base": [
+     377.24,
+     -1997.29,
+     -19.12
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     377.4780147390581,
+     -2000,
+     -19.01874874608321,
+     -2.6347141103934737
+    ]
+   }
+  },
+  {
+   "t": 90.67,
+   "act": "Trono_Queda",
+   "air": 0,
+   "shield": "cooldown",
+   "mix": {
+    "melee": 49,
+    "leap": 8,
+    "dash": 15,
+    "block": 8,
+    "shield": 5,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "blade": {
+    "min": 0.483,
+    "bone": "Hips",
+    "tip": [
+     376.69,
+     -2000.11,
+     -18.53
+    ],
+    "base": [
+     376.55,
+     -1999.42,
+     -19.75
+    ],
+    "carryW": 0,
+    "mode": 0.51,
+    "boss": [
+     377.2117510467313,
+     -2000,
+     -19.498271817598898,
+     -2.6347141103934737
+    ]
+   }
+  }
+ ]
+}

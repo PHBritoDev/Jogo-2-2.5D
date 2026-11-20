@@ -1,0 +1,5167 @@
+{
+ "audit": {
+  "on": true,
+  "t": 4.33,
+  "roles": {
+   "idle": 2,
+   "walk": 1,
+   "run": 1,
+   "jump": 1,
+   "block": 1,
+   "Trono_Riposta": 1
+  },
+  "acts": {
+   "leap": 1,
+   "block": 1,
+   "melee:Trono_Riposta": 1
+  },
+  "events": {
+   "leap": 1,
+   "vzMark": 1,
+   "jump": 1,
+   "airDash": 1,
+   "leapStrike": 1,
+   "guard": 1,
+   "windup": 1,
+   "vzRiposte": 1,
+   "meleeHit": 1
+  },
+  "log": [
+   [
+    1.33,
+    "leap",
+    9.6
+   ],
+   [
+    3.85,
+    "block",
+    2.5
+   ],
+   [
+    4.01,
+    "melee:Trono_Riposta",
+    2.8
+   ]
+  ],
+  "passive": 1.41,
+  "passiveMax": 1.25,
+  "lastActT": 0,
+  "repeats": 0,
+  "lastAct": "melee:Trono_Riposta",
+  "dist": [
+   0,
+   2,
+   0.3,
+   2
+  ],
+  "idleRun": 0
+ },
+ "samples": [
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 11,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 11,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 11,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 11,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 1,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 1,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 1,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 0,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": null
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0.88,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0.88,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0.88,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 2.27,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 3.03,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 3.03,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 3.03,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 2,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4.54,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4.54,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4.54,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.13,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.33,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 9,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.33,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 9,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.33,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 9,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.33,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 9,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.33,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 9,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.4,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.14,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 5.14,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4.36,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 1,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 4.36,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 1,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 3.06,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 8,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 3.06,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 8,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 1.45,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 1.45,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 1.45,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 26,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 26,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 26,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 26,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 26,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 25,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 25,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 25,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 25,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 25,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 19,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 19,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 15,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 15,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 0,
+    "waves": 0,
+    "sparks": 15,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 4,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "leap",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 7,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 6,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": null,
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 0,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 3,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "block",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 0,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 1,
+    "waves": 0,
+    "sparks": 0,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 5,
+    "stars": 0,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 31,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 31,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 31,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 28,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 28,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  },
+  {
+   "hp": 2600,
+   "max": 2600,
+   "phase": 0,
+   "alive": true,
+   "act": "Trono_Riposta",
+   "air": 0,
+   "jumps": 0,
+   "shield": "ready",
+   "mix": {
+    "melee": 1,
+    "leap": 1,
+    "dash": 0,
+    "block": 1,
+    "shield": 0,
+    "spell": 0,
+    "swordShare": 1
+   },
+   "spells": [],
+   "after": {
+    "visible": 0,
+    "peak": 0
+   },
+   "slash": {
+    "slashes": 2,
+    "waves": 0,
+    "sparks": 28,
+    "stars": 1,
+    "splashes": 0,
+    "capacity": {
+     "slashes": 6,
+     "waves": 8,
+     "sparks": 220,
+     "stars": 6
+    }
+   }
+  }
+ ]
+}

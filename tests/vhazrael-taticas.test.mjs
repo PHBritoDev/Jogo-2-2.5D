@@ -100,3 +100,16 @@ test('avanço emenda flanco apenas uma vez no mesmo orçamento',()=>{
   a.T.brain(sq,a,.02,h);assert.equal(a.act.goal,'flanco-duplo');
   a.act.t=.2;a.T.brain(sq,a,.02,h);assert.equal(log.filter(e=>e.goal==='flanco-duplo').length,1);
 });
+
+test('Julgamento escolhe solo anterior ao muro; um alvo atrás dele fica ileso',()=>{
+ const log=[],sq=new Enemy1Squad({blocked:(_x,z)=>z<3.4,los:(_x,z,_tx,tz)=>z>=3.4&&tz>=3.4,
+   damageTarget:()=>{throw Error('dano atravessou o muro');},event:(type,d)=>log.push({type,...d})});
+ const a=boss(sq,5),h=hero();sq.setTargets([h]);sq.startLeap(a,h);
+ for(let i=0;i<100 && a.act;i++){sq.stepAction(a,1/30,h);assert.ok(a.z>=3.4);}
+ assert.ok(log.some(e=>e.type==='vzMark'&&e.mark.z>=3.4));
+});
+test('a estocada não vira instantaneamente para acertar quem ficou atrás',()=>{
+ const {sq}=world(),a=boss(sq,2),h=hero({z:5});sq.setTargets([h]);const yaw=a.yaw;
+ sq.startMelee(a,h,'Trono_Estocada');assert.equal(a.yaw,yaw);
+ sq.stepAction(a,1/60,h);assert.ok(Math.cos(a.yaw-yaw)>.9);
+});

@@ -245,6 +245,12 @@ export function vzTactics(sq, a, t, dt) {
   const d = Math.hypot(t.x - a.x, t.z - a.z) || 1, gap = d - (t.radius || .4) - a.T.radius, ux = (t.x - a.x) / d, uz = (t.z - a.z) / d;
   const st = sq.study(t.id), recovering = !t.attacking && sq.time - st.lastAttack < .9 && sq.time - st.lastAttack > .15;
   const dashOk = !a.cds.dodge && !a.cds.close && !a.airY, see = sq.los(a.x, a.z, t.x, t.z), canMelee = sq.canAttack(a, 'melee', t.id);
+  const impact=a.shield?.impacts.at(-1);
+  if (impact && sq.time-impact.t<.6 && a.vzParriedAt!==impact.t && dashOk && see && gap<2.7) {
+    a.vzParriedAt=impact.t; a.cds.vzOut=T.out.cd; a.cds.dodge=a.T.dodge.cd;
+    sq.begin(a,{type:'dodge',dur:a.T.dash.time,anim:'dash',dx:-ux,dz:-uz,face:true,goal:'sair',token:'melee',tid:t.id});
+    sq.event('vzTactic',{actor:a,goal:'recuo-apos-guarda'});return;
+  }
   const opts = [];
   // ENTRAR: dash de aproximação + corte (iniciativa; mais quando o herói conjura ou se recupera de um golpe)
   if (dashOk && see && canMelee && !a.cds.vzEnter && gap >= T.enter.gap[0] && gap <= T.enter.gap[1]) opts.push(['entrar', .32 + P * .07 + (recovering ? .3 : 0) + (t.casting ? .3 : 0) + (gap > 4.5 ? .12 : 0)]);
@@ -273,7 +279,7 @@ function vzTick(sq, a, dt) {
   const S = a.vzStats || (a.vzStats = { melee: 0, leap: 0, dash: 0, block: 0, shield: 0, spell: 0, log: [], dashAt: [] });
   if (a.act && a.act !== a._vzAct) { a._vzAct = a.act; const x = a.act, kind = x.type === 'cast' && x.skill && x.skill !== 'counter' ? 'spell' : x.type === 'melee' ? 'melee' : x.type === 'leap' ? 'leap' : x.type === 'dodge' ? 'dash' : x.type === 'block' ? 'block' : null;
     if (kind) { S[kind]++; if (kind !== 'block') { S.log.push(kind); if (S.log.length > VZ_MIX.window) S.log.shift(); } if (kind === 'dash') S.dashAt.push(sq.time); } }
-  if (!a.act && a.shield && a.shield.active && !a._vzShield) { a._vzShield = true; S.shield++; } else if (!(a.shield && a.shield.active)) a._vzShield = false;
+  if (a.shield && a.shield.active && !a._vzShield) { a._vzShield = true; S.shield++; } else if (!(a.shield && a.shield.active)) a._vzShield = false;
   // magia demais nas últimas decisões → segura a próxima até a espada voltar a liderar
   const spells = S.log.filter(k => k === 'spell').length; if (S.log.length >= 6 && spells / S.log.length > VZ_MIX.maxSpell) a.cds.spellGap = Math.max(a.cds.spellGap || 0, 2.5);
   // dash: no máximo VZ_DASH.budget em VZ_DASH.window s; estourou → trava esquiva/avanço por um tempo (compromisso)
