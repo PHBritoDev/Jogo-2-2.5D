@@ -74,6 +74,65 @@ Antes de modelar: revisar as 3 imagens do criador e princípios de environmental
 
 **Crítica artística obrigatória:** capturar frames com a MESMA composição das referências: vista ampla da câmara (profundidade/estratos/lava/cristais), vista na altura do jogador na floresta (veios, densidade, trilha), vista de entrada e de travessia do abismo (ruínas colossais, profundidade, contraste cinza/vermellho). Se o resultado for genérico, pequeno, vazio, plasticoso, repetitivo ou geometricamente raso, corrigir e RECAPTURAR. A meta não é replicar pixel a pixel, mas superar a experiência em jogabilidade, profundidade e identidade visual.
 
+
+## 6A. GATE 0 — arqueologia de código, matriz de propriedade e baseline obrigatório
+Antes de construir, obter provas REAIS do estado publicado. Criar inventário compacto (tabela no relatório final) para:
+1. Mapa de dependências da caverna: entrada/saída da ilha, `VOLCANO`, geometria do tema, gerenciador de dimensões, player, colisão, lava, câmera, portal, miniboss, checkpoints, saves, TP/ADM e testes existentes. Nomear os arquivos encontrados e as funções responsáveis. **Não deduzir o sistema inteiro apenas do nome `volcano3d.js`.**
+2. Identificar cristal GLB exato, tocha GLB, assets de rochas existentes; detectar LFS/binary e o que pode ser reusado. Nunca substituir asset que não foi visualmente inspecionado.
+3. Criar **matriz de arquivos tocados e risco de concorrência** com Claude e agentes A1–A5. Priorizar novos módulos `volcano-cave-*.js` conectados pelo menor adaptador possível; não editar arquivos sob posse do Claude. Se uma linha do mundo principal é indispensável, patch mínimo, rebase de main e evidência de isolamento.
+4. Estabelecer baseline reproduzível com captura do velho interior: frame desde a entrada, visita às 3 regiões propostas (se não existem, registrar inexistentes), rota real até mini-chefe/portal, FPS/frame-time e clipping atual. Capturas com câmera, aspect ratio, posição, FOV, hora/estado e parâmetros iguais nas comparações.
+5. Fazer mapa de âncoras originais da campanha e testar migração. Nenhum item antigo escondido em `VOLCANO` pode desaparecer silenciosamente sem substituto funcional.
+
+**Gate 0 só passa com inventário e baseline reais**, não um plano imaginário. Se ferramentas de vídeo/browser falharem, reparar a ferramenta/ambiente ou registrar bloqueio; não anunciar sucesso.
+
+## 6B. Blueprint espacial mensurável — grandiosidade SEM terreno vazio
+Definir e versionar um `cave-layout` com bounds, alturas, eixos, rotas principais, conexões de setores, waypoints, colisores e landmarks. **Dimensões indicativas iniciais para estudo, NÃO valores obrigatórios nem desculpa para ocupar tudo com geometrias**:
+- Câmara monumental: projeção horizontal ~**240–380 m × 150–260 m**, altura máxima visível **90–160 m**, vários platôs (diferença vertical de 15–55 m). A área realmente caminhável é uma FRAÇÃO bem composta; pano de fundo distante pode usar geometria barata, falsas profundidades ou oclusão.
+- Bosque: malha espacial ~**180–300 m × 140–240 m**, faixa de altura útil **12–45 m**; rota principal legível ~**350–650 m** incluindo curvas, atalhos e loops. Nunca confundir distância com diversão: conter ao menos três landmarks únicos reconhecíveis em câmera de gameplay e alternância de ritmo.
+- Abismo: composição visual aparente de **300–600 m** em largura/profundidade, desnível de **120–300 m**; plataformas jogáveis concentradas em trilha segura ~**180–350 m** e arena do mini-chefe com área livre/funcional. Profundidade pode ser simulada para não explodir o orçamento.
+- A escala final depende do tamanho do personagem, velocidade de caminhada/dash, FOV, frustum e performance observada no motor existente. Documentar a unidade de medida real e recalibrar as metas depois de uma travessia jogável.
+- **Teste de percepção de escala:** em 3 pontos de vista por ambiente, distinguir claramente primeiro plano, médio plano, plano distante, teto/linha de horizonte subterrânea e pelo menos um objeto de escala humana para comparação. Ver horizonte amplo sem mostrar o mapa inteiro simultaneamente.
+- **Teste de densidade:** cada trecho jogável deve ter função clara (vista, combate, navegação, perigo, descanso ou descoberta). Reprovar campos vazios, rochas com escala absurda para preencher volume e corredores longos de piso repetido.
+- Definir travessia estimada com o controle real: nenhum trecho sem decisão, landmark ou mudança visual por tempo prolongado. Cronometrar, não inventar.
+- Definir `safePathGraph` ou equivalente: todas as travessias principais possíveis sem teleporte, pulo pixel-perfect ou atravessar perigo obrigatório. A existência de atalhos não pode tornar portal/mini-chefe burláveis.
+- A 3ª região deve revelar o portal e a arena sem dar acesso antecipado ao gatilho de vitória; testar chegada/retorno.
+
+## 6C. Art direction de alta exigência — anti-genérico verificável
+Para cada zona, produzir **color script**, mapa de fontes emissivas, moodboard/referência, silhueta principal, 3 vistas-alvo e uma paleta de materiais. O layout NÃO pode ser apenas procedural aleatório:
+- Câmara: contraste calor intenso da lava com frios de cristais, arquitetura que parece ter sido **esculpida ao redor de um cataclismo**, ruína/ponte sustentada fisicamente, fendas conectadas a fluxo de lava e uma catarata principal que sirva como landmark; cristais não devem parecer pirâmides coloridas coladas às paredes.
+- Bosque: anatomia de árvore de rocha-carbonizada coerente (raízes que penetram o solo, galhos que procuram o teto, fissuras que seguem veios), grupos com ritmos e espaços negativos; pelo menos 4 arquétipos de silhueta distintos de árvore, não apenas 4 tamanhos do mesmo tronco. Lava deve seguir depressões e canais, não subir morros sem explicação.
+- Abismo: linguagem única de ruínas, com pilares/arcadas estruturais e fragmentos plausíveis, espinhos orgânicos que aparentam origem na matéria e não tubos flutuando, escalas enormes que não obliterem a leitura de jogo. **Cinza frio e vermelho profundo** como hierarquia; partículas em câmera mínimas, sem filtro cinza lavando tudo.
+- Materiais com detalhe em escala correta: basalto, rocha vitrificada, fuligem, metal envelhecido, cristal translúcido/emissivo e lava animada. Quebras/rachaduras devem ter silhueta e profundidade (normal/geometry quando perto), não somente linhas neon desenhadas no chão.
+- **Anti-patterns de rejeição:** colunas equidistantes, pedras e pináculos com seed/perfil repetidos, cilindros/tubos finos no lugar de raízes colossais, paredes de um único material, dezenas de tochas idênticas, vulcão com sol, cristais piramidais gerados em lugar do GLB, névoa branca uniforme, placas de magma 100% do piso, pontes sem pilares/ancoragem, mesh plana de lava imóvel, telas congeladas ou imagens 2D fingindo mundo 3D.
+- **Critério de fidelidade não literal:** observar lado a lado as 3 referências e as 3 capturas reais; evidenciar COMPOSIÇÃO, ESCALA, TEXTURA, CONTRASTE, VERTICALIDADE e ESTADO DE HUMOR. Não usar percentuais subjetivos inventados como '90% igual'. Se não comunica essas propriedades em gameplay, refazer.
+
+## 6D. Gates incrementais obrigatórios — não adiantar a próxima área sem a atual funcionar
+Executar em commits curtos na **mesma branch e PR**; usar checklist por gate no relatório. Não aguardar autorização por chat para cada etapa, mas não fingir que passou:
+- **Gate A: infraestrutura e conexão.** Entrada real, orientação, setor/oclusão e placeholders funcionais claramente temporários; proteção dos saves/checkpoints. Teste rota sem regressão.
+- **Gate B: Câmara.** Greybox de múltiplos níveis, navegação/colisão da câmara; então arte e iluminação com cristais GLB + cataratas de lava. Capturar 3 viewpoints e testar 1ª/3ª pessoa + FPS. **Não avançar ao bosque** se a primeira câmara parecer genérica ou tiver caminho quebrado.
+- **Gate C: Bosque.** Greybox de caminhos/loops, checagem de rota; depois quatro arquétipos de árvores, lava, landmarks, ar/névoa. Percorrer com personagem real e provar que não perde o rumo nem atravessa troncos. QA visual antes de seguir.
+- **Gate D: Abismo.** Greybox seguro, arena/portal, validação de quedas; então ruínas, espinhos e atmosfera conforme imagem 3. Provar encontro, derrota, retorno e desbloqueio corretos.
+- **Gate E: sistema completo.** Fluxo ponta-a-ponta sem teleporte de QA, efeitos de queimadura, colisão/câmera, performance, stress, assets, saves e regressão.
+- **Gate F: avaliação artística final.** Vídeo contínuo atravessando os três biomas e mosaico de comparações; corrigir tudo que falhou, recapturar e só depois considerar entrega.
+Se surgir bloqueio de engine/integração, manter PR como **draft** com evidência e próximos passos técnicos mínimos; não remover briefing.
+
+## 6E. Orçamento técnico, instrumentos e critérios de aprovação
+Orçamento deve partir de um **baseline medido** no navegador do jogo e comparações com a versão pública. Fazer perfis **mobile emulado** e **desktop** com 3 runs por setor (entrada, ponto mais denso, combate), incluindo aquecimento de shaders; monitorar mediana, **p95/p99 de duração do frame em ms**, draw calls, tris, texturas, geometria, stutter e variação após reentrada. Reportar valores reais; não confundir SwiftShader/Chromium com FPS de Galaxy A55.
+- Meta aspiracional: 40–60 FPS em aparelho físico classe Galaxy A55, quando disponível. Em desktop ou emulação, comparar orçamento relativo ao mapa atual; **não afirmar que passou meta de Android sem aparelho**.
+- Estabelecer teto inicial indicativo por setor visível: ~**80–130 draw calls** para o cenário da caverna (não conta sozinho jogo inteiro), luzes dinâmicas simultâneas restritas, partículas e shaders com custos medidos. Ajustar se baseline do projeto mostrar limite menor; prioridade é frame-time estável, não alcançar arbitrariamente um número.
+- Registrar custo separado da geometria visível, sombras, pós-processamento, água/lava e NPC/inimigo; aplicar `InstancedMesh` para cristais/árvores repetidos com variação por instância, LOD/multi-resolução, pool para partículas, falso glow em emissivos, light probes/baked where applicable, culling por setores/portais, curvas UV para lava. Evitar fanout de render targets e transparências grandes.
+- Evidenciar que setorização **não quebra interações**: player não pode ficar sem piso após streaming, inimigos não podem cair quando o setor muda, persistência de estado quando volta, e descarte de GPU (`dispose`) correto. Repetir entrar/sair 6 vezes e verificar recursos vivos/contagem de meshes não aumentando sem limite.
+- **Collision audit**: testar linha da câmera para 20+ pontos de parede/ruína, bordas de passarela, degraus e troncos; toda interseção de cápsula/colisor deve corresponder a superfície próxima. Verificar 1ª/3ª pessoa durante walk/dash/jump em FPS variados.
+- **Hazard audit**: medir HP antes/depois de 3 s dentro da lava, 4 s fora, reentrada, pausa, invulnerabilidade, respawn e entrada em outro setor. Testar queda do abismo 5 vezes de pontos diferentes e confirmar respawn válido.
+- **Navigation audit**: registrar percurso sem comandos de TP desde entrada física até portal; ao menos um vídeo do percurso e logs de eventos/waypoints. Testar replay sem estado salvo, save antigo e retorno após morrer.
+- **CI**: adicionar testes de regressão de contrato para entrada, transições, checkpoint, colisão e hazard com snapshots/documentação específica; preservar testes existentes. Smoke visual nunca substitui execução real.
+
+## 6F. Anti-interferência Claude e regra de publicação
+Criar branch de missão ANTES de tocar código e verificar diariamente a base `main` durante trabalho longo. Não rebasear durante commit concorrente sem analisar diffs. A nova área pode usar adaptadores mínimos no motor; **nunca sobrescrever um arquivo que Claude alterou enquanto este trabalha**. Se arquivo central exigir mudanças concorrentes: documentar conflito, extrair mudança para módulo separado ou esperar a PR do Claude e rebasing com testes; NÃO copiar versão antiga do arquivo inteiro.
+- O arquivo `CLAUDE_TEMP_MISSAO_BISPO3_BISPO4_20261120.md` é propriedade de outra missão e deve permanecer intacto.
+- Evidência de conflitos: comparar o diff da PR exclusivamente ao baseline mais recente antes da integração; confirmar que nenhum arquivo de Bispo 3/4, sua animação, VFX, arma ou IA foi sobrescrito.
+- Entrega ideal: PR pronta + CI + vídeo + screenshots + relatório enxuto. **Merge somente depois de todos os gates e validação visual real**, ausência de conflitos com Claude, e regras de aprovação do repositório. Se conflito / risco, PR aberta sem merge. Arquivo temporário excluído somente no commit final da missão concluída e aprovada, jamais no início.
+
 ## 7. Testes e provas de conclusão
 - [ ] Caminho verdadeiro desde a ilha até a entrada e toda a travessia pelos três setores sem TP mágico, quebra de checkpoint ou regressão da campanha.
 - [ ] Fotos e **vídeo gameplay real**: vista ampla do Santuário, cristais, quedas de lava, toque nos cristais, passarela/escadarias; navegação/combate no Bosque; abismo, mini-chefe, morte por queda e portal funcionando.
