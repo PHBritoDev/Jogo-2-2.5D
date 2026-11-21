@@ -20,6 +20,19 @@ function citadel(b,x,y,z,size){
  for(const [u,v,h,r] of [[0,0,28,4],[-6,3,18,2.5],[7,2,16,2],[3,-5,21,3],[-9,-2,13,1.6]]){
   const px=x+u*s,pz=z+v*s;b.stalk([[px,y-1,pz,r*s*1.4],[px,y+h*s*.8,pz,r*s],[px,y+h*s,pz,r*s*.76]],7,stone);
   b.stalk([[px,y+h*s,pz,r*s],[px,y+(h+9)*s,pz,.07]],6,0x474551);
+  // Lancet recesses interrupt the shaft in two registers. The pointed
+  // intrados and projecting sill remain legible in silhouette at distance.
+  for(let k=0;k<7;k++){
+   const a=k*Math.PI*2/7,nx=Math.sin(a),nz=Math.cos(a);
+   for(const level of [.39,.70]){
+    const depth=r*s*(level>.5?.94:1.12),cx=px+nx*depth,cz=pz+nz*depth;
+    const w=r*s*.23,base=y+h*s*level,top=base+h*s*.12;
+    const v=(u,H)=>[cx+nz*u,H,cz-nx*u];
+    b.quad(v(-w,base),v(w,base),v(w,top),v(-w,top),0x35303c);
+    b.face(v(-w,top),v(w,top),v(0,top+w*1.7),0x39303b);
+    b.block(cx,base-.18*s,cz,2.5*w,.3*s,.46*s,0x8c7e82,a);
+   }
+  }
   for(let i=0;i<4;i++){const a=Math.PI*i/2,ax=px+Math.cos(a)*r*s,az=pz+Math.sin(a)*r*s;b.stalk([[ax,y,az,1.3*s],[ax,y+h*s*.63,az,.78*s],[ax,y+h*s*.89,az,.04]],4,0x827985);}
  }
  for(let j=-2;j<=2;j++)b.arch(x+j*4.7*s,y+2*s,z+6*s,1.9*s,4*s,2*s,0x807784);
@@ -31,9 +44,9 @@ export function crowns(T,b,group){
   vertexShader:`varying vec3 ray;void main(){ray=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
   fragmentShader:`varying vec3 ray;
   void main(){vec3 d=normalize(ray);float a=atan(d.x,-d.z);
-   float bank=.5+.5*sin(a*8.+3.*sin(a*3.+d.y*8.)+2.*sin(d.y*17.+a*3.));
+   float bank=.48+.22*sin(a*13.+3.*sin(a*4.+d.y*9.)+2.*sin(d.y*14.+a*3.))+.13*sin(a*27.+d.y*29.)+.06*sin(a*44.-d.y*31.);
    float slit=exp(-5.*abs(a+.17))*smoothstep(-.2,.55,d.y);
-   float beam=exp(-8.*abs(a+.17+.18*d.y))*(.66+.22*bank);
+   float beam=exp(-13.*abs(a+.17+.18*d.y))*(.66+.22*bank);
    vec3 c=mix(vec3(.10,.09,.12),vec3(.49,.47,.51),smoothstep(-.74,.23,d.y));
    c+=vec3(.21,.21,.19)*(slit+beam);c-=.12*bank*smoothstep(.28,.8,d.y);
    gl_FragColor=vec4(c,1.);}`}));
@@ -64,6 +77,10 @@ export function crowns(T,b,group){
  for(const side of [-1,1]){
   b.block(side*1.8,1.18,-95.9,.55,.85,2.6,0x71606b);
   b.stalk([[side*1.6,3.6,-97,.59],[side*1.8,5.1,-97.1,.38],[side*2.2,6.1,-97.3,.03]],6,0x645560);
+ }
+ for(const x of [-9,9]){
+  b.block(x,0,-89,2.9,.32,2.8,0x504950);
+  b.block(x,.32,-89,2.5,.88,2.4,0x70636b);
  }
  for(let i=0;i<55;i++){const x=(i%2?-1:1)*(17+b.random()*78),z=-17-b.random()*166,y=-12-b.random()*54;
   b.stalk([[x,y-14,z,2+b.random()*3],[x+1,y,z,1.7],[x+2,y+3+b.random()*8,z-1,.06]],5,0x3c3443);}

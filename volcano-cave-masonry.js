@@ -13,10 +13,25 @@ export function masonry(T, group, seed, palette){
  for(let i=0;i<90;i++){let x=random()*128,y=random()*128;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(random()-.4)*7;y+=random()*4;ctx.lineTo(x,y);}ctx.strokeStyle='rgba(20,15,23,.28)';ctx.stroke();}
  const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;
  const color=new T.Color(),normal=new T.Vector3(),v=new T.Vector3(),w=new T.Vector3();
+ // Bake local irradiance into stone vertices. Height-independent emitters
+ // represent the entire falling sheet; point emitters light crystal niches.
+ const sources=group.name.includes('Santuário')||group.name.includes('pisos')?[
+  [-31,5,149,22,1,.28,.05,true],[29,4,122,19,1,.27,.04,true],
+  [51,12,104,28,1,.32,.05,true],[-50,7,91,20,1,.24,.05,true],
+  [-11,17,160,10,.50,.11,1],[12,10,124,10,.10,.34,1],
+  [-28,24,128,15,.46,.10,.86],[30,13,111,14,.27,.13,1]
+ ]:[];
  function face(a,b,c,tint,variation=1){normal.crossVectors(v.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]),w.set(c[0]-a[0],c[1]-a[1],c[2]-a[2])).normalize();
   const horizontal=Math.abs(normal.y)>.6,alongX=Math.abs(normal.z)>Math.abs(normal.x);
   color.set(tint).multiplyScalar(variation*(.72+.26*Math.abs(normal.x)+.36*Math.max(0,normal.y)+.14*Math.max(0,normal.z)));
-  for(const p of [a,b,c]){pos.push(...p);col.push(color.r,color.g,color.b);uv.push((horizontal||alongX?p[0]:p[2])*.29,(horizontal?p[2]:p[1])*.29);}
+  for(const p of [a,b,c]){pos.push(...p);let red=color.r,green=color.g,blue=color.b;
+   for(const [x,y,z,r,cr,cg,cb,fall] of sources){
+    const dx=p[0]-x,dz=p[2]-z,dy=fall?Math.max(0,p[1]-y-15,-18-p[1]):p[1]-y;
+    const light=1/(1+(dx*dx+dy*dy+dz*dz)/(r*r));
+    const power=light*light;
+    red+=power*cr*(.04+color.r*.95);green+=power*cg*(.025+color.g*.8);blue+=power*cb*(.04+color.b);
+   }
+   col.push(red,green,blue);uv.push((horizontal||alongX?p[0]:p[2])*.29,(horizontal?p[2]:p[1])*.29);}
  }
  function quad(a,b,c,d,tint,k=1){face(a,b,c,tint,k);face(a,c,d,tint,k);}
  function block(x,y,z,dx,dy,dz,tint,yaw=0){

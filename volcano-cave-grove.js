@@ -3,7 +3,13 @@ import {solids,supported,nodes,basin,fixedRocks,creek} from './volcano-cave-layo
 
 // A rotating cross-section follows each branch's tangent. A split on the same
 // bark strip exposes the orange core, tapering out before the tips.
-function limb(T,b,points,radii,hot){
+function limb(T,b,points,radii,hot,smooth=false){
+ if(smooth){
+  const curve=new T.CatmullRomCurve3(points.map(v=>new T.Vector3(...v)));
+  const count=(points.length-1)*2;
+  points=Array.from({length:count+1},(_,k)=>curve.getPoint(k/count).toArray());
+  const rs=radii;radii=Array.from({length:count+1},(_,k)=>(rs[Math.floor(k/2)]+rs[Math.ceil(k/2)])*.5);
+ }
  const rings=[],n=8,axis=new T.Vector3(),u=new T.Vector3(),v=new T.Vector3(),p=new T.Vector3();
  for(let k=0;k<points.length;k++){
   const a=points[Math.max(0,k-1)],c=points[Math.min(points.length-1,k+1)];
@@ -30,7 +36,7 @@ function tree(T,type,low=false){
  [[0,0,0],[.3,2,0],[2,3,.5],[3.6,3.15,.8],[4.7,5,1],[4.2,6,.6]],
  [[0,0,0],[-1,2,.1],[-1.5,4,-.3],[-.4,6,-.8],[1,7.7,.2],[.3,9,1.1]],
  [[0,0,0],[.6,2,.4],[.5,4.1,.9],[-.4,5,.3],[-.6,5.6,-.6],[.2,6.2,-1.3]]];
- const pts=spines[type];limb(T,b,pts,[1.5,.99,.79,.54,.34,.10],true);
+ const pts=spines[type];limb(T,b,pts,[1.5,.99,.79,.54,.34,.10],true,!low);
  for(let j=0;j<7;j++){
   const a=j*.90+rand()*.3,L=2+rand()*2;
   if(low&&j%2)continue;
@@ -39,7 +45,7 @@ function tree(T,type,low=false){
  for(let j=0;j<9;j++){const at=pts[2+j%4],a=j*2.4+type*.9,L=1.7+rand()*2.2,H=type===3?1:2.3+rand()*2;
   const bend=(s,h,tw)=>[at[0]+Math.cos(a+tw)*L*s,at[1]+H*h,at[2]+Math.sin(a+tw)*L*s];
   const joint=bend(.72,.37,.14),tip=bend(1,1,.6);
-  limb(T,b,[at,bend(.43,.13,-.15),joint,tip,bend(1.13,1.32,.84)],[.38,.29,.21,.11,.012],true);
+  limb(T,b,[at,bend(.43,.13,-.15),joint,tip,bend(1.13,1.32,.84)],[.38,.29,.21,.11,.012],true,!low);
   if(low)continue;
   limb(T,b,[joint,bend(1.04,.47,-.18),bend(1.34,.82,-.34)],[.16,.115,.008],false);
   limb(T,b,[tip,bend(.87,1.16,.71),bend(.81,1.45,.83)],[.095,.05,.006],false);

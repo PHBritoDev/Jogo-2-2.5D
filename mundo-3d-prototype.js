@@ -5717,7 +5717,8 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){lavaBurn.until=lavaBurn.next=lavaBurn.contactNext=0;lavaBurn.onLava=false;ascFallFrom=null;clearVolcanoVictims();
+function clearVolcanoHazards(){lavaBurn.until=lavaBurn.next=lavaBurn.contactNext=0;lavaBurn.onLava=false;ascFallFrom=null;}
+function leaveVolcano(to){clearVolcanoHazards();clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const p=to||DISTRICT_SPOTS.volcanoExit;player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);playerYaw=Math.atan2(p.x-DISTRICT_SPOTS.volcanoGate.x,p.z-DISTRICT_SPOTS.volcanoGate.z);player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;checkpointX=p.x;checkpointZ=p.z;setGameHour(16); /* Mod 327: sai pela boca da caverna, de costas para ela */
 }
@@ -5860,7 +5861,7 @@ function storyDo2(id,args){
 }
 function startBishop2Dimension(){
  updateHeartsHud(true);if(!canChallengeBishop(heartState)){showDialogue([{who:'Anjo-Guia',text:'Sem corações, não. Espere um voltar — '+formatTimer(msToNextHeart(heartState))+'.'}]);return;}
- inVolcano=false;voidSpec.walk=null;guidePinned=false;for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);
+ clearVolcanoHazards();clearVolcanoVictims();inVolcano=false;voidSpec.walk=null;guidePinned=false;for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);
  const back={x:CITY.x+26,z:CITY.z};
  startDimensionBattle('bishop2',{hp:ACT2.bossHp,returnTo:back,onVictory:act2Victory,onAbort:()=>{const g=DISTRICT_SPOTS.volcanoExit;player.position.set(g.x,terrainHeightAt(g.x,g.z),g.z);status.textContent='Sem corações. Recupere um e volte ao portal, no fundo do vulcão.';}});
 }

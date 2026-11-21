@@ -21,3 +21,33 @@ test('o abismo tem bordas e o cristal ou a rocha seca não aplicam queimadura',(
  assert(!supported(11,-29));assert(supported(0,-82));assert(caveHeat(3,110.3));assert(!caveHeat(0,112));
  assert(!volcanoWalkable(-24,0));assert(volcanoWalkable(-24,0,{doorOpen:true}));
 });
+
+test('câmera e cápsula usam o mesmo pilar rotacionado, com limites verticais', async () => {
+ const {addStructure,resetStructures,caveBlocked,caveWall}=await import('./volcano-cave-layout.js');
+ resetStructures();
+ try {
+  const x=-17,z=44;
+  addStructure(x,0,z,6,4,.8,Math.PI/2);
+  for(const dz of [-2.1,-1,0,1,2.1]){
+   assert(caveBlocked(x,z+dz,true));
+   for(const y of [.35,.9,1.6,3.8])assert(caveWall(x,y,z+dz));
+   assert(!caveWall(x+1.2,1.6,z+dz));
+   assert(!caveWall(x,4.5,z+dz));
+  }
+ } finally {resetStructures();}
+});
+
+test('travessia do riacho usa a altura da passarela e não queima o herói', async () => {
+ const {creek,inBasin,caveFloor}=await import('./volcano-cave-layout.js');
+ let dry=0,hot=0;
+ for(let i=1;i<creek.length;i++){
+  const [x,z]=creek[i-1],[u,v]=creek[i];
+  for(let j=1;j<10;j++){
+   const px=x+(u-x)*j/10,pz=z+(v-z)*j/10;
+   if(!inBasin(px,pz))continue;
+   if(supported(px,pz)){assert.equal(caveHeat(px,pz),0);dry++;}
+   else {assert.equal(caveHeat(px,pz),1);assert(caveFloor(px,pz)<0);hot++;}
+  }
+ }
+ assert(dry>0&&hot>0);
+});

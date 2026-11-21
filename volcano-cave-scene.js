@@ -1,7 +1,7 @@
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {plates,caveHeight,heatPools,caveHeat,solids,fixedRocks,resetStructures} from './volcano-cave-layout.js';
+import {plates,supported,caveHeight,heatPools,caveHeat,solids,fixedRocks,resetStructures} from './volcano-cave-layout.js';
 import {masonry} from './volcano-cave-masonry.js';
 
 const sector=z=>z>79?0:z> -14?1:2;
@@ -32,6 +32,25 @@ function groundPlate(b,p,index){const color=p.key.includes('-')?0x71615d:0x60535
  const x=ring.reduce((s,v)=>s+v[0],0)/ring.length,z=ring.reduce((s,v)=>s+v[2],0)/ring.length;
  for(let i=0;i<ring.length;i++){const a=ring[i],c=ring[(i+1)%ring.length];b.face([x,caveHeight(z)+index*.0003,z],a,c,color,.88+b.random()*.15);
   const depth=p.key.includes('-')?1.4:11+b.random()*9;b.quad(a,c,[c[0],c[1]-depth,c[2]],[a[0],a[1]-depth,a[2]],0x473b41);
+ }
+}
+// Jointed paving follows the slope. Shared corner offsets keep neighbouring
+// slabs keyed together; a bevel catches the source light at ankle height.
+function basaltPaving(batch){
+ const hash=(x,z)=>{const n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);};
+ const corner=(i,j)=>[(i+.4*(hash(i,j)-.5))*2.2,(j+.5*(hash(j,i+67)-.5))*1.65];
+ for(let j=-59;j<109;j++)for(let i=-17;i<=17;i++){
+  const polygon=[corner(i,j),corner(i,j+1),corner(i+1,j+1),corner(i+1,j)];
+  const x=polygon.reduce((v,p)=>v+p[0],0)/4,z=polygon.reduce((v,p)=>v+p[1],0)/4;
+  if(!supported(x,z)||!polygon.every(([u,v])=>supported(u,v)))continue;
+  const distribution=hash(i+13,j);
+  if(z<79&&z>0&&distribution>.19)continue;
+  if(caveHeat(x,z)||heatPools.some(h=>Math.hypot(x-h.x,z-h.z)<h.r+1.6))continue;
+  const shade=z<0?[0x504b55,0x625965,0x726871]:[0x715d60,0x87726c,0x65545a];
+  const base=polygon.map(([u,v])=>[u,caveHeight(v)+.018,v]);
+  const top=polygon.map(([u,v])=>{const a=x+(u-x)*.93,b=z+(v-z)*.94;return [a,caveHeight(b)+.048+distribution*.016,b];});
+  batch.quad(...top,shade[Math.floor(distribution*3)]);
+  for(let k=0;k<4;k++){const l=(k+1)%4;batch.quad(base[k],base[l],top[l],top[k],0x403239);}
  }
 }
 function assets(T,group,file,instances,alive){
@@ -97,8 +116,9 @@ export function buildVolcanoCave(T,g,spec,ctx){
  const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
  let updateTrees;
  resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
- const deck=masonry(T,g,971,{});
- plates.forEach((p,j)=>groundPlate(deck,p,j));deck.finish();
+ const floors=new T.Group();floors.name="pisos da caverna";g.add(floors);
+ const deck=masonry(T,floors,971,{});
+ plates.forEach((p,j)=>groundPlate(deck,p,j));basaltPaving(deck);deck.finish();
  for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{}),l=molten(T,s,clock),crystals=[],torches=[];
 
   if(i===0)sanctuary(b,l,crystals,torches);
@@ -115,6 +135,9 @@ export function buildVolcanoCave(T,g,spec,ctx){
   env.fogFar=178-92*f+140*a;env.fogNear=14-6*f+9*a;
   tint.setHex(0x563b47).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
   tint.setHex(0x241623).lerp(groveSky,f).lerp(crownSky,a);env.bg=tint.getHex();});
- ctx.refs.caveDispose=()=>{active=false;};
+ ctx.refs.caveDispose=()=>{
+  active=false;
+  g.traverse(object=>{if(object.isInstancedMesh)object.dispose();});
+ };
  return env;
 }
