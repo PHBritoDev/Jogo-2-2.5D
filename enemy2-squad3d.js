@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js?v=mod329-export-bishop-duel';
 import { registerKind, registerSkill, E1, SKILLS } from './enemy1-squad3d.js';
 /**
  * MOD 238 — Enemy2 ("Trindade"): espécie própria sobre a esquadra da Mod 237 (mesmo diretor, mesmas fichas e estudo
@@ -41,7 +41,7 @@ const BOSS2 = {
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 },
   dodge: { chance: .34, cd: 2.6 },
   counter: { ...E1.common.counter, chance: TEMP_MELEE_ONLY_TEST ? 0 : .45, cd: 7, power: 24, r: .6 },
-  gap: .6, spellGap: 2.6, reap: TEMP_MELEE_ONLY_TEST ? null : 'trinity', feint: TEMP_MELEE_ONLY_TEST ? null : 'collapse',
+  gap: .6, spellGap: 2.6, kit: (TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY) ? [] : COMMON2.kit, reap: (TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY) ? null : 'trinity', feint: (TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY) ? null : 'collapse',
   vortex: { ...VORTEX, portal: 2.1, r: .95, dmg: 15, speed: 16.5, power: 26, cd: 11 },
   trinity: { ...TRINITY, core: 1.1, dmg: 8, speeds: [3.4, 4, 4], pullR: 4.2, cd: 13 },
   collapse: { ...COLLAPSE, r: 4.3, core: 16, waveDmg: 17, cd: 11 }

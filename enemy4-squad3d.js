@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js?v=mod329-export-bishop-duel';
 import { registerKind, registerSkill, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 /**
@@ -42,7 +42,7 @@ const BOSS4 = {
   speed: { walk: 2.6, run: 4.3, strafe: 1.85, back: 2.4, turn: 8 },
   melee: { max: 2.9, reach: 3.1, arc: -.1, windup: .55, hits: [.55], dur: 1.4, dmg: 14, cd: 2.1, knock: 1.1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 }, dodge: { chance: .36, cd: 2.5 },
-  gap: .6, spellGap: 2.6, kit: TEMP_MELEE_ONLY_TEST ? [] : ['sanctum', 'constellation', 'drill', 'cage'],
+  gap: .6, spellGap: 2.6, kit: (TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY) ? [] : ['sanctum', 'constellation', 'drill', 'cage'],
   sanctum: { ...SANCTUM, n: 20, warn: .9, maxLive: 6, r: 1.1, dmg: 15, sep: 2.1, cd: 13 },
   constellation: { ...CONSTELLATION, n: 12, cast: 3.7, cadence: .22, r: .45, R: 2.1, dmg: 17, edge: 8, spread: 4.4, cd: 12 },
   drill: { ...DRILL, rate: 6, r: .4, dmg: 7, maxHits: 4, ur: .9, cd: 10 },

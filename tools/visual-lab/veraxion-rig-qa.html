@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VÉRAXION — QA do rig novo e das duas espadas</title>
+<style>html,body{margin:0;background:#101018;color:#e6d3ff;font:12px system-ui}canvas{display:block}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><div id="info">carregando…</div>
+<script type="module">
+/* Missão 20/11 — prova visual do NewBispo3.glb com a DUAS ESPADAS montadas pelo MESMO código do jogo (attachKatana +
+   poseKatana: empunhadura medida, haste pela mão esquerda nos quadros a duas mãos, cabeça acima do piso). 4 vistas, luz neutra.
+   ?poses=[[clipe,t],...]  — clipes e poses recortadas reais (raiz ancorada como no jogo). */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { inPlaceClip } from '../../vhazrael-rig3d.js';
+import { VX_FILE as ZK_FILE, vxSynthClips as zkSynthClips, vxGrip as zkGrip } from '../../veraxion-squad3d.js';
+import { attachKatana, poseKatana } from '../../enemy3-runtime3d.js';
+const Q = new URLSearchParams(location.search), W = 1200, POSES = Q.get('poses') ? JSON.parse(Q.get('poses')) : [['VX_idle', 0], ['Walking', .3], ['Running', .2], ['Walk_Backward_with_Sword', .4], ['VX_guard', .05], ['Weapon_Combo_1', .72], ['Weapon_Combo_1', 1.67], ['VX_cross', .55], ['Spartan_Kick', .53], ['VX_throw', .3], ['Charged_Upward_Slash', 1.03], ['Dead', 2.6]], VIEWS = [0, Math.PI / 2, Math.PI, -Math.PI * .75];
+const cell = W / VIEWS.length, H = cell * POSES.length, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setScissorTest(true); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1d1a26); scene.add(new THREE.HemisphereLight(0xefe6ff, 0x30283a, 1.7)); const sun = new THREE.DirectionalLight(0xffffff, 1.9); sun.position.set(3, 5, 4); scene.add(sun);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(3, 48), new THREE.MeshStandardMaterial({ color: 0x2c2a38 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const cam = new THREE.PerspectiveCamera(38, 1, .05, 50);
+new GLTFLoader().load('../../' + ZK_FILE.slice(2), g => {
+  const model = g.scene, clips = g.animations.concat(zkSynthClips(THREE, g.animations)), holder = new THREE.Group(); holder.add(model); scene.add(holder);
+  { const m0 = new THREE.AnimationMixer(model), c0 = clips.find(c => c.name === 'VX_idle'); m0.clipAction(c0).play(); m0.setTime(0); model.updateMatrixWorld(true); let head = null, foot = null; model.traverse(o => { if (o.isBone && o.name === 'HeadEnd') head = o; if (o.isBone && o.name === 'LeftToes') foot = o; }); const hy = head.getWorldPosition(new THREE.Vector3()).y, fy = foot.getWorldPosition(new THREE.Vector3()).y, s = 2.06 / Math.max(.2, hy - fy); model.scale.setScalar(s); model.position.y = -fy * s; m0.stopAllAction(); }
+  const b = { holder }; model.traverse(o => { if (o.isBone && o.name === 'RightHand') b.hand = o; if (o.isBone && o.name === 'LeftHand') b.lhand = o; }); attachKatana(THREE, scene, b, 'veraxion'); b.grip = zkGrip(THREE);
+  const mixer = new THREE.AnimationMixer(model), a = { alive: true, kind: 'veraxion', yaw: 0, y: 0, vx: 0, vz: 0, act: { type: 'melee', move: {}, t: 0 } };
+  POSES.forEach(([name, t], row) => {
+    const c = clips.find(x => x.name === name); mixer.stopAllAction(); if (c) { const ac = mixer.clipAction(inPlaceClip(c, { vertical: name === 'Jump_Over_Obstacle_2' })); ac.play(); mixer.setTime(t); }
+    a.alive = name !== 'Dead'; a.act = /VX_idle|Walking|Running|Walk_Back/.test(name) ? null : { type: 'melee', move: {}, t: 0 }; model.updateMatrixWorld(true); b.zkTwo = 0; for (let i = 0; i < 12; i++) poseKatana(THREE, b, a, 1 / 30, t, false); b.weaponRoot.updateMatrixWorld(true);
+    VIEWS.forEach((v, col) => { cam.position.set(Math.sin(v) * 6.2, 1.7, Math.cos(v) * 6.2); cam.lookAt(0, 1.15, 0); const y = H - (row + 1) * cell; r.setViewport(col * cell, y, cell, cell); r.setScissor(col * cell, y, cell, cell); r.render(scene, cam); });
+  });
+  document.getElementById('info').textContent = 'linhas: ' + POSES.map(p => p[0] + '@' + p[1]).join(' · ') + ' | colunas: frente, lado, costas, ¾'; window.__done = true;
+}, undefined, e => { document.getElementById('info').textContent = 'erro: ' + e.message; window.__done = true; });
+</script></body></html>

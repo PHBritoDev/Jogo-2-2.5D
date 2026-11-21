@@ -1,161 +1,222 @@
-import { softParticles, groundDecals, groundNormal, ribbons, lightningBolt, smooth, easeOut, easeIn, hash } from './celestial-fxkit3d.js';
-/**
- * MOD 229 — Julgamento Divino: Colapso da Luz Eterna (VFX). Mantém a identidade: disco NEGRO absoluto + coroa BRANCA.
- *  • Asas celestiais nascem primeiro nas costas do herói: as asas do prólogo (Asas.glb) com material de luz (fresnel,
- *    borda iridescente, dissolução por ruído) e uma camada de penas de energia instanciadas por cima; abrem com pulso de
- *    vento, batem na subida e se desfazem em penas de luz no fim.
- *  • Fissura celeste ramificada, coroa 3D com turbulência (shader de fBm radial, filamentos e anel de "lente"),
- *    partículas de luz em órbita, fragmentos sugados e rastro no lançamento.
- *  • Impacto: implosão curta → casca branca em camadas, ondas de choque 3D e no chão, explosão de partículas de luz,
- *    marca no terreno. O clima (céu carmesim, nuvens, chuva, raios, vento) é o módulo celestial-storm3d.js.
- * Nenhuma luz dinâmica; buffers fixos. O dano é só da linha do tempo (celestial-whitehole3d.js).
- */
-const CORONA_VERT = 'varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
-const CORONA_FRAG = `varying vec2 vUv; uniform float time, alpha;
-float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
-float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n2(p);p*=2.07;a*=.5;}return s;}
+// The event horizon, orbiting gas and bent light occupy separate depth planes.
+import {softParticles,ribbons,groundDecals,groundNormal,smooth,easeOut,hash} from './celestial-fxkit3d.js';
+import {WHITE_HOLE} from './celestial-whitehole3d.js';
+const TAU=Math.PI*2;
+const diskVertex=`varying vec3 local;void main(){local=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const diskFragment=`varying vec3 local;uniform float time;
 void main(){
- vec2 p=vUv*2.-1.; float d=length(p)*2.; float ang=atan(p.y,p.x);
- if(d<.86) discard;                                              // o centro é o disco negro (malha 3D própria)
- float ring=exp(-pow((d-.975)/.045,2.))*2.2;                     // aro ofuscante
- float lens=exp(-pow((d-1.07)/.05,2.))*(.55+.45*sin(ang*3.-time*.7)); // anel de "lente": luz curvada em volta do disco
- float streak=fbm(vec2(ang*7.,d*2.2-time*.35))*fbm(vec2(ang*23.+time*.2,d*5.));
- float corona=pow(streak,1.6)*2.4*exp(-(d-.95)*2.1);              // turbulência fina da coroa
- float fil=pow(max(0.,sin(ang*41.+fbm(vec2(ang*5.,time*.3))*9.)),40.)*exp(-(d-.95)*3.)*1.2; // filamentos
- float a=(ring+lens*.6+corona+fil)*alpha*smoothstep(2.,1.55,d);
- if(a<.004) discard;
- vec3 c=mix(vec3(.82,.9,1.),vec3(1.),clamp(ring,0.,1.));
- gl_FragColor=vec4(c*a,a);
+ float r=length(local.xy),a=atan(local.y,local.x);
+ float edge=smoothstep(.68,.86,r)*(1.-smoothstep(1.38,3.28,r));
+ float shear=time*(1.7/(.38+r));float twist=a-shear+3.3*log(r);
+ float veins=.5+.5*sin(58.*r+4.*sin(3.*twist)+2.*sin(8.*twist-5.*r));
+ float hot=exp(-2.5*(r-.83)*(r-.83))*(.34+.66*veins);
+ float lumin=edge*(.18+hot)*(.76+.24*cos(twist));
+ vec3 emission=mix(vec3(.76,.042,.009),vec3(1.,.49,.028),hot);
+ emission=mix(emission,vec3(1.,.94,.60),pow(hot,4.));
+ gl_FragColor=vec4(emission*1.45,min(1.,lumin*1.65));
 }`;
-const WING_VERT = `varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP=position; vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }`;
-const WING_FRAG = `varying vec3 vN; varying vec3 vV; varying vec3 vP; uniform float time, alpha, dissolve;
-float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);}
-void main(){
- float n=n3(vP*3.2+time*.15); if(n<dissolve) discard;
- float f=pow(1.-abs(dot(normalize(vN),vV)),2.2);
- vec3 irid=.5+.5*cos(6.2831*(f*.8+vec3(0.,.33,.67)+time*.05));    // borda iridescente
- vec3 c=mix(vec3(1.,.97,.9),vec3(1.,.86,.55),.25+.25*sin(vP.y*4.+time));
- c=mix(c,irid,f*.45)+vec3(1.,.95,.8)*f*1.2;
- float burn=smoothstep(dissolve+.08,dissolve,n);                     // borda dourada que queima ao dissolver
- c=mix(c,vec3(1.,.8,.35)*2.,burn);
- gl_FragColor=vec4(c*1.15,alpha);
-}`;
+function arcGeometry(T,radius,width,lift,tear=0){
+ const v=[],ix=[];
+ for(let i=0;i<=96;i++){const a=TAU*i/96;
+  for(const side of [-1,1]){
+   const edge=tear?1+.11*Math.sin(a*5+tear)+.07*Math.cos(a*8):1;
+   const r=radius*edge+width*side*(tear?1.3+Math.sin(a*7+tear):1);
+   v.push(Math.cos(a)*r,Math.sin(a)*r*lift,.12*Math.cos(a)+tear*.12*Math.sin(a*3+side*.3));
+  }
+  if(i&&(!tear||Math.sin(a*3+tear)>-.85)){const j=i*2;ix.push(j-2,j-1,j,j,j-1,j+1);}
+ }
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setIndex(ix);return g;
+}
+export function createWhiteHoleVFX(T,scene,{ground=()=>0}={}){
+ const root=new T.Group();root.name='ColapsoLuzEterna';root.visible=false;scene.add(root);
+ const portal=new T.Group(),disc=new T.Group(),wings=new T.Group();root.add(portal,wings);portal.add(disc);
+ // Distant bands sit behind scene geometry, and open along the sightline to the cast.
+ const veil=new T.Mesh(new T.SphereGeometry(1,28,12),new T.ShaderMaterial({
+  uniforms:{age:{value:0},cover:{value:0},opening:{value:new T.Vector3()}},
+  vertexShader:'varying vec3 ray;void main(){ray=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`varying vec3 ray;uniform vec3 opening;uniform float age,cover;
+   void main(){vec3 d=normalize(ray);float r=atan(d.z,d.x);
+    float wave=.06*sin(3.*r+age*.13)+.04*cos(8.*r-age*.12);
+    float bank=exp(-pow((d.y-.18-wave)*8.,2.));
+    float split=smoothstep(.04,.52,length(d-opening));
+    gl_FragColor=vec4(mix(vec3(.14,.065,.12),vec3(.033,.028,.08),smoothstep(.03,.38,d.y)),cover*bank*split*.67);}`,
+  transparent:true,side:T.BackSide,depthWrite:false,fog:false,toneMapped:false}));
+ veil.renderOrder=-8;veil.frustumCulled=false;root.add(veil);
+ const horizon=new T.Mesh(new T.SphereGeometry(.78,36,20),new T.MeshBasicMaterial({color:0x010004,fog:false,toneMapped:false}));
+ portal.add(horizon);
+ const gas=new T.Mesh(new T.RingGeometry(.68,3.28,112,12),new T.ShaderMaterial({vertexShader:diskVertex,fragmentShader:diskFragment,
+  uniforms:{time:{value:0}},transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,toneMapped:false}));
+ disc.add(gas);
+ const line=(color,opacity)=>new T.MeshBasicMaterial({color,opacity,transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,fog:false,toneMapped:false});
+ const photon=new T.Mesh(arcGeometry(T,.80,.021,1),line(0xffcf77,1));
+ const lens=new T.Mesh(arcGeometry(T,.96,.025,.91),line(0xff641d,.85));portal.add(photon,lens);
+ // Light from the far side bends over the horizon. The near stream passes
+ // across its face and tapers continuously into the inclined outer disk.
+ const streamPositions=[],streamUvs=[],streamIndices=[];
+ for(let i=0;i<=64;i++){
+  const u=i/64,x=(u-.5)*6.1,w=Math.sin(Math.PI*u)**.72;
+  for(const edge of [-1,1]){
+   streamPositions.push(x,.07*Math.sin(x*1.8)+edge*.12*w,.84*w+.075);
+   streamUvs.push(u,(edge+1)/2);
+  }
+  if(i){const j=i*2;streamIndices.push(j-2,j-1,j,j,j-1,j+1);}
+ }
+ const streamGeo=new T.BufferGeometry();streamGeo.setAttribute('position',new T.Float32BufferAttribute(streamPositions,3));
+ streamGeo.setAttribute('uv',new T.Float32BufferAttribute(streamUvs,2));streamGeo.setIndex(streamIndices);
+ const stream=new T.Mesh(streamGeo,new T.ShaderMaterial({uniforms:gas.material.uniforms,transparent:true,depthWrite:false,side:T.DoubleSide,blending:T.AdditiveBlending,
+  vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`varying vec2 v;uniform float time;void main(){float edge=abs(v.y*2.-1.);
+   float flow=.76+.24*sin(v.x*62.-time*5.+sin(v.x*18.));
+   gl_FragColor=vec4(mix(vec3(1.,.18,.012),vec3(1.,.95,.62),exp(-edge*3.)),(1.-edge*edge)*flow);}`}));
+ portal.add(stream);
+ const flareMat=line(0xffc45d,1),jets=new T.InstancedMesh(new T.ConeGeometry(1,1,4,1),flareMat,44);
+ jets.frustumCulled=false;root.add(jets);const up=new T.Vector3(0,1,0);
 
-export function createWhiteHoleVFX(T, scene, { ground = () => 0 } = {}) {
-  const root = new T.Group(); root.name = 'ColapsoLuzEterna'; root.visible = false; scene.add(root);
-  const portal = new T.Group(); root.add(portal);
-  const black = new T.MeshBasicMaterial({ color: 0x000000, toneMapped: false, fog: false });
-  const lensGeo = new T.SphereGeometry(.86, 48, 24), lens = new T.Mesh(lensGeo, black); lens.scale.z = .055; portal.add(lens);
-  const white = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, toneMapped: false, fog: false, uniforms: { time: { value: 0 }, alpha: { value: 1 } },
-    vertexShader: 'varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader: 'varying vec3 p;uniform float time;uniform float alpha;void main(){float a=atan(p.y,p.x);float f=.82+.18*sin(a*19.-time*3.+sin(a*7.+time));gl_FragColor=vec4(vec3(1.),alpha*f);}' });
-  const ringGeo = new T.TorusGeometry(.975, .07, 14, 160), ring = new T.Mesh(ringGeo, white); portal.add(ring);
-  const coronaMat = new T.ShaderMaterial({ vertexShader: CORONA_VERT, fragmentShader: CORONA_FRAG, transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneFactor, toneMapped: false, fog: false, uniforms: { time: { value: 0 }, alpha: { value: 1 } } });
-  const coronaGeo = new T.PlaneGeometry(4, 4), corona = new T.Mesh(coronaGeo, coronaMat); corona.position.z = -.01; portal.add(corona);
-  const filamentGeo = new T.TorusGeometry(1.16, .005, 4, 120, Math.PI * 1.3); const filaments = [];
-  for (let i = 0; i < 3; i++) { const m = new T.Mesh(filamentGeo, white); m.rotation.x = .12 * (i - 1); m.scale.setScalar(1 + i * .035); portal.add(m); filaments.push(m); }
-  // explosão: casca branca e ondas 3D
-  const shellGeo = new T.IcosahedronGeometry(1, 3), shellMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false, uniforms: { alpha: { value: 1 } },
-    vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 w=modelMatrix*vec4(position,1.); vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }',
-    fragmentShader: 'varying vec3 vN; varying vec3 vV; uniform float alpha; void main(){ float f=pow(1.-abs(dot(normalize(vN),vV)),1.5); gl_FragColor=vec4(vec3(1.,.98,.94),(.15+f)*alpha); }' });
-  const shells = [0, 1, 2].map(() => { const m = new T.Mesh(shellGeo, shellMat.clone()); root.add(m); return m; });
-  const shockGeo = new T.TorusGeometry(1, .035, 8, 128), shocks = [0, 1].map(() => { const m = new T.Mesh(shockGeo, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false })); root.add(m); return m; });
-  // fragmentos sugados e feixe da espada
-  const rockGeo = new T.DodecahedronGeometry(.14, 0), rockMat = new T.MeshStandardMaterial({ color: 0x3a3330, roughness: 1, emissive: 0x220000 });
-  const debris = new T.InstancedMesh(rockGeo, rockMat, 100); debris.frustumCulled = false; root.add(debris);
-  const glow = softParticles(T, 1400), decals = groundDecals(T, 12), rib = ribbons(T, 1600, { flow: 18 }); root.add(glow.mesh, decals.mesh, rib.mesh);
-  // ---- asas
-  const wingHolder = new T.Group(); wingHolder.visible = false; root.add(wingHolder);
-  const wingMat = new T.ShaderMaterial({ vertexShader: WING_VERT, fragmentShader: WING_FRAG, transparent: true, side: T.DoubleSide, toneMapped: false, fog: false, uniforms: { time: { value: 0 }, alpha: { value: 1 }, dissolve: { value: 0 } } });
-  const wingL = new T.Group(), wingR = new T.Group(); wingHolder.add(wingL, wingR);
-  // penas de energia instanciadas (três fileiras por asa): dão volume e funcionam sozinhas se o GLB não carregar
-  const featherGeo = new T.ConeGeometry(.07, 1, 5, 1); featherGeo.translate(0, -.5, 0); featherGeo.scale(1, 1, .3);
-  const energyMat = wingMat.clone(); energyMat.uniforms = wingMat.uniforms; energyMat.blending = T.AdditiveBlending; energyMat.depthWrite = false;
-  const pose = new T.Object3D(), energy = [];
-  for (const [g, sg] of [[wingL, 1], [wingR, -1]]) {
-    const m = new T.InstancedMesh(featherGeo, energyMat, 46); let i = 0;
-    for (let row = 0; row < 3; row++) { const n = [18, 15, 13][row];
-      for (let k = 0; k < n; k++) { const u = k / (n - 1), x = sg * (.1 + u * 1.55 * (1 - row * .12)), y = .2 + Math.sin(u * Math.PI * .85) * .55 - row * .12;
-        pose.position.set(x, y, -.05 - row * .03); pose.rotation.set(0, 0, sg * (.15 + u * .9)); pose.scale.set(1.2 - row * .2, (.55 + u * .9) * (1 - row * .25), 1); pose.updateMatrix(); m.setMatrixAt(i++, pose.matrix); } }
-    m.count = i; g.add(m); energy.push(m);
-  }
-  let glbWings = null;
-  function setWings(obj) { if (!obj || glbWings) return; glbWings = obj;
-    const L = obj.getObjectByName('AsaEsquerda'), R = obj.getObjectByName('AsaDireita');
-    for (const [src, dst] of [[L, wingL], [R, wingR]]) if (src) { const c = src.clone(); c.traverse(o => { if (o.isMesh) { o.material = wingMat; o.frustumCulled = false; } }); dst.add(c); dst.userData.glb = c; }
-  }
-  const dummy = new T.Object3D(), from = new T.Vector3(), to = new T.Vector3(), dir = new T.Vector3(), up = new T.Vector3(0, 1, 0), nrm = [0, 1, 0], segs = Array.from({ length: 60 }, () => null);
-  const W = [1, 1, 1, 1], col = (a) => [1, 1, 1, a];
+ const feathers=softParticles(T,120),threads=ribbons(T,420,{flow:10}),marks=groundDecals(T,5);
+ root.add(feathers.mesh,threads.mesh,marks.mesh);
+ const ruptures=Array.from({length:3},(_,i)=>{
+  const m=new T.Mesh(arcGeometry(T,1,.032+i*.01,1,i+1),line([0xffc36a,0xff7230,0xc05438][i],1));root.add(m);return m;
+ });
+ // Polar ejecta twist around the pinch point. The bright spine and cooler
+ // filaments share an open 3D surface, so the silhouette changes with the shot.
+ const jetSurface=new T.CylinderGeometry(1,1,1,32,18,true);
+ const pole=new T.Mesh(jetSurface,new T.ShaderMaterial({
+  uniforms:{age:{value:0}},transparent:true,depthWrite:false,side:T.DoubleSide,
+  blending:T.AdditiveBlending,toneMapped:false,
+  vertexShader:`varying vec2 v;uniform float age;void main(){
+   v=uv;float h=uv.y,a=atan(position.z,position.x);
+   float width=.20+.62*pow(h,2.)+.76*exp(-15.*h);
+   width*=1.+.18*sin(a*5.+h*21.-age*7.);
+   vec3 p=vec3(position.x*width,h,position.z*width);
+   p.x+=h*h*.28*sin(h*8.-age*4.);gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+  fragmentShader:`varying vec2 v;uniform float age;void main(){
+   float a=v.x*6.2831853,h=v.y;
+   float twist=a*5.-h*24.+age*7.+1.1*sin(a*3.+h*14.-age*4.);
+   float core=pow(.5+.5*cos(twist),4.);
+   float fine=pow(.5+.5*cos(twist*3.+h*12.),8.);
+   vec3 color=mix(vec3(.95,.10,.03),vec3(1.,.82,.52),core);
+   color=mix(color,vec3(.80,.86,1.),fine*.85);
+   float fade=(1.-smoothstep(.48,1.,h))*(1.-smoothstep(.48,1.48,age));
+   gl_FragColor=vec4(color,fade*(.36+core*.6+fine*.3));}`}));
+ pole.frustumCulled=false;root.add(pole);
+ const shockDisc=new T.Mesh(gas.geometry,gas.material.clone());root.add(shockDisc);
+ const debris=new T.InstancedMesh(new T.TetrahedronGeometry(.11),new T.MeshStandardMaterial({color:0x59414a,roughness:.85}),36);debris.frustumCulled=false;root.add(debris);
+ const pose=new T.Object3D(),start=new T.Vector3(),aim=new T.Vector3(),p=new T.Vector3(),q=new T.Vector3(),rot=new T.Quaternion(),roll=new T.Quaternion(),axis=new T.Vector3(0,0,1);
+ const normal=[0,1,0],ember=[1,.17,.025,.8],gold=[1,.78,.33,.9],dim=[.65,.82,1,.55],clear=[1,.06,.015,0];
+ let wingMesh=null,fullWing,lowWing;
+ const hinge={value:0},sweep={value:0},backScale=new T.Vector3();
+ function setWings(obj){
+  obj.traverse(m=>{if(m.isMesh)wingMesh=m;});if(!wingMesh)return;
+  fullWing=wingMesh.geometry;
+  if(!fullWing.attributes.normal)fullWing.computeVertexNormals();
+  wingMesh.material=wingMesh.material.clone();wingMesh.frustumCulled=false;
+  wingMesh.material.metalness=.12;wingMesh.material.roughness=.6;
+  wingMesh.material.emissive.setHex(0x9facae);wingMesh.material.emissiveIntensity=.30;
+  wingMesh.material.emissiveMap=wingMesh.material.map;
+  wingMesh.material.onBeforeCompile=shader=>{
+   shader.uniforms.hinge=hinge;shader.uniforms.sweep=sweep;
+   shader.vertexShader='uniform float hinge,sweep;\n'+shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+    float span=abs(position.x), side=sign(position.x);
+    float bend=hinge+sin(sweep-span*3.)*.22*smoothstep(.04,.48,span);
+    transformed.x=side*(span*cos(bend)+position.z*sin(bend));
+    transformed.z=position.z*cos(bend)-span*sin(bend);`);
+  };
+  wings.add(obj);wings.name='AsasAnjo_leve';wings.userData.asset='AsasAnjo_leve.glb';
+ }
+ function update(s,camera,quality=1,hero=null){
+  root.visible=s.active;if(!root.visible)return;
+  const t=s.time,o=s.source,g=s.contact||s.target,low=quality===0,dx=g.x-o.x,dz=g.z-o.z,len=Math.hypot(dx,dz)||1,fx=dx/len,fz=dz/len;
+  const rise=smooth((t-.8)/2.8),land=smooth((t-14.3)/2.7),alt=hero?.alt??10;
+  const y=hero?.pos.y??o.y+1.3+alt*rise*(1-land);
+  threads.begin(camera,t);feathers.begin();marks.begin();
+  const open=smooth(t/.85)*(1-smooth((t-14.6)/2.2)),flap=Math.sin(t*4.65)*(.07+.58*(1-smooth((t-2.3)/.9)));
+  wings.visible=!!hero&&open>.015&&!!wingMesh;
+  if(hero){
+   if(hero.back&&wings.parent!==hero.back){
+    wings.removeFromParent();wings.position.copy(hero.pos);wings.rotation.set(0,hero.yaw,0);wings.scale.setScalar(1);wings.updateMatrixWorld(true);hero.back.attach(wings);
+   }
+   if(wingMesh){wingMesh.geometry=quality<2&&lowWing?lowWing:fullWing;hero.back?.getWorldScale(backScale);
+    wings.scale.setScalar(4.3*(.28+.72*open)/Math.max(.001,backScale.x||1));hinge.value=(1-open)*1.15+flap*.75;sweep.value=t*4.65;}
+   for(let i=0;i<(low?8:20);i++){const age=t-(.68+(i%2)*1.32+Math.floor(i/2)*.065);if(age<0||age>3)continue;const side=i%2?1:-1;
+    feathers.add(hero.pos.x+side*Math.cos(hero.yaw)*(.6+age*.5),y+.4-age*.85+hash(i)*.45,hero.pos.z-side*Math.sin(hero.yaw)*(.6+age*.5)+Math.sin(age+i)*.23,.035,.24,1,.83,.55,(1-age/3)*.8,3,age+i,i);}
+   if(t<11)for(let j=0;j<(low?12:24);j++)for(let i=0;i<7;i++){
+    const strand=(k,out)=>{const u=k/7,side=j%2?1:-1,phase=j*.31+t*.85;
+     const span=side*(.18+u*u*(.52+hash(j)*1.15))+.07*Math.sin(phase+u*3.);
+     const depth=-.19-u*.14+.04*Math.cos(phase+u*5.);
+     out.set(hero.pos.x+Math.cos(hero.yaw)*span+Math.sin(hero.yaw)*depth,
+      y-1.05+u*(1.55+hash(j+5)*.95),hero.pos.z-Math.sin(hero.yaw)*span+Math.cos(hero.yaw)*depth);};
+    strand(i,p);strand(i+1,q);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.009,.012,dim,gold);}
 
-  /** hero: { pos: Vector3 (costas, na altura da coluna), yaw, scale } — vem da integração, para as asas seguirem o modelo. */
-  function update(s, camera, quality = 1, hero = null) {
-    root.visible = s.active; if (!s.active) return;
-    const t = s.time, origin = s.source, target = s.target, low = quality === 0, fade = t > 14 ? Math.max(0, 1 - (t - 14) / 3) : 1;
-    white.uniforms.time.value = coronaMat.uniforms.time.value = wingMat.uniforms.time.value = t; white.uniforms.alpha.value = coronaMat.uniforms.alpha.value = fade;
-    rib.begin(camera, t); glow.begin(); decals.begin();
-    // --------- asas (primeiro de tudo)
-    wingHolder.visible = !!hero && t < 14.8;
-    if (wingHolder.visible) {
-      const open = easeOut(t / .9), dis = smooth((t - 13.2) / 1.4);
-      wingHolder.position.copy(hero.pos); wingHolder.rotation.set(0, hero.yaw, 0); wingHolder.scale.setScalar((hero.scale || 1) * (.25 + .75 * open) * .62);
-      const flap = t < 3.6 ? Math.sin(t * 4.6) * .38 * (1 - smooth((t - 2.6) / 1)) : t < 11 ? Math.sin(t * 1.6) * .07 : Math.sin(t * 3) * .12;
-      const fold = (1 - open) * 1.25, spread = t > 10.6 && t < 13 ? -.18 * smooth((t - 10.6) / .5) : 0;
-      wingL.rotation.set(0, fold + flap * .3 + spread, -flap); wingR.rotation.set(0, -fold - flap * .3 - spread, flap);
-      for (const g of [wingL, wingR]) if (g.userData.glb) { g.userData.glb.rotation.y = 0; }
-      wingMat.uniforms.dissolve.value = dis * 1.05; wingMat.uniforms.alpha.value = 1; energy.forEach(m => m.visible = !low || !glbWings);
-      // pulso de vento ao abrir e penas de luz que se soltam
-      if (t < 1.1) { const k = t / 1.1, gy = ground(hero.pos.x, hero.pos.z); decals.add(hero.pos.x, gy, hero.pos.z, 1 + 7 * easeOut(k), 1, .95, .85, (1 - k) * .9, 0, k, 5, groundNormal(ground, hero.pos.x, hero.pos.z, nrm));
-        glow.add(hero.pos.x, hero.pos.y, hero.pos.z, 5 * (1 - k) + 1, 5 * (1 - k) + 1, 1, .95, .8, (1 - k) * .8, 0); }
-      const nf = low ? 14 : 40;
-      for (let i = 0; i < nf; i++) { const life = 1.8, ph = (t * (.5 + hash(i) * .3) + hash(i * 3)) % 1, side = i % 2 ? 1 : -1, sx = hero.pos.x + Math.cos(hero.yaw) * side * (.4 + hash(i * 5) * 1.6), sz = hero.pos.z - Math.sin(hero.yaw) * side * (.4 + hash(i * 5) * 1.6);
-        const a = (1 - ph) * (t < 13.2 ? .55 : .95) * (t > 13.2 ? 1.6 : 1) * Math.min(1, t / .6);
-        glow.add(sx + Math.sin(t + i) * ph * .6, hero.pos.y + .4 + hash(i * 7) * 1 - ph * 1.6, sz + Math.cos(t * 1.3 + i) * ph * .6, .06, .28, 1, .92, .7, Math.min(1, a), 3, .6 * side + ph, i); }
-    }
-    // --------- aura de subida e feixe da espada
-    const heroY = hero ? hero.pos.y : origin.y;
-    if (t < 11 && hero) for (let i = 0; i < (low ? 16 : 40); i++) { const a = i * 2.39996 + t * .8, u = (i / 40 + t * .25) % 1; glow.add(hero.pos.x + Math.cos(a) * .8, heroY - 1 + u * 3.2, hero.pos.z + Math.sin(a) * .8, .12, .12, 1, .95, .82, (1 - u) * .8, 2, a); }
-    const portalY = origin.y + 49, launch = smooth((t - 11) / 2);
-    if (t >= 3 && t < 6.2) { const k = smooth((t - 3) / .5) * (1 - smooth((t - 5.8) / .4)); from.set(origin.x, heroY + 1.6, origin.z); to.set(origin.x, portalY, origin.z);
-      rib.seg(from.x, from.y, from.z, to.x, to.y, to.z, .35, .12, col(.9 * k), col(.6 * k)); rib.seg(from.x, from.y, from.z, to.x, to.y, to.z, .09, .05, col(k), col(k)); }
-    // --------- fissura celeste ramificada
-    if (t >= 4.4 && t < 6.6) { const k = smooth((t - 4.4) / .8), L = 4 + 14 * k, a = (1 - smooth((t - 6.1) / .5));
-      for (let j = 0; j < 3; j++) { const n = lightningBolt(31 + j * 7, origin.x, portalY + L * .5, origin.z - 1, origin.x + (j - 1) * 3 * k, portalY - L * .5, origin.z - 1, segs, { depth: 2, jag: .25, branches: .55 });
-        for (let i = 0; i < n; i++) { const g = segs[i]; rib.seg(g[0], g[1], g[2], g[3], g[4], g[5], .5 * g[6] * k, .5 * g[6] * k, col(a), col(a)); } }
-      glow.add(origin.x, portalY, origin.z - 1, 10 * k, 18 * k, 1, 1, 1, .5 * a, 0); }
-    // --------- portal
-    const size = t < 6 ? smooth((t - 4.8) / 1.2) * 2 : 2 + smooth((t - 6) / 4) * 20;
-    const implode = t > 12.85 ? 1 - .6 * smooth((t - 12.85) / .15) : 1;
-    from.set(origin.x, portalY, origin.z); to.set(target.x, target.y + 2, target.z);
-    portal.position.copy(from).lerp(to, easeIn(launch) * .25 + launch * .75);
-    portal.scale.setScalar(size * implode * (t > 13 ? Math.max(0, 1 - (t - 13) / .3) : 1)); portal.visible = t >= 4.8 && t < 13.3;
-    portal.rotation.set(-.22, 0, .05 * Math.sin(t * .35)); ring.rotation.z = t * .12; filaments.forEach((f, i) => f.rotation.z = t * (i % 2 ? -.17 : .22)); corona.rotation.z = t * .03;
-    if (portal.visible) {
-      const n = low ? 70 : quality === 1 ? 160 : 300;
-      for (let i = 0; i < n; i++) { const a = i * 2.39996 + t * (.15 + (i % 7) * .02), r = size * (1.08 + (i % 13) / 30 + .25 * hash(i)), z = (hash(i * 7) - .5) * size * .12;
-        dummy.position.set(Math.cos(a) * r, Math.sin(a) * r, z); dummy.position.applyEuler(portal.rotation).add(portal.position);
-        glow.add(dummy.position.x, dummy.position.y, dummy.position.z, .5 + size * .03, .5 + size * .03, .9, .95, 1, .8 * fade, i % 3 ? 0 : 2, a); }
-      if (t > 11 && t < 13) for (let j = 0; j < 12; j++) { const u0 = j / 12, u1 = (j + 1) / 12; from.set(origin.x, portalY, origin.z);
-        const p0 = from.clone().lerp(portal.position, Math.max(0, 1 - u0 * .5)), p1 = from.clone().lerp(portal.position, Math.max(0, 1 - u1 * .5));
-        rib.seg(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, size * .5 * (1 - u0), size * .5 * (1 - u1), col(.45 * (1 - u0)), col(.45 * (1 - u1))); }
-    }
-    // --------- fragmentos sugados (cópias visuais)
-    const storm = smooth((t - 6) / 3) * fade, nd = low ? 24 : quality === 1 ? 50 : 100; debris.count = storm > 0 && t < 13 ? nd : 0;
-    for (let i = 0; i < debris.count; i++) { const u = (t * .13 + i / nd) % 1, a = i * 2.4 + t * (1 + u), r = (1 - u) * 14;
-      dummy.position.set(origin.x + Math.cos(a) * r, origin.y + u * 44, origin.z + Math.sin(a) * r); dummy.scale.set(.7 + i % 3, (i % 4 === 0 ? 3 : .7), .7); dummy.rotation.set(t + i, t * 2, 0); dummy.updateMatrix(); debris.setMatrixAt(i, dummy.matrix); }
-    debris.instanceMatrix.needsUpdate = true;
-    // --------- impacto: implosão → explosão branca em camadas
-    const ia = t - 13;
-    shells.forEach((m, i) => { const k = (ia - i * .12) / 1.3; m.visible = k > 0 && k < 1; if (!m.visible) return; m.position.set(target.x, target.y + 1.5, target.z); m.scale.setScalar(1 + (10 + i * 6) * easeOut(k)); m.material.uniforms.alpha.value = (1 - smooth(k)) * (1 - i * .25); });
-    shocks.forEach((m, i) => { const k = (ia - i * .2) / 1.6; m.visible = k > 0 && k < 1; if (!m.visible) return; m.position.set(target.x, target.y + 1 + i * 2, target.z); m.rotation.set(i ? 0 : -Math.PI / 2, 0, 0); m.scale.setScalar(2 + 34 * easeOut(k)); m.material.opacity = (1 - k) * .9; });
-    if (ia > 0 && ia < 2.2) { const k = ia / 2.2, gy = ground(target.x, target.z), n = groundNormal(ground, target.x, target.z, nrm);
-      decals.add(target.x, gy, target.z, 3 + 30 * easeOut(k), 1, 1, 1, (1 - k), 0, k, 7, n); decals.add(target.x, gy, target.z, 6, 1, .95, .8, (1 - smooth(k)) * .9, 1, k, 8, n);
-      const nb = low ? 60 : 180; for (let i = 0; i < nb; i++) { const a = i * 2.399, el = hash(i) * 1.4 - .2, sp = 8 + hash(i * 3) * 22, d = sp * easeOut(ia / 1.4);
-        glow.add(target.x + Math.cos(a) * Math.cos(el) * d, target.y + 1.5 + Math.sin(el) * d, target.z + Math.sin(a) * Math.cos(el) * d, .12, .7, 1, 1, .95, (1 - k), 3, a + Math.PI / 2); } }
-    if (ia > -.15 && ia < .15) glow.add(target.x, target.y + 1.5, target.z, 6 * (1 - Math.abs(ia) / .15), 6 * (1 - Math.abs(ia) / .15), 1, 1, 1, 1, 0);
-    rib.end(); glow.end(); decals.end(t);
   }
-  return { root, update, setWings, clear() { root.visible = false; wingHolder.visible = false; },
-    dispose() { scene.remove(root); for (const g of [lensGeo, ringGeo, coronaGeo, filamentGeo, shellGeo, shockGeo, rockGeo, featherGeo]) g.dispose(); for (const m of [black, white, coronaMat, shellMat, rockMat, wingMat, energyMat]) m.dispose(); shells.forEach(m => m.material.dispose()); shocks.forEach(m => m.material.dispose()); debris.dispose(); energy.forEach(m => m.dispose()); glow.dispose(); decals.dispose(); rib.dispose(); } };
+  const grow=smooth((t-5)/4.9),flight=Math.min(1,Math.max(0,(t-11)/2))**1.65;
+  start.copy(s.release||hero?.hand||o);aim.set(g.x,g.y,g.z);
+  portal.position.copy(s.shot||start);
+  const since=s.contact?t-s.contact.time:-1,collapse=smooth(since/.20);
+  const radius=(.024+.085*smooth((t-3)/1.05)+grow*.22+flight*.65)*(1-collapse);
+  portal.visible=t>=3&&collapse<1;portal.scale.setScalar(radius);
+  rot.copy(camera.quaternion);roll.setFromAxisAngle(axis,-.11+.53*smooth((t-10.4)/1.4));rot.multiply(roll);portal.quaternion.copy(camera.quaternion).slerp(rot,.9);
+  disc.rotation.x=1.27-.20*Math.sin(t*.62)-.28*flight;gas.material.uniforms.time.value=t;portal.updateMatrixWorld(true);
+  if(portal.visible){for(let i=0;i<(low?16:40);i++){
+   const speed=.5+hash(i)*.9,a=i*2.4+t*speed,r=1.05+hash(i*5)*1.9;
+   p.set(r*Math.cos(a),r*Math.sin(a),.03);q.set(r*Math.cos(a+.035*speed),r*Math.sin(a+.035*speed),.03);
+   disc.localToWorld(p);disc.localToWorld(q);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.014*radius,.007*radius,gold,clear);}
+   if(flight>0){for(let i=0;i<4;i++){const a=i*1.57+t*4;p.copy(portal.position);p.x+=Math.cos(a)*radius*.5;p.z+=Math.sin(a)*radius*.5;q.copy(p).lerp(start,.3*flight);threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,radius*.22,.01,ember,clear);}}
+  }
+  const cover=smooth((t-1)/3)*(1-smooth((t-13)/3));
+  veil.visible=cover>0;veil.position.copy(camera.position);veil.scale.setScalar(Math.min(380,camera.far*.8));
+  veil.material.uniforms.age.value=t;veil.material.uniforms.cover.value=cover;
+  veil.material.uniforms.opening.value.copy(portal.position).sub(camera.position).normalize();
+  const age=s.contact?t-s.contact.time-.20:-1,gy=ground(g.x,g.z),n=groundNormal(ground,g.x,g.z,normal),R=WHITE_HOLE.radius;
+  if(t>=10&&age<0)marks.add(g.x,gy,g.z,R/.86,1,.31,.08,.3+.14*Math.sin(t*6),0,.2,8,n);
+  pole.visible=age>=0&&age<1.48;
+  shockDisc.visible=pole.visible;
+  if(pole.visible){
+   const bloom=easeOut(Math.min(1,(age+.025)/.46)),fade=1-smooth((age-.65)/.83);
+   pole.position.copy(aim);pole.scale.set(1.75*bloom*fade,12*bloom,1.75*bloom*fade);
+   pole.material.uniforms.age.value=age;
+   shockDisc.position.copy(aim);shockDisc.position.y+=.22;
+   shockDisc.rotation.set(-1.28,.16,age*.74);
+   shockDisc.scale.setScalar((.18+1.7*bloom)*Math.max(.015,fade));
+   shockDisc.material.uniforms.time.value=18+age*4.;
+  }
+  for(let j=0;j<ruptures.length;j++){
+   const band=ruptures[j],k=(age-j*.09)/1.5;band.visible=k>=0&&k<1;
+   if(band.visible){const r=.12+(8+j*2)*easeOut(k);band.position.copy(aim);band.position.y+=k*k*(3+j);
+    band.rotation.set(-1.13+j*.5,.32*j,.5*j+k*.65);band.scale.set(r*(1+.45*k),r*(1-.45*k),r);
+    band.material.opacity=.53*(1-k)**1.4;}
+  }
+  jets.count=age>=0&&age<.95?(low?22:44):0;
+  if(jets.count){
+   const k=age/.95;
+   for(let i=0;i<jets.count;i++){
+    const a=i*2.39996,el=.06+hash(i+9)*1.38;
+    p.set(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
+    const reach=(3+hash(i+2)*8)*easeOut(Math.min(1,k*2.1)),width=(.035+.09*hash(i+7))*(1-k);
+    pose.position.copy(aim).addScaledVector(p,reach*(.5+k*.42));pose.quaternion.setFromUnitVectors(up,p);
+    pose.scale.set(width,reach*(1-k),width*.62);pose.updateMatrix();jets.setMatrixAt(i,pose.matrix);
+   }
+   jets.instanceMatrix.needsUpdate=true;flareMat.opacity=1-k*k;
+  }
+  // Gas torn out of the equatorial plane curls into two opposite polar streams.
+  if(age>=0&&age<1.65){
+   const k=age/1.65;
+   for(let j=0;j<(low?7:14);j++){
+    const a0=j*2.39996,r=(.45+3.8*Math.sin(Math.PI*k))*(.62+.38*hash(j+2));
+    const polar=(u,out)=>{const a=a0+u*(3.8-2*k)+k*3,rr=r*(1-u*.65);
+     out.set(aim.x+Math.cos(a)*rr,aim.y+u*(2+12*easeOut(k))*(.7+.3*hash(j)),aim.z+Math.sin(a)*rr);};
+    for(let i=0;i<8;i++){polar(i/8,p);polar((i+1)/8,q);
+     threads.seg(p.x,p.y,p.z,q.x,q.y,q.z,.095*(1-k),.035*(1-k),j%3?ember:gold,ember);}
+   }
+  }
+  debris.count=age>0&&age<1.65?(low?12:36):0;
+  if(age>=0&&age<1.65){const k=age/1.65,travel=easeOut(k);
+   marks.add(g.x,gy,g.z,R*travel/.86,1,.40,.09,1-k,0,k,5,n);
+   feathers.add(g.x,g.y+.4,g.z,4.6*(1-k),4.6*(1-k),1,.85,.41,Math.exp(-age*3),0);
+   for(let i=0;i<(low?16:38);i++){const a=i*2.4,h=.08+hash(i)*1.1,x=Math.cos(a),z=Math.sin(a),r=(3+hash(i+7)*7)*travel;
+    threads.seg(g.x+x*r*.62,g.y+.4+h*r*.62,g.z+z*r*.62,g.x+x*r,g.y+.4+h*r,g.z+z*r,.047*(1-k),.004, gold,clear);}
+   for(let i=0;i<debris.count;i++){const a=i*2.4,r=(2+hash(i+2)*5)*travel;pose.position.set(g.x+Math.cos(a)*r,gy+.1+Math.sin(k*Math.PI)*(1+hash(i)*3),g.z+Math.sin(a)*r);pose.rotation.set(k*7+i,a,k*4);pose.scale.setScalar(1-k);pose.updateMatrix();debris.setMatrixAt(i,pose.matrix);}debris.instanceMatrix.needsUpdate=true;
+  }
+  threads.end();marks.end(t);feathers.end();
+ }
+ return {root,update,setWings,get ready(){return !!wingMesh;},setWingLOD(obj){obj.traverse(m=>{if(m.isMesh)lowWing=m.geometry;});},audit(){return {asset:wings.userData.asset,lodReady:!!lowWing,attached:!!wings.parent?.isBone,visible:wings.visible,triangles:wingMesh?.geometry.index.count/3,orb:portal.position.toArray()};},clear(){root.visible=false;wings.visible=false;root.attach(wings);},dispose(){scene.remove(root);threads.dispose();feathers.dispose();marks.dispose();debris.dispose();jets.dispose();for(const m of [jets,pole,stream,gas,lens,photon,horizon,...ruptures,debris,veil]){m.geometry.dispose();m.material.dispose();}shockDisc.material.dispose();lowWing?.dispose();wings.removeFromParent();wings.traverse(o=>{if(o.isMesh)o.material.dispose();});}};
 }

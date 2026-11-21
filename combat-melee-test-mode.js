@@ -15,3 +15,13 @@ export const MELEE_ONLY_PROFILES = Object.freeze([
   'demon4', 'leader4', 'miniboss3', 'hollow', 'elite4'
 ]);
 export const meleeOnlyProfile = p => TEMP_MELEE_ONLY_TEST && MELEE_ONLY_PROFILES.includes(p);
+
+/**
+ * TREINO TEMPORÁRIO DOS QUATRO BISPOS (19/11/2026):
+ * true por padrão no jogo publicado: sem magia/ultimate dos Bispos, preservando
+ * ataques físicos, dash, bloqueio/escudo e salto que cada rig realmente possui.
+ * Somente ?fullCombatQA=1 ou ?bisposComPoderes=1 restaura o combate completo.
+ * Valores como ?bisposComPoderes=0 NÃO ativam o modo clássico.
+ * Não confundir com treinoFisico (legado), que também altera outros inimigos.
+ */
+export const BISHOP_DUEL_ONLY = !!params && params.get('fullCombatQA') !== '1' && params.get('bisposComPoderes') !== '1';

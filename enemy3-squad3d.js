@@ -1,4 +1,4 @@
-import { TEMP_MELEE_ONLY_TEST } from './combat-melee-test-mode.js';
+import { TEMP_MELEE_ONLY_TEST, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js?v=mod329-export-bishop-duel';
 import { registerKind, registerSkill, E1, SKILLS } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 /**
@@ -53,7 +53,7 @@ const BOSS3 = {
   melee: { max: 2.55, reach: 2.7, arc: -.1, windup: .5, hits: [.5], dur: 1.3, dmg: 13, cd: 2.1, knock: 1 },
   block: { chance: .34, dur: .85, cd: 2.2, cost: 14, reduce: .78 },
   dodge: { chance: .36, cd: 2.5 },
-  gap: .6, spellGap: 2.9,
+  gap: .6, spellGap: 2.9, kit: (TEMP_MELEE_ONLY_TEST || BISHOP_DUEL_ONLY) ? [] : COMMON3.kit,
   nadir: { ...NADIR, rate: 3, warn: .56, storm: 6.6, maxLive: 4, sep: 2.5, heavyEvery: 2.2, cd: 21 },
   barrage: { ...BARRAGE, n: 16, cast: 4.9, volley: 3.5, gap: .15, maxFly: 6, dmg: 9, speed: 23, finale: 5, cd: 17 },
   singularity: { ...SINGULARITY, form: 1, raise: .8, cast: 2.5, r: .7, power: 30, R: 4.4, speed: 12.5, dmgCore: 28, dmg: 20, edge: 10, pull: 1.15, pullR: 7, cd: 14 }
