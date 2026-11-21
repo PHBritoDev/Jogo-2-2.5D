@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Florescer Abissal — QA</title>
+<style>html,body{margin:0;background:#0b0910;color:#e6d3ff;font:12px system-ui}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head><body><div id="info">…</div>
+<script type="module">
+/* Missão 21/11 — prova isolada do Florescer Abissal (VÉRAXION): carga entre as espadas, pulso, arcos radiais em vários
+   ângulos/instantes, SEM pós-processamento. Os arcos seguem a mesma cinemática da lógica (VX_BLOOM). */
+import * as THREE from 'three';
+import { createVeraxionBloomVFX } from '../../veraxion-bloom-vfx3d.js';
+import { VX_BLOOM } from '../../veraxion-squad3d.js';
+const COLS = 4, ROWS = 2, PW = 320, PH = 260, W = COLS * PW, H = ROWS * PH;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setScissorTest(true); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a1622); const fx = createVeraxionBloomVFX(THREE, scene);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: 0x3a3542 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const boss = new THREE.Mesh(new THREE.CapsuleGeometry(.35, 1.5, 4, 8), new THREE.MeshBasicMaterial({ color: 0x241a22 })); boss.position.y = 1.1; scene.add(boss);
+const cam = new THREE.PerspectiveCamera(50, PW / PH, .05, 120);
+let seed = 1; const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const wave = { id: 1, ox: 0, oz: 0, oy: 0, hit: new Set(), arcs: [] };
+for (let i = 0; i < VX_BLOOM.arcs; i++) wave.arcs.push({ th: i * Math.PI * 2 / VX_BLOOM.arcs + (rand() - .5) * .12, r: .6, pr: .6, age: -(i % 3) * VX_BLOOM.stagger, alive: true, big: i === 0 || i === 6, curl: (rand() - .5) * 2, h: VX_BLOOM.height * (.78 + rand() * .4) });
+const stepArcs = dt => { for (const c of wave.arcs) { if (!c.alive) continue; c.age += dt; if (c.age < 0) continue; const u = Math.min(1, c.r / VX_BLOOM.range); c.pr = c.r; c.r += VX_BLOOM.speed * (1 - VX_BLOOM.decel * u) * dt; if (c.r >= VX_BLOOM.range) c.alive = false; } };
+const run = (n, f) => { for (let i = 0; i < n; i++) { f && f(i); fx.update(1 / 60, 1); } };
+const look = (px, py, pz, tx = 0, ty = 1, tz = 0) => { cam.position.set(px, py, pz); cam.lookAt(tx, ty, tz); };
+const core = new THREE.Vector3(0, 1.3, .45);
+const shots = [
+  ['carga entre as espadas', () => { run(40, i => fx.charge(core, i / 40)); look(2.4, 1.6, 3.2, 0, 1.2, 0); }],
+  ['pulso + 1ª frente', () => { fx.release(core, 0); fx.sync([wave]); run(8, () => stepArcs(1 / 60)); look(5, 3, 7); }],
+  ['arcos a ~4 m · terceira pessoa', () => { run(14, () => stepArcs(1 / 60)); look(1.5, 3.2, 10, 0, .8, 0); }],
+  ['arcos a ~4 m · lateral baixa', () => { look(9, 1.3, 2, 0, 1.4, 0); }],
+  ['arcos a ~8 m · alto', () => { run(22, () => stepArcs(1 / 60)); look(0, 16, 13, 0, 0, 0); }],
+  ['arcos a ~8 m · rasante', () => { look(3, 1.0, 12, 0, 1.6, 0); }],
+  ['fim · desintegração', () => { run(26, () => stepArcs(1 / 60)); look(4, 6, 16, 0, 0, 0); }],
+  ['volume: close de um arco', () => { const c = wave.arcs[3]; look(Math.sin(c.th) * c.r + 2.2, 1.4, Math.cos(c.th) * c.r + 1.2, Math.sin(c.th) * c.r, 1.1, Math.cos(c.th) * c.r); }],
+];
+shots.forEach(([n, f], i) => { f(); const cx = (i % COLS) * PW, cy = (ROWS - 1 - Math.floor(i / COLS)) * PH; r.setViewport(cx, cy, PW, PH); r.setScissor(cx, cy, PW, PH); r.render(scene, cam); });
+document.getElementById('info').textContent = shots.map(s => s[0]).join(' · ') + ' | ' + JSON.stringify(fx.stats()) + ' | calls ' + r.info.render.calls; window.__done = true;
+</script></body></html>
