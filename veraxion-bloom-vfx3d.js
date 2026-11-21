@@ -66,7 +66,7 @@ export function createVeraxionBloomVFX(T, scene) {
     /** Lê as ondas lógicas (a.vxBloom) e desenha cada arco na sua frente de onda real. */
     sync(list) { if (list && list.length) waves = list; },
     update(dt, quality = 1) { time += dt; low = quality === 0; arcs.material.uniforms.uTime.value = time; gU.uTime.value = time;
-      if (flash > 0) { flash = Math.max(0, flash - dt * 3.2); coreU.uFlash.value = flash; coreU.uK.value = Math.max(coreU.uK.value * Math.exp(-dt * 2), flash); core.scale.setScalar(.4 + (1 - flash) * 1.4); if (flash <= 0) core.visible = false; }
+      if (flash > 0) { flash = Math.max(0, flash - dt * 3.2); coreU.uFlash.value = flash; coreU.uK.value = Math.max(coreU.uK.value * Math.exp(-dt * 2), flash); core.scale.setScalar(.35 + (1 - flash) * .75); if (flash <= 0) core.visible = false; }
       let n = 0, maxR = 0;
       if (waves) for (const w of waves) for (const c of w.arcs) { if (c.age < 0 && c.alive) continue; if (!c.alive && !c.fx) { c.fx = { t: 0, r: c.r }; } const dead = c.fx; if (dead) { dead.t += dt; if (dead.t > .3) continue; }
         const r = dead ? dead.r : c.r, life = clamp((dead ? 1 : 0) * .55 + (r / 15) * .5 + (dead ? dead.t / .3 * .45 : 0), 0, 1), grow = ease((r - .3) / 2.4), big = c.big ? 1.45 : 1;

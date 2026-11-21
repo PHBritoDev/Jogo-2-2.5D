@@ -72,10 +72,10 @@ float u=ang+h*1.9+uTime*.3,v=ang-h*2.7;float warp=vnoise(vP*3.+uSeed+uTime*.25);
 float st=vnoise(vec3(u*1.3,v*8.5+warp*2.6,uSeed)),jag=vnoise(vec3(u*15.,v*34.,uSeed+1.)),seg=vnoise(vec3(u*2.4,v*1.8,uSeed+3.));
 float rips=st*.72+jag*.22+(seg-.5)*.38;float th=.69-uRip;float black=smoothstep(th,th+.018,rips); // pinceladas negras diagonais
 float pz=vnoise(vP*3.4+uSeed*2.+uTime*.2),n3=vnoise(vP*14.-uTime*.7);
-vec3 inner=mix(vec3(.74,.46,1.),vec3(1.,.42,.66),smoothstep(.36,.58,pz));inner=mix(inner,vec3(1.,.62,.36),smoothstep(.6,.78,pz));
-float core=(1.-fr)*smoothstep(.75,.0,h);vec3 col=mix(inner,vec3(1.,.62,.3)*1.25,core*.65);
-col=mix(col,vec3(.72,.56,1.)*1.1,smoothstep(.42,.82,fr));col=mix(col,vec3(.62,.74,1.)*1.35,smoothstep(.84,1.,fr));
-col+=vec3(1.,.92,.98)*smoothstep(.62,.8,n3)*.3*(1.-fr);col*=1.+uHot*.45*(1.-fr);col=min(col,vec3(1.));col+=vec3(.75,.66,1.)*smoothstep(.16,0.,h)*.75;
+vec3 inner=mix(vec3(.42,.2,.92),vec3(.95,.3,.68),smoothstep(.38,.6,pz));inner=mix(inner,vec3(1.,.5,.26),smoothstep(.64,.8,pz)*(1.-h*.6));
+float core=(1.-fr)*smoothstep(.7,.0,h);vec3 col=mix(inner,vec3(1.,.55,.25)*1.2,core*.6);
+col=mix(col,vec3(.6,.45,1.)*1.05,smoothstep(.45,.84,fr));col=mix(col,vec3(.62,.72,1.)*1.3,smoothstep(.86,1.,fr));
+col+=vec3(1.,.8,.95)*smoothstep(.66,.82,n3)*.14*(1.-fr);col*=1.+uHot*.45*(1.-fr);col=min(col,vec3(1.));col+=vec3(.75,.66,1.)*smoothstep(.16,0.,h)*.75;
 float edge=smoothstep(th-.07,th,rips)*(1.-black);col=mix(col,vec3(.025,.0,.04),black)+edge*vec3(1.,.5,1.)*.5;
 if(uDis>0.&&(pz*.5+n3*.25+jag*.25)<uDis)discard;gl_FragColor=vec4(col,uAlpha*mix(.88,.97,black));}`;
 const CORE_F = `uniform float uHot,uAlpha;varying vec3 vP,vN,vW;void main(){vec3 V=normalize(cameraPosition-vW);float f=abs(dot(normalize(vN),V));
@@ -203,9 +203,9 @@ export function createZarkhaelBeastVFX(T, scene) {
   const hist = Array.from({ length: TE }, () => Array.from({ length: TH }, () => new T.Vector3())); let histOn = false, histT = 0;
   /* -------- cúpula (pool de 2) -------- */
   const domeGeo = keep(new T.SphereGeometry(1, 56, 22, 0, Math.PI * 2, 0, Math.PI / 2));
-  const shardGeo = keep(attrs((() => { const g = new T.ConeGeometry(.5, 1, 4, 2); g.translate(0, .5, 0); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (1 + .6 * Math.sin(i * 1.7)) ); p.setZ(i, p.getZ(i) * .35 + .25 * y * y); } g.computeVertexNormals(); return g; })(), .95));
+  const shardGeo = keep(attrs((() => { const g = new T.ConeGeometry(.5, 1, 4, 2); g.translate(0, .5, 0); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) * (1 + .6 * Math.sin(i * 1.7)) ); p.setZ(i, p.getZ(i) * .35 + .25 * y * y); } g.computeVertexNormals(); return g; })(), .25));
   const ringGeo = keep(new T.PlaneGeometry(2, 2)); ringGeo.rotateX(-Math.PI / 2);
-  const shardMat = keepM(new T.ShaderMaterial({ uniforms: { uBurn: { value: 0 }, uTime: U.uTime, uGlow: { value: 0 }, uRim: { value: new T.Color(0xb48cff) } }, vertexShader: FLESH_V, fragmentShader: FLESH_F, side: T.DoubleSide }));
+  const shardMat = keepM(new T.ShaderMaterial({ uniforms: { uBurn: { value: 0 }, uTime: U.uTime, uGlow: { value: 0 }, uRim: { value: new T.Color(0x9a6cff) } }, vertexShader: FLESH_V, fragmentShader: FLESH_F, side: T.DoubleSide }));
   const domes = Array.from({ length: 2 }, (_, k) => { const g = new T.Group(); g.visible = false; root.add(g);
     const su = { uR: { value: 1 }, uTime: { value: 0 }, uSeed: { value: k * 3.7 }, uRip: { value: 0 }, uDis: { value: 0 }, uAlpha: { value: 1 }, uHot: { value: 0 } };
     const shell = new T.Mesh(domeGeo, keepM(new T.ShaderMaterial({ uniforms: su, vertexShader: DOME_V, fragmentShader: DOME_F, transparent: true, depthWrite: false })));

@@ -99,10 +99,10 @@ export function vxMoveClips(T, model, clone, clipFor, moves, grip, edgesR, edges
 export const VX_DASH = Object.freeze({ speed: 14, time: .2, cd: .6, minStart: .6, budget: 4, window: 3, lockout: 1.2 });
 export const VX_THROW = Object.freeze({ gap: [3.2, 11], cd: 10, pose: .5, speed: 16, range: 11.5, radius: .55, dmg: 18, beat: .22, behind: 2.3, ret: .35, recover: .55 });
 /** 21/11 — Florescer Abissal (substitui o Corte Ascendente reprovado; mesmo clipe Charged_Upward_Slash): carga de energia
-    entre as DUAS espadas → pulso → 12 arcos-lâmina curvos irradiam do centro em ondas escalonadas (fase ≥ 2: segunda onda
+    entre as DUAS espadas → pulso → 14 arcos-lâmina curvos irradiam do centro em ondas escalonadas (fase ≥ 2: segunda onda
     defasada). Cada arco tem frente de onda varrida e largura tangencial própria: 1 acerto por alvo por onda, para em parede,
     dash com i-frames atravessa e o vão entre arcos é seguro. */
-export const VX_BLOOM = Object.freeze({ gap: [0, 9], cd: 11, release: 1.03, lock: .7, dur: 1.75, arcs: 12, range: 15, speed: 15.5, decel: .55,
+export const VX_BLOOM = Object.freeze({ gap: [0, 9], cd: 11, release: 1.03, lock: .7, dur: 1.75, arcs: 14, range: 15, speed: 15.5, decel: .55,
   halfW: .62, life: 1.25, wave2: .4, stagger: .045, dmg: 20, height: 3 });
 export const VX_UP = VX_BLOOM; // compatibilidade com o QA/ADM antigo ('up')
 export const VX_FLOW = Object.freeze({ breathEvery: 3, gapCut: .12 });
@@ -223,7 +223,7 @@ export const vxStartUpslash = vxStartBloom;
 function spawnWave(sq, a, w, delay) { const B = VX_BLOOM, base = a.yaw + (w ? Math.PI / B.arcs : 0) + sq.rand() * .2 - .1, ox = a.x, oz = a.z;
   const wave = { id: (sq._vxWave = (sq._vxWave || 0) + 1), ox, oz, oy: a.y, hit: new Set(), arcs: [] };
   for (let i = 0; i < B.arcs; i++) { const th = base + i * Math.PI * 2 / B.arcs + (sq.rand() - .5) * .12;
-    wave.arcs.push({ th, r: .6, pr: .6, age: -delay - (i % 3) * B.stagger, alive: true, big: i === 0 || i === B.arcs / 2, curl: (sq.rand() - .5) * 2, h: B.height * (.78 + sq.rand() * .4), wall: false }); }
+    wave.arcs.push({ th, r: .3, pr: 0, age: -delay - (i % 3) * B.stagger, alive: true, big: i === 0 || i === B.arcs / 2, curl: (sq.rand() - .5) * 2, h: B.height * (.78 + sq.rand() * .4), wall: false }); }
   (a.vxBloom || (a.vxBloom = [])).push(wave); return wave; }
 function stepBloomCast(sq, a, t, dt) {
   const B = VX_BLOOM, act = a.act; act.glow = clamp(act.t / B.release, 0, 1);
@@ -237,10 +237,10 @@ function stepBloomArcs(sq, a, dt) {
   const B = VX_BLOOM, L = a.vxBloom; if (!L || !L.length) return;
   for (const w of L) { let live = 0;
     for (const c of w.arcs) { if (!c.alive) continue; c.age += dt; if (c.age < 0) { live++; continue; }
-      const u = clamp(c.r / B.range, 0, 1), v = B.speed * (1 - B.decel * u); c.pr = c.r; c.r += v * dt;
+      const u = clamp(c.r / B.range, 0, 1), v = B.speed * (1 - B.decel * u); c.pr = c.on ? c.r : 0; c.on = true; c.r += v * dt; // 1º passo varre desde o centro (herói colado também é atingido)
       const fx = w.ox + Math.sin(c.th) * c.r, fz = w.oz + Math.cos(c.th) * c.r;
-      if (sq.blocked(fx, fz)) { c.alive = false; c.wall = true; sq.event('vxBloom', { actor: a, phase: 'wall', arc: c, x: fx, z: fz }); continue; }
-      if (c.r >= B.range || c.age > B.life) { c.alive = false; continue; } live++;
+      if (sq.blocked(fx, fz)) { c.alive = false; c.wall = true; a.vxStats.bloomWall = (a.vxStats.bloomWall || 0) + 1; sq.event('vxBloom', { actor: a, phase: 'wall', arc: c, x: fx, z: fz }); continue; }
+      if (c.r >= B.range || c.age > B.life) { c.alive = false; a.vxStats.bloomEnd = (a.vxStats.bloomEnd || 0) + 1; continue; } live++;
       for (const tg of sq.enemyTargets()) { if (!tg.alive || w.hit.has(tg.id)) continue; const dx = tg.x - w.ox, dz = tg.z - w.oz, d = Math.hypot(dx, dz), R = tg.radius || .4;
         if (!(c.pr <= d + R * .5 && c.r >= d - R)) continue; const tang = Math.abs(wrap(Math.atan2(dx, dz) - c.th)) * d; if (tang > B.halfW + R) continue;
         if (!sq.los(w.ox, w.oz, tg.x, tg.z)) continue; w.hit.add(tg.id);
@@ -304,7 +304,7 @@ export function vxBrain(sq, a, dt, t) {
   if (chainOk && see && canMelee && !a.cds.vxChase && gap >= T.chase.gap[0] && gap <= T.chase.gap[1]) opts.push(['avanco', .32 + (toward < -2 ? .25 : 0) + ph * .04]);
   if (chainOk && canMelee && !a.cds.vxFlank && gap >= T.flank.gap[0] && gap <= T.flank.gap[1] && (t.blocking || Math.hypot(t.vx || 0, t.vz || 0) < 1.2)) opts.push(['flanco', .24 + (t.blocking ? .3 : 0)]);
   if (canMelee && !a.cds.vxPasso && gap >= T.passo.gap[0] && gap <= T.passo.gap[1] && (toward > 1.2 || a.vxPress > .6 || a.hp < a.maxHp * .5)) opts.push(['passo', .3 + (toward > 2 ? .2 : 0)]);
-  if (canMelee && !a.cds.mv_Chute_de_Ruptura && gap < .9) opts.push(['chute', .45]);
+  if (canMelee && !a.cds.mv_Chute_de_Ruptura && gap < .9) opts.push(['chute', .55]);
   if (!a.cds.guard && gap < 2.4 && t.attacking && front > .5) opts.push(['guarda', .34 + (a.vxPress > 1 ? .2 : 0)]);
   if (!a.cds.vxThrow && see && canMelee && gap >= VX_THROW.gap[0] && gap <= VX_THROW.gap[1]) opts.push(['arremesso', .32 + (toward < -2 ? .2 : 0) + (a.vxHeroDash > 1.2 ? .12 : 0) + (sq.time - (a.vxLastThrow ?? 0) > 13 ? .35 : 0)]);
   if (!a.cds.vxUp && see && canMelee && gap >= VX_BLOOM.gap[0] && gap <= VX_BLOOM.gap[1]) opts.push(['ascendente', .26 + ph * .05 + (sq.time - (a.vxLastTech ?? 0) > 12 ? .25 : 0)]);
