@@ -149,6 +149,7 @@ test('regressão: três contatos distintos de um combo causam três solicitaçõ
       damageTarget: (id, dmg, info) => { hits.push({ id, dmg, info }); return dodge ? 'evaded' : 'hit'; }
     });
     const a = boss(sq, 0), h = hero({ z: 1.6 });
+    a.T = { ...a.T, brain: () => {} }; // não iniciar outro combo durante a regressão isolada
     a.yaw = 0; sq.setTargets([h]);
     const combo = VX_MOVES.find(m => m.id === 'Rosa_de_Espinhos');
     sq.startMelee(a, h, combo.id);
