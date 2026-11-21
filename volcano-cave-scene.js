@@ -1,6 +1,7 @@
+import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
-import {plates,caveHeight,heatPools,caveHeat,solids,fixedRocks} from './volcano-cave-layout.js';
+import {plates,caveHeight,heatPools,caveHeat,solids,fixedRocks,resetStructures} from './volcano-cave-layout.js';
 import {masonry} from './volcano-cave-masonry.js';
 
 const sector=z=>z>79?0:z> -14?1:2;
@@ -94,18 +95,26 @@ function sanctuary(b,l,crystals,torches){
 export function buildVolcanoCave(T,g,spec,ctx){
  const names=['Santuário das Cataratas de Fogo','Bosque das Veias Ardentes','Abismo das Coroas Mortas'];
  const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
- solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
+ let updateTrees;
+ resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
+ const deck=masonry(T,g,971,{});
+ plates.forEach((p,j)=>groundPlate(deck,p,j));deck.finish();
  for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{}),l=molten(T,s,clock),crystals=[],torches=[];
-  plates.forEach((p,j)=>{if(sector((p.minZ+p.maxZ)/2)===i)groundPlate(b,p,j);});
+
   if(i===0)sanctuary(b,l,crystals,torches);
-  if(i===1)grove(T,b,l,s,crystals);
+  if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
+  if(i===2)crowns(T,b,s);
   for(const h of heatPools.filter(h=>sector(h.z)===i)){l.strip(Array.from({length:13},(_,j)=>{const a=Math.PI*j/12,dz=h.r*Math.cos(a);return [h.x,caveHeight(h.z+dz)+.065,h.z+dz,h.r*Math.sin(a),0,j*.22];}));}
   l.finish();b.finish();assets(T,s,'CristalCaverna01.glb',crystals,()=>active);assets(T,s,'TochaMedievalTripo.glb',torches,()=>active);
  }
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
- ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;groups[1].visible=z>-70&&z<145;groups[2].visible=z<47;
-  const f=Math.max(0,Math.min(1,(86-z)/18));env.fogFar=178-92*f;env.fogNear=14-6*f;
-  env.fog=f>.5?0x392b36:0x563b47;env.bg=f>.5?0x241d28:0x241623;});
+ const tint=new T.Color(),groveFog=new T.Color(0x392b36),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x241d28),crownSky=new T.Color(0x98949b);
+ ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
+  if(groups[1].visible)updateTrees((opts?.player||c.position).x-spec.x,z);
+  const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
+  env.fogFar=178-92*f+140*a;env.fogNear=14-6*f+9*a;
+  tint.setHex(0x563b47).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
+  tint.setHex(0x241623).lerp(groveSky,f).lerp(crownSky,a);env.bg=tint.getHex();});
  ctx.refs.caveDispose=()=>{active=false;};
  return env;
 }

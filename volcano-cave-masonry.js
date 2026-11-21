@@ -1,5 +1,6 @@
 // Static masonry batches share vertices' world-space texture scale. No shadow
 // maps: rock faces retain the warm/cold bounce of the surrounding emitters.
+import {addStructure} from "./volcano-cave-layout.js";
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -19,6 +20,7 @@ export function masonry(T, group, seed, palette){
  }
  function quad(a,b,c,d,tint,k=1){face(a,b,c,tint,k);face(a,c,d,tint,k);}
  function block(x,y,z,dx,dy,dz,tint,yaw=0){
+  addStructure(x,y,z,dx,dy,dz,yaw);
   const cs=Math.cos(yaw),sn=Math.sin(yaw),p=[];
   for(let j=0;j<2;j++)for(const [u,v] of [[-1,-1],[-1,1],[1,1],[1,-1]])p.push([x+u*dx*.5*cs+v*dz*.5*sn,y+j*dy,z-u*dx*.5*sn+v*dz*.5*cs]);
   quad(p[4],p[5],p[6],p[7],tint);for(let i=0;i<4;i++){const k=(i+1)%4;quad(p[i],p[k],p[k+4],p[i+4],tint,.94);}

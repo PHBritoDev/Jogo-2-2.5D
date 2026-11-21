@@ -44,8 +44,23 @@ export function inBasin(x,z){
 export function caveFloor(x,z){return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
 export const fixedRocks=[{x:15,z:20,base:-.2,r:2.4,h:3.3}];
 export const solids=[...fixedRocks];
-export function caveBlocked(x,z,doorOpen){return (!doorOpen&&x<-21.4&&Math.abs(z)<8.8)||solids.some(o=>Math.abs(z-o.z)<o.r&&Math.hypot(x-o.x,z-o.z)<o.r+.27);}
-export function caveWall(x,y,z){return y>94||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
+export const structures=[];
+const bins=new Map(),cell=5;
+export function resetStructures(){structures.length=0;bins.clear();}
+export function addStructure(x,y,z,w,h,d,angle=0){
+ if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>185||y>95||y+h<-.25)return;
+ const cs=Math.cos(angle),sn=Math.sin(angle),radX=(Math.abs(cs)*w+Math.abs(sn)*d)/2+.3,radZ=(Math.abs(sn)*w+Math.abs(cs)*d)/2+.3;
+ const o={x,y,z,w:w/2,h,d:d/2,cs,sn};structures.push(o);
+ for(let i=Math.floor((x-radX)/cell);i<=Math.floor((x+radX)/cell);i++)for(let j=Math.floor((z-radZ)/cell);j<=Math.floor((z+radZ)/cell);j++){
+  const k=(i+512)*1024+j;let bucket=bins.get(k);if(!bucket)bins.set(k,bucket=[]);bucket.push(o);
+ }
+}
+function inStructure(x,y,z,pad){
+ const bucket=bins.get((Math.floor(x/cell)+512)*1024+Math.floor(z/cell));if(!bucket)return false;
+ for(const o of bucket){const dx=x-o.x,dz=z-o.z;if(y>o.y&&y<o.y+o.h&&Math.abs(dx*o.cs-dz*o.sn)<o.w+pad&&Math.abs(dx*o.sn+dz*o.cs)<o.d+pad)return true;}return false;
+}
+export function caveBlocked(x,z,doorOpen){return inStructure(x,caveFloor(x,z)+.8,z,.20)||(!doorOpen&&x<-21.4&&Math.abs(z)<8.8)||solids.some(o=>Math.abs(z-o.z)<o.r&&Math.hypot(x-o.x,z-o.z)<o.r+.27);}
+export function caveWall(x,y,z){return y>94||inStructure(x,y,z,.12)||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
 export const heatPools=[{x:3,z:110.3,r:1.15},{x:-2.9,z:114.2,r:.95},{x:1,z:26,r:1.65},{x:25.5,z:40,r:1.35}];
 export const creek=[[-35,83,1.7],[-20,68,2],[-12,49,2.2],[9,33,1.7],[3,15,2.3],[-16,1,1.6]];
 export function caveHeat(x,z){

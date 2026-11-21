@@ -24,7 +24,7 @@ function limb(T,b,points,radii,hot){
   }
  }
 }
-function tree(T,type){
+function tree(T,type,low=false){
  const group=new T.Group(),b=masonry(T,group,1401+type,{}),rand=b.random;
  const spines=[[[0,0,0],[-.4,2,0],[.7,4,.6],[.1,6,.3],[-1.4,8,.8],[-2.1,10,.4]],
  [[0,0,0],[.3,2,0],[2,3,.5],[3.6,3.15,.8],[4.7,5,1],[4.2,6,.6]],
@@ -33,12 +33,14 @@ function tree(T,type){
  const pts=spines[type];limb(T,b,pts,[1.5,.99,.79,.54,.34,.10],true);
  for(let j=0;j<7;j++){
   const a=j*.90+rand()*.3,L=2+rand()*2;
+  if(low&&j%2)continue;
   limb(T,b,[[0,1,0],[Math.cos(a),.45,Math.sin(a)],[Math.cos(a+.22)*L,.13,Math.sin(a+.22)*L],[Math.cos(a+.44)*(L+1),-.18,Math.sin(a+.44)*(L+1)]],[.65,.46,.18,.02],j%3===0);
  }
  for(let j=0;j<9;j++){const at=pts[2+j%4],a=j*2.4+type*.9,L=1.7+rand()*2.2,H=type===3?1:2.3+rand()*2;
   const bend=(s,h,tw)=>[at[0]+Math.cos(a+tw)*L*s,at[1]+H*h,at[2]+Math.sin(a+tw)*L*s];
   const joint=bend(.72,.37,.14),tip=bend(1,1,.6);
   limb(T,b,[at,bend(.43,.13,-.15),joint,tip,bend(1.13,1.32,.84)],[.38,.29,.21,.11,.012],true);
+  if(low)continue;
   limb(T,b,[joint,bend(1.04,.47,-.18),bend(1.34,.82,-.34)],[.16,.115,.008],false);
   limb(T,b,[tip,bend(.87,1.16,.71),bend(.81,1.45,.83)],[.095,.05,.006],false);
  }
@@ -51,9 +53,37 @@ export function grove(T,b,l,group,crystals){
   if(trees.some(t=>Math.hypot(t[0]-x,t[1]-z)<4.8))continue;trees.push([x,z,i%4,.61+random()*1.15]);}
  for(const [x,z,type,s] of trees){stands[type].push([x,z,s,random()*6]);b.cliff(x,-.65,z,3.8*s,4.4*s,6+random()*5,0x514349);
   solids.push({x,z,r:1.14*s,h:5.4*s,base:-.25});}
- const dummy=new T.Object3D();
- stands.forEach((arr,i)=>{const src=tree(T,i),m=new T.InstancedMesh(src.geometry,src.material,arr.length);
-  arr.forEach(([x,z,s,yaw],j)=>{dummy.position.set(x,-.15,z);dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(s);dummy.updateMatrix();m.setMatrixAt(j,dummy.matrix);});m.computeBoundingSphere();m.name='Carvão vivo '+i;group.add(m);});
+ const dummy=new T.Object3D(),clusters=[];
+ stands.forEach((arr,type)=>{
+  const near=tree(T,type),far=tree(T,type,true);
+  far.material.map.dispose();far.material.dispose();
+  const parts=[near,far].map(src=>{
+   const m=new T.InstancedMesh(src.geometry,near.material,arr.length);
+   m.name='Carvão vivo '+type;m.instanceMatrix.setUsage(T.DynamicDrawUsage);group.add(m);return m;
+  });
+  const entries=arr.map(([x,z,s,yaw])=>{
+   dummy.position.set(x,-.15,z);dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(s);dummy.updateMatrix();
+   return {x,z,matrix:dummy.matrix.clone()};
+  });
+  clusters.push({parts,entries});
+ });
+ let previousX=Infinity,previousZ=Infinity;
+ function updateDistance(x,z){
+  if(Math.hypot(x-previousX,z-previousZ)<4)return;
+  previousX=x;previousZ=z;
+  for(const {parts,entries} of clusters){
+   const counts=[0,0];
+   for(const entry of entries){
+    const level=(entry.x-x)**2+(entry.z-z)**2>28**2?1:0;
+    parts[level].setMatrixAt(counts[level]++,entry.matrix);
+   }
+   parts.forEach((mesh,i)=>{
+    mesh.count=counts[i];mesh.visible=mesh.count>0;mesh.instanceMatrix.needsUpdate=true;
+    if(mesh.visible)mesh.computeBoundingSphere();
+   });
+  }
+ }
+ updateDistance(0,85);
  // Draw the low ash bed beneath the distinct traversable shelves.
  for(let i=0;i<basin.length;i++){const [x,z]=basin[i],[u,v]=basin[(i+1)%basin.length];b.face([0,-.19,39],[x,-.19,z],[u,-.19,v],0x48414a);}
  for(const o of fixedRocks)b.stalk([[o.x,-.22,o.z,o.r],[o.x,o.h*.7,o.z,o.r*.85],[o.x+.2,o.h,o.z+.3,o.r*.5]],8,0x453e48);
@@ -62,4 +92,5 @@ export function grove(T,b,l,group,crystals){
  l.strip(creek.map(([x,z,r],i)=>[x,-.135,z,r,0,i*4]));
  b.arch(17,-1,65,3.3,2.1,2,0x71606a,.45);
  crystals.push([-28,.7,53,2.2,-.2,1.5,0xce99ff]);
+ return updateDistance;
 }

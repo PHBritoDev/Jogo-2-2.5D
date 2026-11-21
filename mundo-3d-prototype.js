@@ -4173,8 +4173,11 @@ function updateLavaContact(dt,P){
  const onLava=playerHP>0&&!cineActive&&grounded&&heat>0&&P.y-terrainHeightAt(P.x,P.z)<.6;lavaBurn.onLava=onLava;
  if(onLava&&now>=lavaBurn.contactNext){lavaBurn.contactNext=now+LAVA_RULES.contactEvery;const r=damagePlayerFromEnemyAttack(LAVA_RULES.contact,{kind:'lava'});
   if(r===true){lavaBurn.hits++;if(playerHP>0)status.textContent='A lava queima! Saia da rocha incandescente. Vida: '+playerHP+' / '+playerMaxHP;}
-  if(playerHP>0){if(lavaBurn.until<=now)lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.until=now+LAVA_RULES.burnFor;}}
- if(lavaBurn.until>now&&playerHP>0&&!cineActive){if(now>=lavaBurn.next){lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.ticks++;if(playerHP-LAVA_RULES.burnTick<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'});}else{playerHP-=LAVA_RULES.burnTick;updatePlayerHud();}}}
+  if(playerHP>0&&(!inVolc||r===true||lavaBurn.until>now)){if(lavaBurn.until<=now)lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.until=now+LAVA_RULES.burnFor;}}
+ if(inVolc&&onLava)lavaBurn.next=now+LAVA_RULES.burnEvery;
+ if(lavaBurn.until>now&&playerHP>0&&!cineActive){if(now>=lavaBurn.next){lavaBurn.next=(inVolc?lavaBurn.next:now)+LAVA_RULES.burnEvery;
+ if(inVolc){if(damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'}))lavaBurn.ticks++;}
+ else{lavaBurn.ticks++;if(playerHP-LAVA_RULES.burnTick<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'});}else{playerHP-=LAVA_RULES.burnTick;updatePlayerHud();}}}}
  const burning=lavaBurn.until>now&&playerHP>0,chip=document.getElementById('burn-chip'),veil=document.getElementById('burn-veil');
  if(chip){if(chip.hidden===burning)chip.hidden=!burning;if(burning){const t=document.getElementById('burn-chip-t');if(t)t.textContent='−'+LAVA_RULES.burnTick+' vida a cada 0,5 s · '+Math.ceil((lavaBurn.until-now)/1000)+' s';}}
  if(veil)veil.style.opacity=burning||onLava?String(Math.min(1,(onLava?.6:.28)+.12*Math.sin(now*.011))):'0';
@@ -5685,7 +5688,7 @@ function updateBandits(dt){
   h.position.y=groundHeightAt(h.position.x,h.position.z);}
 }
 /* ---------- Interior do vulcão ---------- */
-let volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
+let volcanoStatuesLoading=false,volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
 /** MOD 217 — vítimas vivas no laboratório (ajoelhadas, exaustas, uma deitada), até a purificação. */
 function spawnVolcanoVictims(){
  if(volcanoVictims.length||questStep!==ACT2.volcano||act1Sub!==0)return;volcanoVictims.loading=true;
@@ -5706,7 +5709,7 @@ function enterVolcano(at){
  const r=volcanoArena.refs;
  if(r.door){const open=questStep>ACT2.volcano||act1Sub>=2;r.door.position.y=open?-4.4:0;}
  if(r.bodies)r.bodies.visible=!(questStep>ACT2.volcano||act1Sub>=1);
- if(!volcanoStatues.length)loadRig('enemy2').then(rg=>{for(const s of r.statues){const cl=makeFoeClone('enemy2',volcanoLocal(s),{scale:1.7});if(!cl)continue;cl.mixer.update(.5);cl.mixer.timeScale=0;cl.holder.rotation.y=0;cl.holder.traverse(o=>{if(o.isMesh){o.material=new THREE.MeshStandardMaterial({color:0x5a5450,roughness:.9});}});cl.holder.position.y=voidSpec.y+1.2;cl.static=true;volcanoStatues.push(cl);}},()=>{});
+ if(!volcanoStatues.length&&!volcanoStatuesLoading){volcanoStatuesLoading=true;loadRig('enemy2').then(()=>{if(!inVolcano)return;for(const s of r.statues){const cl=makeFoeClone('enemy2',volcanoLocal(s),{scale:1.7});if(!cl)continue;cl.mixer.update(.5);cl.mixer.timeScale=0;cl.holder.rotation.y=0;cl.holder.traverse(o=>{if(o.isMesh){o.material=new THREE.MeshStandardMaterial({color:0x5a5450,roughness:.9});}});cl.holder.position.y=voidSpec.y+1.2;cl.static=true;volcanoStatues.push(cl);}},()=>{}).finally(()=>{volcanoStatuesLoading=false;});}
  for(const s of volcanoStatues)s.holder.visible=true;
  syncVolcanoPortal();worldAudio.portalEnter();
 }
