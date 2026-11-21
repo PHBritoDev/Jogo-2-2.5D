@@ -1,0 +1,45 @@
+name: Enemy1 — capturas reais 360 graus
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/enemy1-turntable.*"
+      - ".github/workflows/enemy1-capturas.yml"
+permissions:
+  contents: read
+jobs:
+  fotografar-enemy1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar Playwright e navegador WebGL
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servir o GLB real (sem modificar o jogo)
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/enemy1-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/Enemy1.glb -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/enemy1-http.log
+          exit 1
+      - name: Capturar oito angulos e quatro closes do rosto
+        run: node tools/visual-lab/enemy1-turntable.cjs
+      - name: Salvar fotos e relatorio
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enemy1-fotos-360-${{ github.run_number }}
+          path: visual-lab-results/enemy1-360/
+          retention-days: 14
+          if-no-files-found: warn
