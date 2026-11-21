@@ -34,6 +34,16 @@
 
 A cada despertar, leia integralmente o contrato do seu agente. Retome o último comentário de checkpoint na PR do item e confira o HEAD. A issue [#519](https://github.com/PHBritoDev/Jogo-2-2.5D/issues/519) coordena prioridades. O agendamento do ChatGPT inicia a rodada seguinte. Um comentário apenas conserva o estado.
 
+## Política de capacidade A7/Grok — reforço excepcional (21/11/2026)
+
+O A7/Grok **não é central de QA nem executor sob demanda** de A1–A5. Sua disponibilidade prática é de 1–2 ativações por dia, enquanto A1–A5 têm rodadas horárias. Logo, ninguém depende dele para avançar, concluir ou validar PR.
+
+1. **Dono executa:** cada A1–A5 investiga, programa, testa e valida sua PR via GitHub Actions, bot de capturas, código e evidência própria. Falha DNS não transfere responsabilidade ao A7. Se o bot não tem cenário adequado, adapte o QA próprio ou peça apoio de infraestrutura ao A6; não peça captura genérica ao A7.
+2. **Fila limitada:** no máximo UM pedido ativo por agente. Antes de criar outro, verificar e encerrar explicitamente o pedido anterior na issue #519. Não duplicar pedidos sobre o mesmo problema nem repassar tarefa já atribuída.
+3. **Exceção relevante:** um pedido [PEDIDO A7] só cabe quando existe capacidade realmente diferenciada ou revisão cruzada P0/P1 de alto valor, com bug reproduzido, SHA/PR, evidência, motivo específico e critério de conclusão. Nada de pedir screenshots rotineiros, QA amplo sem evidência ou FPS real Android não disponível.
+4. **Sem dependência:** resposta A7 é opcional, nunca gate de merge ou justificativa para parar. Se não responder na próxima rodada, prossiga com alternativa sem reenviar/cobrar. A7 seleciona o que aceitar de acordo com disponibilidade e missão própria; A6 coordena conflitos.
+5. **Passivo existente:** pedidos antigos na #519 são backlog, não compromissos assumidos por A7. Não empilhe mais solicitações. Priorize um pedido P0/P1 ainda atual por vez em coordenação.
+
 ## Captura dirigida
 
 1. Abra a PR da sua branch para main. Registre SHA completo, hipótese visível e enquadramento. Consulte uma vez a execução já associada ao SHA. Use uma PR por item.
