@@ -127,3 +127,65 @@ test('integração: Dimensão IV (campanha e TESTAR) usa SEMPRE NewBispo4 na esq
   if (THREE) { const { createZarkhaelSpiralVFX } = await import('../zarkhael-spiral-vfx3d.js'); const fx = createZarkhaelSpiralVFX(THREE, new THREE.Scene()), ref = { x: 0, y: 1.2, z: 0, dx: 0, dz: 1, gy: 0 };
     fx.release(ref, null); fx.update(1 / 30, 1); fx.impact(ref, { fade: true }); fx.update(1 / 30, 1); assert.equal(fx.stats().domes, 1, 'cúpula também quando expira'); fx.dispose(); }
 });
+
+
+test('regressão: escolha de combos não repete o último golpe quando há alternativas, inclusive se o último foi forçado', async () => {
+  const { vxPickMove } = await import('../veraxion-squad3d.js');
+  const sq = { study: () => ({ rates: { block: 0 } }), rand: () => .5 };
+  const t = hero({ z: 1.5 }), a = { x: 0, z: 0, yaw: 0, T: { radius: .5 }, vxMoveHistory: ['Pendulo_Sangrento'] };
+  const pool = VX_MOVES.filter(m => ['Pendulo_Sangrento', 'Mandibula_em_Cruz', 'Rosa_de_Espinhos'].includes(m.id));
+  for (let i = 0; i < 20; i++) {
+    const chosen = vxPickMove(sq, a, t, pool);
+    assert.notEqual(chosen.id, a.vxMoveHistory.at(-1), 'combo repetido sem necessidade');
+    a.vxMoveHistory.push(chosen.id);
+    if (a.vxMoveHistory.length > 4) a.vxMoveHistory.shift();
+  }
+});
+
+test('regressão: três contatos distintos de um combo causam três solicitações de dano; esquiva devolve evaded', () => {
+  for (const dodge of [false, true]) {
+    const hits = [], sq = new Enemy1Squad({
+      seed: 7, meleeTrace: () => true,
+      damageTarget: (id, dmg, info) => { hits.push({ id, dmg, info }); return dodge ? 'evaded' : 'hit'; }
+    });
+    const a = boss(sq, 0), h = hero({ z: 1.6 });
+    a.T = { ...a.T, brain: () => {} }; // não iniciar outro combo durante a regressão isolada
+    a.yaw = 0; sq.setTargets([h]);
+    const combo = VX_MOVES.find(m => m.id === 'Rosa_de_Espinhos');
+    sq.startMelee(a, h, combo.id);
+    for (let i = 0; i < 60 * 4 && a.act; i++) sq.update(1 / 60);
+    assert.equal(hits.length, 3, 'cada contato físico distinto deve solicitar dano sem perder os golpes 2 e 3');
+    assert.deepEqual(hits.map(h => h.info.combo), [1, 2, 3], 'identificação individual dos contatos');
+  }
+});
+
+test('painel ADM disponibiliza Arremesso Voraz e Corte Ascendente sem duplicar botões', () => {
+  const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8');
+  assert.match(html, /adm-vx-['"]\s*\+\s*type/);
+  assert.match(html, /api\.vxTech\(type\)/);
+  assert.match(html, /\['throw','ADM · Arremesso Voraz'\]/);
+  assert.match(html, /\['up','ADM · Corte Ascendente'\]/);
+  assert.match(html, /if\(\!panel\.querySelector\('#adm-vx-'\+type\)\)/);
+});
+
+
+test('janela anti-graça: golpe 2 e 3 do MESMO combo têm dano; dash, esquiva e ataques diferentes continuam protegidos', async () => {
+  const { vxComboFollowupAllowed: accept } = await import('../veraxion-combo-damage3d.js');
+  const token = {}, other = {}, first = { attackToken: token, actor: 'boss4', combo: 1, at: 1000, until: 1850 };
+  const ctx = { now: 1330, until: 1850, dash: false, perfectDodge: false };
+  const second = { kind: 'melee', attackToken: token, actor: 'boss4', combo: 2 };
+  assert.ok(accept(first, second, ctx), '2º corte é outro contato legítimo do mesmo combo');
+  assert.equal(accept(first, second, { ...ctx, dash: true }), false, 'dash protegido');
+  assert.equal(accept(first, second, { ...ctx, perfectDodge: true }), false, 'janela de esquiva perfeita protegida');
+  assert.equal(accept(first, second, { ...ctx, until: 2010 }), false, 'outra fonte estendeu a invulnerabilidade');
+  assert.equal(accept(first, { ...second, attackToken: other }, ctx), false, 'outro ataque não pode contornar graça');
+  assert.equal(accept(first, { ...second, combo: 1 }, ctx), false, 'primeiro hit não ignora proteção');
+  assert.equal(accept(first, { ...second, combo: 3 }, ctx), false, 'golpe não pode pular índice');
+  assert.equal(accept(first, second, { ...ctx, now: 3401, until: 1850 }), false, 'combate antigo não contorna proteção');
+  const next = { attackToken: token, actor: 'boss4', combo: 2, at: 1330, until: 2180 };
+  assert.ok(accept(next, { ...second, combo: 3 }, { ...ctx, now: 1660, until: 2180 }), '3º corte também causa dano');
+  const main = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.match(main, /vxComboFollowupAllowed\(vxLastDamagingContact,info/);
+  assert.match(main, /info\?\.vxComboFollowup/);
+  assert.match(main, /if\(res===true&&info\.kind==='melee'&&info\.attackToken\)/);
+});

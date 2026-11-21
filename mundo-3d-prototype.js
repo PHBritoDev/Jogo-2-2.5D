@@ -114,7 +114,8 @@ import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
 import { meleeOnlyProfile, BISHOP_DUEL_ONLY } from './combat-melee-test-mode.js';
 import { VG_FILE, VG_ROLES, VG_IN_PLACE, VG_TIME, vgSynthClips } from './vorgazhek3d.js';
 import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } from './zarkhael-squad3d.js';
-import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
+import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
+import { vxComboFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
@@ -1249,7 +1250,10 @@ function heroShieldAbsorb(raw,info){
 }
 function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE,info=null){
  if(whiteLease.locked)return false;
- const now=performance.now();if(playerHP<=0||cineActive)return false;if(now<playerInvulnerableUntil){protaPerfectDodge();return false;}
+ const now=performance.now();if(playerHP<=0||cineActive)return false;
+ // Follow-up do MESMO combo de VÉRAXION fura apenas a proteção artificial pós-hit.
+ // Dash, esquiva perfeita e poderes continuam invulneráveis pela checagem no chamador + rites abaixo.
+ if(now<playerInvulnerableUntil&&!info?.vxComboFollowup){protaPerfectDodge();return false;}
  if(rites.invulnerable)return false;
  let raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
  // MOD 315: a MESMA resolução de dano para golpe, espada, arco, projétil e magia — i-frames acima, escudo aqui, corpo abaixo
@@ -4492,11 +4496,16 @@ function squadProjectileHit(p){
  return false;
 }
 function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){burstSparks(p,0xffc860);worldAudio.hit();}}
+let vxLastDamagingContact=null; // tokens de ataque só existem durante a luta; nunca persistir no save
 function squadDamageTarget(id,dmg,info){
  const n=squadAlive().length,mul=n>=4?.72:n===3?.84:1,amount=Math.max(1,Math.round(dmg*mul));
  if(id==='hero'){
   if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0; // Mod 320: explosão é dano SEPARADO — o pós-acerto do corpo do meteoro não a anula (dash/i-frames reais continuam valendo)
-  const wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area});if(!res)return 'evaded';if(res==='shield')return 'blocked';
+  const now=performance.now();
+  const followup=vxComboFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:!!(newHero&&prota302.clock<prota302.iframesUntil)});
+  const wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area,vxComboFollowup:followup});
+  if(res===true&&info.kind==='melee'&&info.attackToken){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,at:performance.now(),until:playerInvulnerableUntil};}
+  if(!res)return 'evaded';if(res==='shield')return 'blocked';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
   if(info.slow)foeSlowUntil=Math.max(foeSlowUntil,performance.now()+Math.min(1.2,info.slow)*1000);

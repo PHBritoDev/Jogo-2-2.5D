@@ -106,17 +106,20 @@ const VX = {
 export const VERAX = Object.freeze({ boss: registerKind('veraxion', VX) });
 
 export function vxPickMove(sq, a, t, pool) {
-  if (!pool.length) return null; const recent = a.recentMoves || (a.recentMoves = []), st = sq.study(t.id).rates;
+  if (!pool.length) return null; const recent = a.vxMoveHistory || (a.vxMoveHistory = []), st = sq.study(t.id).rates;
+  // A mesma animação não pode reiniciar indefinidamente: considera também golpes FORÇADOS pelo cérebro,
+  // não só os selecionados por esta função. Mantém a exceção quando só existe um golpe elegível.
+  const last = recent.at(-1), choices = pool.length > 1 ? pool.filter(m => m.id !== last) : pool;
   const dx = t.x - a.x, dz = t.z - a.z, d = Math.hypot(dx, dz) || 1, gap = d - (t.radius || .4) - a.T.radius, front = (dx * Math.sin(a.yaw) + dz * Math.cos(a.yaw)) / d;
   let best = null, bs = -Infinity;
-  for (const m of pool) { let w = m.weight || 1;
+  for (const m of choices) { let w = m.weight || 1;
     if (recent.at(-1) === m.id) w -= 2; else if (recent.includes(m.id)) w -= .5;
     if (m.guardBreak && (t.blocking || st.block > .25)) w += 1.1;
     if (m.spin) w += front < 0 ? 1 : -.3;
     if (m.cross && a.vxCounter) w += 2.5; // contragolpe depois do aparo
     if (m.hits.length > 2) w += .25 * (a.vxPhase || 0);
     w += (sq.rand() - .5) * .5; if (w > bs) { bs = w; best = m; } }
-  recent.push(best.id); if (recent.length > 3) recent.shift(); a.vxCounter = false; return best;
+  a.vxCounter = false; return best; // histórico atualizado na entrada real do golpe, inclusive os forçados
 }
 export const vxPhaseOf = (hp, max) => { const k = hp / Math.max(1, max); return k > .7 ? 0 : k > .4 ? 1 : k > .15 ? 2 : 3; };
 export const VX_TACTICS = Object.freeze({ every: [.3, .55], chase: { gap: [3, 9], cd: 3 }, flank: { gap: [.8, 3], cd: 3.2 }, passo: { gap: [1.2, 4.5], cd: 6 }, kick: { cd: 5 }, guard: { cd: VX_GUARD.cd } });
@@ -214,7 +217,14 @@ export function vxBrain(sq, a, dt, t) {
   const S = a.vxStats;
   if (a.act && a.act !== a._vxAct) { a._vxAct = a.act;
     if (a.act.type === 'dodge') { S.dash++; const g = sq.time - (a.vxLastDash ?? -9); S.minDashGap = Math.min(S.minDashGap, +g.toFixed(3)); a.vxLastDash = sq.time; (a.vxDashAt || (a.vxDashAt = [])).push(sq.time); a.cds.dodge = Math.max(a.cds.dodge || 0, VX_DASH.minStart); }
-    if (a.act.type === 'melee') { S.combos++; if (a.act.move?.kick) S.kick++; }
+    if (a.act.type === 'melee') {
+      S.combos++; if (a.act.move?.kick) S.kick++;
+      const id = a.act.move?.id; if (id) {
+        const h = a.vxMoveHistory || (a.vxMoveHistory = []);
+        h.push(id); if (h.length > 4) h.shift();
+        a.vxLastMoveAt = sq.time;
+      }
+    }
     if (a.act.type === 'block') { S.guard++; a.vxGuardHp = a.hp; } }
   if (a.act && a.act.type === 'block' && a.hp < (a.vxGuardHp ?? a.hp) && !a.act.parried) { a.act.parried = true; S.parry++; a.vxCounter = true; a.act.t = Math.max(a.act.t, a.act.dur - .05); sq.event('vxParry', { actor: a }); } // aparou: contragolpe curto
   a.vxDashAt = (a.vxDashAt || []).filter(x => sq.time - x < VX_DASH.window); if (a.vxDashAt.length >= VX_DASH.budget) { a.cds.dodge = Math.max(a.cds.dodge || 0, VX_DASH.lockout); a.cds.vxChain = Math.max(a.cds.vxChain || 0, VX_DASH.lockout); }
@@ -222,7 +232,10 @@ export function vxBrain(sq, a, dt, t) {
   if (a.act && a.act.type === 'vxUp') { stepUpslash(sq, a, t, dt); return; }
   if (a.act && a.act.type === 'vxBack') { if (t) { const d = Math.hypot(t.x - a.x, t.z - a.z) || 1, s = a.T.speed.back * dt; if (!sq.blocked(a.x - (t.x - a.x) / d * s * 3, a.z - (t.z - a.z) / d * s * 3)) sq.move(a, -(t.x - a.x) / d * s, -(t.z - a.z) / d * s); } return; }
   if (!t || a.pendingDeath || a.alert > 0) return;
-  if (a.vxCounter && !a.act && sq.canAttack(a, 'melee', t.id)) { a.cds.melee = 0; sq.startMelee(a, t, 'Mandibula_em_Cruz'); return; }
+  if (a.vxCounter && !a.act && !a.cds.vxCounter && sq.canAttack(a, 'melee', t.id)) {
+    a.vxCounter = false; a.cds.vxCounter = 2.4 * a.cdMul; a.cds.melee = 0;
+    sq.startMelee(a, t, 'Mandibula_em_Cruz'); return;
+  }
   if (a.vxAfterBack && !a.act) { a.vxAfterBack = false; const side = sq.rand() < .5 ? 1 : -1; chain(sq, a, 'passo', [{ f: .15, s: side, len: .9, face: true, iframes: true }], 'mv:Estocada_Gemea'); }
   const st = sq.study(t.id), k = Math.exp(-dt / 6); a.vxHeroDash = (a.vxHeroDash || 0) * k + (t.dashing && !a.vxSawDash ? 1 : 0); a.vxSawDash = !!t.dashing;
   a.vxPress = (a.vxPress || 0) * k + (t.attacking && Math.hypot(t.x - a.x, t.z - a.z) < 3.2 ? dt : 0);
