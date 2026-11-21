@@ -371,6 +371,28 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   let s = seed >>> 0;
   const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
   const area = terrain.area, specs = [];
+  // Keep neighboring tree trunks from occupying the same patch of earth.
+  // Spatial buckets avoid an O(n²) scan while preserving the forest's density
+  // noise, clearings, path exclusions, species and per-tree randomness.
+  const minSpacing = 2.25;
+  const buckets = new Map();
+  const bucketKey = (ix, iz) => `${ix}:${iz}`;
+  const canPlant = (x, z) => {
+    const ix = Math.floor(x / minSpacing), iz = Math.floor(z / minSpacing);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const neighbors = buckets.get(bucketKey(ix + dx, iz + dz));
+      if (!neighbors) continue;
+      for (const tree of neighbors) {
+        if ((x - tree.x) ** 2 + (z - tree.z) ** 2 < minSpacing ** 2) return false;
+      }
+    }
+    return true;
+  };
+  const rememberTree = (x, z) => {
+    const key = bucketKey(Math.floor(x / minSpacing), Math.floor(z / minSpacing));
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push({ x, z });
+  };
   // Invalid primary bounds must not reverse the forest span or poison sampling.
   if (![area?.cx, area?.cz, area?.hx, area?.hz].every(Number.isFinite) || area.hx < 0 || area.hz < 0) return specs;
   const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
@@ -416,7 +438,9 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       // Reject invalid height samples before producing a world-space instance.
       if (!Number.isFinite(Math.fround(terrain.height(x, z)))) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
+      if (!canPlant(x, z)) continue;
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
+      rememberTree(x, z);
     } else if (d > 5 && d < 62) {
       // Encostas: coníferas rareando com a altitude (linha das árvores). A faixa do contraforte
       // fica aberta (pedras e capim) para a câmera não ficar presa dentro da mata no limite.
@@ -429,7 +453,9 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       if (!Number.isFinite(water) || water > -.25) continue;
       if (!Number.isFinite(Math.fround(y)) || y > 38 + density * 12) continue;
       if (rnd() > (.78 - smoothstep(10, 46, y) * .7) * smoothstep(.22, .5, density + .12)) continue;
+      if (!canPlant(x, z)) continue;
       specs.push({ x, z, kind: 'conifer', s: .85 + rnd() * .9, rot: rnd() * Math.PI * 2, tint: rnd(), collide: false });
+      rememberTree(x, z);
     }
   }
   return specs;
