@@ -119,7 +119,9 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  ctx.tick.push((t,dt,camera,options)=>{
   water.uniforms.uTime.value=t;
   const p=options?.playerPosition||options?.player?.position||options?.player||null;
-  if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,p.z-spec.z);
+  // CircleGeometry rotated -90 degrees about X maps local +Y to world -Z.
+  // Convert the player's world Z into the shader's local Y for aligned foot ripples.
+  if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,-(p.z-spec.z));
   if(p)focus.set(p.x-spec.x,(p.y||0)-spec.y,p.z-spec.z);
   else if(camera)focus.copy(camera.position).sub(g.position);
   if(camera)cameraPos.copy(camera.position).sub(g.position);
