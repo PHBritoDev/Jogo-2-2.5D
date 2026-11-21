@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fera dos Mil Olhos — QA</title>
+<style>html,body{margin:0;background:#0b0910;color:#e6d3ff;font:12px system-ui}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head><body><div id="info">…</div>
+<script type="module">
+/* Missão 21/11 — prova isolada da Fera (ZAR'KHAEL): corrida, boca fechada → abertura máxima → mordida, desintegração e cúpula,
+   em vários ângulos, sem pós-processamento (bloom desligado). ?light=1 usa fundo claro para comparar com o GIF de referência. */
+import * as THREE from 'three';
+import { createZarkhaelBeastVFX } from '../../zarkhael-beast-vfx3d.js';
+const q = new URLSearchParams(location.search), COLS = +(q.get('cols') || 4), ROWS = +(q.get('rows') || 2), PW = +(q.get('pw') || 320), PH = +(q.get('ph') || 260), W = COLS * PW, H = ROWS * PH;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setScissorTest(true); document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(), fx = createZarkhaelBeastVFX(THREE, scene);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshBasicMaterial({ color: 0x2a2633 })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const hero = new THREE.Mesh(new THREE.CapsuleGeometry(.32, 1.2, 4, 8), new THREE.MeshBasicMaterial({ color: 0x8a8296 })); hero.position.set(0, .92, 3.2); hero.visible = q.has('hero'); scene.add(hero);
+const cam = new THREE.PerspectiveCamera(38, PW / PH, .05, 80);
+const b = { id: 1, x: 0, z: 0, y: 0, yaw: 0, v: 0, phase: 'run', pt: 0, gait: 0, jaw: 0, neck: 0, crouch: 0, air: 0, burn: 0, headY: .72 };
+const step = (n, f) => { for (let i = 0; i < n; i++) { f && f(i); fx.update(1 / 60, 1, cam); fx.sync(b, true, 1 / 60, cam); } };
+const look = (px, py, pz, tx, ty, tz) => { cam.position.set(px, py, pz); cam.lookAt(tx, ty, tz); };
+const light = q.has('light');
+const shots = [
+  ['corrida · perfil', () => { b.phase = 'run'; b.v = 6.5; step(40, () => { b.gait += 6.5 / 60; }); look(4.6, 1.1, .2, 0, .6, -.2); }],
+  ['corrida · 3/4', () => { step(9, () => { b.gait += 6.5 / 60; }); look(3.2, 1.6, 3.4, 0, .6, -.1); }],
+  ['boca fechada · close', () => { b.phase = 'open'; b.v = 0; b.jaw = 0; b.neck = 0; step(2); look(1.6, 1.0, 1.9, 0, .8, .9); }],
+  ['abertura máxima · perfil', () => { b.jaw = 1; b.neck = 1; b.headY = 1.1; step(2); look(2.1, 1.25, 1.35, 0, 1.0, 1.1); }],
+  ['abertura máxima · 3/4 frente', () => { step(1); look(.9, 1.35, 3.0, 0, 1.05, 1.2); }],
+  ['mordida (fechando)', () => { b.phase = 'close'; b.jaw = .12; step(1); look(2.2, 1.3, 1.6, 0, 1.0, 1.2); }],
+  ['cúpula · pico', () => { b.phase = 'dome'; step(14); look(5.5, 2.0, 5.8, 0, 1.0, .6); }],
+  ['cúpula · rasgos', () => { step(26); look(4.8, 3.6, 4.8, 0, .6, .6); }],
+];
+shots.slice(0, COLS * ROWS).forEach(([n, f], i) => { f(); const cx = (i % COLS) * PW, cy = (ROWS - 1 - Math.floor(i / COLS)) * PH; scene.background = new THREE.Color(light && i < 6 ? 0xe9e6ea : 0x0f0d14); floor.material.color.set(light && i < 6 ? 0xd7d3da : 0x2a2633);
+  r.setViewport(cx, cy, PW, PH); r.setScissor(cx, cy, PW, PH); r.render(scene, cam); });
+document.getElementById('info').textContent = shots.map(s => s[0]).join(' · ') + ' | ' + JSON.stringify(fx.stats()) + ' | calls ' + r.info.render.calls; window.__done = true;
+</script></body></html>

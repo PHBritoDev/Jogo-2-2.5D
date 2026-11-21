@@ -15,6 +15,7 @@
 import { registerKind, E1 } from './enemy1-squad3d.js';
 import { BOSS_MOVES } from './boss-choreography3d.js';
 import { vgAnchorRoot, vgAim } from './vorgazhek3d.js';
+import { zkBeastSpawn, zkBeastStep } from './zarkhael-beast3d.js';
 
 export const ZARKHAEL_SQUAD_BUILD = '332-carrasco-foice';
 export const ZK_FILE = './NewBispo3.glb?v=mod332';
@@ -64,8 +65,8 @@ export function zkGrip(T) { return new T.Quaternion().setFromRotationMatrix(new 
 /** Dash: início a início NUNCA abaixo de 0,5 s (regra do criador); o que muda é a intenção da sequência. */
 export const ZK_DASH = Object.freeze({ speed: 13.5, time: .2, cd: .5, minStart: .5, budget: 4, window: 3, lockout: 1.2 });
 /** ESPIRAL DO CARRASCO: prep a duas mãos → 3 voltas em laço com ritmo crescente → saída → lança a massa helicoidal. */
-export const ZK_SPIRAL = Object.freeze({ gap: [4.5, 13], cd: 9.5, prep: .45, loops: [.85, 1.05, 1.3], loopDur: 19 / 30, outDur: 16 / 30, outSpeed: 1.2, release: .2, lockLead: .25,
-  recover: .9, spinR: 2.35, spinDmg: 8, speed: 11, range: 18, radius: .95, dmg: 24, knock: 1.3, height: 1.15, spawn: .9 }); // ≥4,5 m e 11 m/s: trava 0,25 s + ≥0,25 s de voo para reagir
+export const ZK_SPIRAL = Object.freeze({ gap: [4.5, 13], cd: 10.5, prep: .45, loops: [1.15, 1.45], loopDur: 19 / 30, outDur: 16 / 30, outSpeed: 1.2, release: .2, lockLead: .25,
+  recover: .7, spinR: 2.35, spinDmg: 8 }); // 21/11: duas voltas de preparo (≈1 s) e, na saída, a CONJURAÇÃO da Fera (zarkhael-beast3d.js) — sem massa/cúpula
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
 const ZK = {
@@ -138,30 +139,19 @@ function stepSpiral(sq, a, t, dt) {
     return; }
   if (act.phase === 'out') { act.outT += dt; act.glow = 1;
     if (!act.locked && t && act.outT >= S.release - S.lockLead) { act.locked = true; act.dir = Math.atan2(t.x - a.x, t.z - a.z); act.aimAt = { x: t.x, z: t.z }; a.yaw = act.dir; sq.event('zkSpiral', { actor: a, phase: 'lock', dir: act.dir }); }
-    if (!act.released && act.outT >= S.release) { act.released = true; const dir = act.dir ?? a.yaw, fx = Math.sin(dir), fz = Math.cos(dir);
-      const bolt = { id: ++sq._zkBolt || (sq._zkBolt = 1), owner: a.id, x: a.x + fx * S.spawn, y: a.y + S.height, z: a.z + fz * S.spawn, dx: fx, dz: fz, travel: 0, alive: true, hit: false, age: 0, tid: t && t.id };
-      (a.zkBolts || (a.zkBolts = [])).push(bolt); sq.event('zkSpiral', { actor: a, phase: 'release', bolt }); act.glow = .2; }
+    if (!act.released && act.outT >= S.release) { act.released = true; const tg = t && sq.target(t.id) || t;
+      if (!a.zkBeast) zkBeastSpawn(sq, a, tg); sq.event('zkSpiral', { actor: a, phase: 'release', beast: a.zkBeast }); act.glow = .2; }
     if (act.outT >= S.outDur / S.outSpeed) { act.phase = 'recover'; act.armor = false; act.glow = 0; a.anim = { role: 'idle', once: false, speed: 1, rev: a.anim.rev + 1 }; }
     return; }
 }
-/** Massa helicoidal: viaja em linha reta na direção travada (sem perseguir), colide por cápsula com o herói, para em terreno. */
-function stepBolts(sq, a, dt) {
-  const S = ZK_SPIRAL, list = a.zkBolts; if (!list || !list.length) return;
-  for (const b of list) { if (!b.alive) continue; b.age += dt; const st = S.speed * dt; b.x += b.dx * st; b.z += b.dz * st; b.travel += st;
-    if (sq.blocked(b.x, b.z)) { b.alive = false; sq.event('zkSpiral', { actor: a, phase: 'impact', bolt: b, wall: true }); continue; }
-    for (const t of sq.enemyTargets()) { if (b.hit) break; const d = Math.hypot(t.x - b.x, t.z - b.z); if (d > S.radius + (t.radius || .4) || Math.abs((t.y || 0) + (t.height || 1.8) * .5 - b.y) > 1.6) continue;
-      if (t.iframes) { if (!b.evaded) { b.evaded = true; sq.event('evaded', { spell: { type: 'zkSpiral' }, target: t.id }); a.zkStats.boltEvade++; } continue; }
-      b.hit = true; b.alive = false; const r = sq.damageTarget(t.id, S.dmg, { kind: 'spell', actor: a.id, x: b.x, z: b.z, knock: S.knock, combo: 1 }); a.zkStats.boltHit++;
-      sq.event('meleeHit', { actor: a, target: t.id, result: r, n: 1, move: 'espiral' }); sq.event('zkSpiral', { actor: a, phase: 'impact', bolt: b, target: t.id }); }
-    if (b.alive && b.travel >= S.range) { b.alive = false; a.zkStats.boltMiss++; sq.event('zkSpiral', { actor: a, phase: 'impact', bolt: b, fade: true }); } }
-  if (list.length > 4) a.zkBolts = list.filter(b => b.alive);
-}
+/** Fera conjurada: passo próprio (continua enquanto o conjurador vive; morte do conjurador → explode sem dano). */
+function stepBeast(sq, a, dt) { const b = a.zkBeast; if (!b) return; const t = b.tid ? sq.targets.find(x => x.id === b.tid) : null; if (!zkBeastStep(sq, a, b, dt, t)) a.zkBeast = null; }
 
 /* ---------------- cérebro ---------------- */
-function zkInit(a) { if (a.zkStats) return; a.zkStats = { dash: 0, chains: {}, spiral: 0, combos: 0, boltHit: 0, boltMiss: 0, boltEvade: 0, seq: { 0: 0, 1: 0, 2: 0, 3: 0 }, groups: { 1: 0, 2: 0, 3: 0, 4: 0 }, minDashGap: 9 }; a.vgStats = a.zkStats; }
+function zkInit(a) { if (a.zkStats) return; a.zkStats = { dash: 0, chains: {}, spiral: 0, combos: 0, bite: 0, seq: { 0: 0, 1: 0, 2: 0, 3: 0 }, groups: { 1: 0, 2: 0, 3: 0, 4: 0 }, minDashGap: 9 }; a.vgStats = a.zkStats; }
 export function zkBrain(sq, a, dt, t) {
   if (!a.ownT) { a.T = { ...a.T, block: { ...a.T.block }, dodge: { ...a.T.dodge } }; a.ownT = true; } zkInit(a);
-  stepBolts(sq, a, dt);
+  stepBeast(sq, a, dt);
   const ph = zkPhaseOf(a.hp, a.maxHp); if (ph !== a.zkPhase) { const was = a.zkPhase; a.zkPhase = ph; a.vzPhase = ph; if (was !== undefined) sq.event('zkPhase', { actor: a, phase: ph }); }
   a.cdMul = Math.min(a.cdMul || 1, [1, .93, .84, .75][ph]);
   const S = a.zkStats;

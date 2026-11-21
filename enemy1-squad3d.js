@@ -502,6 +502,7 @@ export class Enemy1Squad {
   /** opts: { x, z (origem), kind: 'melee'|'spell'|'area', knock, crit }. Retorna o dano aplicado. */
   damageActor(id, amount, opts = {}) {
     const a = typeof id === 'string' ? this.actor(id) : id; if (!a || !a.alive || !(amount > 0)) return 0;
+    if (opts.by === 'hero' && this.heroDebuff && this.heroDebuff.hero && this.time < this.heroDebuff.hero.until) amount = Math.max(1, Math.round(amount * this.heroDebuff.hero.mul)); // 21/11: mordida da Fera (Bispo 3) — dano do herói ×0,8, uma vez por acerto
     if (a.pendingDeath) return 0; // Mod 320: HP já em 0 aguardando a resolução da ultimate
     if (a.act && a.act.iframes) { this.event('evade', { actor: a }); return 0; }
     // Mod 315: escudo hexagonal do Demônio1 — mesma regra do herói (área por tiques, limiar de ruptura com dano integral)

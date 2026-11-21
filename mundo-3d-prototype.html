@@ -366,13 +366,13 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
 (function(){
   const p=new URLSearchParams(location.search);
   if(p.get('adm')!=='1'&&!p.has('debug3d'))return;
-  const specs=[['throw','ADM · Arremesso Voraz'],['up','ADM · Corte Ascendente']];
+  const specs=[['throw','ADM · Arremesso Voraz'],['up','ADM · Florescer Abissal'],['beast','ADM · Fera (Bispo 3)']];
   const buttons=new Map();
   function click(type,b){
     const api=window.SevenSinsDebug3D;
     if(typeof api?.vxTech!=='function'){b.textContent='Aguarde carregar…';setTimeout(()=>b.textContent=specs.find(x=>x[0]===type)[1],1000);return;}
-    const ok=api.vxTech(type);
-    b.textContent=ok?'✓ Técnica acionada':'VÉRAXION ocupado ou ausente';
+    const ok=type==='beast'?(typeof api.zkSpiral==='function'&&api.zkSpiral()):api.vxTech(type);
+    b.textContent=ok?'✓ Técnica acionada':(type==='beast'?'ZAR\'KHAEL':'VÉRAXION')+' ocupado ou ausente';
     setTimeout(()=>b.textContent=specs.find(x=>x[0]===type)[1],1200);
   }
   function make(type,label){const b=document.createElement('button');b.type='button';b.id='adm-vx-'+type;b.textContent=label;

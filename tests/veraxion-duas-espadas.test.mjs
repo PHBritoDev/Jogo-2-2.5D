@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { Enemy1Squad, KINDS } from '../enemy1-squad3d.js';
-import { VERAX, VX_MOVES, VX_ROLES, VX_FILE, VX_DASH, VX_THROW, VX_UP, vxStartThrow, vxStartUpslash, vxCancel } from '../veraxion-squad3d.js';
+import { VERAX, VX_MOVES, VX_ROLES, VX_FILE, VX_DASH, VX_THROW, vxStartThrow, vxCancel } from '../veraxion-squad3d.js';
 import { BOSS_MOVES } from '../boss-choreography3d.js';
 import '../zarkhael-squad3d.js';
 
@@ -72,7 +72,7 @@ test('alinhamento REAL (traço das duas lâminas e do pé no GLB + motor + mira)
   for (const fps of [30, 60]) for (const ang of [0, 90, 180]) for (const m of BOSS_MOVES.veraxion) for (const dist of m.kick ? [1.1] : m.range ? [3.2] : [1.5, 2.5, 3.5]) for (const dodge of [false, true]) {
     const ev = [], sq = new Enemy1Squad({ seed: 5, damageTarget: () => h.iframes ? 'evaded' : 'hit', event: (t, d) => ev.push({ t, ...d }), meleeTrace: (a, act, t, lo, hi) => bossTraceContact(cc[act.move.id]?.combatTrace, lo, hi, a, t) });
     const a = sq.spawn([{ x: 0, z: 0, yaw: 0, kind: 'veraxion' }])[0]; a.alert = 0; a.vzPhase = 3; a.T = { ...a.T, brain: () => {} }; const r = ang * Math.PI / 180, h = hero({ x: Math.sin(r) * dist, z: Math.cos(r) * dist }); sq.setTargets([h]);
-    sq.startMelee(a, h, m.id); for (let i = 0; a.act && a.act.move && i < fps * 5; i++) { h.iframes = dodge && m.hits.some(t => Math.abs(a.act.t - t) < .14); sq.update(1 / fps); h.x = Math.sin(r) * dist; h.z = Math.cos(r) * dist; }
+    sq.startMelee(a, h, m.id); for (let i = 0; a.act && a.act.move && i < fps * 5; i++) { h.iframes = dodge && m.hits.some(t => a.act.t > t - .16 && a.act.t < t + .14); /* janela do motor abre em h−0,10; a 30 FPS o quadro anterior pode estar a h−0,15 */ sq.update(1 / fps); h.x = Math.sin(r) * dist; h.z = Math.cos(r) * dist; }
     const k = ev.filter(e => e.t === 'meleeHit' && e.result === 'hit').length; if (dodge) falsos += k; else { hit += k; n += m.hits.length; if (k < m.hits.length) miss.push(`${m.id}@${dist}/${ang}/${fps}`); } }
   assert.ok(hit / n >= .9, `acertos ${hit}/${n}: ${miss.slice(0, 8).join(' ')}`); assert.equal(falsos, 0, 'esquiva válida não sofre hit');
 });
@@ -93,14 +93,19 @@ test('Arremesso Voraz: acerta → dano UMA vez e teleporte para trás do herói,
     a.act = null; sq.update(1 / 60); assert.equal(a.vxThrown, null, 'interrupção devolve a espada'); assert.ok(ev.some(e => e.type === 'vxThrow' && e.phase === 'cancel')); vxCancel(sq, a); }
 });
 
-test('Corte Ascendente Carregado: libera no quadro do clipe, viaja reto até ~12,5 m, acerta uma vez; i-frames escapam; não volta', () => {
-  { let dmg = 0; const { sq, ev } = world(8, () => { dmg++; return 'hit'; }), a = boss(sq, 8), h = hero(); sq.setTargets([h]); vxStartUpslash(sq, a, h); let rel = null;
-    for (let i = 0; i < 60 * 3; i++) { sq.update(1 / 60); if (rel === null && ev.some(e => e.type === 'vxUp' && e.phase === 'release')) rel = sq.time; }
-    assert.ok(Math.abs(rel - VX_UP.release) < .05, 'liberação no quadro ' + rel); assert.equal(dmg, 1); }
-  { let dmg = 0; const { sq } = world(9, () => { dmg++; return 'hit'; }), a = boss(sq, 8), h = hero(); sq.setTargets([h]); vxStartUpslash(sq, a, h);
-    for (let i = 0; i < 60 * 3; i++) { const b = a.vxBolts?.[0]; h.iframes = !!(b && b.alive && Math.hypot(b.x - h.x, b.z - h.z) < 2); sq.update(1 / 60); } assert.equal(dmg, 0); assert.equal(a.vxStats.upEvade, 1); }
-  { const { sq, ev } = world(10), a = boss(sq, 8), h = hero({ x: 30 }); sq.setTargets([h]); a.yaw = Math.PI; vxStartUpslash(sq, a, h); for (let i = 0; i < 60 * 3; i++) sq.update(1 / 60);
-    const imp = ev.find(e => e.type === 'vxUp' && e.phase === 'impact'); assert.ok(imp.fade && Math.abs(imp.bolt.travel - VX_UP.range) < .5, 'expira no alcance'); }
+test('Florescer Abissal: carga → pulso no quadro do clipe → arcos radiais; 1 acerto por onda; vão entre arcos e dash escapam; parede detém', async () => {
+  const { VX_BLOOM, vxStartBloom } = await import('../veraxion-squad3d.js');
+  { let dmg = 0; const { sq, ev } = world(8, () => { dmg++; return 'hit'; }), a = boss(sq, 6), h = hero(); sq.setTargets([h]); vxStartBloom(sq, a, h); let rel = null;
+    for (let i = 0; i < 60 * 3; i++) { sq.update(1 / 60); if (rel === null && ev.some(e => e.type === 'vxBloom' && e.phase === 'release')) rel = sq.time; }
+    assert.ok(Math.abs(rel - VX_BLOOM.release) < .05, 'liberação no quadro ' + rel); assert.equal(dmg, 1, 'um acerto por onda');
+    const w = ev.find(e => e.type === 'vxBloom' && e.phase === 'release').waves[0]; assert.equal(w.arcs.length, VX_BLOOM.arcs); assert.ok(ev.some(e => e.type === 'vxBloom' && e.phase === 'end')); }
+  { let dmg = 0; const { sq } = world(9, () => { dmg++; return 'hit'; }), a = boss(sq, 6), h = hero(); sq.setTargets([h]); vxStartBloom(sq, a, h);
+    for (let i = 0; i < 60 * 3; i++) { h.iframes = !!(a.vxBloom?.length); sq.update(1 / 60); } assert.equal(dmg, 0); assert.equal(a.vxStats.upEvade, 1, 'dash atravessa'); }
+  { let dmg = 0; const { sq, ev } = world(10, () => { dmg++; return 'hit'; }), a = boss(sq, 6), h = hero(); sq.setTargets([h]); vxStartBloom(sq, a, h); let moved = false;
+    for (let i = 0; i < 60 * 3; i++) { if (!moved && ev.some(e => e.type === 'vxBloom' && e.phase === 'release')) { moved = true; const w = a.vxBloom[0], d = Math.hypot(h.x - w.ox, h.z - w.oz), mid = w.arcs[0].th + Math.PI / VX_BLOOM.arcs; h.x = w.ox + Math.sin(mid) * d; h.z = w.oz + Math.cos(mid) * d; } sq.update(1 / 60); }
+    assert.equal(dmg, 0, 'no vão entre dois arcos não há dano'); }
+  { let dmg = 0; const { sq } = world(11, () => { dmg++; return 'hit'; }); sq.blocked = (x, z) => z > 2.5 && z < 3.2; const a = boss(sq, 6), h = hero(); sq.setTargets([h]); sq.los = () => false; vxStartBloom(sq, a, h);
+    for (let i = 0; i < 60 * 3; i++) sq.update(1 / 60); assert.equal(dmg, 0, 'arco não atravessa parede'); }
 });
 
 test('IA orgânica: dash com início a início ≥ 0,6 s, guarda/aparo, recuo (Passo do Carrasco), chute colado, técnicas com recarga', () => {
@@ -116,16 +121,16 @@ test('IA orgânica: dash com início a início ≥ 0,6 s, guarda/aparo, recuo (P
   for (const m of ['Pendulo_Sangrento', 'Mandibula_em_Cruz', 'Rosa_de_Espinhos', 'Estocada_Gemea', 'Chute_de_Ruptura']) assert.ok(moves.has(m), m + ' ' + [...moves]);
 });
 
-test('integração: Dimensão IV (campanha e TESTAR) usa SEMPRE NewBispo4 na esquadra; sem setor/cone no chão para Bispos 3/4; Espiral explode também na expiração', async () => {
+test('integração: Dimensão IV (campanha e TESTAR) usa SEMPRE NewBispo4 na esquadra; sem setor/cone no chão para Bispos 3/4; Florescer e Fera ligados ao VFX', async () => {
   const m = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(/else if\(b\.key==='bishop4'\)\{pack=\{squad:true,dim:true,rig:'bishop4n'/.test(m) && /RIG_DEFS\.bishop4n=\{file:VX_FILE/.test(m) && /function veraxionSquadDone\(\)/.test(m));
   assert.ok(/k==='veraxion'\?'bishop4n'/.test(m) && /P\.rig==='bishop4n'\?'veraxion'/.test(m) && /loadRig\('bishop4n'\)/.test(m));
   assert.ok(!/b\.key==='bishop3'&&BISHOP_DUEL_ONLY/.test(m), 'nenhum parâmetro devolve o Bispo 3 clássico');
   const r = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
   assert.ok(/if\(a\.kind!=='zarkhael'&&a\.kind!=='veraxion'\)b\.tell=new T\.Mesh/.test(r), 'sem setor no chão');
-  assert.ok(/vxfx\.fracture\(/.test(r) && /vxfx\.teleport\(/.test(r) && /vxfx\.upRelease\(/.test(r) && /style: 'veraxionA'/.test(r) && /style: 'veraxionB'/.test(r));
-  if (THREE) { const { createZarkhaelSpiralVFX } = await import('../zarkhael-spiral-vfx3d.js'); const fx = createZarkhaelSpiralVFX(THREE, new THREE.Scene()), ref = { x: 0, y: 1.2, z: 0, dx: 0, dz: 1, gy: 0 };
-    fx.release(ref, null); fx.update(1 / 30, 1); fx.impact(ref, { fade: true }); fx.update(1 / 30, 1); assert.equal(fx.stats().domes, 1, 'cúpula também quando expira'); fx.dispose(); }
+  assert.ok(/vxfx\.fracture\(/.test(r) && /vxfx\.teleport\(/.test(r) && /vbfx\.release\(/.test(r) && /vbfx\.sync\(a\.vxBloom\)/.test(r) && /style: 'veraxionA'/.test(r) && /style: 'veraxionB'/.test(r));
+  if (THREE) { const { createZarkhaelBeastVFX } = await import('../zarkhael-beast-vfx3d.js'); const sc = new THREE.Scene(), fx = createZarkhaelBeastVFX(THREE, sc), b = { id: 1, x: 0, y: 0, z: 0, yaw: 0, v: 0, phase: 'run', pt: 0, gait: 0, jaw: 0, neck: 0, crouch: 0, air: 0, burn: 0, headY: .72 };
+    fx.sync(b, true, 1 / 30, null); fx.update(1 / 30); assert.equal(fx.stats().rig, true); b.phase = 'dome'; fx.sync(b, true, 1 / 30, null); fx.update(1 / 30); assert.equal(fx.stats().domeOn, 1, 'cúpula só depois da mordida/desintegração'); fx.dispose(); }
 });
 
 
@@ -159,12 +164,13 @@ test('regressão: três contatos distintos de um combo causam três solicitaçõ
   }
 });
 
-test('painel ADM disponibiliza Arremesso Voraz e Corte Ascendente sem duplicar botões', () => {
+test('painel ADM disponibiliza Arremesso Voraz, Florescer Abissal e Fera sem duplicar botões', () => {
   const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8');
   assert.match(html, /adm-vx-['"]\s*\+\s*type/);
   assert.match(html, /api\.vxTech\(type\)/);
   assert.match(html, /\['throw','ADM · Arremesso Voraz'\]/);
-  assert.match(html, /\['up','ADM · Corte Ascendente'\]/);
+  assert.match(html, /\['up','ADM · Florescer Abissal'\]/);
+  assert.match(html, /\['beast','ADM · Fera \(Bispo 3\)'\]/);
   assert.match(html, /if\(\!panel\.querySelector\('#adm-vx-'\+type\)\)/);
 });
 

@@ -65,28 +65,39 @@ test('dash: início a início NUNCA abaixo de 0,5 s, orçamento por janela, sequ
   assert.ok(g[2] > 0, 'sequências de 2 dashes ' + JSON.stringify(g)); for (const k of ['perseguir', 'flanco', 'recuo', 'espiral']) assert.ok(goals[k] > 0, k + ' ' + JSON.stringify(goals));
 });
 
-test('Espiral do Carrasco: preparo → 3 voltas com ritmo crescente → saída → trava → liberação → massa viaja reta e acerta UMA vez; recuperação', () => {
-  let dmg = 0; const { sq, ev } = world(7, () => { dmg++; return 'hit'; }), a = boss(sq, 8), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h);
-  const ph = []; let releaseT = null, lockT = null;
-  for (let i = 0; i < 60 * 6; i++) { sq.update(1 / 60); const p = a.act?.phase; if (p && ph.at(-1) !== p) ph.push(p); }
-  const seq = ev.filter(e => e.type === 'zkSpiral').map(e => e.phase + (e.loop !== undefined ? e.loop : ''));
-  assert.deepEqual(seq.slice(0, 8), ['prep', 'spin0', 'spin1', 'spin2', 'out', 'lock', 'release', 'impact']); assert.deepEqual(ph.slice(0, 4), ['prep', 'spin', 'out', 'recover']);
-  assert.equal(dmg, 1, 'herói a 8 m: só a massa acerta (as voltas não alcançam)'); assert.equal(a.zkStats.boltHit, 1);
-  const rel = ev.find(e => e.type === 'zkSpiral' && e.phase === 'release'); assert.ok(Math.abs(rel.bolt.dx) < .05 && rel.bolt.dz < -.99, 'direção travada no herói');
-  const loops = ZK_SPIRAL.loops; assert.ok(loops.length >= 3 && loops.length <= 5 && loops.every((k, i) => !i || k > loops[i - 1]), 'voltas aceleram');
+const beastRun = (seed, z, each, dmgFn) => { let dmg = 0; const { sq, ev } = world(seed, dmgFn || (() => { dmg++; return 'hit'; })), a = boss(sq, z), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h);
+  const ph = []; for (let i = 0; i < 60 * 9; i++) { each && each(i, a, h, sq); sq.update(1 / 60); const b = a.zkBeast; if (b && ph.at(-1) !== b.phase) ph.push(b.phase); } return { sq, ev, a, h, ph, dmg: () => dmg }; };
+test('Fera dos Mil Olhos: 2 voltas de preparo → conjura → corre → para → abre → morde UMA vez → só então desintegra e explode', () => {
+  const r = beastRun(7, 9); const seq = r.ev.filter(e => e.type === 'zkSpiral').map(e => e.phase + (e.loop !== undefined ? e.loop : ''));
+  assert.deepEqual(seq.slice(0, 6), ['prep', 'spin0', 'spin1', 'out', 'lock', 'release']); assert.ok(ZK_SPIRAL.loops.length === 2 && ZK_SPIRAL.loops[1] > ZK_SPIRAL.loops[0]);
+  assert.deepEqual(r.ph, ['summon', 'run', 'stop', 'open', 'close', 'burst', 'dome'], 'ordem fixa: corrida antes da boca, explosão só depois da mordida');
+  assert.equal(r.dmg(), 1, 'um único dano, no fechamento'); assert.equal(r.a.zkStats.bite_hit, 1); assert.equal(r.a.zkBeast, null, 'removida ao fim');
+  const bite = r.ev.find(e => e.type === 'zkBeast' && e.phase === 'bite'), first = r.ev.findIndex(e => e.type === 'meleeHit' && e.move === 'mordida'), burst = r.ev.findIndex(e => e.type === 'zkBeast' && e.phase === 'burst');
+  assert.equal(bite.result, 'hit'); assert.ok(first >= 0 && first < burst, 'dano antes da desintegração e nunca antes do fechamento');
+  assert.ok(Math.abs(r.sq.heroDebuff.hero.until - (r.ev.find(e => e.type === 'heroDebuff').until)) < 1e-9 && r.sq.heroDebuff.hero.until - r.sq.time > 20, 'debuff de 30 s aplicado');
 });
-
-test('Espiral: dash com i-frames na passagem não sofre dano; fugir para o lado depois da trava escapa; perto, as voltas cortam', () => {
-  { let dmg = 0; const { sq } = world(8, () => { dmg++; return 'hit'; }), a = boss(sq, 8), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h);
-    for (let i = 0; i < 60 * 6; i++) { const b = a.zkBolts?.[0]; h.iframes = !!(b && b.alive && Math.hypot(b.x - h.x, b.z - h.z) < 2); sq.update(1 / 60); } assert.equal(dmg, 0); assert.ok(a.zkStats.boltEvade >= 1); }
-  { let dmg = 0; const { sq } = world(9, () => { dmg++; return 'hit'; }), a = boss(sq, 8), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h);
-    for (let i = 0; i < 60 * 6; i++) { if (a.act?.locked && h.x < 3) h.x += 12 / 60; sq.update(1 / 60); } assert.equal(dmg, 0, 'sem perseguição impossível'); assert.equal(a.zkStats.boltMiss, 1); }
-  { let dmg = 0; const { sq, ev } = world(10, () => { dmg++; return 'hit'; }), a = boss(sq, 1.6), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h); for (let i = 0; i < 60 * 3.2; i++) sq.update(1 / 60);
-    assert.ok(ev.filter(e => e.type === 'meleeHit' && e.move === 'espiral-giro').length === 3, 'uma por volta, sem multi-hit'); }
+test('Fera: dash com i-frames na mordida e fuga lateral escapam; corrida limitada (sem perseguição eterna nem teleporte)', () => {
+  { const r = beastRun(8, 9, (i, a, h) => { h.iframes = a.zkBeast?.phase === 'close'; }); assert.equal(r.dmg(), 0); assert.equal(r.a.zkStats.bite_evaded, 1); }
+  { const r = beastRun(9, 9, (i, a, h) => { if (a.zkBeast && a.zkBeast.phase === 'open' && a.zkBeast.lockYaw !== null) h.x += 7 / 60; }); assert.equal(r.dmg(), 0, 'saiu do bote travado'); }
+  { let maxStep = 0, last = null; const r = beastRun(10, 9, (i, a, h) => { h.z += -6.2 / 60; const b = a.zkBeast; if (b) { if (last) maxStep = Math.max(maxStep, Math.hypot(b.x - last.x, b.z - last.z)); last = { x: b.x, z: b.z }; } });
+    assert.ok(maxStep < .25, 'sem teleporte: passo máx ' + maxStep); assert.ok(r.ph.includes('dome')); }
 });
-
-test('Espiral em 30/45/60 FPS: mesmas fases e mesmo resultado', () => {
-  const run = fps => { const { sq, ev } = world(12), a = boss(sq, 7), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h); for (let i = 0; i < fps * 6; i++) sq.update(1 / fps); return ev.filter(e => e.type === 'zkSpiral').map(e => e.phase).join(',') + '|' + a.zkStats.boltHit; };
+test('Fera: magia mata com um acerto (sem mordida, sem dano, sem debuff); espada provoca UM salto e não mata', async () => {
+  const { zkBeastMagicHit, zkBeastSwordHit, zkHeroDamageMul } = await import('../zarkhael-beast3d.js');
+  { const r = beastRun(11, 9, (i, a, h, sq) => { if (a.zkBeast?.phase === 'run' && a.zkBeast.run > .3) zkBeastMagicHit(sq, a, a.zkBeast); });
+    assert.equal(r.dmg(), 0); assert.ok(!r.ph.includes('close'), 'não morde'); assert.ok(r.ph.includes('dome')); assert.equal(zkHeroDamageMul(r.sq), 1); }
+  { let leaps = 0; const r = beastRun(12, 9, (i, a, h, sq) => { const b = a.zkBeast; if (b && /run|stop|open/.test(b.phase) && zkBeastSwordHit(sq, a, b)) leaps++; });
+    assert.equal(leaps, 1, 'um salto por invocação'); assert.ok(r.ph.includes('leap') && r.ph.indexOf('leap') < r.ph.indexOf('close'), 'salto → abre → morde'); assert.equal(r.dmg(), 1); }
+});
+test('Debuff da mordida: dano do herói ×0,8 por 30 s de jogo, renova sem acumular, expira; ataques do chefe não mudam', async () => {
+  const { zkBeastBite, zkHeroDamageMul } = await import('../zarkhael-beast3d.js'); const { sq } = world(13), a = boss(sq, 6), h = hero(); sq.setTargets([h]); a.hp = a.maxHp = 1000;
+  const hit = n => { const hp = a.hp; sq.damageActor(a.id, n, { x: 0, z: 0, kind: 'melee', by: 'hero' }); return hp - a.hp; };
+  a.yaw = 0; a.x = 0; a.z = 2; const base = hit(100); zkBeastBite(sq, 'hero'); const deb = hit(100); assert.equal(deb, Math.round(base * .8), base + ' → ' + deb);
+  sq.time += 20; zkBeastBite(sq, 'hero'); assert.equal(zkHeroDamageMul(sq), .8, 'renova, nunca .64'); sq.time += 29; assert.equal(zkHeroDamageMul(sq), .8); sq.time += 1.1; assert.equal(zkHeroDamageMul(sq), 1, 'expira');
+  assert.equal(hit(100), base, 'volta ao normal');
+});
+test('Fera em 30/45/60 FPS: mesmas fases e mesmo resultado', () => {
+  const run = fps => { const { sq, ev } = world(12), a = boss(sq, 9), h = hero(); sq.setTargets([h]); zkStartSpiral(sq, a, h); for (let i = 0; i < fps * 9; i++) sq.update(1 / fps); return ev.filter(e => e.type === 'zkBeast').map(e => e.phase).join(',') + '|' + (a.zkStats.bite_hit || 0); };
   assert.equal(run(30), run(60)); assert.equal(run(45), run(60));
 });
 
@@ -119,7 +130,7 @@ test('integração: dimensão III usa SEMPRE a esquadra com NewBispo3 (campanha 
   assert.ok(/RIG_DEFS\.bishop3n=\{file:ZK_FILE/.test(m) && /k==='zarkhael'\?'bishop3n'/.test(m) && /P\.rig==='bishop3n'\?'zarkhael'/.test(m) && /function zarkhaelSquadDone\(\)/.test(m));
   assert.ok(/revealEncounter\(d\.profile,sp\.boss,b\.hp,d\.line\)/.test(m), 'caminho genérico ainda existe para os outros chefes');
   const r = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.ok(/if\(a\.kind==='zarkhael'\)\{/.test(r) && /zkfx\.release\(/.test(r) && /style: 'zarkhael'/.test(r));
+  assert.ok(/if\(a\.kind==='zarkhael'\)\{/.test(r) && /zbfx\.sync\(a\.zkBeast/.test(r) && /style: 'zarkhael'/.test(r) && !/zkfx\.release\(/.test(r));
   assert.deepEqual([zkPhaseOf(100, 100), zkPhaseOf(60, 100), zkPhaseOf(30, 100), zkPhaseOf(10, 100)], [0, 1, 2, 3]);
   for (const k of ['vhazrael', 'e3boss', 'e4boss', 'common']) if (KINDS[k]) assert.ok(!KINDS[k].stepRise || k === 'vorgazhek', k);
 });
