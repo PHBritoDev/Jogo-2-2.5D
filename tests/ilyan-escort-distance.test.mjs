@@ -19,7 +19,7 @@ function stepEscort({ playerZ, walkable = true, startZ = -37 }) {
     SEWER: { emptyPath: { from: { x: 40 } } }, voidSpec: { y: 0 },
     sewerWalkable: () => walkable
   };
-  new Function(...Object.keys(context), escortSource + '\\nupdateIlyanEscort(0.05);')(...Object.values(context));
+  new Function(...Object.keys(context), escortSource + '; updateIlyanEscort(0.05);')(...Object.values(context));
   return { holder, action };
 }
 
