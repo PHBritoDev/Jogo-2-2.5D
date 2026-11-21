@@ -1,0 +1,33 @@
+name: Renderizar modelo infantil 3D
+on:
+  pull_request:
+    paths:
+      - 'tools/visual-lab/crianca-npc-*'
+      - '.github/workflows/crianca-npc-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm install --prefix work/preview-deps --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/preview-deps/node_modules/.bin/playwright install --with-deps chromium
+      - name: Renderizar GLB no Chromium
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/preview-deps/node_modules'
+        run: |
+          python3 -m http.server 4173 >/tmp/crianca-http.log 2>&1 &
+          node tools/visual-lab/crianca-npc-preview.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crianca-npc-render
+          path: work/preview-crianca-npc/
+          retention-days: 14
