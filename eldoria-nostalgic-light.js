@@ -3,8 +3,8 @@
  *
  * Antes: dois presets (dia ↔ noite) lineares; 9 h, 13 h e 17 h eram a mesma luz branca e chapada, o sol nunca
  * baixava e a noite era um azul uniforme. Agora:
- *  - 11 chaves de horário (madrugada, aurora, nascer, manhã, meio-dia, tarde, hora dourada, pôr do sol, crepúsculo,
- *    noite) interpoladas suavemente: sol quente e baixo de manhã/fim de tarde (sombras longas), preenchimento frio e
+ *  - 12 chaves de horário (madrugada, aurora, nascer, manhã, meio-dia, tarde, hora dourada, pôr do sol, crepúsculo
+ *    com horizonte ainda coral e zênite malva, noite) interpoladas suavemente: sol quente e baixo de manhã/fim de tarde (sombras longas), preenchimento frio e
  *    suave do céu, chão devolvendo luz morna (hemisfério), névoa/perspectiva atmosférica que muda com a hora (bruma
  *    da manhã, ar limpo ao meio-dia, poeira dourada no fim da tarde) e luar azul legível à noite.
  *  - Sem filtro amarelo global, sem bloom, sem neon: as cores saem da física aproximada (altura do sol × atmosfera).
@@ -25,7 +25,10 @@ export const TOD_KEYS = Object.freeze([
   { h: 12.5, skyH: 0xd0e0e0, skyZ: 0x5e9dcf, fog: 0xbccdcd, fogNear: 50, fogFar: 360, hemiSky: 0xeef5fb, hemiGround: 0x616b4c, hemiInt: 1.5, sun: 0xfff0d8, sunInt: 2.12, fill: 0xadcde6, fillInt: .45, exposure: 1.0, elev: 52 },
   { h: 15.6, skyH: 0xe0dccb, skyZ: 0x679fcc, fog: 0xcfcdbd, fogNear: 46, fogFar: 340, hemiSky: 0xf6eedd, hemiGround: 0x67664a, hemiInt: 1.45, sun: 0xffdba8, sunInt: 2.05, fill: 0xa6c4e2, fillInt: .46, exposure: 1.02, elev: 31 },
   { h: 17.2, skyH: 0xf4c894, skyZ: 0x7ca2c6, fog: 0xe0c39e, fogNear: 36, fogFar: 300, hemiSky: 0xf5d8b6, hemiGround: 0x6b5a40, hemiInt: 1.32, sun: 0xffb469, sunInt: 1.95, fill: 0x9cb4dc, fillInt: .5, exposure: 1.04, elev: 10 },
-  { h: 18.25, skyH: 0xee9e78, skyZ: 0x5f6a9c, fog: 0xc59a86, fogNear: 30, fogFar: 280, hemiSky: 0xd8b2a8, hemiGround: 0x4b4038, hemiInt: 1.24, sun: 0xff8a52, sunInt: 1.3, fill: 0x8c9ad0, fillInt: .42, exposure: 1.07, elev: 1.5 },
+  { h: 18.25, skyH: 0xf07848, skyZ: 0x5c3a78, fog: 0xe0a080, fogNear: 30, fogFar: 280, hemiSky: 0xf0c4a0, hemiGround: 0x6a4a34, hemiInt: 1.24, sun: 0xff8a52, sunInt: 1.3, fill: 0xb090c0, fillInt: .4, exposure: 1.05, elev: 1.5 },
+  // A7: o pôr não cai direto no azul-cinza. Horizonte continua coral, zênite já é malva, sol ainda âmbar
+  // (abaixo do horizonte a luz direta fica no mínimo de sunDirection — não nasce luz extra).
+  { h: 18.95, skyH: 0xd06050, skyZ: 0x2e1c52, fog: 0x9a6860, fogNear: 28, fogFar: 275, hemiSky: 0xc08078, hemiGround: 0x40342c, hemiInt: 1.2, sun: 0xff7048, sunInt: 1.08, fill: 0x9a88c8, fillInt: .34, exposure: 1.06, elev: -3.2 },
   { h: 19.3, skyH: 0x5f6290, skyZ: 0x1f2b52, fog: 0x454b6c, fogNear: 30, fogFar: 270, hemiSky: 0x8288bc, hemiGround: 0x33342c, hemiInt: 1.18, sun: 0xb0b8ff, sunInt: .95, fill: 0x7f90d0, fillInt: .3, exposure: 1.1, elev: -8 },
   { h: 21, skyH: 0x22324c, skyZ: 0x070d1c, fog: 0x1f3048, fogNear: 30, fogFar: 280, hemiSky: 0x5d7fb4, hemiGround: 0x2b3424, hemiInt: 1.16, sun: 0xa9c3ff, sunInt: .92, fill: 0x7f9fd0, fillInt: .26, exposure: 1.1, elev: -30 },
   { h: 24, skyH: 0x22324c, skyZ: 0x070d1c, fog: 0x1f3048, fogNear: 30, fogFar: 280, hemiSky: 0x5d7fb4, hemiGround: 0x2b3424, hemiInt: 1.16, sun: 0xa9c3ff, sunInt: .92, fill: 0x7f9fd0, fillInt: .26, exposure: 1.1, elev: -30 },

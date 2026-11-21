@@ -52,7 +52,15 @@ void main(){
   float toward = max(0., dot(normalize(vec3(d.x, .35, d.z)), normalize(vec3(uSunDir.x, .35, uSunDir.z))));
   vec3 lit = uLit * (1. + toward * .35 * (1. - uNight));
   vec3 col = mix(lit, uShade, clamp(thick * (.45 + uDark * .55), 0., 1.));
-  col += lit * toward * toward * uGold * .55 * (1. - thick * .6);  // Mod 323: bordas voltadas ao sol baixo acendem em laranja/rosa
+  // Mod 323: bordas voltadas ao sol baixo acendem em laranja/rosa.
+  // A7: volume — barriga densa âmbar, topo/borda malva. Mesma malha, 1 draw, sem luz nova.
+  if (uGold > .001) {
+    float belly = thick * pow(max(toward, 0.), 1.35);
+    float crown = (1. - thick) * smoothstep(.04, .42, d.y);
+    col = mix(col, vec3(1., .40, .14), clamp(belly * uGold * .82, 0., .9));
+    col = mix(col, vec3(.58, .30, .56), clamp(crown * uGold * .62 * (1. - toward * .4), 0., .75));
+    col += vec3(1., .58, .30) * toward * toward * uGold * .22 * (1. - thick * .45);
+  }
   col = mix(col, uHorizon, (1. - horizon) * .55);            // perspectiva aérea perto do horizonte
   col += vec3(.62, .66, .8) * uFlash * (.2 + thick * .55);  // relâmpago acende as nuvens por dentro
   gl_FragColor = vec4(col, dens * horizon * uOpacity);
@@ -142,14 +150,15 @@ export function createWeatherView(THREE, { scene, lowSpec = false } = {}) {
       // laranja, rosa e lilás (só visual: não muda a chuva nem o diretor do clima).
       const gold = (L.elev < 16 && L.elev > -9 ? Math.min(1, (16 - L.elev) / 10) * Math.min(1, (L.elev + 9) / 6) : 0) * (1 - W.dark);
       u.uGold.value = gold;
-      u.uCover.value = Math.max(W.cover, .36 * gold); u.uDark.value = W.dark; u.uNight.value = night; u.uFlash.value = flash;
+      u.uCover.value = Math.max(W.cover, .5 * gold); u.uDark.value = W.dark; u.uNight.value = night; u.uFlash.value = flash;
       // cor das nuvens: iluminadas pelo sol do horário (quentes no amanhecer/pôr), sombra puxada para o céu e escurecida pelo clima
       tmp.setRGB(L.sun[0], L.sun[1], L.sun[2], THREE.SRGBColorSpace); tmp2.setRGB(L.skyH[0], L.skyH[1], L.skyH[2], THREE.SRGBColorSpace);
       // céu fechado perde o tom quente do sol (nuvem de chuva é cinza, não bege)
       u.uLit.value.copy(tmp2).lerp(tmp, (.55 - night * .3) * (1 - W.cover * .65)).multiplyScalar((1.05 - night * .72) * (1 - W.dark * .45));
       { const g = u.uLit.value, l = g.r * .2126 + g.g * .7152 + g.b * .0722, k = Math.min(1, W.dark * 1.1 + Math.max(0, W.cover - .6)); g.r += (l - g.r) * k; g.g += (l - g.g) * k; g.b += (l * 1.05 - g.b) * k; }
       u.uShade.value.copy(tmp2).multiplyScalar((.62 - W.dark * .38) * (1 - night * .55));
-      if (gold > 0) { u.uLit.value.lerp(tmp.setRGB(1, .56, .32), gold * .55); u.uShade.value.lerp(tmp.setRGB(.42, .32, .5), gold * .7); }
+      // A7: o contraste barriga/topo está no fragmento; aqui só um viés leve (não laranja chapado).
+      if (gold > 0) { u.uLit.value.lerp(tmp.setRGB(1, .62, .36), gold * .22); u.uShade.value.lerp(tmp.setRGB(.46, .32, .52), gold * .4); }
       u.uHorizon.value.setRGB(L.fog[0], L.fog[1], L.fog[2], THREE.SRGBColorSpace);
       if (sunDir) u.uSunDir.value.copy(sunDir);
       u.uOpacity.value = .9 - night * .25 + W.dark * .1;
