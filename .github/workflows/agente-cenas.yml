@@ -1,7 +1,23 @@
 name: Agente de cenas (fotos e vídeos do jogo real)
+run-name: ${{ inputs.cenario && inputs.cenario != 'legado' && format('QA/{0}/{1}/{2}', inputs.agent, github.ref_name, github.sha) || 'Agente de cenas' }}
 on:
   workflow_dispatch:
     inputs:
+      agent:
+        type: choice
+        options: [A1, A2, A3, A4, A5]
+        default: A1
+      cenario:
+        type: choice
+        options: [legado, floresta-percurso, vila-praca, vila-vendedores]
+        default: legado
+      pr_or_branch:
+        description: Número da PR aberta ou nome exato da branch selecionada
+        type: string
+      video:
+        description: Gravar movimento da cena dirigida
+        type: boolean
+        default: false
       cenas:
         description: 'JSON: ["vila-praca","vila-vendedores",{"scene":"floresta-trilha","video":true},{"scene":"caverna-salao","video":true},"caverna-gruta-cristal","mundo-boca-caverna","npc-cabelos"]'
         required: true
@@ -10,11 +26,12 @@ on:
   # PAUSADO PELO CRIADOR (17/11/2026): capturas somente sob demanda.
 permissions:
   contents: read
-concurrency:
-  group: agente-cenas-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   cenas:
+    concurrency:
+      group: agente-cenas-legado-${{ github.ref }}
+      cancel-in-progress: true
+    if: inputs.cenario == 'legado' || !inputs.cenario
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -50,3 +67,97 @@ jobs:
           path: visual-lab-results/scene-agent/
           retention-days: 14
           if-no-files-found: warn
+  pedido:
+    if: inputs.cenario && inputs.cenario != 'legado'
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: read
+      actions: read
+    timeout-minutes: 2
+    outputs:
+      pr: ${{ steps.resolve.outputs.result }}
+    steps:
+      - id: resolve
+        uses: actions/github-script@v7
+        env:
+          TARGET: ${{ inputs.pr_or_branch }}
+          AGENT: ${{ inputs.agent }}
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const branch = process.env.GITHUB_REF_NAME;
+            const target = process.env.TARGET;
+            if (process.env.GITHUB_REF_TYPE !== 'branch' || branch === 'main' ||
+                !/^[\w./-]{1,160}$/.test(branch) || !/^A[1-5]$/.test(process.env.AGENT) ||
+                !(target === branch || /^[1-9]\d{0,8}$/.test(target))) throw Error('Pedido inválido');
+            const {data: prs} = await github.rest.pulls.list({owner,repo,state:'open',head:owner+':'+branch,base:'main'});
+            const pr = prs.find(p => p.head.repo?.full_name === owner+'/'+repo &&
+              p.head.sha === context.sha && (target === branch || String(p.number) === target));
+            if (!pr) throw Error('PR ausente, fechada ou SHA desatualizado');
+            const since = new Date(Date.now()-3600000).toISOString();
+            const {data} = await github.rest.actions.listWorkflowRuns({owner,repo,workflow_id:'agente-cenas.yml',
+              branch,event:'workflow_dispatch',created:'>='+since,per_page:100});
+            const prev = data.workflow_runs.filter(r => r.id < context.runId && r.display_title.startsWith('QA/'));
+            if (process.env.GITHUB_RUN_ATTEMPT !== '1' || data.total_count >= 100 || prev.length >= 2 ||
+                prev.some(r => r.head_sha === context.sha)) throw Error('Orçamento atingido ou SHA já solicitado; consultar a execução anterior');
+            return pr.number;
+  evidencia:
+    concurrency:
+      group: evidencia-${{ github.ref }}-${{ inputs.agent }}
+      cancel-in-progress: true
+    needs: pedido
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    permissions:
+      contents: read
+    env:
+      AGENT: ${{ inputs.agent }}
+      SCENARIO: ${{ inputs.cenario }}
+      VIDEO: ${{ inputs.video }}
+      PR: ${{ needs.pedido.outputs.pr }}
+      VISUAL_OUTPUT: visual-lab-results
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      ARTIFACT_NAME: qa-${{ inputs.agent }}-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar captura
+        id: setup
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --input-type=module -e 'import {BUILD, MOD} from "./build-info.js"; console.log("EXPECTED_BUILD="+BUILD+" (Mod "+MOD+")")' >> "$GITHUB_ENV"
+          node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/cenas-http.log 2>&1 &
+          curl -fsS --retry 8 --retry-connrefused "$VISUAL_BASE_URL/mundo-3d-prototype.html" -o /dev/null
+      - name: Fotografar a branch
+        id: shoot
+        run: |
+          export SCENE_AGENT_SCENES="$(node tools/visual-lab/agent-qa.cjs request)"
+          timeout 420s node tools/visual-lab/scene-agent.cjs
+      - name: Classificar evidências
+        if: always()
+        env:
+          SETUP: ${{ steps.setup.outcome }}
+          CAPTURE: ${{ steps.shoot.outcome }}
+        run: node tools/visual-lab/agent-qa.cjs finish
+      - uses: actions/upload-artifact@v4
+        id: artifact
+        if: always()
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: visual-lab-results/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Recibo do artefato
+        if: always() && steps.artifact.outputs.artifact-id
+        env:
+          LINK: ${{ steps.artifact.outputs.artifact-url }}
+          ID: ${{ steps.artifact.outputs.artifact-id }}
+        run: echo "Artefato $ID • $LINK • SHA $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

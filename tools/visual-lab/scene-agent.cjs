@@ -18,7 +18,7 @@ const base = (process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173").replace(/\
 const viewport = { width: +(process.env.SCENE_AGENT_W || 852), height: +(process.env.SCENE_AGENT_H || 393) };
 const MAX_ATTEMPTS = 5;
 
-function gitCommit() { try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch { return process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : "desconhecido"; } }
+function gitCommit() { try { return execFileSync("git", ["rev-parse", process.env.AGENT ? "--verify" : "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch { return process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : "desconhecido"; } }
 function ffmpegPath() { const r = spawnSync("ffmpeg", ["-version"], { encoding: "utf8" }); return r.status === 0 ? "ffmpeg" : null; }
 
 async function decode(sharp, png) { const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true }); return { data, w: info.width, h: info.height }; }
@@ -139,7 +139,7 @@ async function shoot(page, sharp, scene, shot, prevSig, i) {
     if (cls.status === "ok" && prevSig && core.signatureDistance(sig, prevSig) < 1.5) cls = { status: "suspeita", reason: "quase idêntico à foto anterior (câmera não mudou ou render parado)" };
     fs.writeFileSync(path.join(out, file), png);
     const st = await readState(page, scene.kind);
-    Object.assign(res, { status: cls.status, reason: cls.reason, pixels: stats, signature: sig, observed: st, stateSummary: stateSummary(st, scene.kind) });
+    Object.assign(res, { capturedAt: new Date().toISOString(), status: cls.status, reason: cls.reason, pixels: stats, signature: sig, observed: st, stateSummary: stateSummary(st, scene.kind) });
     return { res, sig };
   } catch (e) {
     Object.assign(res, { status: "falha", reason: "erro na tomada: " + String(e.message || e).slice(0, 240), pixels: { mean: 0, stdev: 0 } });

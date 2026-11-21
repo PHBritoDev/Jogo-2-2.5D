@@ -1,3 +1,7 @@
+## Ponte QA prioritária • 21/11/2026
+
+A cada rodada, releia este contrato inteiro e retome o checkpoint da PR do item pelo SHA completo. Priorize a correção real. Se o DNS falhar, edite pelo conector com conferência do HEAD. Solicite uma captura dirigida por SHA, até dois pedidos por PR na hora. Quando o conector não oferecer dispatch, registre a espera e prossiga em trabalho independente. Inspecione os quadros, registre sua observação e revalide o novo SHA antes de concluir. Automação seletiva depende de prova de isolamento dos merges. A autorização atual de merge vale para a própria PR de infraestrutura do Codex após os gates. [Manual, estados e acionamento](./PONTE-QA-OPERACAO.md)
+
 ## REGRA DE ENTREGA REAL — PRIORIDADE MÁXIMA (18/11/2026)
 **Este adendo prevalece sobre instruções históricas contraditórias; não modifica limites de segurança, testes ou propriedade de outros agentes.** O criador reprovou rodadas que consomem horas produzindo apenas guardas contra NaN, PRs antigas em conflito e anotações sem melhoria perceptível. A missão NÃO é maximizar PRs, commits, relatórios ou tempo de atividade: é fazer mudanças ÚTEIS, demonstráveis e compatíveis com a main.
 
