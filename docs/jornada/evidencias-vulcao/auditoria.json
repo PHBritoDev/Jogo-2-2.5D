@@ -607,5 +607,27 @@
         "textures": 0
       }
     }
-  ]
+  ],
+  "saveAnterior": {
+    "before": {
+      "q": 12,
+      "sub": 3,
+      "coins": 173
+    },
+    "label": "ENTRAR NO VULCÃO",
+    "after": {
+      "inVolcano": true,
+      "x": -1200,
+      "z": -34,
+      "q": 12,
+      "sub": 3,
+      "coins": 173
+    }
+  },
+  "portal": {
+    "etapa": 13,
+    "acao": "ENTRAR NO PORTAL",
+    "cartaoVs": "bishop2",
+    "origem": "estado do jogo ao encerrar a captura"
+  }
 }

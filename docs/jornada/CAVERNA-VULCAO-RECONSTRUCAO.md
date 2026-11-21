@@ -48,3 +48,26 @@ A branch incorporou a main da Mod 336 por merge de três vias no controlador com
 O ensaio começou na ilha, do lado de fora da boca, com a etapa de entrada já desbloqueada. A interação **Entrar no vulcão** carregou o interior. O personagem desceu as cataratas, percorreu o circuito oeste do bosque, viu as cenas, derrotou os três guardas, usou a chave, cruzou a galeria dos cinco e venceu o mini-chefe. O objetivo mudou para a etapa 13 e a interação do portal abriu o cartão VS de VORGAZHEK. A gravação usa o framebuffer do navegador com o HUD e as cenas do jogo. A automação orientou o movimento, avançou as falas e usou invulnerabilidade e dano assistido nos encontros. A travessia interna ocorreu sem teleporte. O vídeo traz o marcador 336 da branch antes de sua renumeração para 337.
 
 O fluxo de apresentação do Bispo 2 usa um import map próprio. O carregador de GLB agora é importado sob demanda ao construir o vulcão. O visualizador original do Bispo 2 voltou a inicializar apenas com Three.js básico, com os onze observadores presentes. [Auditoria da física e dos recursos](evidencias-vulcao/auditoria.json)
+
+O vídeo da rota condensa 6 min 53 s de captura em 84 s. A gravação complementar mostra a saída da plataforma e o retorno ao checkpoint. Em um navegador separado, um save de campanha V6 anterior à reconstrução abriu na etapa 12, subetapa 3, com 173 moedas. A entrada física levou à galeria em (0, −34), preservando a etapa, a subetapa e as moedas. [Travessia](evidencias-vulcao/travessia.mp4) · [Queda e retorno](evidencias-vulcao/queda.mp4)
+
+## Integração
+
+A suíte própria da caverna, a verificação da build e o render do Bispo 2 passaram no GitHub após a correção do carregador. O workflow do Bispo 3 falhou na instalação do navegador. A versão de Playwright fixada nessa suíte recusa Chromium em Ubuntu 26.04. A PR continua em rascunho com o briefing preservado até a liberação do CI e a aprovação visual. [CI da caverna](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/44939366423) · [Build central](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/44939366333) · [QA do Bispo 2](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/44939366432) · [Falha do Bispo 3](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/44939366314)
+
+## Perfil do jogo completo
+
+Chromium com SwiftShader em CPU compartilhada. O ensaio selecionou o perfil gráfico baixo, com viewport móvel de 720 × 405 ou desktop de 1024 × 576. Cada região teve três posições, aquecimento de 12 quadros por posição e três janelas de 12 intervalos. A terceira posição solicitou dois Enemy2. Os percentis agrupam os 108 intervalos de cada região. O heap é o valor que Chromium expõe ao JavaScript.
+
+| Perfil | Região | FPS mediano | p95 / p99 (ms) | Draw calls | Triângulos | Geometrias / texturas (máx.) | Heap (MiB, máx.) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| mobile | santuario | 1.5 | 1883 / 8483 | 61–107 | 191.930–370.033 | 878 / 105 | 190 |
+| mobile | bosque | 1.7 | 1250 / 1433 | 96–103 | 282.312–344.940 | 884 / 105 | 190 |
+| mobile | abismo | 1.8 | 1117 / 1283 | 67–80 | 239.885–256.313 | 884 / 105 | 190 |
+| desktop | santuario | 1.9 | 1000 / 1200 | 63–109 | 191.930–370.033 | 893 / 106 | 190 |
+| desktop | bosque | 2.9 | 717 / 1217 | 98–105 | 282.312–344.940 | 899 / 106 | 190 |
+| desktop | abismo | 3.3 | 567 / 750 | 69–82 | 239.885–256.313 | 901 / 107 | 190 |
+
+As pausas incluíram carregamento de recursos e disputa de CPU com a captura. Esses valores caracterizam o executor por software. O desempenho em Android físico e a meta de 40–60 FPS no Galaxy A55 continuam sem medição.
+
+Os 27 registros de cada perfil incluem contadores WebGL, heap, intervalos individuais e número de inimigos ativos. O valor de FPS é 1.000 dividido pelo intervalo mediano em milissegundos. A carga de combate manteve dois atores vivos nas amostras previstas. [Medições por execução](evidencias-vulcao/perfil-webgl.json)
