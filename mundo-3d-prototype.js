@@ -2294,7 +2294,8 @@ function blockedAt(x,z,skipRocks=false){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
-  if((ascKey||inVolcano)&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
+  if((ascKey||inVolcano)&&ascFallFrom!==null)return false;
+  if((ascKey||inVolcano)&&voidSpec.hazard?.(lx,lz))return inVolcano&&caveWall(lx,player.position.y-voidSpec.y+.8,lz);
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
@@ -4186,7 +4187,7 @@ function updateLavaContact(dt,P){
  if(inVolc){if(damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'}))lavaBurn.ticks++;}
  else{lavaBurn.ticks++;if(playerHP-LAVA_RULES.burnTick<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'});}else{playerHP-=LAVA_RULES.burnTick;updatePlayerHud();}}}}
  const burning=lavaBurn.until>now&&playerHP>0,chip=document.getElementById('burn-chip'),veil=document.getElementById('burn-veil');
- if(chip){if(chip.hidden===burning)chip.hidden=!burning;if(burning){const t=document.getElementById('burn-chip-t');if(t)t.textContent='−'+LAVA_RULES.burnTick+' vida a cada 0,5 s · '+Math.ceil((lavaBurn.until-now)/1000)+' s';}}
+ if(chip){if(chip.hidden===burning)chip.hidden=!burning;if(burning){const t=document.getElementById('burn-chip-t');if(t)t.textContent='−'+LAVA_RULES.burnTick+(inVolc?' vida por queimadura':' vida a cada 0,5 s')+' · '+Math.ceil((lavaBurn.until-now)/1000)+' s';}}
  if(veil)veil.style.opacity=burning||onLava?String(Math.min(1,(onLava?.6:.28)+.12*Math.sin(now*.011))):'0';
 }
 /** MOD 321 — TP de TESTE entre as cidades (painel ADM com ?adm=1). Ferramenta de depuração, NÃO é autorização segura:
@@ -5760,7 +5761,7 @@ function updateAct2Story(dt,now){
   if(!inVolcano){mark(DISTRICT_SPOTS.volcanoGate);return;}
   const V=VOLCANO;storyAnchors.lab={...volcanoLocal(V.lab),y:voidSpec.y,yaw:0};storyAnchors.door={...volcanoLocal(V.door),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.gold={...volcanoLocal(V.gold),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.portal={...volcanoLocal(V.portal),y:voidSpec.y,yaw:0};
   if(act1Sub===0){spawnVolcanoVictims();mark(volcanoLocal(V.lab));
-   if(!volcanoCellsSeen&&!act1Busy()&&near(volcanoLocal(V.cells),V.cells.r-1.5)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
+   if(!volcanoCellsSeen&&!act1Busy()&&(near(volcanoLocal(V.cells),V.cells.r-1.5)||pz-voidSpec.z<=15)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
    else if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r-1.5)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
   else if(act1Sub===1)mark(volcanoLocal(V.door));
   else if(act1Sub===2){mark(volcanoLocal(V.hall));if(!act1Busy()&&!pack&&near(volcanoLocal(V.hall),V.hall.r+5)){act1Lock=true;guidePinned=false;playStory('galeria',hallScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}

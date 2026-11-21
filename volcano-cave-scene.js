@@ -1,3 +1,4 @@
+import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -20,9 +21,22 @@ void main(){q=uv;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=p
 #include <fog_vertex>
 }`,fragmentShader:`varying vec2 q;uniform float clock;
 #include <fog_pars_fragment>
-void main(){float a=q.y*.55-clock*.56,x=q.x;float shear=sin(17.*x+1.8*sin(a+4.*x))+sin(39.*x+a*.8+2.*sin(2.*a-x*7.));
-float eddy=sin(a*4.+5.*sin(x*9.+a*.8))+sin(a*7.+2.*cos(x*23.-a));float crust=smoothstep(-.86,1.5,shear+eddy*.88);float rim=smoothstep(0.,.13,min(x,1.-x));
-vec3 c=mix(vec3(.34,.032,.013),vec3(1.,.40,.045),rim*(1.-.75*crust));c+=vec3(.5,.33,.11)*pow(max(0.,1.-abs(shear)),5.)*rim;
+float grain(vec2 p){
+ vec2 cell=floor(p),t=fract(p);t=t*t*(3.-2.*t);
+ vec4 hashes=fract(sin(vec4(dot(cell,vec2(127.1,311.7)))+vec4(0.,127.1,311.7,438.8))*43758.5453);
+ return mix(mix(hashes.x,hashes.y,t.x),mix(hashes.z,hashes.w,t.x),t.y);
+}
+void main(){
+ float edge=min(q.x,1.-q.x),flow=q.y*.85-clock*.77;
+ vec2 p=vec2(q.x*4.7,flow);
+ p+=vec2(.63*sin(flow*1.35+q.x*7.),.34*sin(q.x*9.+flow));
+ float field=grain(p)+.36*grain(p*2.7+vec2(clock*.09,1.));
+ float veins=1.-smoothstep(.015,.14,abs(field-.66));
+ float plates=smoothstep(.57,.76,field);
+ float rim=smoothstep(0.,.12+.06*sin(flow*4.),edge);
+ vec3 c=mix(vec3(.55,.058,.012),vec3(.078,.012,.019),plates);
+ c+=veins*vec3(.95,.48,.055)+.2*(1.-plates)*vec3(.68,.18,.025);
+ c=mix(vec3(.12,.027,.025),c,rim);
 gl_FragColor=vec4(c,1.);
 #include <fog_fragment>
 }`});const mesh=new T.Mesh(geo,mat);mesh.name='Calhas e cataratas de lava';group.add(mesh);}
@@ -53,17 +67,57 @@ function basaltPaving(batch){
   for(let k=0;k<4;k++){const l=(k+1)%4;batch.quad(base[k],base[l],top[l],top[k],0x403239);}
  }
 }
-function assets(T,group,file,instances,alive){
+function assets(T,group,file,instances,alive,updates){
  if(!instances.length)return;new GLTFLoader().load(new URL(file,import.meta.url).href,gltf=>{
-  if(!alive()){gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});return;}
+  if(!alive()){gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const value of new Set(Object.values(o.material)))if(value?.isTexture)value.dispose();o.material.dispose();}});return;}
   gltf.scene.updateMatrixWorld(true);
   gltf.scene.traverse(o=>{if(!o.isMesh)return;const crystal=file.startsWith('Cristal');
-   const mat=new T.MeshBasicMaterial({map:o.material.map,color:0xffffff});
-   if(crystal)mat.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <map_fragment>',`vec4 pigment=texture2D(map,vMapUv);float l=dot(pigment.rgb,vec3(.19,.45,.36));diffuseColor.rgb*=.17+1.65*l;`);};
-   const m=new T.InstancedMesh(o.geometry,mat,instances.length),d=new T.Object3D();m.name=file;
-   instances.forEach(([x,y,z,s,rz,ry,color],i)=>{d.position.set(x,y,z);d.rotation.set(0,ry,rz);d.scale.setScalar(s);d.updateMatrix();m.setMatrixAt(i,d.matrix.multiply(o.matrixWorld));m.setColorAt(i,new T.Color(color));});m.computeBoundingSphere();group.add(m);
+   const mat=o.material;
+   if(crystal)mat.onBeforeCompile=shader=>{
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
+     'vec4 pigment=texture2D(map,vMapUv);float l=dot(pigment.rgb,vec3(.19,.45,.36));diffuseColor.rgb*=.13+1.35*l;');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',
+     '#include <emissivemap_fragment>\nfloat edge=1.-abs(dot(normalize(vViewPosition),normal));totalEmissiveRadiance+=diffuseColor.rgb*(.53+.65*edge*edge);');
+   };
+   updates.push(assetLod(T,group,file,o,mat,instances));
   });
  });
+}
+function flames(T,group,torches,clock){
+ if(!torches.length)return;
+ const xyz=[],colors=[],bend=[];
+ const hues=[[0xe3deff,0x8174ff],[0xffe8a8,0xf96528],[0xd0f8ff,0x3486ff]];
+ for(const [i,[x,y,z,size]] of torches.entries()){
+  const [core,tip]=hues[i%hues.length].map(c=>new T.Color(c));
+  for(let tongue=0;tongue<3;tongue++){
+   const ts=tongue===0?1:.6,angle=i*2.4+tongue*2.1;
+   let previous;
+   for(const [h,r] of [[0,.10],[.15,.14],[.45,.10],[.73,.05],[1,.005]]){
+    const ring=Array.from({length:6},(_,j)=>{
+     const a=j*Math.PI/3+angle+h*1.6,off=tongue?.10:0;
+     return [x+Math.cos(angle)*(off+h*h*.2)+Math.cos(a)*r*ts,y+size*.91+h*.81*ts,z+Math.sin(angle)*(off+h*.09)+Math.sin(a)*r*ts,h];
+    });
+    if(previous)for(let j=0;j<6;j++){
+     const k=(j+1)%6;
+     for(const v of [previous[j],previous[k],ring[j],previous[k],ring[k],ring[j]]){
+      xyz.push(v[0],v[1],v[2]);bend.push(v[3],angle);
+      const c=core.clone().lerp(tip,v[3]);colors.push(c.r,c.g,c.b);
+     }
+    }
+    previous=ring;
+   }
+  }
+ }
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(xyz,3));
+ g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setAttribute('bend',new T.Float32BufferAttribute(bend,2));
+ const material=new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide});
+ material.onBeforeCompile=shader=>{
+  shader.uniforms.fireClock=clock;
+  shader.vertexShader='uniform float fireClock;attribute vec2 bend;\n'+shader.vertexShader;
+  shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+   '#include <begin_vertex>\ntransformed.x+=bend.x*bend.x*.09*sin(8.*fireClock+bend.y);transformed.y+=bend.x*.07*sin(12.*fireClock+bend.y);');
+ };
+ const mesh=new T.Mesh(g,material);mesh.name='Chamas votivas';group.add(mesh);
 }
 function sanctuary(b,l,crystals,torches){
  const random=b.random,stone=0x705b65,basalt=0x514455;
@@ -75,7 +129,7 @@ function sanctuary(b,l,crystals,torches){
  }
 // The fallen reliquary spans the cleft at the vanishing point of the entry.
  for(let tier=0;tier<3;tier++){
-  const y=-13+tier*13,z=83-tier*9,width=8.4-tier*.9;
+  const y=tier===0?-16.4:-13+tier*13,z=83-tier*9,width=8.4-tier*.9;
   for(let k=-3;k<=3;k++)b.arch(k*width*2,y,z,width*.84,6.4,4.7,0x967779);
   b.block(0,y+6.4+width,z,width*15,1,6.9,0x907573);
  }
@@ -83,7 +137,15 @@ function sanctuary(b,l,crystals,torches){
   b.block(x,23,z,5,9,5,0x9b7976);b.arch(x,32,z,2.45,2.2,3,0xbb978a);
   b.stalk([[x,37,z,4.2],[x,40,z,2.6],[x,46+(x===0?5:0),z,.08]],6,0x716173);}
  const cascades=[[-31,23,149,3.3],[29,12,122,2.9],[51,41,104,5],[-50,32,91,2.6],[83,35,69,2.2]];
- for(const [x,y,z,r] of cascades){l.strip([[x,y,z-9,r,0,0],[x,y,z,r,0,4],[x+.3,y-2,z+1,r,0,5],[x+.7,-23,z+2,r*.8,0,19],[x+2,-23,z+10,r*1.5,0,24]]);}
+ for(const [x,y,z,r] of cascades){
+  // A spillway touches the ledge all the way to the lip. Dark abutments
+  // expose the molten centre and connect each sheet to the upper shelf.
+  b.cliff(x,y-.63,z-7,r*2.6,7.2,Math.max(22,y+20),0x694951);
+  for(const side of [-1,1]){
+   const bx=x+side*(r+.75);
+   b.stalk([[bx,y-7,z-2,1.6],[bx-.25,y+.15,z-2,1.1],[bx,y+.6,z-2,.68]],7,0x846659);
+  }
+  l.strip([[x,y,z-9,r,0,0],[x,y,z,r,0,4],[x+.3,y-2,z+1,r,0,5],[x+.7,-23,z+2,r*.8,0,19],[x+2,-23,z+10,r*1.5,0,24]]);}
  l.strip([[-48,-23,174,4,0,0],[-22,-23,142,5,0,8],[-12,-23,118,6,0,16],[21,-23,98,6,0,25],[36,-23,68,4,0,34]]);
  // Fluted fractured basalt beneath stepped terraces; capstones and shrines
  // repeat at progressively smaller apparent scales behind the cataracts.
@@ -99,22 +161,39 @@ function sanctuary(b,l,crystals,torches){
   b.stalk([[x,y-12-random()*14,z,.04],[x+1,y-4,z+1,2+random()*2],[x,y+2,z,4+random()*4]],7,basalt,.65);
  }
  for(let i=0;i<18;i++){const a=i*.65,r=65+i%5*6;b.cliff(Math.cos(a)*r,68+random()*7,125+Math.sin(a)*r,35,29,7,0x372c42);}
+ // A shattered brass orrery on the high terrace gives the falls a
+ // recognisable skyline. Through the broken rim the player sees the far nave.
+ const ox=36,oz=101,oy=24;
+ for(let i=0;i<18;i++){
+  if(i===6||i===7)continue;
+  const a=i*Math.PI/9,beta=a+.31;
+  const point=(t,r,d)=>[ox+Math.cos(t)*r,oy+Math.sin(t)*r,oz+d];
+  b.quad(point(a,6,.48),point(beta,6,.48),point(beta,6.55,.48),point(a,6.55,.48),0xb3946a);
+  b.quad(point(a,6.55,.48),point(beta,6.55,.48),point(beta,6.55,-.48),point(a,6.55,-.48),0x795d4c);
+  if(i%3===0)b.face(point(a-.075,6.3,.5),point(a+.075,6.3,.5),point(a,7.5,.5),0xd5a86b);
+ }
+ for(let i=0;i<3;i++)b.block(ox,12+i*.7,oz,15-i*1.3,.75,8-i,0x8e7074);
+ for(const side of [-1,1]){
+  b.stalk([[ox+side*5,14,oz,1.8],[ox+side*4.3,18,oz,1.1],[ox+side*4,20,oz,.48]],7,0x685866);
+  b.stalk([[ox+side*6,14,oz+2,.8],[ox+side*6,17,oz+2,.55],[ox+side*6,19,oz+2,.05]],6,0xb78e63);
+ }
  const colors=[0xd496ff,0xa8d4ff,0xe4a2eb,0x8e9cff,0xa3f3fb];
  for(const [x,y,z,k,hang] of [[-11,17,160,2.4,0],[12,10,124,2.8,0],[-28,24,128,5,0],[30,13,111,5.5,0],[-9,38,146,3.5,1],[13,45,129,5.5,1],[47,43,85,6.5,0],[-32,43,93,4,1]]){
   if(!hang)b.cliff(x,y-.7,z,k*1.55,k*1.3,9,basalt);
   crystals.push([x,y+(hang?-1:1)*k*.55,z,k,hang?Math.PI:.11,random()*6,colors[crystals.length%colors.length]]);
  }
+ crystals.push([ox,oy-1.6,oz,1.7,0,.38,0xff724f]);
  for(let j=0;j<24;j++){const z=168-j*2.8,x=z>154?(172-z)*(-7/18):z>137?-7+(154-z)*(-8/17):-15+(137-z)*15/25;
   if(z<112)break;for(const side of [-1,1]){const px=x+side*3.65,h=caveHeight(z);
    b.block(px,h+.035,z,.68,.32,2.35,0x9b7c74);
    if(j%3===1){b.block(px,h+.12,z,.82,.92,.84,0x75586a);b.block(px,h+1,z,1,.18,1,0xad867e);solids.push({x:px,z,base:h,r:.43,h:1.18});}
   }}
- for(const [x,z] of [[-3,169],[-11,151],[4.7,113]]){const h=caveHeight(z);torches.push([x,h,z,1.9,0,.3,0xcaa58d]);b.stalk([[x,h+1.65,z,.12],[x+.02,h+1.89,z,.18],[x-.03,h+2.22,z,.02]],7,0xffb656);}
+ for(const [x,z] of [[-3,169],[-11,151],[4.7,113]]){const h=caveHeight(z);torches.push([x,h,z,1.9,0,.3,0xcaa58d]);}
 }
 export function buildVolcanoCave(T,g,spec,ctx){
  const names=['Santuário das Cataratas de Fogo','Bosque das Veias Ardentes','Abismo das Coroas Mortas'];
  const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
- let updateTrees;
+ let updateTrees;const assetUpdates=[[],[],[]];
  resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
  const floors=new T.Group();floors.name="pisos da caverna";g.add(floors);
  const deck=masonry(T,floors,971,{});
@@ -125,19 +204,26 @@ export function buildVolcanoCave(T,g,spec,ctx){
   if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s);
   for(const h of heatPools.filter(h=>sector(h.z)===i)){l.strip(Array.from({length:13},(_,j)=>{const a=Math.PI*j/12,dz=h.r*Math.cos(a);return [h.x,caveHeight(h.z+dz)+.065,h.z+dz,h.r*Math.sin(a),0,j*.22];}));}
-  l.finish();b.finish();assets(T,s,'CristalCaverna01.glb',crystals,()=>active);assets(T,s,'TochaMedievalTripo.glb',torches,()=>active);
+  for(const [x,y,z,s,rotation] of crystals){
+   solids.push({x,z,base:y-(rotation>2?1.85*s:0),r:.7*s,h:1.85*s});
+  }
+  l.finish();b.finish();flames(T,s,torches,clock);assets(T,s,'CristalCaverna01.glb',crystals,()=>active,assetUpdates[i]);assets(T,s,'TochaMedievalTripo.glb',torches,()=>active,assetUpdates[i]);
  }
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
  const tint=new T.Color(),groveFog=new T.Color(0x392b36),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x241d28),crownSky=new T.Color(0x98949b);
  ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
-  if(groups[1].visible)updateTrees((opts?.player||c.position).x-spec.x,z);
+  const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
+  if(groups[1].visible)updateTrees(x,z);
+  groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality);});
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
   env.fogFar=178-92*f+140*a;env.fogNear=14-6*f+9*a;
   tint.setHex(0x563b47).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
   tint.setHex(0x241623).lerp(groveSky,f).lerp(crownSky,a);env.bg=tint.getHex();});
  ctx.refs.caveDispose=()=>{
   active=false;
-  g.traverse(object=>{if(object.isInstancedMesh)object.dispose();});
+  g.traverse(object=>{if(!object.isInstancedMesh)return;object.dispose();
+   for(const texture of new Set(Object.values(object.material)))if(texture?.isTexture&&texture!==object.material.map)texture.dispose();
+  });
  };
  return env;
 }

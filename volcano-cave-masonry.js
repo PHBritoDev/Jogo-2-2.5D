@@ -1,6 +1,6 @@
 // Static masonry batches share vertices' world-space texture scale. No shadow
 // maps: rock faces retain the warm/cold bounce of the surrounding emitters.
-import {addStructure} from "./volcano-cave-layout.js";
+import {addStructure,addCliff} from "./volcano-cave-layout.js";
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -49,6 +49,7 @@ export function masonry(T, group, seed, palette){
  }
  function cliff(x,y,z,rx,rz,h,tint){const n=13,rim=[];for(let i=0;i<n;i++){const a=i*2*Math.PI/n,r=.84+.25*random();rim.push([x+Math.cos(a)*rx*r,y+(random()-.5)*1.5,z+Math.sin(a)*rz*r]);}let ring=rim;
   for(let j=1;j<=4;j++){const next=rim.map(p=>[x+(p[0]-x)*(1-.037*j)+(random()-.5)*2,y-j*h/4+(random()-.5)*2,z+(p[2]-z)*(1-.04*j)]);for(let i=0;i<n;i++){const k=(i+1)%n;quad(ring[i],next[i],next[k],ring[k],tint,.68+random()*.5);}ring=next;}
+  addCliff(rim,ring);
   for(let i=0;i<n;i++)face([x,y+.5,z],rim[(i+1)%n],rim[i],tint);
  }
  // An arch is a ring of separate tapered voussoirs over two laden piers.

@@ -1,0 +1,36 @@
+name: Caverna de Cinzária — contratos e WebGL
+on:
+  pull_request:
+    paths:
+      - 'volcano*.js'
+      - 'volcano*.test.mjs'
+      - 'dimension-arenas3d.js'
+      - 'tools/qa/volcano-*'
+      - '.github/workflows/volcano-cave.yml'
+jobs:
+  caverna:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /*.js
+            /*.mjs
+            /CristalCaverna01.glb
+            /TochaMedievalTripo.glb
+            /tools/qa/volcano-*
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test volcano*.test.mjs act2-flow.test.mjs
+      - run: npm install --prefix "$RUNNER_TEMP/qa" playwright@1.56.1 three@0.160.0
+      - run: '"$RUNNER_TEMP/qa/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Verificar malhas, rotas e descarte de recursos em seis ciclos
+        run: |
+          python3 -m http.server 4263 --bind 127.0.0.1 > "$RUNNER_TEMP/cave-server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server"' EXIT
+          export NODE_PATH="$RUNNER_TEMP/qa/node_modules"
+          node tools/qa/volcano-resource-test.cjs

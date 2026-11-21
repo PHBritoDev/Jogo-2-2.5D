@@ -90,10 +90,27 @@ export function grove(T,b,l,group,crystals){
   }
  }
  updateDistance(0,85);
+ // The jail narrative survives the fork. Abandoned manacles and drag
+ // marks lie at the eastern cell and where the western paths rejoin.
+ for(const [x,z] of [[2.2,49],[-6.8,13],[2.8,6]]){
+  const iron=0x76645c;
+  for(let k=0;k<6;k++){
+   const cx=x+.22*k,cz=z-.2*k;
+   for(let j=0;j<7;j++){
+    const a=j*Math.PI*2/7,c=(j+1)*Math.PI*2/7;
+    const ring=(t,r)=>[cx+Math.cos(t)*r,.10+Math.sin(t)*(k%2?.105:.028),cz+Math.sin(t)*r*.66];
+    b.quad(ring(a,.18),ring(c,.18),ring(c,.12),ring(a,.12),iron);
+   }
+  }
+  b.quad([x-.3,.05,z+.6],[x+.6,.08,z+.3],[x+1,.05,z+1.2],[x+.1,.07,z+1.1],0x705c4f);
+  for(const side of [-1,1])b.quad([x+side*.27,.044,z],[x+side*.27+.08,.044,z],[x+side*.35+.16,.044,z-2.9],[x+side*.35,.044,z-2.55],0x31252b);
+ }
  // Draw the low ash bed beneath the distinct traversable shelves.
  for(let i=0;i<basin.length;i++){const [x,z]=basin[i],[u,v]=basin[(i+1)%basin.length];b.face([0,-.19,39],[x,-.19,z],[u,-.19,v],0x48414a);}
  for(const o of fixedRocks)b.stalk([[o.x,-.22,o.z,o.r],[o.x,o.h*.7,o.z,o.r*.85],[o.x+.2,o.h,o.z+.3,o.r*.5]],8,0x453e48);
- for(let j=0;j<17;j++){const a=j*2.399,x=Math.cos(a)*60,z=41+Math.sin(a)*48;b.cliff(x,22+random()*12,z,14,19,31,0x403441);}
+ for(let j=0;j<17;j++){const a=j*2.399,z=41+Math.sin(a)*48;let x=Math.cos(a)*60;
+  if(z<20&&Math.abs(x)<48)x=(x<0?-1:1)*48;
+  b.cliff(x,22+random()*12,z,14,19,31,0x403441);}
  for(let j=0;j<14;j++){const a=j*2.399,x=Math.cos(a)*36,z=43+Math.sin(a)*42;b.cliff(x,23+random()*7,z,20,20,4,0x372f39);}
  l.strip(creek.map(([x,z,r],i)=>[x,-.135,z,r,0,i*4]));
  b.arch(17,-1,65,3.3,2.1,2,0x71606a,.45);

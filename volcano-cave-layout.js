@@ -51,15 +51,40 @@ export function addStructure(x,y,z,w,h,d,angle=0){
  if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>185||y>95||y+h<-.25)return;
  const cs=Math.cos(angle),sn=Math.sin(angle),radX=(Math.abs(cs)*w+Math.abs(sn)*d)/2+.3,radZ=(Math.abs(sn)*w+Math.abs(cs)*d)/2+.3;
  const o={x,y,z,w:w/2,h,d:d/2,cs,sn};structures.push(o);
- for(let i=Math.floor((x-radX)/cell);i<=Math.floor((x+radX)/cell);i++)for(let j=Math.floor((z-radZ)/cell);j<=Math.floor((z+radZ)/cell);j++){
+ indexBounds(o,x-radX,x+radX,z-radZ,z+radZ);
+}
+function indexBounds(o,minX,maxX,minZ,maxZ){
+ for(let i=Math.floor(minX/cell);i<=Math.floor(maxX/cell);i++)for(let j=Math.floor(minZ/cell);j<=Math.floor(maxZ/cell);j++){
   const k=(i+512)*1024+j;let bucket=bins.get(k);if(!bucket)bins.set(k,bucket=[]);bucket.push(o);
  }
 }
+// Use the generated rock's top and foot contours so undulating flanks do
+// not acquire rectangular invisible corners. Only the playable strip is indexed.
+export function addCliff(rim,foot){
+ const all=rim.concat(foot),xs=all.map(v=>v[0]),zs=all.map(v=>v[2]);
+ const x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);
+ const top=rim.reduce((v,p)=>v+p[1],0)/rim.length,bottom=foot.reduce((v,p)=>v+p[1],0)/foot.length;
+ if(x1< -51||x0>51||z1< -108||z0>186||top<-.2||bottom>96)return;
+ const obj={rim,foot,top,bottom};indexBounds(obj,x0,x1,z0,z1);
+}
+function inCliff(o,x,y,z){
+ if(y<o.bottom||y>o.top)return false;
+ const t=(y-o.bottom)/(o.top-o.bottom);
+ let inside=false;
+ for(let i=0,j=o.rim.length-1;i<o.rim.length;j=i++){
+  const a=o.foot[i],b=o.rim[i],c=o.foot[j],d=o.rim[j];
+  const az=a[2]+(b[2]-a[2])*t,cz=c[2]+(d[2]-c[2])*t;
+  if((az>z)===(cz>z))continue;
+  const ax=a[0]+(b[0]-a[0])*t,cx=c[0]+(d[0]-c[0])*t;
+  if(x<ax+(cx-ax)*(z-az)/(cz-az))inside=!inside;
+ }
+ return inside;
+}
 function inStructure(x,y,z,pad){
  const bucket=bins.get((Math.floor(x/cell)+512)*1024+Math.floor(z/cell));if(!bucket)return false;
- for(const o of bucket){const dx=x-o.x,dz=z-o.z;if(y>o.y&&y<o.y+o.h&&Math.abs(dx*o.cs-dz*o.sn)<o.w+pad&&Math.abs(dx*o.sn+dz*o.cs)<o.d+pad)return true;}return false;
+ for(const o of bucket){if(o.rim){if(inCliff(o,x,y,z))return true;continue;}const dx=x-o.x,dz=z-o.z;if(y>o.y&&y<o.y+o.h&&Math.abs(dx*o.cs-dz*o.sn)<o.w+pad&&Math.abs(dx*o.sn+dz*o.cs)<o.d+pad)return true;}return false;
 }
-export function caveBlocked(x,z,doorOpen){return inStructure(x,caveFloor(x,z)+.8,z,.20)||(!doorOpen&&x<-21.4&&Math.abs(z)<8.8)||solids.some(o=>Math.abs(z-o.z)<o.r&&Math.hypot(x-o.x,z-o.z)<o.r+.27);}
+export function caveBlocked(x,z,doorOpen){const y=caveFloor(x,z)+.8;return inStructure(x,y,z,.20)||(!doorOpen&&x<-21.4&&Math.abs(z)<8.8)||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.abs(z-o.z)<o.r+.27&&Math.hypot(x-o.x,z-o.z)<o.r+.27);}
 export function caveWall(x,y,z){return y>94||inStructure(x,y,z,.12)||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
 export const heatPools=[{x:3,z:110.3,r:1.15},{x:-2.9,z:114.2,r:.95},{x:1,z:26,r:1.65},{x:25.5,z:40,r:1.35}];
 export const creek=[[-35,83,1.7],[-20,68,2],[-12,49,2.2],[9,33,1.7],[3,15,2.3],[-16,1,1.6]];
