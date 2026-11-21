@@ -42,7 +42,7 @@ test('dash de aproximação nunca termina dentro da distância de parada (raios 
   assert.ok(approached > 100);
 });
 test('esquiva perfeita → contra-ataque: golpe absorvido pelos i-frames do dash abre a janela; o próximo golpe sai mais forte', () => {
-  assert.ok(/if\(now<playerInvulnerableUntil\)\{protaPerfectDodge\(\);return false;\}/.test(m));
+  assert.ok(/if\(now<playerInvulnerableUntil(&&!info\?\.vxComboFollowup)?\)\{protaPerfectDodge\(\);return false;\}/.test(m)); // PR #628: só a continuação do MESMO combo do VÉRAXION fura a graça pós-hit
   assert.ok(/prota302\.counterUntil=prota302\.clock\+PROTA_DASH\.counter\.window/.test(m) && /\(counter\?PROTA_DASH\.counter\.damage:1\)/.test(m));
   assert.ok(/if\(!newHero\|\|prota302\.dodged\|\|/.test(m), 'uma vez por dash');
 });

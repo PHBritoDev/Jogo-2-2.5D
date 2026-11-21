@@ -121,7 +121,8 @@ Não causa dano.
 ## QA
 - **Testes:**
   - `tests/zarkhael-foice.test.mjs` (11) e `tests/veraxion-duas-espadas.test.mjs` (12) passam.
-  - Suíte completa: as mesmas 10 falhas de `main`, conferidas arquivo a arquivo em um worktree da `main`.
+  - Suíte completa: só as falhas que já existiam na `main`, conferidas arquivo a arquivo em um worktree da `main`.
+  - A expressão regular de `tests/combate-cinematico.test.mjs`, quebrada pela PR #628, foi corrigida; o `combat315` volta a passar.
 - **Smoke** desktop 1280×720 e Pixel 7 emulado nas Dimensões III e IV: 0 erros.
 - **Chamadas de desenho:** 66 na III, 80 no desktop e 74 no celular na IV.
 - **30/45/60 FPS:** as mesmas fases e o mesmo resultado da fera (teste).
