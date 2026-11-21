@@ -12,7 +12,7 @@ on:
         options: [legado, floresta-percurso, vila-praca, vila-vendedores]
         default: legado
       pr_or_branch:
-        description: Número da PR aberta ou nome exato da branch selecionada
+        description: Opcional. Deixe vazio para usar a branch selecionada ou informe o número da PR.
         type: string
       video:
         description: Gravar movimento da cena dirigida
@@ -86,7 +86,7 @@ jobs:
           script: |
             const {owner, repo} = context.repo;
             const branch = process.env.GITHUB_REF_NAME;
-            const target = process.env.TARGET;
+            const target = process.env.TARGET.trim() || branch;
             if (process.env.GITHUB_REF_TYPE !== 'branch' || branch === 'main' ||
                 !/^[\w./-]{1,160}$/.test(branch) || !/^A[1-5]$/.test(process.env.AGENT) ||
                 !(target === branch || /^[1-9]\d{0,8}$/.test(target))) throw Error('Pedido inválido');
@@ -97,9 +97,16 @@ jobs:
             const since = new Date(Date.now()-3600000).toISOString();
             const {data} = await github.rest.actions.listWorkflowRuns({owner,repo,workflow_id:'agente-cenas.yml',
               branch,event:'workflow_dispatch',created:'>='+since,per_page:100});
-            const prev = data.workflow_runs.filter(r => r.id < context.runId && r.display_title.startsWith('QA/'));
-            if (process.env.GITHUB_RUN_ATTEMPT !== '1' || data.total_count >= 100 || prev.length >= 2 ||
-                prev.some(r => r.head_sha === context.sha)) throw Error('Orçamento atingido ou SHA já solicitado; consultar a execução anterior');
+            const candidates = data.workflow_runs.filter(r => r.id < context.runId && r.display_title.startsWith('QA/'));
+            if (process.env.GITHUB_RUN_ATTEMPT !== '1' || data.total_count >= 100) throw Error('Consulte a execução anterior');
+            let used = 0;
+            for (const run of candidates) {
+              if (run.status === 'completed' && run.conclusion !== 'success') {
+                const {data: history} = await github.rest.actions.listJobsForWorkflowRun({owner,repo,run_id:run.id});
+                if (history.jobs.some(j => j.name === 'evidencia' && j.conclusion === 'skipped')) continue;
+              }
+              if (++used >= 2 || run.head_sha === context.sha) throw Error('Orçamento atingido ou SHA já solicitado');
+            }
             return pr.number;
   evidencia:
     concurrency:

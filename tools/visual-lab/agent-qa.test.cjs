@@ -25,9 +25,9 @@ const script = workflow.split('          script: |\n')[1].split('\n  evidencia:'
 const gate = new (Object.getPrototypeOf(async()=>{}).constructor)('context','github','process',script);
 const ctx = {repo:{owner:'me',repo:'game'},sha,runId:100};
 const branch = 'codex/prova';
-function check({input={},prs,runs=[],apiError}={}) {
+function check({input={},prs,runs=[],jobs=[],apiError}={}) {
   const api = {rest:{pulls:{list:async()=>{if(apiError) throw Error(String(apiError));return {data:prs||[{head:{repo:{full_name:'me/game'},sha},number:12}]};}},
-    actions:{listWorkflowRuns:async()=>({data:{total_count:runs.length,workflow_runs:runs}})}}};
+    actions:{listJobsForWorkflowRun:async()=>({data:{jobs}}),listWorkflowRuns:async()=>({data:{total_count:runs.length,workflow_runs:runs}})}}};
   return gate(ctx,api,{env:{GITHUB_REF_TYPE:'branch',GITHUB_REF_NAME:branch,TARGET:'12',AGENT:'A1',GITHUB_RUN_ATTEMPT:'1',...input}});
 }
 test('preflight real do YAML, escopo e economia',async()=>{
@@ -47,4 +47,12 @@ test('retomada sem repetição cega ou aprovação por metadados',()=>{
     [{http:429},'BLOQUEADO'],[{runStatus:'in_progress'},'QA_EXECUTANDO'],[{artifact:null},'ANALISE_VISUAL_PENDENTE'],
     [{artifact:{expired:true}},'ANALISE_VISUAL_PENDENTE'],[{},'ANALISE_VISUAL_PENDENTE'],
     [{reviewed:true},'EVIDENCIA_PRONTA']]) assert.equal(checkpoint({...args,...patch}),state);
+});
+
+test('rejeição antes da gravação permite corrigir o mesmo SHA',async()=>{
+  const runs=[{id:90,head_sha:sha,display_title:'QA/A1/'+branch+'/'+sha,status:'completed',conclusion:'failure'}];
+  const input={TARGET:' '};
+  assert.equal(await check({input,runs,jobs:[{name:'evidencia',conclusion:'skipped'}]}),12);
+  await assert.rejects(check({input,runs,jobs:[{name:'evidencia',conclusion:'failure'}]}));
+  await assert.rejects(check({input:{TARGET:branch+'.'}}));
 });
