@@ -3326,7 +3326,7 @@ function updateIlyanEscort(dt){
  const tx=waypoint?origin.x+SEWER.emptyPath.from.x:player.position.x;
  const tz=waypoint?origin.z-37:player.position.z;
  const vx=tx-h.position.x,vz=tz-h.position.z,len=Math.hypot(vx,vz);
- const moving=d<35&&(waypoint?len>.06:d>2.5)&&len>.05;
+ const moving=d<85&&(waypoint?len>.06:d>2.5)&&len>.05;
  if(action)action.paused=!moving;
  if(!moving)return;
  const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
@@ -3350,8 +3350,8 @@ function syncIlyanPlacement(){
  const h=ilyanNpc.holder;h.visible=where!=='hidden';
  if(ilyanNpc.action)ilyanNpc.action.paused=true;
  if(where==='prison'){
-  const p=sewerLocal(SEWER.cell);
-  h.position.set(p.x+2.1,voidSpec.y,p.z-.9);
+  const p=sewerLocal(questStep===5?SEWER.checkpoints.path:SEWER.cell);
+  h.position.set(p.x+(questStep===5?0:2.1),voidSpec.y,p.z-(questStep===5?1.5:.9));
   h.rotation.y=Math.PI*.75;
  }else if(where==='town'){
   h.position.set(ILYAN_WELL.x,groundHeightAt(ILYAN_WELL.x,ILYAN_WELL.z),ILYAN_WELL.z);
