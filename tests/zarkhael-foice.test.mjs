@@ -86,6 +86,8 @@ test('Fera: magia mata com um acerto (sem mordida, sem dano, sem debuff); espada
   const { zkBeastMagicHit, zkBeastSwordHit, zkHeroDamageMul } = await import('../zarkhael-beast3d.js');
   { const r = beastRun(11, 9, (i, a, h, sq) => { if (a.zkBeast?.phase === 'run' && a.zkBeast.run > .3) zkBeastMagicHit(sq, a, a.zkBeast); });
     assert.equal(r.dmg(), 0); assert.ok(!r.ph.includes('close'), 'não morde'); assert.ok(r.ph.includes('dome')); assert.equal(zkHeroDamageMul(r.sq), 1); }
+  { const r = beastRun(14, 9, (i, a, h, sq) => { const b = a.zkBeast; if (b && b.phase === 'close' && b.pt > .03 && !b.bitten) zkBeastMagicHit(sq, a, b); });
+    assert.equal(r.dmg(), 0, 'magia no fechamento, antes dos dentes, ainda desfaz'); assert.equal(zkHeroDamageMul(r.sq), 1); }
   { let leaps = 0; const r = beastRun(12, 9, (i, a, h, sq) => { const b = a.zkBeast; if (b && /run|stop|open/.test(b.phase) && zkBeastSwordHit(sq, a, b)) leaps++; });
     assert.equal(leaps, 1, 'um salto por invocação'); assert.ok(r.ph.includes('leap') && r.ph.indexOf('leap') < r.ph.indexOf('close'), 'salto → abre → morde'); assert.equal(r.dmg(), 1); }
 });

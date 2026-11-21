@@ -103,7 +103,7 @@ export function zkBeastStep(sq, a, b, dt, t) {
 }
 /** Magia do herói: um acerto confirmado mata a fera (sem mordida, sem dano, sem debuff). */
 export function zkBeastMagicHit(sq, a, b) {
-  if (!b || !/summon|run|stop|open|leap/.test(b.phase)) return false;
+  if (!b || !(/summon|run|stop|open|leap/.test(b.phase) || (b.phase === 'close' && !b.bitten))) return false; // até os dentes se encontrarem
   const S = a && a.zkStats; if (S) S.beastMagic = (S.beastMagic || 0) + 1; b.killedBy = 'magic'; b.jaw = Math.min(b.jaw, .3); burst(sq, a, b, 'magic'); return true;
 }
 /** Espada do herói: não mata; um golpe válido provoca UM salto agressivo (com antecipação) em direção ao herói. */

@@ -1907,10 +1907,10 @@ const holyProjectiles=[];let holyCooldowns={magic:0,magic2:0,magic3:0,ultimate:0
 // MOD 221 — a single target identity per encounter; never transfer damage to a reused enemy holder.
 let siegeVFX=null,siegeEpoch=0,siegeScene='',siegeHudCount=-1;
 const siege=new CelestialSiege({blocked:p=>extraBlocked(p),hit:(damage,id)=>{if(id===siegeEpoch)hurtEnemy(damage,false,true);},event:(type,b)=>{if(siegeVFX)siegeVFX.event(type,b);if(type==='launch')worldAudio.whoosh();if(type==='impact')worldAudio.hit();if(type==='cancel'&&siegeVFX)siegeVFX.clear();}});
-function siegeTarget(rite){if(!rite&&zkMagicLock){const z=zkBeastAim(true);if(z)return z;zkMagicLock=false;}return {id:siegeEpoch,x:enemy.position.x,y:enemy.position.y+1.15,z:enemy.position.z,alive:combatStepNow()&&enemy.visible&&enemyAlive};}
+function siegeTarget(rite,sys){if(!rite&&(sys?sys.__zkLock:zkCastBeast)){const z=zkBeastAim(true);if(z)return z;if(sys)sys.__zkLock=false;}return {id:siegeEpoch,x:enemy.position.x,y:enemy.position.y+1.15,z:enemy.position.z,alive:combatStepNow()&&enemy.visible&&enemyAlive};}
 function siegeContext(){return String(voidMode)+':'+(voidSpec&&[voidSpec.x,voidSpec.y,voidSpec.z].join(','))+':'+dimKey+':'+questStep;}
 function siegeHUD(){const n=siege.active?siege.remaining:-1;if(n===siegeHudCount)return;siegeHudCount=n;const button=document.getElementById('attack');button.classList.toggle('celestial-siege',n>=0);let hud=button.querySelector('.siege-hud');if(!hud){hud=document.createElement('span');hud.className='siege-hud';hud.innerHTML='<span class="siege-blades">'+Array.from({length:5},()=>'<i><svg viewBox="0 0 12 28" aria-hidden="true"><path fill="currentColor" d="M6 0 8 4 8 17 11 19 11 21 7 20 7 25 8 27 4 27 5 25 5 20 1 21 1 19 4 17 4 4Z"/></svg></i>').join('')+'</span><strong></strong><small>DISPARAR</small>';button.appendChild(hud);}hud.hidden=n<0;if(n>=0){hud.querySelector('strong').textContent=n+'/5';hud.querySelectorAll('i').forEach((e,i)=>e.classList.toggle('spent',i>=n));}button.setAttribute('aria-label',n<0?'Golpe de espada':'Disparar lâmina celestial: '+n+' de 5');}
-function updateSiege(dt){const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&siegeScene===siegeContext();siege.update(dt,siegeTarget(),{valid});if(siegeVFX)siegeVFX.update(dt,siege,siegeTarget(),camera,graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DScale<.75));siegeHUD();}
+function updateSiege(dt){const valid=playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&siegeScene===siegeContext();siege.update(dt,siegeTarget(false,siege),{valid});if(siegeVFX)siegeVFX.update(dt,siege,siegeTarget(false,siege),camera,graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DScale<.75));siegeHUD();}
 
 // MOD 224 — pooled Skill 2, sharing encounter identity, mana and collision infrastructure.
 let starfallVFX=null,starfallScene='',starfallCameraWeight=0;
@@ -1920,7 +1920,7 @@ const starfall=new CelestialStarfall({ground:(x,z)=>fxGy(x,z),blocked:p=>blocked
  event:(type,b)=>{if(type==='launch')worldAudio.whoosh();if(type==='open')worldAudio.magic('magic2');if(type==='impact'&&(b.i%3===0||b.heavy))worldAudio.hit();if(type==='impact'&&b.heavy&&!userSettings.reduceShake)cameraShake(.09);if(type==='cancel'&&starfallVFX)starfallVFX.clear();}});
 function updateStarfall(dt){
  const rig=model&&poseRig(model);if(rig?.rh)rig.rh.getWorldPosition(starfallHand);else {starfallHand.copy(player.position);starfallHand.y+=1.7;}
- starfall.update(dt,siegeTarget(),{hand:starfallHand,valid:playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&starfallScene===siegeContext()});
+ starfall.update(dt,siegeTarget(false,starfall),{hand:starfallHand,valid:playerHP>0&&!cineActive&&!dialogueOpen&&!awakeningActive&&starfallScene===siegeContext()});
  if(starfallVFX)starfallVFX.update(starfall,camera,graphics3DMode==='low'||(graphics3DMode==='auto'&&graphics3DScale<.75));
  starfallCameraWeight+=((starfall.active?1:0)-starfallCameraWeight)*(1-Math.exp(-dt*4));
 }
@@ -1970,7 +1970,7 @@ function chargeDivine(){
 }
 let phoenixVFX=null,phoenixScene='';
 const phoenix=new CelestialPhoenix({ground:(x,z)=>fxGy(x,z),blocked:p=>extraBlocked(p),hit:(d,id,kind)=>{if(id===siegeEpoch&&enemyAlive)hurtEnemy(d,kind==='strike'||kind==='burst',true);},event:type=>{if(type==='flight'||type==='dive')worldAudio.whoosh();if(type==='capture')worldAudio.magic?.('magic3');if(type==='burst'||type==='impact'){worldAudio.hit();if(!userSettings.reduceShake)cameraShake(type==='impact'?.2:.14);vibrate(type==='impact'?90:60);}if(type==='cancel'){phoenixVFX?.clear();releasePhoenixHold();}}});
-function phoenixTarget(){const t=siegeTarget();if(t.id===ZK_BEAST_ID)return t;t.resist=phoenixBossResists();t.y=phoenixHold?phoenixHold.y:enemy.position.y;if(phoenixHold){t.x=phoenixHold.ax;t.z=phoenixHold.az;}t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
+function phoenixTarget(sys){const t=siegeTarget(false,sys);if(t.id===ZK_BEAST_ID)return t;t.resist=phoenixBossResists();t.y=phoenixHold?phoenixHold.y:enemy.position.y;if(phoenixHold){t.x=phoenixHold.ax;t.z=phoenixHold.az;}t.radius=Math.max(.6,enemy.userData.phoenixRadius||.6);t.height=enemy.userData.phoenixHeight||2;return t;}
 /* MOD 229 — lease do alvo capturado: guarda posição/rotação, aplica a espiral do ciclone e SEMPRE devolve o inimigo ao chão
    (fim da captura, cancelamento, morte, troca de cena) — nunca fica voando nem atravessando o terreno. */
 var phoenixHold=null;
@@ -1980,7 +1980,7 @@ function applyPhoenixHold(){const H=phoenix.hold;
  if(!(phoenix.active&&H.active&&enemy.visible&&enemyAlive&&phoenix.id===siegeEpoch)){releasePhoenixHold();return;}
  if(!phoenixHold){const a=phoenix.anchor;phoenixHold={ax:a.x,az:a.z,y:terrainHeightAt(a.x,a.z),rotY:enemy.rotation.y};}
  const g=terrainHeightAt(phoenixHold.ax+H.x,phoenixHold.az+H.z);enemy.position.set(phoenixHold.ax+H.x,Math.max(g,phoenixHold.y)+H.y,phoenixHold.az+H.z);enemy.rotation.y=phoenixHold.rotY+H.spin;}
-function updatePhoenix(dt){try{phoenix.update(dt,phoenixTarget(),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});}finally{applyPhoenixHold();}if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
+function updatePhoenix(dt){try{phoenix.update(dt,phoenixTarget(phoenix),{valid:playerHP>0&&!cineActive&&!dialogueOpen&&phoenixScene===siegeContext()});}finally{applyPhoenixHold();}if(phoenixVFX)phoenixVFX.update(phoenix,camera,graphics3DMode==='low'?0:graphics3DMode==='auto'?(graphics3DScale<.75?0:1):2);}
 
 // Mod 236: explicit laboratory, with the production renderer, physics and HUD.
 let labMode='still',labAge=0,labWall=null,labAnchor={x:-5,z:4},labHudAt=0,labLane=null;
@@ -2165,7 +2165,7 @@ function extraTarget(){const t=phoenixTarget();if(t.id===ZK_BEAST_ID)return t;t.
 function updateExtraSkills(dt){
  updateVfxLab(dt);
  const t=extraTarget(),q=whiteQuality(),base=playerHP>0&&!cineActive&&!dialogueOpen;
- for(const [kind,run] of Object.entries(EXTRA_RUN))if(run.active)run.update(dt,t,{valid:base&&extraScene[kind]===siegeContext()});
+ for(const [kind,run] of Object.entries(EXTRA_RUN))if(run.active)run.update(dt,run.__zkLock?(zkBeastAim(true)||t):t,{valid:base&&extraScene[kind]===siegeContext()});
  if(xVFX)xVFX.update(xRupture,camera,q);if(portalsVFX)portalsVFX.update(EXTRA_RUN.skill_twin_portals,camera,q);if(dragonVFX)dragonVFX.update(EXTRA_RUN.skill_judgment_dragon,camera,q);
  updateQuantum(dt,q);
 }
@@ -2179,9 +2179,7 @@ function updateQuantum(dt,q){
  quantumFX.update(dt,camera,{tip:qTip,base:qBase,swinging,quality:q});
 }
 function castHolyMagic(kind){
- const now=performance.now();if(whiteLease.locked||playerHP<=0||gamePaused||cineActive||dialogueOpen)return;
- zkMagicLock=kind!=='ultimate'&&!!zkBeastAim(); // 21/11: a magia lançada contra a Fera segue nela até o fim (sem trocar de alvo no meio do voo)
- if(kind==='ultimate'&&vzUltBlocked()){vzUltDenied();return;} // Mod 320: única habilidade proibida durante a Extinção Orbital do chefe (nada é gasto)
+ const now=performance.now();if(whiteLease.locked||playerHP<=0||gamePaused||cineActive||dialogueOpen)return; if(kind==='ultimate'&&vzUltBlocked()){vzUltDenied();return;} // Mod 320: única habilidade proibida durante a Extinção Orbital do chefe (nada é gasto)
  if(kind==='magic'&&(siege.active||!siegeVFX||!siegeTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>22)){status.textContent=siege.active?'Dispare as lâminas restantes.':'Aproxime-se de um inimigo para invocar o cerco.';return;}
  if(kind==='magic2'&&starfall.active){status.textContent='A chuva de estrelas ainda está ativa.';return;}
  if(kind==='magic3'&&phoenix.active){status.textContent='A fênix ainda está ativa.';return;}
@@ -2189,7 +2187,7 @@ function castHolyMagic(kind){
  if(kind==='ultimate'&&!whiteVFX?.ready){loadUltimateWings();status.textContent='Preparando as asas do Juízo…';return;}
  if(kind==='ultimate'&&(!model||!grounded||dashRemaining>0||!whiteClear(player.position,enemy.position)||!phoenixTarget().alive||Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)>24)){status.textContent='Aproxime-se de um inimigo e firme os pés para o Julgamento Divino.';return;}
  const check=canCast(kind,{unlocked:skillSet||new Set(),mana:playerMana,cooldownUntil:holyCooldowns,now});if(!check.ok){status.textContent=check.reason;return;}
- playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;worldAudio.magic(kind);
+ playerMana-=SKILLS[kind].mana;holyCooldowns[kind]=now+SKILLS[kind].cooldown;zkCastBeast=kind!=='ultimate'&&!!zkBeastAim(); // 21/11: só a conjuração ACEITA decide se esta magia mira a FeraworldAudio.magic(kind);
  // Large player abilities flatten grass where their main impact is aimed.
  if(kind==='ultimate'||kind==='magic3'||kind==='magic2'||kind==='skill_judgment_dragon'||kind==='skill_twin_portals'){
    const target=enemy.visible&&enemyAlive?enemy.position:player.position;
@@ -2210,6 +2208,7 @@ function castHolyMagic(kind){
   playPose(model,'starfall',.7,()=>playerYaw,0);actionUntil=Math.max(actionUntil,now+700);
   status.textContent='Chuva de Estrelas Celestiais';
  }
+ {const sys={magic:siege,magic2:starfall,magic3:phoenix}[kind]||EXTRA_RUN[kind];if(sys)sys.__zkLock=zkCastBeast;zkCastBeast=false;} // alvo guardado por habilidade: as demais seguem no Bispo
 }
 function updateHolyProjectiles(dt){
  updateSiege(dt);updateStarfall(dt);updatePhoenix(dt);updateExtraSkills(dt);
@@ -2220,7 +2219,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(!heroMob.canDash(combatClock)||!rites.canCancel)return;rites.cancel('dash');heroMob.dash(combatClock);dashCooldownUntil=now+MOBILITY.dashCooldown*1000;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}if(newHero){protaDashStart(now);return;}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!rites.canCancel)return;const jumpN=heroMob.jump(grounded,combatClock);if(!jumpN)return;rites.cancel('jump');const airJump=jumpN>1;grounded=false;verticalVelocity=(newHero?PROTA_JUMP.impulse:jumpImpulse)*(airJump?MOBILITY.airJumpK:1);if(airJump){heroShadows?.emit();slashVFX.impact({x:player.position.x,y:player.position.y+.15,z:player.position.z},{x:0,y:-1,z:0},{style:'prota',power:.12});}if(newHero){/* MOD 315: pular durante o dash não corta o deslocamento: o dash termina no próprio tempo e o salto herda o impulso */if(!(dashRemaining>0))protaDashEnd();if(!airJump)prota302.airAttacks=0;prota302.airborneT=0;}(worldAudio.jump?worldAudio.jump():worldAudio.whoosh());if(newHero&&actions.Prota302_jump){const a=actions.Prota302_jump,air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;playOnce('Prota302_jump',.06);a.setEffectiveTimeScale(a.getClip().duration/air);actionUntil=now+60;return;}heroShadows?.emit();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget());siegeHUD();return;}tryPlayerAttack();return;}if(kind==='shield'){heroShieldUp();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
+function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(!heroMob.canDash(combatClock)||!rites.canCancel)return;rites.cancel('dash');heroMob.dash(combatClock);dashCooldownUntil=now+MOBILITY.dashCooldown*1000;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}if(newHero){protaDashStart(now);return;}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!rites.canCancel)return;const jumpN=heroMob.jump(grounded,combatClock);if(!jumpN)return;rites.cancel('jump');const airJump=jumpN>1;grounded=false;verticalVelocity=(newHero?PROTA_JUMP.impulse:jumpImpulse)*(airJump?MOBILITY.airJumpK:1);if(airJump){heroShadows?.emit();slashVFX.impact({x:player.position.x,y:player.position.y+.15,z:player.position.z},{x:0,y:-1,z:0},{style:'prota',power:.12});}if(newHero){/* MOD 315: pular durante o dash não corta o deslocamento: o dash termina no próprio tempo e o salto herda o impulso */if(!(dashRemaining>0))protaDashEnd();if(!airJump)prota302.airAttacks=0;prota302.airborneT=0;}(worldAudio.jump?worldAudio.jump():worldAudio.whoosh());if(newHero&&actions.Prota302_jump){const a=actions.Prota302_jump,air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;playOnce('Prota302_jump',.06);a.setEffectiveTimeScale(a.getClip().duration/air);actionUntil=now+60;return;}heroShadows?.emit();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget(false,siege));siegeHUD();return;}tryPlayerAttack();return;}if(kind==='shield'){heroShieldUp();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 /* MOD 291 — "clique fantasma": um toque que FECHA um painel (ex.: ✕ da Loja, no canto superior direito) dispara no
    pointerdown; o click que o navegador gera no pointerup cai no botão que ficou embaixo (⏸) e abria a PAUSA.
@@ -4502,7 +4501,7 @@ function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THRE
 /* 21/11 — Fera dos Mil Olhos (ZAR'KHAEL): QUALQUER magia ofensiva do herói a desfaz com um acerto (as magias miram a fera
    quando ela é a ameaça mais próxima ou está à frente; o acerto vem da colisão real de cada poder); a ESPADA não mata,
    só provoca um salto; HUD do debuff da mordida (−20 % de dano causado, 30 s de jogo, renova sem acumular). */
-const ZK_BEAST_ID='zkBeast';var zkMagicLock=false;let zkSwingSeen=0,zkSwingAt=-1e9,zkHudEl=null;
+const ZK_BEAST_ID='zkBeast';var zkCastBeast=false;let zkSwingSeen=0,zkSwingAt=-1e9,zkHudEl=null;
 function zkBeastLive(){return squadOn?zkBeastOf(squadSq()):null;}
 function zkBeastAim(locked){const L=zkBeastLive();if(!L)return null;const b=L.b,dx=b.x-player.position.x,dz=b.z-player.position.z,d=Math.hypot(dx,dz)||1;if(locked)return{id:ZK_BEAST_ID,x:b.x,y:b.y+.7,z:b.z,alive:true,radius:.75,height:1.3,resist:false};if(d>18)return null;
  const f=squadFocus,df=f&&f.alive?Math.hypot(f.x-player.position.x,f.z-player.position.z):99,ahead=(dx*Math.sin(playerYaw)+dz*Math.cos(playerYaw))/d;
