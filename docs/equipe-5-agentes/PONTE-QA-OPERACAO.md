@@ -15,6 +15,14 @@
 
 **Eficiência:** consulta orientada a evento e status, sem loop infinito, sleeps longos, relançamentos ou custo repetido; máximo uma captura por SHA e dois pedidos por PR por rodada. Implemente primeiro, capture depois, corrija conforme evidência, não deixe um vídeo impedir desenvolvimento independente seguro. Se a captura não puder ser iniciada sem ação humana, informar precisamente uma única ação que o operador deve fazer; não ficar esperando por um comando impossível.
 
+### Limites reais da captura e segurança operacional
+
+- O `agente-cenas.yml` dirigido aceita hoje APENAS `floresta-percurso`, `vila-praca` e `vila-vendedores`. O campo `agent=A2/A4/A5` **não cria sozinho** presets de combate, aurora ou missões. Para combate, usar laboratório visual e QA de hit/dano existentes; para luz e narrativa, implementar um preset/reprodução apropriado ou usar evidência específica do cenário, sem rotular uma foto genérica como teste completo.
+- **Execução da varredura**: foto/vídeo automático de outro workflow pode servir se for o HEAD correto, o mesmo percurso e permitir observar a mudança. Se fotografar apenas a cidade quando a PR altera árvores da floresta, não serve como validação da floresta.
+- **Não cancelar captura em andamento**: a concorrência do job `evidencia` agora usa `cancel-in-progress: false` para preservar vídeos em execução. O preflight bloqueia captura repetida por SHA e limita orçamento. Nunca force rerun de execução falha sem checar causa e SHA.
+- `game_ran` e status de sucesso do workflow certificam execução, não revisão visual, ausência de erros de console, correção funcional completa ou FPS Android. Conferir manualmente imagens, movimento, relatórios e falhas HTTP/console antes de declarar QA aprovado.
+- Evite editar instruções de agentes na `main` em commits separados durante testes visuais: cada push pode gerar novos jobs/deploys e confundir o SHA. Prefira commits consolidados ou branch de infraestrutura com CI aplicável. Nunca force merge de PR visual pendente.
+
 ### Prioridade por especialidade
 
 - **A1:** defeito perceptível reproduzido (câmera, colisão, dash, travadas, save), regressão de comportamento e percurso filmado.
