@@ -3326,7 +3326,8 @@ function updateIlyanEscort(dt){
  const tx=waypoint?origin.x+SEWER.emptyPath.from.x:player.position.x;
  const tz=waypoint?origin.z-37:player.position.z;
  const vx=tx-h.position.x,vz=tz-h.position.z,len=Math.hypot(vx,vz);
- const moving=d<85&&(waypoint?len>.06:d>2.5)&&len>.05;
+ // O jogador pode avançar além de 85 unidades; Ilyan continua seguindo pelo chão caminhável.
+ const moving=(waypoint?len>.06:d>2.5)&&len>.05;
  if(action)action.paused=!moving;
  if(!moving)return;
  const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
