@@ -18,7 +18,7 @@ const base = (process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173").replace(/\
 const viewport = { width: +(process.env.SCENE_AGENT_W || 852), height: +(process.env.SCENE_AGENT_H || 393) };
 const MAX_ATTEMPTS = 5;
 
-function gitCommit() { try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch { return process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : "desconhecido"; } }
+function gitCommit() { try { return execFileSync("git", ["rev-parse", process.env.AGENT ? "--verify" : "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch { return process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : "desconhecido"; } }
 function ffmpegPath() { const r = spawnSync("ffmpeg", ["-version"], { encoding: "utf8" }); return r.status === 0 ? "ffmpeg" : null; }
 
 async function decode(sharp, png) { const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true }); return { data, w: info.width, h: info.height }; }
@@ -139,7 +139,7 @@ async function shoot(page, sharp, scene, shot, prevSig, i) {
     if (cls.status === "ok" && prevSig && core.signatureDistance(sig, prevSig) < 1.5) cls = { status: "suspeita", reason: "quase idêntico à foto anterior (câmera não mudou ou render parado)" };
     fs.writeFileSync(path.join(out, file), png);
     const st = await readState(page, scene.kind);
-    Object.assign(res, { status: cls.status, reason: cls.reason, pixels: stats, signature: sig, observed: st, stateSummary: stateSummary(st, scene.kind) });
+    Object.assign(res, { capturedAt: new Date().toISOString(), status: cls.status, reason: cls.reason, pixels: stats, signature: sig, observed: st, stateSummary: stateSummary(st, scene.kind) });
     return { res, sig };
   } catch (e) {
     Object.assign(res, { status: "falha", reason: "erro na tomada: " + String(e.message || e).slice(0, 240), pixels: { mean: 0, stdev: 0 } });
@@ -165,9 +165,28 @@ async function main() {
         let prev = null;
         for (let i = 0; i < scene.shots.length; i++) { const r = await shoot(ctx.page, sharp, scene, scene.shots[i], prev, i); shots.push(r.res); prev = r.sig; }
         if (scene.walk && scene.kind !== "npc") { // percurso real: tecla segurada, quadro final fotografado
-          await ctx.page.keyboard.down(scene.walk.key); await ctx.page.waitForTimeout(scene.walk.ms); await ctx.page.keyboard.up(scene.walk.key); await ctx.page.waitForTimeout(800);
-          const r = await shoot(ctx.page, sharp, scene, { name: "apos-percurso", mode: "camera-do-jogo", none: true }, prev, scene.shots.length).catch(() => null);
-          if (r) { r.res.controls = ["keyboard " + scene.walk.key + " " + scene.walk.ms + " ms (após a última tomada)"]; shots.push(r.res); }
+          const {page} = ctx, {key, ms, distance} = scene.walk;
+          const start = distance ? await page.evaluate(() => window.SevenSinsDebug3D.state()) : null;
+          const begin = Date.now();
+          let reached = true;
+          await page.keyboard.down(key);
+          try {
+            if (distance) {
+              await page.waitForFunction(({x, z, distance}) => {
+                const now = window.SevenSinsDebug3D.state();
+                return Math.hypot(now.x - x, now.z - z) >= distance;
+              }, {x:start.x, z:start.z, distance}, {polling:250, timeout:ms}).catch(e => {
+                if (e.name !== "TimeoutError") throw e;
+                reached = false;
+              });
+            } else await page.waitForTimeout(ms);
+          } finally { await page.keyboard.up(key); }
+          const elapsed = Date.now() - begin;
+          await page.waitForTimeout(800);
+          const r = await shoot(page, sharp, scene, { name: "apos-percurso", mode: "camera-do-jogo", none: true }, prev, scene.shots.length);
+          r.res.controls = ["keyboard " + key + " " + elapsed + " ms"];
+          if (!reached) Object.assign(r.res, {status:"falha", reason:"Percurso abaixo de " + distance + " unidades no tempo limite"});
+          shots.push(r.res);
         }
       } catch (e) {
         shots.push({ scene: scene.id, name: "cena", file: "", status: "falha", reason: "cena não abriu: " + String(e.message || e).slice(0, 240), attempts: 0, pixels: { mean: 0, stdev: 0 } });

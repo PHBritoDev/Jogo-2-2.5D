@@ -58,6 +58,8 @@ const SCENES = Object.freeze({
     { name: "bento", fly: [[-21.0, 2.25, -46.0], [-22.48, 1.25, -49.01]] },
     { name: "teo", fly: [[-3.0, 2.25, -38.2], [-1.95, 1.25, -41.04]] },
     { name: "lia", fly: [[-15.4, 2.25, -37.9], [-16.2, 1.25, -41.07]] }] },
+  "floresta-percurso": { kind: "mundo", hour: 10, shots: [
+    { name: "antes-do-percurso", at: [-14, -105, -Math.PI / 2], pitch: .12, dist: 5.5 }], walk: { key: "KeyW", ms: 45000, distance: 2.5 } },
   "floresta-trilha": { kind: "mundo", hour: 10, shots: [
     { name: "trilha-samambaias", at: [-14, -105, -Math.PI / 2], pitch: .1, dist: 6.5 },
     { name: "clareira-musgo", at: [-30, -120, -2.36], pitch: .14, dist: 7 }], walk: { key: "KeyW", ms: 3500 } },
