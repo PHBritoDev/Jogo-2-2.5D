@@ -21,7 +21,9 @@ import { vgGrip, vgMoveClips } from './vorgazhek3d.js'; // mesma URL do mundo-3d
 import { zkGrip } from './zarkhael-squad3d.js';
 import { vxGrip, vxMoveClips } from './veraxion-squad3d.js';
 import { createVeraxionVFX } from './veraxion-vfx3d.js?v=mod333';
+import { createVeraxionBloomVFX } from './veraxion-bloom-vfx3d.js?v=mod336'; // 21/11: Florescer Abissal (arcos radiais 3D)
 import { createZarkhaelSpiralVFX } from './zarkhael-spiral-vfx3d.js?v=mod332';
+import { createZarkhaelBeastVFX } from './zarkhael-beast-vfx3d.js?v=mod336'; // 21/11: Fera dos Mil Olhos + cúpula rasgada
 import { createVorgazhekVFX } from './vorgazhek-vfx3d.js?v=mod331';
 import { attachAfterimages, tickAfterimages, clearAfterimages, disposeAfterimages, afterimageStats } from './vhazrael-afterimage3d.js';
 import { attachKatana, poseKatana, poseCaster, poseCarry, katanaPose, KATANA_SCALE, JAW_SCALE } from './enemy3-runtime3d.js';
@@ -46,7 +48,7 @@ const ROLE_SPEED = { idle: .38, walk: 1, run: 1.08, attack: 1, attack2: 1, cast:
 export function createEnemy1SquadRuntime(ctx) {
   const T = ctx.T, scene = ctx.scene;
   const vfx = createDarkPowersVFX(T, scene, { ground: ctx.ground }), chaos = createChaosVFX(T, scene, { ground: ctx.ground });
-  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1, veraxion: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1, veraxion: 1 }, vgfx = createVorgazhekVFX(T, scene), zkfx = createZarkhaelSpiralVFX(T, scene), vxfx = createVeraxionVFX(T, scene), vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
+  const BOSSES = { warden: 1, e2boss: 1, e3boss: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1, veraxion: 1 }, E3K = { e3: 1, e3boss: 1, e4: 1, e4boss: 1, vhazrael: 1, vorgazhek: 1, zarkhael: 1, veraxion: 1 }, vgfx = createVorgazhekVFX(T, scene), zkfx = createZarkhaelSpiralVFX(T, scene), zbfx = createZarkhaelBeastVFX(T, scene), vbfx = createVeraxionBloomVFX(T, scene), vxfx = createVeraxionVFX(T, scene), vzfx = createVhazraelVFX(T, scene, { ground: ctx.ground }), abyss = createAbyssVFX(T, scene, { ground: ctx.ground }), ruin = createEnemy4VFX(T, scene, { ground: ctx.ground });
   // impacto sakuga do Enemy2: casca agressiva, anéis irregulares, rachaduras no terreno ao longo do golpe, placas e pedras
   const sak = createSakugaImpacts(T, scene, { ground: ctx.ground, capacity: 8 });
   // VFX Engine 2.0 (Mod 236): impactos autoritativos (pressão, fragmentos, fissuras, poeira) e rastro volumétrico da espiral
@@ -238,14 +240,10 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'common') { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'demon', power: d.move === 'salto' ? .85 : .45 }); }
       if (type === 'clawWave') ctx.slash.wave(d.spell, { style: 'demon', gain: .95 });
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor.kind === 'vorgazhek') { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .15, z: Math.cos(d.actor.yaw) }, { style: 'vorgazhek', power: m?.heavy ? .9 : .5 }); }
-      if (type === 'zkSpiral' && d.actor) { const b = bodies.get(d.actor.id), W = b && b.weapon; // missão 20/11: Espiral do Carrasco — nasce no ponto REAL da lâmina
-        if (d.phase === 'release' && d.bolt) { let from = null; if (W) { W.updateWorldMatrix(true, false); from = _v.copy(W.userData.head).applyMatrix4(W.matrixWorld); /* 20/11: nasce da CABEÇA real da foice */ d.bolt.y = Math.max(d.actor.y + .6, Math.min(d.actor.y + 2.2, from.y)); } zkfx.release(d.bolt, from); }
-        if (d.phase === 'impact' && d.bolt) { d.bolt.gy = ctx.ground(d.bolt.x, d.bolt.z); zkfx.impact(d.bolt, { wall: d.wall, fade: d.fade }); } }
       if (d && d.actor && d.actor.kind === 'veraxion') { const b = bodies.get(d.actor.id); // missão 20/11: VFX das duas técnicas e do aparo
         if (type === 'vxThrow' && d.phase === 'impact' && d.sword) vxfx.fracture(_v.set(d.sword.x, d.sword.y, d.sword.z), ctx.ground(d.sword.x, d.sword.z), d.end === 'hit');
         if (type === 'vxThrow' && d.phase === 'teleport') vxfx.teleport(d.from, d.to, ctx.ground(d.from.x, d.from.z), ctx.ground(d.to.x, d.to.z));
-        if (type === 'vxUp' && d.phase === 'release' && d.bolt) { let from = null; if (b && b.weapon) { b.weapon.updateWorldMatrix(true, false); from = _v.copy(b.weapon.userData.tip).applyMatrix4(b.weapon.matrixWorld); } vxfx.upRelease(d.bolt, from); }
-        if (type === 'vxUp' && d.phase === 'impact' && d.bolt) { d.bolt.gy = ctx.ground(d.bolt.x, d.bolt.z); vxfx.upImpact(d.bolt, { fade: d.fade }); }
+        if (type === 'vxBloom' && d.phase === 'release') { if (b && b.hand && b.lhand) { b.hand.getWorldPosition(_v); b.lhand.getWorldPosition(_v2); _v.add(_v2).multiplyScalar(.5); } else _v.set(d.actor.x, d.actor.y + 1.3, d.actor.z); vbfx.release(_v, ctx.ground(d.actor.x, d.actor.z)); }
         if (type === 'vxParry' && b && b.hand && b.lhand) { b.hand.getWorldPosition(_v); b.lhand.getWorldPosition(_v2); vxfx.parry(_v.add(_v2).multiplyScalar(.5)); }
         if (type === 'meleeHit' && d.result !== 'evaded' && ctx.slash) { const tg = squad && squad.targets.find(t => t.id === d.target), m = d.actor.act?.move, hand = m?.hands?.[Math.max(0, (d.n || 1) - 1)]; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: hand === 'L' ? 'veraxionB' : 'veraxionA', power: m?.heavy ? .9 : .55 }); } }
       if (type === 'meleeHit' && d.result !== 'evaded' && d.actor && d.actor.kind === 'zarkhael' && ctx.slash) { const tg = squad && squad.targets.find(t => t.id === d.target); if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: 'zarkhael', power: d.move === 'espiral' ? 1 : d.actor.act?.move?.heavy ? .9 : .55 }); }
@@ -261,7 +259,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
   function stop() {
     for (const b of bodies.values()) { ctx.ash?.cancel(b.holder); disposeAfterimages(b); b.mixer.stopAllAction();b.mixer.uncacheRoot(b.model);b.model.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.dispose();});/* textura de ossos do clone */ for(const c of b.claws||[]){scene.remove(c.root);c.root.traverse(o=>o.geometry?.dispose());c.mat.dispose();}b.seal?.dispose();if(b.tell){b.tell.geometry.dispose();b.tell.material.dispose();} scene.remove(b.holder); for (const m of b.mats) m.dispose(); if (b.weapon) { b.weapon.userData.dispose(); scene.remove(b.weaponRoot); if (b.weapon.userData.fx) scene.remove(b.weapon.userData.fx); } if (b.weapon2) { b.weapon2.userData.dispose(); scene.remove(b.weaponRoot2); } if (b.proc) b.proc.dispose(); }
     if (squad && ctx.shields) for (const a of squad.actors) ctx.shields.release(a.id);
-    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); vgfx.clear(); zkfx.clear(); vxfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
+    bodies.clear(); if (squad) { squad.clear(); squad.spells.length = 0; } squad = null; vfx.clear(); chaos.clear(); abyss.clear(); ruin.clear(); vzfx.clear(); vgfx.clear(); zkfx.clear(); zbfx.clear(); vbfx.clear(); vxfx.clear(); impacts.clear(); orbit = null; sak.clear(); for (const t of trails) { t.trail.clear(); t.id = null; } vfx.update(0, { position: _v.set(0, 0, 0) }, [], [], 1);
   }
   return {
     vfx,
@@ -270,7 +268,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     /** Escurecimento local pedido pela Tempestade de Nadir (0..1); o jogo aplica e restaura. */
     get dim() { return stormDim(squad); },
     /** Extinção Orbital em curso (fase, tempo, magia) — o jogo usa para câmera, cena orbital e bloqueio de controle. */
-    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
+    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, zarkhaelBeastVFX: zbfx, veraxionBloomVFX: vbfx, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
@@ -318,7 +316,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
         if (b.weapon) { b.weapon.userData.tick(time, fury ? 1 : 0, b.wW || 0); if (b.katana) poseKatana(T, b, a, dt, time, quality === 0); else poseScythe(b, a, dt); }
         if (b.after) tickAfterimages(b, a, dt, quality);
         if (a.kind === 'vorgazhek') { const dashing = !!(a.act && a.act.type === 'dodge'); if (dashing && !b.vgDash) b.vgDash = { x: a.x, y: a.y, z: a.z }; else if (!dashing && b.vgDash) { vgfx.dash(b.vgDash, { x: a.x, y: a.y, z: a.z }); b.vgDash = null; } }
-        if (a.kind === 'veraxion' && a.vxThrown && a.vxThrown.alive) vxfx.swordTrail(a.vxThrown, dt); // fumaça violeta atrás da espada voadora
+        if (a.kind === 'veraxion' && a.vxThrown && a.vxThrown.alive) vxfx.swordTrail(a.vxThrown, dt);
+        if (a.kind === 'veraxion') { if (a.act && a.act.type === 'vxUp' && !a.act.released && b.hand && b.lhand) { b.hand.getWorldPosition(_v); b.lhand.getWorldPosition(_v2); vbfx.charge(_v.add(_v2).multiplyScalar(.5), a.act.glow || 0); } else if (!a.act || a.act.type !== 'vxUp') vbfx.endCharge(); vbfx.sync(a.vxBloom); } // 21/11: carga entre as espadas + arcos // fumaça violeta atrás da espada voadora
         if (a.kind === 'zarkhael' && b.weapon && a.act && a.act.type === 'zkSpiral' && (a.act.phase === 'spin' || a.act.phase === 'out') && !a.act.released) { b.weapon.updateWorldMatrix(true, false); const W = b.weapon.userData; // missão 20/11: energia atraída para a foice a cada volta + riscos orbitais no arco real
           zkfx.charge(_v.copy(W.tipA).applyMatrix4(b.weapon.matrixWorld), _v2.copy(W.tip).applyMatrix4(b.weapon.matrixWorld), a.act.glow || 0, dt);
           if (ctx.slash) { a.act.vzKey = a.act.vzKey || ++vzSlashSerial; ctx.slash.sample('zks' + a.act.vzKey + ':' + (a.act.loop ?? 9), _v, _v2, { style: 'zarkhael', gain: .5 + (a.act.glow || 0) * .7, extend: .8, inner: .2 }); } }
@@ -357,6 +356,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       for (const t of trails) { const s = t.id !== null && squad.spells.find(o => o.id === t.id); t.trail.update(time, s ? _tp.set(s.x, s.y, s.z) : _tp, !!(s && s.phase === 'fly'), quality); }
       impacts.update(time, quality); if (camera) sak.update(time, camera, quality);
       vgfx.update(dt, quality); zkfx.update(dt, quality); vxfx.update(dt, quality, camera);
+      zbfx.update(dt, quality, camera); vbfx.update(dt, quality); for (const a of squad.actors) if (a.kind === 'zarkhael') zbfx.sync(a.zkBeast || null, a.alive, dt, camera); // 21/11: fera lê o estado lógico
       const info = camera ? vfx.update(dt, camera, squad.spells, charges, quality) : null;
       if (camera) chaos.update(dt, camera, squad.spells, charges, quality);
       if (camera) abyss.update(dt, camera, squad.spells, charges, quality, targets[0] || null);
