@@ -277,6 +277,10 @@ body.lunar-ult-cine #lunar-skip{display:block}
 <div id="loading">Carregando os modelos e animações 3D…<br><br>Iniciando o mundo 3D.</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
+// O painel ADM usa o mesmo canal de QA já existente; sem isso vxTech só existe em ?debug3d=1.
+if (new URLSearchParams(location.search).get('adm') === '1' && !new URLSearchParams(location.search).has('debug3d')) {
+  const u = new URL(location.href); u.searchParams.set('debug3d','1'); history.replaceState(history.state,'',u);
+}
 const meta = await import('./build-info.js?stamp='+Date.now());
 const marker=document.getElementById('marker');
 meta.syncBuildMarker(marker);
@@ -355,6 +359,29 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
   attach();
   const observer=new MutationObserver(attach);
   observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+<script>
+/* ADM: forçar técnicas do VÉRAXION em combate para reproduzir bugs, sem alterar a IA/campanha. */
+(function(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('adm')!=='1'&&!p.has('debug3d'))return;
+  const specs=[['throw','ADM · Arremesso Voraz'],['up','ADM · Corte Ascendente']];
+  const buttons=new Map();
+  function click(type,b){
+    const api=window.SevenSinsDebug3D;
+    if(typeof api?.vxTech!=='function'){b.textContent='Aguarde carregar…';setTimeout(()=>b.textContent=specs.find(x=>x[0]===type)[1],1000);return;}
+    const ok=api.vxTech(type);
+    b.textContent=ok?'✓ Técnica acionada':'VÉRAXION ocupado ou ausente';
+    setTimeout(()=>b.textContent=specs.find(x=>x[0]===type)[1],1200);
+  }
+  function make(type,label){const b=document.createElement('button');b.type='button';b.id='adm-vx-'+type;b.textContent=label;
+    b.style.cssText='cursor:pointer;min-height:38px;padding:7px 11px;border:1px solid #ad6cca;border-radius:9px;background:#251527;color:#fff2fa;font:700 12px system-ui;touch-action:manipulation;pointer-events:auto';
+    b.addEventListener('click',()=>click(type,b));return b;}
+  function attach(){const panel=document.querySelector('#dim-test-panel,#admin-panel,#adm-panel');
+    if(panel)for(const [type,label] of specs)if(!panel.querySelector('#adm-vx-'+type))panel.appendChild(make(type,label));
+  }
+  attach();new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
 </body>
