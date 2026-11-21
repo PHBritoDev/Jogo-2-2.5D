@@ -166,3 +166,25 @@ test('painel ADM disponibiliza Arremesso Voraz e Corte Ascendente sem duplicar b
   assert.match(html, /\['up','ADM · Corte Ascendente'\]/);
   assert.match(html, /if\(\!panel\.querySelector\('#adm-vx-'\+type\)\)/);
 });
+
+
+test('janela anti-graça: golpe 2 e 3 do MESMO combo têm dano; dash, esquiva e ataques diferentes continuam protegidos', async () => {
+  const { vxComboFollowupAllowed: accept } = await import('../veraxion-combo-damage3d.js');
+  const token = {}, other = {}, first = { attackToken: token, actor: 'boss4', combo: 1, at: 1000, until: 1850 };
+  const ctx = { now: 1330, until: 1850, dash: false, perfectDodge: false };
+  const second = { kind: 'melee', attackToken: token, actor: 'boss4', combo: 2 };
+  assert.ok(accept(first, second, ctx), '2º corte é outro contato legítimo do mesmo combo');
+  assert.equal(accept(first, second, { ...ctx, dash: true }), false, 'dash protegido');
+  assert.equal(accept(first, second, { ...ctx, perfectDodge: true }), false, 'janela de esquiva perfeita protegida');
+  assert.equal(accept(first, second, { ...ctx, until: 2010 }), false, 'outra fonte estendeu a invulnerabilidade');
+  assert.equal(accept(first, { ...second, attackToken: other }, ctx), false, 'outro ataque não pode contornar graça');
+  assert.equal(accept(first, { ...second, combo: 1 }, ctx), false, 'primeiro hit não ignora proteção');
+  assert.equal(accept(first, { ...second, combo: 3 }, ctx), false, 'golpe não pode pular índice');
+  assert.equal(accept(first, second, { ...ctx, now: 3401, until: 1850 }), false, 'combate antigo não contorna proteção');
+  const next = { attackToken: token, actor: 'boss4', combo: 2, at: 1330, until: 2180 };
+  assert.ok(accept(next, { ...second, combo: 3 }, { ...ctx, now: 1660, until: 2180 }), '3º corte também causa dano');
+  const main = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.match(main, /vxComboFollowupAllowed\(vxLastDamagingContact,info/);
+  assert.match(main, /info\?\.vxComboFollowup/);
+  assert.match(main, /if\(res===true&&info\.kind==='melee'&&info\.attackToken\)/);
+});
