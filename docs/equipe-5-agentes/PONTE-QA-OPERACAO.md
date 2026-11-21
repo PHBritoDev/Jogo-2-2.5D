@@ -1,5 +1,29 @@
 # QA visual entre rodadas
 
+## Protocolo executivo prioritário — conclusão de captura e continuidade (21/11/2026)
+
+**Esta seção prevalece sobre instruções antigas de encerrar a rodada apenas por solicitar um vídeo, por falha inicial de DNS ou por falta temporária de artefatos.** A entrega só está completa quando o resultado da mudança foi realmente validado e a PR avançou, ou quando um bloqueio incontornável foi demonstrado e o estado foi persistido. Não é possível manter uma execução ChatGPT acordada indefinidamente: permaneça ativo enquanto houver chamadas e trabalho útil disponíveis na execução atual; se o limite da sessão chegar, faça checkpoint e retome automaticamente na próxima ativação horária, **sem recomeçar o diagnóstico**.
+
+### Máquina de estados operacional — consultar sempre o SHA exato
+
+1. **ANTES DE DISPARAR:** confira PR aberta, branch, HEAD SHA completo e se já existe execução/artefato desse SHA. Não peça captura duplicada. A varredura de push/PR pode gerar evidência suficiente — utilize-a se mostrar o problema e o SHA correto, ainda que não seja o botão manual.
+2. **CAPTURA SOLICITADA:** se tiver ferramenta de workflow_dispatch com autorização e parâmetros compatíveis, inicie na branch da PR; se não tiver, inclua na PR uma única solicitação operacional com URL do workflow, branch, agente, cenário e vídeo, e prossiga na mesma rodada fazendo testes, inspecionando código, corrigindo falhas ou preparando análise. Não afirme que disparou se não disparou.
+3. **CAPTURA EM EXECUÇÃO:** cheque status da execução e jobs; enquanto roda, use tempo em outras etapas úteis da MESMA PR (testes, revisão do diff, comparação com main, instrumentação, análise do relatório anterior). Faça ao menos uma nova consulta antes de terminar a execução atual, se ferramentas permitirem, sem spam/polling incessante. Se terminar, vá IMEDIATAMENTE para artefatos; não conclua com a frase obsoleta "a gravação ainda está rodando".
+4. **CAPTURA CONCLUÍDA:** verifique `conclusion`, `head_sha`, branch e artefatos; **sucesso de Actions não é aprovação visual**. Baixe e abra fotos em resolução legível, vídeo completo ou quadros representativos de início/meio/fim, manifest e relatório. Se a ferramenta só fornecer referência de ZIP e não acesso ao conteúdo visual, registre exatamente essa limitação e peça inspeção pelo canal compatível; não invente avaliação das imagens. Se uma varredura do HEAD já trouxe mídia suficiente, não imponha novo vídeo manual sem necessidade.
+5. **DECISÃO:** compare antes/depois no mesmo cenário, ângulo, clima e parâmetros, verifique gameplay e regressões, ajuste o código na mesma branch se necessário, execute testes e peça captura do NOVO SHA somente quando necessário. Resultados visuais falsos positivos ou queda de densidade/iluminação/câmera devem bloquear a promoção. Com visual, testes e conflitos aprovados, marque PR pronta para revisão; merge somente conforme autorização do criador/regras do agente.
+6. **SE A RODADA PRECISAR PARAR:** comentário único na PR: `A# | estado | SHA | run URL | artefato/link | evidência vista | pendência objetiva | próxima ação`. **Primeira ação útil da rodada seguinte é retomar essa execução ou artefato**, não escolher outra tarefa. A tarefa permanece pendente; não diga "concluído" por ter solicitado QA. Não reforce o horário fazendo espera por relógio em segundo plano.
+
+**Eficiência:** consulta orientada a evento e status, sem loop infinito, sleeps longos, relançamentos ou custo repetido; máximo uma captura por SHA e dois pedidos por PR por rodada. Implemente primeiro, capture depois, corrija conforme evidência, não deixe um vídeo impedir desenvolvimento independente seguro. Se a captura não puder ser iniciada sem ação humana, informar precisamente uma única ação que o operador deve fazer; não ficar esperando por um comando impossível.
+
+### Prioridade por especialidade
+
+- **A1:** defeito perceptível reproduzido (câmera, colisão, dash, travadas, save), regressão de comportamento e percurso filmado.
+- **A2:** contato, dano em todos os hits, IA, animação e VFX em ação completa; não aceitar quadro isolado como prova de combate.
+- **A3:** PR #631 tem prioridade até revisão visual do mesmo SHA e verificação de clareiras/vegetação, inclusive usando a varredura já existente quando suficiente.
+- **A4:** comparar iluminação no MESMO ponto e horário, cuidar da legibilidade e do custo mobile, evitar conflito com A7/Claude.
+- **A5:** missão jogável e progressão persistente, diálogos e gatilhos; imagem bonita não comprova narrativa executável.
+
+
 A cada despertar, leia integralmente o contrato do seu agente. Retome o último comentário de checkpoint na PR do item e confira o HEAD. A issue [#519](https://github.com/PHBritoDev/Jogo-2-2.5D/issues/519) coordena prioridades. O agendamento do ChatGPT inicia a rodada seguinte. Um comentário apenas conserva o estado.
 
 ## Captura dirigida
