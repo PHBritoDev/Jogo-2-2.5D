@@ -1,7 +1,6 @@
 import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
-import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {plates,supported,caveHeight,heatPools,caveHeat,solids,fixedRocks,resetStructures} from './volcano-cave-layout.js';
 import {masonry} from './volcano-cave-masonry.js';
 
@@ -67,8 +66,12 @@ function basaltPaving(batch){
   for(let k=0;k<4;k++){const l=(k+1)%4;batch.quad(base[k],base[l],top[l],top[k],0x403239);}
  }
 }
-function assets(T,group,file,instances,alive,updates){
- if(!instances.length)return;new GLTFLoader().load(new URL(file,import.meta.url).href,gltf=>{
+async function assets(T,group,file,instances,alive,updates){
+ if(!instances.length)return;
+ // Other arena entry points import only core Three.js.
+ const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+ if(!alive())return;
+ new GLTFLoader().load(new URL(file,import.meta.url).href,gltf=>{
   if(!alive()){gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const value of new Set(Object.values(o.material)))if(value?.isTexture)value.dispose();o.material.dispose();}});return;}
   gltf.scene.updateMatrixWorld(true);
   gltf.scene.traverse(o=>{if(!o.isMesh)return;const crystal=file.startsWith('Cristal');
