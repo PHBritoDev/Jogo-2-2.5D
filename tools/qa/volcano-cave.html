@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><title>Auditoria da caverna de Cinzária</title>
+<pre id="result">Carregando a arena…</pre>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {buildDimensionArena} from '../../dimension-arenas3d.js';
+import {nodes,safePathGraph,caveBlocked,caveHeight} from '../../volcano-cave-layout.js';
+
+function check(condition,message){if(!condition)throw Error(message);}
+async function run(){
+ const scene=new THREE.Scene();
+ const renderer=new THREE.WebGLRenderer({antialias:false});
+ renderer.setSize(320,180);
+ const camera=new THREE.PerspectiveCamera(60,16/9,.08,900);
+ scene.fog=new THREE.Fog(0x38303e,12,145);
+ const cycles=[];
+ for(let cycle=0;cycle<6;cycle++){
+  const ready=new Promise((resolve,reject)=>{
+   THREE.DefaultLoadingManager.onLoad=resolve;
+   THREE.DefaultLoadingManager.onError=url=>reject(Error('Falha ao carregar '+url));
+  });
+  const arena=buildDimensionArena(THREE,'volcano',{x:0,y:0,z:0,radius:140});
+  scene.add(arena.group);arena.group.visible=true;
+  await ready;
+  const views=[];
+  for(const key of ['overlook','fork','spine']){
+   const [x,z]=nodes[key];camera.position.set(x,caveHeight(z)+2,z);
+   camera.lookAt(x,2,z-25);
+   arena.update(1000,camera,180,{player:camera.position,quality:'low'});
+   renderer.render(scene,camera);
+   views.push({key,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles});
+  }
+  let paths=0;
+  for(const [a,b] of safePathGraph){
+   const [x,z]=nodes[a],[u,v]=nodes[b],steps=Math.ceil(Math.hypot(u-x,v-z)*3);
+   for(let i=0;i<=steps;i++){
+    check(!caveBlocked(x+(u-x)*i/steps,z+(v-z)*i/steps,true),a+' → '+b);
+    paths++;
+   }
+  }
+  const before={...renderer.info.memory};
+  scene.remove(arena.group);arena.dispose();renderer.render(scene,camera);
+  const after={...renderer.info.memory};
+  if(cycles.length){
+   check(after.geometries===cycles[0].after.geometries,'Geometrias acumuladas');
+   check(after.textures===cycles[0].after.textures,'Texturas acumuladas');
+  }
+  cycles.push({cycle:cycle+1,paths,views,before,after});
+ }
+ renderer.dispose();
+ return cycles;
+}
+window.volcanoAudit=run();
+window.volcanoAudit.then(data=>result.textContent=JSON.stringify(data,null,2),e=>result.textContent=e.stack);
+</script>
+</html>

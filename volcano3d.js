@@ -1,3 +1,5 @@
+export { caveFloor, caveWall, supported, inBasin, nearestRest } from './volcano-cave-layout.js';
+import { supported, inBasin, caveBlocked } from './volcano-cave-layout.js';
 /**
  * MOD 205 — Marco 3: o interior do "vulcão falso" do Ato II (roteiro: caveiras e ossos pelo chão, o laboratório com
  * mortos e acorrentados, a porta escondida da sala do ouro, a galeria dos cinco Enemy2 e a sala secreta com o trono,
@@ -36,20 +38,9 @@ export const VOLCANO = {
   }
 };
 
-function distToSegment(x, z, a, b) {
-  const vx = b.x - a.x, vz = b.z - a.z, l2 = vx * vx + vz * vz || 1;
-  const t = Math.max(0, Math.min(1, ((x - a.x) * vx + (z - a.z) * vz) / l2));
-  return Math.hypot(x - (a.x + vx * t), z - (a.z + vz * t));
-}
-
-/** Chão firme? A porta da sala do ouro fecha a passagem até ser aberta com a chave. */
-export function volcanoWalkable(x, z, opts = {}) {
-  const v = VOLCANO;
-  if (!opts.doorOpen && x < v.door.x + .9) return false;
-  for (const s of [...v.approach, v.magma.causeway, v.tunnel, v.goldPath, v.deepPath, v.thronePath]) if (distToSegment(x, z, s.from, s.to) < s.r) return true;
-  if (Math.hypot(x - v.magma.landing.x, z - v.magma.landing.z) < v.magma.landing.r - .4) return true;
-  for (const room of [v.lab, v.cells, v.gold, v.hall, v.throne]) if (Math.hypot(x - room.x, z - room.z) < room.r - .6) return true;
-  return false;
+/** Suporte e obstáculos locais do Ato II, incluindo a porta da chave. */
+export function volcanoWalkable(x,z,opts={}) {
+  return (supported(x,z)||inBasin(x,z)) && !caveBlocked(x,z,opts.doorOpen);
 }
 
 /** Ponto de volta conforme a sub-etapa dentro do vulcão. */

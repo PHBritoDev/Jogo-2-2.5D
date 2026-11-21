@@ -107,7 +107,7 @@ import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChall
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
-import { VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
+import { caveFloor, caveWall, supported, inBasin, nearestRest, VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
 import { ULTIMATES, ultimateDue, ultimateFor } from './ultimates3d.js';
 import { kitFor, powerStats, pickMove, tierOf } from './powers3d.js';
@@ -2296,7 +2296,8 @@ function blockedAt(x,z,skipRocks=false){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
-  if(ascKey&&(ascFallFrom!==null||voidSpec.hazard?.(lx,lz)))return false;
+  if((ascKey||inVolcano)&&ascFallFrom!==null)return false;
+  if((ascKey||inVolcano)&&voidSpec.hazard?.(lx,lz))return inVolcano&&caveWall(lx,player.position.y-voidSpec.y+.8,lz);
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
@@ -2332,6 +2333,7 @@ function playerBlockedAt(x,z){
  return !!(enemy&&enemy.visible&&enemyAlive&&Math.hypot(x-enemy.position.x,z-enemy.position.z)<.86);
 }
 function enemyBlockedAt(x,z){
+ if(inVolcano&&voidSpec.hazard?.(x-voidSpec.x,z-voidSpec.z))return true;
  if(blockedAt(x,z))return true;
  return Math.hypot(x-player.position.x,z-player.position.z)<.9;
 }
@@ -2418,6 +2420,9 @@ if(firstPerson){
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
  lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
  const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
+ if(inVolcano&&voidSpec.camSolid?.(target.x-voidSpec.x,target.y-voidSpec.y,target.z-voidSpec.z)){
+  target.set(player.position.x,player.position.y+.8,player.position.z);
+ }
  const desired=target.clone().add(camOffset);
  // MOD 186 — se um tronco fica entre o herói e a câmera, aproxima a câmera em vez de enquadrar a casca.
  {const ox=camOffset.x,oz=camOffset.z,len2=ox*ox+oz*oz;let limit=1;
@@ -2439,20 +2444,21 @@ if(firstPerson){
   /* CAVERNA C1 — passagem estreita: em vez de só encurtar o braço (2,4 m na passagem eco-cristal, o herói tomava a
      tela), a câmera desliza para o ombro do lado mais livre (±31°) quando o braço reto ficaria < 3,2 m. Lado suavizado
      (sem trocar a cada quadro) e o mesmo teste de sólido. */
-  if(ascKey&&voidSpec.camSolid){const len0=camOffset.length()||1,L=caveArmLimit(target,camOffset,limit)*len0;let side=0;
+  if((ascKey||inVolcano)&&voidSpec.camSolid){const len0=camOffset.length()||1,L=caveArmLimit(target,camOffset,limit)*len0;let side=0;
    if(L<3.2){let best=L;for(const sg of [1,-1]){_caveShoulder.copy(camOffset).applyAxisAngle(_caveYAxis,sg*.55);const l=caveArmLimit(target,_caveShoulder,limit)*len0;if(l>best+.5){best=l;side=sg;}}}
    caveSide+=(side-caveSide)*(1-Math.exp(-3.5*dt));if(Math.abs(caveSide)>.01){camOffset.applyAxisAngle(_caveYAxis,caveSide*.55);desired.copy(target).add(camOffset);}
    limit=caveArmLimit(target,camOffset,limit);}
   else if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
   if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
- if(ascKey&&voidSpec.camSolid){
+ if((ascKey||inVolcano)&&voidSpec.camSolid){
   /* MOD 316 — braço de mola na caverna/escadaria: a posição sai direto de alvo + direção × comprimento (o lerp de posição
      cortava a corda do giro por dentro da rocha e o "copia se dentro do sólido" fazia a câmera saltar = tremedeira).
      O comprimento encolhe na hora (nunca dentro da pedra) e volta devagar (sem alternar distância a cada frame). */
   const want=desired.distanceTo(target),len=camOffset.length()||1;
   if(!(caveArmLen>0))caveArmLen=want;else caveArmLen+=(want-caveArmLen)*(1-Math.exp(-(want<caveArmLen?20:3.2)*dt));
   // encolhe rápido mas contínuo; só salta se o ponto atual já tocaria a rocha (o sólido tem folga própria de 0,55/0,65 m)
+  if(inVolcano)caveArmLen=Math.min(caveArmLen,want);
   if(caveArmLen>want){const f=caveArmLen/len;if(voidSpec.camSolid(target.x+camOffset.x*f-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,target.z+camOffset.z*f-voidSpec.z))caveArmLen=want;}
 camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
   if(voidSpec.ceil){const top=voidSpec.y+voidSpec.ceil(camera.position.x-voidSpec.x,camera.position.z-voidSpec.z)-.35;if(camera.position.y>top){const y0=camera.position.y;camera.position.y=top;/* Caverna C5: a folha antiga do teto fica abaixo da parede 3D junto às paredes; se baixar a câmera a enfia na rocha, vale o volume 3D (que já inclui a abóbada) */if(voidSpec.camSolid(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z)&&!voidSpec.camSolid(camera.position.x-voidSpec.x,y0-voidSpec.y,camera.position.z-voidSpec.z))camera.position.y=y0;}}
@@ -2533,9 +2539,9 @@ updateRiteLocomotion(dt);
 heroShadows?.update(dt);
 // Caiu na borda? Conservar a queda ate morrer/respawn. Sem permitir que o
 // piso ficticio da ilha/escada volte a "teletransportar" o heroi para cima.
-const ascVoidEdge=!!(ascKey&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
+const ascVoidEdge=!!((ascKey||inVolcano)&&voidSpec.hazard?.(player.position.x-voidSpec.x,player.position.z-voidSpec.z));
 if(ascVoidEdge&&ascFallFrom===null)ascFallFrom=player.position.y;
-const ascVoidFall=!!(ascKey&&ascFallFrom!==null);
+const ascVoidFall=!!((ascKey||inVolcano)&&ascFallFrom!==null);
 let floorY=caveWalk?player.position.y:terrainHeightAt(player.position.x,player.position.z);
 // Sem piso debaixo do herói: gravidade real em vez de colisão vertical falsa.
 if(ascVoidFall){floorY=ascFallFrom-1000;if(grounded){grounded=false;verticalVelocity=Math.min(-1.8,verticalVelocity);}}
@@ -4160,6 +4166,7 @@ function updateJourney(dt,now){
  {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
  journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
+ if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
  if(voidMode)return;
  for(const c of JOURNEY_CHECKPOINTS)if(Math.hypot(P.x-c.x,P.z-c.z)<9&&grounded&&playerHP>0){if(!journeyFall.reached.has(c.id))journeyFall.reached.add(c.id);if(checkpointX!==c.x||checkpointZ!==c.z){checkpointX=c.x;checkpointZ=c.z;}}
@@ -4180,10 +4187,13 @@ function updateLavaContact(dt,P){
  const onLava=playerHP>0&&!cineActive&&grounded&&heat>0&&P.y-terrainHeightAt(P.x,P.z)<.6;lavaBurn.onLava=onLava;
  if(onLava&&now>=lavaBurn.contactNext){lavaBurn.contactNext=now+LAVA_RULES.contactEvery;const r=damagePlayerFromEnemyAttack(LAVA_RULES.contact,{kind:'lava'});
   if(r===true){lavaBurn.hits++;if(playerHP>0)status.textContent='A lava queima! Saia da rocha incandescente. Vida: '+playerHP+' / '+playerMaxHP;}
-  if(playerHP>0){if(lavaBurn.until<=now)lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.until=now+LAVA_RULES.burnFor;}}
- if(lavaBurn.until>now&&playerHP>0&&!cineActive){if(now>=lavaBurn.next){lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.ticks++;if(playerHP-LAVA_RULES.burnTick<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'});}else{playerHP-=LAVA_RULES.burnTick;updatePlayerHud();}}}
+  if(playerHP>0&&(!inVolc||r===true||lavaBurn.until>now)){if(lavaBurn.until<=now)lavaBurn.next=now+LAVA_RULES.burnEvery;lavaBurn.until=now+LAVA_RULES.burnFor;}}
+ if(inVolc&&onLava)lavaBurn.next=now+LAVA_RULES.burnEvery;
+ if(lavaBurn.until>now&&playerHP>0&&!cineActive){if(now>=lavaBurn.next){lavaBurn.next=(inVolc?lavaBurn.next:now)+LAVA_RULES.burnEvery;
+ if(inVolc){if(damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'}))lavaBurn.ticks++;}
+ else{lavaBurn.ticks++;if(playerHP-LAVA_RULES.burnTick<=0){playerInvulnerableUntil=0;damagePlayerFromEnemyAttack(LAVA_RULES.burnTick,{kind:'burn'});}else{playerHP-=LAVA_RULES.burnTick;updatePlayerHud();}}}}
  const burning=lavaBurn.until>now&&playerHP>0,chip=document.getElementById('burn-chip'),veil=document.getElementById('burn-veil');
- if(chip){if(chip.hidden===burning)chip.hidden=!burning;if(burning){const t=document.getElementById('burn-chip-t');if(t)t.textContent='−'+LAVA_RULES.burnTick+' vida a cada 0,5 s · '+Math.ceil((lavaBurn.until-now)/1000)+' s';}}
+ if(chip){if(chip.hidden===burning)chip.hidden=!burning;if(burning){const t=document.getElementById('burn-chip-t');if(t)t.textContent='−'+LAVA_RULES.burnTick+(inVolc?' vida por queimadura':' vida a cada 0,5 s')+' · '+Math.ceil((lavaBurn.until-now)/1000)+' s';}}
  if(veil)veil.style.opacity=burning||onLava?String(Math.min(1,(onLava?.6:.28)+.12*Math.sin(now*.011))):'0';
 }
 /** MOD 321 — TP de TESTE entre as cidades (painel ADM com ?adm=1). Ferramenta de depuração, NÃO é autorização segura:
@@ -5720,7 +5730,7 @@ function updateBandits(dt){
   h.position.y=groundHeightAt(h.position.x,h.position.z);}
 }
 /* ---------- Interior do vulcão ---------- */
-let volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
+let volcanoStatuesLoading=false,volcanoStatues=[],volcanoPortal=null,volcanoVictims=[],volcanoCellsSeen=false;
 /** MOD 217 — vítimas vivas no laboratório (ajoelhadas, exaustas, uma deitada), até a purificação. */
 function spawnVolcanoVictims(){
  if(volcanoVictims.length||questStep!==ACT2.volcano||act1Sub!==0)return;volcanoVictims.loading=true;
@@ -5734,12 +5744,14 @@ function clearVolcanoVictims(){for(const c of volcanoVictims.splice(0))disposeCl
 function enterVolcano(at){
  inVolcano=true;volcanoArena=getDimArena('vulcao');enterDimensionArena('vulcao');
  voidSpec.walk=(lx,lz)=>volcanoWalkable(lx,lz,{doorOpen:questStep>ACT2.volcano||act1Sub>=2});
- const c=volcanoLocal(at||volcanoCheckpoint(questStep>ACT2.volcano?4:act1Sub));player.position.set(c.x,voidSpec.y,c.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;
- checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x,voidSpec.y+3,c.z+6);
+ voidSpec.floor=caveFloor;voidSpec.ceil=()=>94;voidSpec.solid=true;voidSpec.camSolid=caveWall;
+ voidSpec.hazard=(x,z)=>!supported(x,z)&&!inBasin(x,z);ascFallFrom=null;
+ const c=volcanoLocal(at||volcanoCheckpoint(questStep>ACT2.volcano?4:act1Sub));player.position.set(c.x,terrainHeightAt(c.x,c.z),c.z);playerYaw=Math.PI;player.rotation.y=playerYaw;cameraYaw=0;
+ checkpointX=c.x;checkpointZ=c.z;camera.position.set(c.x,player.position.y+3,c.z+6);
  const r=volcanoArena.refs;
  if(r.door){const open=questStep>ACT2.volcano||act1Sub>=2;r.door.position.y=open?-4.4:0;}
  if(r.bodies)r.bodies.visible=!(questStep>ACT2.volcano||act1Sub>=1);
- if(!volcanoStatues.length)loadRig('enemy2').then(rg=>{for(const s of r.statues){const cl=makeFoeClone('enemy2',volcanoLocal(s),{scale:1.7});if(!cl)continue;cl.mixer.update(.5);cl.mixer.timeScale=0;cl.holder.rotation.y=0;cl.holder.traverse(o=>{if(o.isMesh){o.material=new THREE.MeshStandardMaterial({color:0x5a5450,roughness:.9});}});cl.holder.position.y=voidSpec.y+1.2;cl.static=true;volcanoStatues.push(cl);}},()=>{});
+ if(!volcanoStatues.length&&!volcanoStatuesLoading){volcanoStatuesLoading=true;loadRig('enemy2').then(()=>{if(!inVolcano)return;for(const s of r.statues){const cl=makeFoeClone('enemy2',volcanoLocal(s),{scale:1.7});if(!cl)continue;cl.mixer.update(.5);cl.mixer.timeScale=0;cl.holder.rotation.y=0;cl.holder.traverse(o=>{if(o.isMesh){o.material=new THREE.MeshStandardMaterial({color:0x5a5450,roughness:.9});}});cl.holder.position.y=voidSpec.y+1.2;cl.static=true;volcanoStatues.push(cl);}},()=>{}).finally(()=>{volcanoStatuesLoading=false;});}
  for(const s of volcanoStatues)s.holder.visible=true;
  syncVolcanoPortal();worldAudio.portalEnter();
 }
@@ -5747,7 +5759,8 @@ function syncVolcanoPortal(){
  if(questStep>=ACT2.boss&&questStep<ACT2.done&&inVolcano){if(!volcanoPortal){volcanoPortal=buildDimensionPortal(THREE,'bishop2');if(volcanoPortal){const p=volcanoLocal(VOLCANO.portal);volcanoPortal.group.position.set(p.x,voidSpec.y,p.z);volcanoPortal.group.scale.setScalar(.42);scene.add(volcanoPortal.group);}}if(volcanoPortal)volcanoPortal.setActive(true);}
  else if(volcanoPortal)volcanoPortal.setActive(false);
 }
-function leaveVolcano(to){clearVolcanoVictims();
+function clearVolcanoHazards(){lavaBurn.until=lavaBurn.next=lavaBurn.contactNext=0;lavaBurn.onLava=false;ascFallFrom=null;}
+function leaveVolcano(to){clearVolcanoHazards();clearVolcanoVictims();
  inVolcano=false;voidSpec.walk=null;leaveVoid();for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);guidePinned=false;
  const p=to||DISTRICT_SPOTS.volcanoExit;player.position.set(p.x,terrainHeightAt(p.x,p.z),p.z);playerYaw=Math.atan2(p.x-DISTRICT_SPOTS.volcanoGate.x,p.z-DISTRICT_SPOTS.volcanoGate.z);player.rotation.y=playerYaw;cameraYaw=playerYaw+Math.PI;checkpointX=p.x;checkpointZ=p.z;setGameHour(16); /* Mod 327: sai pela boca da caverna, de costas para ela */
 }
@@ -5777,7 +5790,7 @@ function updateAct2Story(dt,now){
   if(!inVolcano){mark(DISTRICT_SPOTS.volcanoGate);return;}
   const V=VOLCANO;storyAnchors.lab={...volcanoLocal(V.lab),y:voidSpec.y,yaw:0};storyAnchors.door={...volcanoLocal(V.door),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.gold={...volcanoLocal(V.gold),y:voidSpec.y,yaw:-Math.PI/2};storyAnchors.portal={...volcanoLocal(V.portal),y:voidSpec.y,yaw:0};
   if(act1Sub===0){spawnVolcanoVictims();mark(volcanoLocal(V.lab));
-   if(!volcanoCellsSeen&&!act1Busy()&&near(volcanoLocal(V.cells),V.cells.r-1.5)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
+   if(!volcanoCellsSeen&&!act1Busy()&&(near(volcanoLocal(V.cells),V.cells.r-1.5)||pz-voidSpec.z<=15)){volcanoCellsSeen=true;act1Lock=true;playStory('cela',cellsScene(),{focus:'hero',done:()=>{act1Lock=false;}});}
    else if(!act1Busy()&&!pack&&near(volcanoLocal(V.lab),V.lab.r-1.5)){act1Lock=true;playStory('laboratorio',labScene(),{focus:'enemy',skippable:false,done:()=>{act1Lock=false;releasePack();}});}}
   else if(act1Sub===1)mark(volcanoLocal(V.door));
   else if(act1Sub===2){mark(volcanoLocal(V.hall));if(!act1Busy()&&!pack&&near(volcanoLocal(V.hall),V.hall.r+5)){act1Lock=true;guidePinned=false;playStory('galeria',hallScene(),{focus:'enemy',done:()=>{act1Lock=false;releasePack();}});}}
@@ -5890,7 +5903,7 @@ function storyDo2(id,args){
 }
 function startBishop2Dimension(){
  updateHeartsHud(true);if(!canChallengeBishop(heartState)){showDialogue([{who:'Anjo-Guia',text:'Sem corações, não. Espere um voltar — '+formatTimer(msToNextHeart(heartState))+'.'}]);return;}
- inVolcano=false;voidSpec.walk=null;guidePinned=false;for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);
+ clearVolcanoHazards();clearVolcanoVictims();inVolcano=false;voidSpec.walk=null;guidePinned=false;for(const s of volcanoStatues)s.holder.visible=false;if(volcanoPortal)volcanoPortal.setActive(false);
  const back={x:CITY.x+26,z:CITY.z};
  startDimensionBattle('bishop2',{hp:ACT2.bossHp,returnTo:back,onVictory:act2Victory,onAbort:()=>{const g=DISTRICT_SPOTS.volcanoExit;player.position.set(g.x,terrainHeightAt(g.x,g.z),g.z);status.textContent='Sem corações. Recupere um e volte ao portal, no fundo do vulcão.';}});
 }

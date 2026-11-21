@@ -1,0 +1,633 @@
+{
+  "ambiente": "Chromium, SwiftShader",
+  "calor": {
+    "lava": [
+      {
+        "fps": 30,
+        "hpIn": 500,
+        "hpAfter3": 386,
+        "contact": 3,
+        "residualHP": 472,
+        "ticks": 4,
+        "reentered": true,
+        "expired": true
+      },
+      {
+        "fps": 45,
+        "hpIn": 500,
+        "hpAfter3": 386,
+        "contact": 3,
+        "residualHP": 472,
+        "ticks": 4,
+        "reentered": true,
+        "expired": true
+      },
+      {
+        "fps": 60,
+        "hpIn": 500,
+        "hpAfter3": 386,
+        "contact": 3,
+        "residualHP": 472,
+        "ticks": 4,
+        "reentered": true,
+        "expired": true
+      },
+      {
+        "invulnerability": true
+      }
+    ],
+    "pause": {
+      "frozen": true,
+      "panel": true
+    }
+  },
+  "quedas": [
+    {
+      "x": 12,
+      "z": -29,
+      "dead": true,
+      "respawn": {
+        "x": -1200,
+        "y": -2000,
+        "z": -68,
+        "grounded": true,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 86
+      }
+    },
+    {
+      "x": 15,
+      "z": -35,
+      "dead": true,
+      "respawn": {
+        "x": -1200,
+        "y": -2000,
+        "z": -68,
+        "grounded": true,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    },
+    {
+      "x": -18,
+      "z": -47,
+      "dead": true,
+      "respawn": {
+        "x": -1200,
+        "y": -2000,
+        "z": -68,
+        "grounded": true,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    },
+    {
+      "x": 17,
+      "z": -60,
+      "dead": true,
+      "respawn": {
+        "x": -1200,
+        "y": -2000,
+        "z": -68,
+        "grounded": true,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    },
+    {
+      "x": -20,
+      "z": -82,
+      "dead": true,
+      "respawn": {
+        "x": -1200,
+        "y": -2000,
+        "z": -68,
+        "grounded": true,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    }
+  ],
+  "entrada": {
+    "keyboard": 0.04000000000000625,
+    "joystick": 0.3106444913401266,
+    "jump": {
+      "walk": {
+        "x": -1199.65,
+        "y": -1999.89,
+        "z": -82.06,
+        "grounded": false,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    },
+    "dash": {
+      "walk": {
+        "x": -1199.64,
+        "y": -1999.448,
+        "z": -82.06,
+        "grounded": false,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    },
+    "attack": {
+      "walk": {
+        "x": -1196.36,
+        "y": -1999.147,
+        "z": -82.01,
+        "grounded": false,
+        "surface": null,
+        "surfaceY": null,
+        "terrain": -2000,
+        "surfaces": 23,
+        "walls": 91
+      }
+    }
+  },
+  "camera": [
+    {
+      "key": "overlook",
+      "yaw": -1.3,
+      "cam": [
+        -12.6,
+        19.36,
+        155.99
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "overlook",
+      "yaw": 0.1,
+      "cam": [
+        -5.99,
+        19.36,
+        159.85
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "overlook",
+      "yaw": 1.8,
+      "cam": [
+        -1.33,
+        19.36,
+        152.25
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "arcade",
+      "yaw": -1.3,
+      "cam": [
+        3.4,
+        6.02,
+        97.99
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "arcade",
+      "yaw": 0.1,
+      "cam": [
+        9.59,
+        5.67,
+        101.89
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "arcade",
+      "yaw": 1.8,
+      "cam": [
+        9.11,
+        5.09,
+        95.54
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "fork",
+      "yaw": -1.3,
+      "cam": [
+        -6.6,
+        1.77,
+        69.44
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "fork",
+      "yaw": 0.1,
+      "cam": [
+        -1.99,
+        2.11,
+        73.85
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "fork",
+      "yaw": 1.8,
+      "cam": [
+        2.67,
+        2.11,
+        66.25
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "willow",
+      "yaw": -1.3,
+      "cam": [
+        -29.6,
+        2.11,
+        55.99
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "willow",
+      "yaw": 0.1,
+      "cam": [
+        -22.99,
+        2.11,
+        59.85
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "willow",
+      "yaw": 1.8,
+      "cam": [
+        -18.33,
+        2.11,
+        52.25
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lab",
+      "yaw": -1.3,
+      "cam": [
+        -5.6,
+        2.11,
+        1.99
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lab",
+      "yaw": 0.1,
+      "cam": [
+        1.01,
+        2.11,
+        5.85
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lab",
+      "yaw": 1.8,
+      "cam": [
+        5.67,
+        2.11,
+        -1.75
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lip",
+      "yaw": -1.3,
+      "cam": [
+        -5.6,
+        2.11,
+        -13.01
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lip",
+      "yaw": 0.1,
+      "cam": [
+        1.01,
+        2.11,
+        -9.15
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "lip",
+      "yaw": 1.8,
+      "cam": [
+        5.67,
+        2.11,
+        -16.75
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "spine",
+      "yaw": -1.3,
+      "cam": [
+        -8.6,
+        2.11,
+        -27.01
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "spine",
+      "yaw": 0.1,
+      "cam": [
+        -1.99,
+        2.11,
+        -23.15
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "spine",
+      "yaw": 1.8,
+      "cam": [
+        2.67,
+        2.11,
+        -30.75
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "gate",
+      "yaw": -1.3,
+      "cam": [
+        -5.6,
+        2.11,
+        -66.01
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "gate",
+      "yaw": 0.1,
+      "cam": [
+        1.01,
+        2.11,
+        -62.15
+      ],
+      "solid": false,
+      "intersections": 0
+    },
+    {
+      "key": "gate",
+      "yaw": 1.8,
+      "cam": [
+        5.67,
+        2.11,
+        -69.75
+      ],
+      "solid": false,
+      "intersections": 0
+    }
+  ],
+  "webgl": [
+    {
+      "cycle": 1,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "cycle": 5,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "paths": 1453,
+      "views": [
+        {
+          "key": "overlook",
+          "calls": 7,
+          "triangles": 62195
+        },
+        {
+          "key": "fork",
+          "calls": 32,
+          "triangles": 142779
+        },
+        {
+          "key": "spine",
+          "calls": 6,
+          "triangles": 102286
+        }
+      ],
+      "before": {
+        "geometries": 40,
+        "textures": 14
+      },
+      "after": {
+        "geometries": 0,
+        "textures": 0
+      }
+    }
+  ],
+  "saveAnterior": {
+    "before": {
+      "q": 12,
+      "sub": 3,
+      "coins": 173
+    },
+    "label": "ENTRAR NO VULCÃO",
+    "after": {
+      "inVolcano": true,
+      "x": -1200,
+      "z": -34,
+      "q": 12,
+      "sub": 3,
+      "coins": 173
+    }
+  },
+  "portal": {
+    "etapa": 13,
+    "acao": "ENTRAR NO PORTAL",
+    "cartaoVs": "bishop2",
+    "origem": "estado do jogo ao encerrar a captura"
+  }
+}
