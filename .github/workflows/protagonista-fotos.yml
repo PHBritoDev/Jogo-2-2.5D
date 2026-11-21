@@ -1,0 +1,41 @@
+name: Fotos do protagonista 3D (QA isolado)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/visual-lab/protagonista-fotos.cjs"
+      - ".github/workflows/protagonista-fotos.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fotos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar navegador
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servir o jogo real (sem alterar gameplay)
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/prota-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Capturar protagonista em seis ângulos
+        run: node tools/visual-lab/protagonista-fotos.cjs
+      - name: Preservar fotos e diagnóstico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: protagonista-seis-angulos
+          path: visual-lab-results/protagonista-fotos/
+          retention-days: 14
+          if-no-files-found: warn
