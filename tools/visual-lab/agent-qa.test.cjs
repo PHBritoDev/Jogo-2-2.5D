@@ -39,6 +39,7 @@ test('preflight real do YAML, escopo e economia',async()=>{
   assert.equal(await check({runs:[{...prior,head_sha:'old'}]}),12);
   assert.doesNotMatch(workflow,/^  (push|schedule|pull_request|workflow_run)/m);
   assert.match(workflow,/group: evidencia-\$\{\{ github.ref \}\}-\$\{\{ inputs.agent \}\}/);
+  assert.match(workflow,/group: evidencia-\$\{\{ github.ref \}\}-\$\{\{ inputs.agent \}\}\n      cancel-in-progress: false/);
 });
 test('retomada sem repetição cega ou aprovação por metadados',()=>{
   const {checkpoint} = require('./agent-qa.cjs');
