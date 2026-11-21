@@ -14,7 +14,10 @@ test('aceita nomes próprios e recusa lixo', () => {
   assert.equal(sanitizePlayerName('A').ok, false);
   assert.equal(sanitizePlayerName('Al').ok, false);
   assert.equal(sanitizePlayerName('NomeMuitoLongo').ok, false);
-  assert.equal(sanitizePlayerName('Ana\nMaria').ok, true);
+  assert.equal(sanitizePlayerName('Ana\nMaria').ok, false);
+  for (const invalid of ['Ana\rMaria', 'Ana\u2028Maria', 'Ana\u2029Maria', 'Ana\tMaria', 'Ana\u0000Maria', 'Ana\u007fMaria']) {
+    assert.equal(sanitizePlayerName(invalid).ok, false, JSON.stringify(invalid));
+  }
   assert.equal(sanitizePlayerName('Nome Com Número 1').ok, false);
   assert.equal(sanitizePlayerName('porra').ok, false);
 });
