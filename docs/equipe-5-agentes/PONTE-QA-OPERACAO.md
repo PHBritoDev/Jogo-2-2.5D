@@ -27,7 +27,7 @@
 
 - **A1:** defeito perceptível reproduzido (câmera, colisão, dash, travadas, save), regressão de comportamento e percurso filmado.
 - **A2:** contato, dano em todos os hits, IA, animação e VFX em ação completa; não aceitar quadro isolado como prova de combate.
-- **A3:** PR #631 tem prioridade até revisão visual do mesmo SHA e verificação de clareiras/vegetação, inclusive usando a varredura já existente quando suficiente.
+- **A3:** PR #631 foi integrada pelo A6 na main (merge `ce0e7ec`, Mod 338). Não voltar a solicitar gravações ou trabalhar nela como PR aberta. Retomar nova melhoria ambiental concreta apenas após consultar PRs atuais, proteção de escopo e evidências.
 - **A4:** comparar iluminação no MESMO ponto e horário, cuidar da legibilidade e do custo mobile, evitar conflito com A7/Claude.
 - **A5:** missão jogável e progressão persistente, diálogos e gatilhos; imagem bonita não comprova narrativa executável.
 
