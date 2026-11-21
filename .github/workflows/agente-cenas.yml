@@ -111,7 +111,7 @@ jobs:
   evidencia:
     concurrency:
       group: evidencia-${{ github.ref }}-${{ inputs.agent }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     needs: pedido
     runs-on: ubuntu-24.04
     timeout-minutes: 16
