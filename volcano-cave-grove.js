@@ -121,21 +121,27 @@ export function grove(T,b,l,group,crystals,clock){
    const m=new T.InstancedMesh(src.geometry,near.material,arr.length);
    m.name='Carvão vivo '+type;m.instanceMatrix.setUsage(T.DynamicDrawUsage);group.add(m);return m;
   });
+  near.geometry.computeBoundingSphere();far.geometry.computeBoundingSphere();
+  const bounds=near.geometry.boundingSphere.clone().union(far.geometry.boundingSphere);
   const entries=arr.map(([x,z,s,yaw,elevation=-.15,backdrop=false])=>{
    dummy.position.set(x,elevation,z);dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(s);dummy.updateMatrix();
-   return {x,z,backdrop,matrix:dummy.matrix.clone()};
+   return {x,z,backdrop,matrix:dummy.matrix.clone(),bounds:bounds.clone().applyMatrix4(dummy.matrix),level:-2};
   });
   clusters.push({parts,entries});
  });
- let previousX=Infinity,previousZ=Infinity;
- function updateDistance(x,z){
-  if(Math.hypot(x-previousX,z-previousZ)<4)return;
-  previousX=x;previousZ=z;
+ function updateDistance(x,z,frustum){
   for(const {parts,entries} of clusters){
+   let changed=false;
+   for(const e of entries){
+    const hidden=(e.backdrop && z<2)||(frustum&&!frustum.intersectsSphere(e.bounds));
+    const level=hidden?-1:Number((e.x-x)**2+(e.z-z)**2>28**2);
+    if(e.level!==level){e.level=level;changed=true;}
+   }
+   if(!changed)continue;
    const counts=[0,0];
    for(const entry of entries){
-    if(entry.backdrop && z<2)continue;
-    const level=(entry.x-x)**2+(entry.z-z)**2>28**2?1:0;
+    const level=entry.level;
+    if(level<0)continue;
     parts[level].setMatrixAt(counts[level]++,entry.matrix);
    }
    parts.forEach((mesh,i)=>{

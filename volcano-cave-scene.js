@@ -243,10 +243,14 @@ export function buildVolcanoCave(T,g,spec,ctx){
  }
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
  const tint=new T.Color(),groveFog=new T.Color(0x414050),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x272938),crownSky=new T.Color(0x98949b);
+ const frustum=new T.Frustum(),clipFromCave=new T.Matrix4();
  ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;galleries.visible=z>135;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
   const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
-  if(groups[1].visible){updateTrees(x,z);updateRavine(z,env.bg);}
-  groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality);});
+  // Cull with the rendered camera; cutscenes can look away from the hero.
+  c.updateWorldMatrix(true,false);g.updateWorldMatrix(true,false);
+  frustum.setFromProjectionMatrix(clipFromCave.multiplyMatrices(c.projectionMatrix,c.matrixWorldInverse).multiply(g.matrixWorld));
+  if(groups[1].visible){updateTrees(x,z,frustum);updateRavine(z,env.bg);}
+  groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality,frustum);});
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
   env.fogFar=226-104*f+150*a;env.fogNear=14-6*f+9*a;
   tint.setHex(0x5d5160).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
