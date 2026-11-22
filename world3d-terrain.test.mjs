@@ -102,3 +102,19 @@ test('margens alagadas permitem caminhar até 1,25 m, sem liberar o fundo profun
   assert.notEqual(shallow, null, 'a margem possui uma faixa intermediária');
   assert.ok(t.walkable(shallow, -96), 'faixa antes bloqueada deve permitir caminhada');
 });
+
+test('floresta com região distante mantém densidade no vale e povoamento na área extra', () => {
+  const distant = createTerrain({ extraAreas: [{ cx: -300, cz: -60, hx: 42, hz: 38 }] });
+  const trees = scatterForest(distant);
+  const mainTrees = trees.filter(t => Math.abs(t.x - distant.area.cx) < distant.area.hx &&
+    Math.abs(t.z - distant.area.cz) < distant.area.hz);
+  const extraTrees = trees.filter(t => Math.abs(t.x + 300) < 42 && Math.abs(t.z + 60) < 38);
+  // Antes: 166 árvores na área principal, 19 na extra (amostras perdidas no retângulo vazio).
+  assert.ok(mainTrees.length >= 200, 'vale principal não pode ficar ralo por causa da região distante');
+  assert.ok(extraTrees.length >= 20, 'região secundária precisa de cobertura vegetal');
+  assert.ok(trees.length < 1500, 'instâncias devem continuar limitadas para celulares');
+  assert.deepEqual(scatterForest(distant), trees, 'posicionamento precisa ser determinístico');
+  for (const tree of trees) {
+    assert.ok(distant.waterDepth(tree.x, tree.z) <= -.25, 'árvore não deve nascer na água');
+  }
+});
