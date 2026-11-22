@@ -70,3 +70,20 @@ test('Ilyan mantém progresso ao longo de 100 frames com desvio lateral', () => 
   assert.ok(holder.position.x > 40.02, 'NPC deve permanecer no lado caminhável');
   assert.equal(action.paused, false);
 });
+
+test('Ilyan atravessa o corredor REAL do esgoto até o checkpoint do portal, sem teleporte', async () => {
+  const { SEWER, sewerWalkable } = await import('../sewer3d.js');
+  const playerZ = SEWER.checkpoints.portal.z;
+  const startZ = SEWER.checkpoints.path.z - 1.5;
+  assert.ok(sewerWalkable(SEWER.emptyPath.from.x, startZ), 'ponto inicial deve ser caminhável');
+  const { holder, action } = stepEscort({
+    playerZ,
+    startZ,
+    ticks: 240,
+    walkableFn: (x, z) => sewerWalkable(x, z, { portalOpen: false })
+  });
+  assert.ok(holder.position.z < playerZ + 2.6, 'Ilyan deve chegar perto do jogador após 12 segundos');
+  assert.ok(holder.position.z > playerZ, 'Ilyan não deve atravessar o jogador');
+  assert.ok(sewerWalkable(holder.position.x, holder.position.z, { portalOpen: false }), 'destino deve permanecer no chão real');
+  assert.equal(action.paused, true, 'animação deve parar quando alcança o jogador');
+});
