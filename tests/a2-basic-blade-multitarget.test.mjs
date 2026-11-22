@@ -52,3 +52,20 @@ test('secondary physical strike reaches the production-style squad damage bridge
  assert.deepEqual(applied.map(h=>h.id),[1,2]);
  assert(applied.every(h=>h.damage>0));
 });
+
+test('squad bridge applies HP loss and impact reaction to two nearby living actors',()=>{
+ const e=encounter(),second=enemy(4,-.3),hp=new Map([[1,120],[2,120],[4,120],[3,120]]),reactions=new Map();
+ e.ctx.others=[e.side,second,e.hidden];
+ e.rites.api.hit=(damage,id,kind)=>{
+  if(kind!=='energy-side'&&!(kind==='basic'&&id===e.primary.id))return;
+  hp.set(id,hp.get(id)-damage);
+ };
+ e.rites.api.event=(type,data)=>{
+  if(type==='impact')reactions.set(data.target.id,(reactions.get(data.target.id)||0)+1);
+ };
+ assert(e.rites.attack('prota',{target:e.primary}));
+ for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
+ for(const id of [1,2,4]){assert(hp.get(id)<120,`actor ${id} must lose HP`);assert.equal(reactions.get(id),1,`actor ${id} must react once`);}
+ assert.equal(hp.get(3),120);
+ assert.equal(reactions.has(3),false);
+});
