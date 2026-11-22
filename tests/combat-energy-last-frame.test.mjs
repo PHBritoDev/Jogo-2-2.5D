@@ -31,6 +31,11 @@ for (const fps of [20, 30, 60, 120]) {
     assert.deepEqual(result.hits.map(h => h.id), ['side'],
       'inimigo na ponta da onda não pode ficar imune no quadro terminal');
     assert.equal(result.hits[0].kind, 'energy-side');
+    const impacts = result.events.filter(e => e.name === 'impact');
+    assert.equal(impacts.length, 1, 'contato lateral precisa emitir impacto visual uma única vez');
+    assert.equal(impacts[0].data.target.id, 'side');
+    assert.equal(impacts[0].data.by, 'energy');
+    assert.equal(impacts[0].data.hitstop, 0, 'contatos laterais não acumulam hitstop');
   });
 }
 
