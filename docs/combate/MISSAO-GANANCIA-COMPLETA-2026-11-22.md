@@ -39,8 +39,11 @@ Todos os 18 clipes da fase II/III e 11 dos 12 da fase I são alcançados (o `Ari
 5. **Sóis.** Raio 1,7 m (~4×), área 4,6 m, um por vez, só pendurada; tremor por distância (respeita "reduzir tremor"); núcleo da explosão aditivo (não escurece).
 6. **Abismo.** Emissor no centro anatômico da goela (crânio `ganancia-colosso`, lido sem editar o módulo do Codex); semente → acúmulo → rachaduras → ~3× → compressão e disparo; velocidade 24 m/s (antes 9,5) com varredura de 0,3 m; parede só depois de entrar na arena.
 7. **Combos.** Correntes nativas por fase (pares na I/II, trios na III) que cancelam só a recuperação; anti-repetição.
-8. **Silhueta III.** Ver evidências (chifres por osso, asas superiores ×1,35, par inferior `GananciaAsas2.glb`).
+8. **Silhueta III.** Os chifres do GLB não têm osso próprio (escalar `Bone_043/045` não mudava nada): a fase III ganha chifres novos (~2×) presos à cabeça. Asas superiores ×1,25 abertas para os lados (giro no eixo frontal). O par inferior `GananciaAsas2.glb` fica atrás das costas baixas, em leque. QA: `tools/visual-lab/ganancia-fase3-qa.html`.
 9. **Fidelidade/luz.** Luz própria do chefe no material (chave + preenchimento + brilho especular), sem luz nova, sombra ou draw call.
+
+## Desempenho medido (SwiftShader, 852×393, fluxo II→III com abismo)
+137 draw calls, ~344 mil triângulos, 0 erros de console. Armas: 3,4–5,9 mil triângulos cada, 8 draws no total.
 
 ## Limitações reais
 - QA visual em SwiftShader (CPU); sem FPS em Android.
