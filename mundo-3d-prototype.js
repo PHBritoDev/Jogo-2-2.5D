@@ -116,6 +116,7 @@ import { VG_FILE, VG_ROLES, VG_IN_PLACE, VG_TIME, vgSynthClips } from './vorgazh
 import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } from './zarkhael-squad3d.js';
 import { zkBeastOf, zkBeastMouth, zkBeastMagicHit, zkBeastSwordHit, zkHeroDebuffLeft, zkClearDebuff } from './zarkhael-beast3d.js'; // 21/11: Fera dos Mil Olhos (Bispo 3)
 import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
+import {createGreedCampaignUltimate} from './greed-ultimate-campaign3d.js';
 import { GK_FILE1, GK_FILE2, GK_ROLES_A, GK_ROLES_B, GK_IN_PLACE, GK_TIME, gkSynthA, gkSynthB, gkPrepareB, gkForceTech, gkStateOf } from './greed-boss3d.js?v=mod342'; // 21/11: Ganância em três fases (NewGanancia1/2.glb)
 import { vxComboFollowupAllowed, seqFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
@@ -3203,6 +3204,7 @@ function greedPhaseEvent(d){const a=d.actor,b=dimBattle,story=b&&!b.test&&questS
 function zarkhaelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop3')return;if(!b.test&&questStep===ACT3N.boss&&!b.outro){b.outro=true;const a=squadSq()?.actors.find(x=>x.kind==='zarkhael');if(a)enemy.position.set(a.x,a.y,a.z);playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();}
 function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(b.test){dimensionVictory();return;}if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
+  greedAtomicEnd();
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
  stopLunarUlt();stopVeraxionCyclone();stopVeraxionSwords();stopMoonFlames();stopHydra();stopZarkhaelSword();stopZarkUlt();zarkUltTestFired=false;clearHazards();stopCosmicUlt();stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
@@ -4477,6 +4479,47 @@ function squadRuntime(){
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
+/** Mod 349: ultimate do Codex ligada ao corpo real da fase III, sem editar o motor do Claude. */
+let greedAtomic=null;
+function greedAtomicEnd(){if(greedAtomic){greedAtomic.dispose();greedAtomic=null;}}
+function greedAtomicTick(dt,paused=false){
+ if(!dimBattle?.active||dimBattle.key!=='greed'||!squadOn||!squadRT){greedAtomicEnd();return;}
+ const sq=squadSq(),a=sq?.actors.find(x=>x.alive&&x.kind==='greedB'),b=a&&squadRT.body(a.id);
+ if(!a||!b||a.gk?.phase!==3){greedAtomicEnd();return;}
+ if(!greedAtomic){
+  const spec=arenaSpec('greed');
+  greedAtomic=createGreedCampaignUltimate(THREE,scene,{
+   center:{x:voidSpec.x,y:voidSpec.y,z:voidSpec.z},radius:spec.radius||30,
+   quality:graphics3DIsLow()?'low':'medium',
+   camera:(focus,phase,actor)=>{
+    if(!focus){ultCam.want=0;ultCam.until=0;return;}
+    if(!actor)return;
+    const x=actor.x,z=actor.z,y=actor.y,fx=Math.sin(actor.yaw),fz=Math.cos(actor.yaw);
+    const height=phase==='announce'?3.5:phase==='throw'?5.5:9,back=phase==='announce'?5.5:phase==='throw'?9:16;
+    const side=phase==='announce'?2.4:4.8;
+    ultCam.at=(ultCam.at||new THREE.Vector3()).set(x-fx*back+fz*side,y+height,z-fz*back-fx*side);
+    ultCam.look.set(x,y+(phase==='charge'?7:2.6),z);ultCam.want=.95;ultCam.until=combatClock+1.5;
+   },
+   beat:(phase,actor)=>{
+    if(phase==='announce'){showCombatCallout('JUÍZO DA USURA');worldAudio.roar?.();}
+    else if(phase==='throw')worldAudio.whoosh?.();
+    else if(phase==='charge')worldAudio.dark?.('lock');
+    else if(phase==='escape')showCombatCallout('BUSQUE REFÚGIO ALÉM DA CORRENTE!');
+    else if(phase==='detonate'){worldAudio.dark?.('blast');if(!userSettings.reduceShake)cameraShake(.46);}
+    else if(phase==='recover')showCombatCallout('A COROA SE DISSIPA');
+   },
+   damage:({actor})=>{
+    if(playerHP<=0||!actor||!dimBattle?.active||dimBattle.key!=='greed')return;
+    damagePlayerFromEnemyAttack(60,{kind:'atomic',area:true,source:'greed-usura',from:{x:actor.x,z:actor.z}});
+   }
+  });
+ }
+ const hero={x:player.position.x,y:player.position.y,z:player.position.z,
+  evading:dashRemaining>0||!!(newHero&&prota302.clock<prota302.iframesUntil),
+  blocking:defending||heroShield.active};
+ greedAtomic.tick(dt,a,b,hero,{paused});
+}
+
 const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];};
 /** Vida por encontro: Enemy1 comum bem mais resistente (100→180 no Ato I), Guardião ~1,6×; grupos grandes um pouco menos. */
 /** Enemy2: 150→240 no Ato II (grupos de 3+ ×0,85); mini-chefe 480→650. Mais esperto, não esponja de dano. */
@@ -4501,7 +4544,7 @@ function startSquadPack(){
  P.active=true;P.index=0;squadLabelN=0;pickSquadFocus(true);writeSquadProxy();syncEnemyLabel();
  if(n>1&&!P.lab&&!P.dim)showCombatCallout(n+(rigN==='bandit'?' BANDIDOS FAMINTOS':rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
 }
-function squadAbort(){if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
+function squadAbort(){greedAtomicEnd();if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
 function hideSquadProxy(){enemyModelRoot.visible=false;enemySprite.visible=false;enemyGroundShadow.visible=false;wardenRing.visible=false;}
 function writeSquadProxy(){
  const f=squadFocus;if(!f)return;hideSquadProxy();
@@ -4823,7 +4866,7 @@ function updateSquadCombat(dt,now){
  if(ENEMY2_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy2)startEnemy1Lab('e3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy2').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
  if(!squadOn&&pack&&pack.squad&&pack.waitRig&&rigSource(squadRig(pack)))startSquadPack();
- if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
+ if(!squadOn){greedAtomicEnd();if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
  const s=squadSq();if(!s)return;
  zkBeastHero(s,now);
  // 1) o que o herói fez no procurador vai para o ator em foco
@@ -4852,7 +4895,7 @@ function updateSquadCombat(dt,now){
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});vzAuditTick(dt);
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||!!greedAtomic?.active});greedAtomicTick(dt,paused||squadQAPause);vzAuditTick(dt);
  updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
@@ -4862,6 +4905,7 @@ function updateSquadCombat(dt,now){
 }
 /** Fim do encontro: todos caíram. Mesmo fechamento do pacote antigo (onDone, perfil e rig de volta). */
 function finishSquad(){
+  greedAtomicEnd();
  const P=pack;squadOn=false;squadFocus=null;squadEndAt=0;squadStopAt=performance.now()+3200;enemyModelRoot.visible=true;enemyGroundShadow.visible=true;
  lockOnActive=false;{const b=document.getElementById('aim');if(b)b.classList.remove('on');}
  for(const al of squadAllies.splice(0))disposeClone(al.c);
@@ -8680,7 +8724,8 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
 vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou 'up' */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='veraxion'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;if(n==='throw')vxStartThrow(s,a,t);else vxStartUpslash(s,a,t);return true;},
- gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='hold'){/* QA: chefe parado (retrato da silhueta) */a.alert=a.alert>1e5?0:1e9;a.act=null;return a.alert;}if(cmd==='ceilscan'){/* QA: superfícies reais alcançáveis (teto/arcada) a 7–22 m do chão */const o=[];for(let x=-48;x<=48;x+=2)for(let z=-56;z<=48;z+=2){const c=greedCeilingAt(voidSpec.x+x,voidSpec.z+z);if(c==null)continue;const h=c-fxGy(voidSpec.x+x,voidSpec.z+z);if(h>=7&&h<=22)o.push([x,z,+h.toFixed(1),+Math.hypot(x,z).toFixed(1)]);}o.sort((p,q)=>p[3]-q[3]);return{n:o.length,R:voidSpec.radius,anc:greedAbyssAnchor()&&[+(greedAbyssAnchor().x-voidSpec.x).toFixed(1),+(greedAbyssAnchor().y-voidSpec.y).toFixed(1),+(greedAbyssAnchor().z-voidSpec.z).toFixed(1)],o:o.slice(0,60)};}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats(),body:squadRT?.bodyInfo?.(a.id)};},
+ atomicState(){return greedAtomic?greedAtomic.getState():null;},
+ gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='usura'){/* QA: forca ultimate real depois da transformacao, sem tocar no script do boss */if(a.gk?.phase!==3)return false;a.hp=Math.max(1,Math.floor(a.maxHp*.44));a.act=null;a.alert=0;a.airY=0;return{phase:3,hp:a.hp};}if(cmd==='hold'){/* QA: chefe parado (retrato da silhueta) */a.alert=a.alert>1e5?0:1e9;a.act=null;return a.alert;}if(cmd==='ceilscan'){/* QA: superfícies reais alcançáveis (teto/arcada) a 7–22 m do chão */const o=[];for(let x=-48;x<=48;x+=2)for(let z=-56;z<=48;z+=2){const c=greedCeilingAt(voidSpec.x+x,voidSpec.z+z);if(c==null)continue;const h=c-fxGy(voidSpec.x+x,voidSpec.z+z);if(h>=7&&h<=22)o.push([x,z,+h.toFixed(1),+Math.hypot(x,z).toFixed(1)]);}o.sort((p,q)=>p[3]-q[3]);return{n:o.length,R:voidSpec.radius,anc:greedAbyssAnchor()&&[+(greedAbyssAnchor().x-voidSpec.x).toFixed(1),+(greedAbyssAnchor().y-voidSpec.y).toFixed(1),+(greedAbyssAnchor().z-voidSpec.z).toFixed(1)],o:o.slice(0,60)};}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats(),body:squadRT?.bodyInfo?.(a.id)};},
  zkBeast(){/* QA (21/11): estado público da Fera e do debuff */const s=squadSq(),L=s&&zkBeastOf(s);return{beast:L?{phase:L.b.phase,x:+L.b.x.toFixed(2),z:+L.b.z.toFixed(2),jaw:+L.b.jaw.toFixed(2),result:L.b.result}:null,debuff:s?+zkHeroDebuffLeft(s).toFixed(1):0,stats:s?.actors.find(a=>a.kind==='zarkhael')?.zkStats||null,aim:!!zkBeastAim()};},
  zkSpiral(){/* QA (teste isolado, não conta como luta orgânica): força a Espiral do Carrasco */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='zarkhael'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;zkStartSpiral(s,a,t);return true;},
  bossActor(){/* QA: estado cru do chefe da esquadra */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.T?.boss);if(!a)return null;return{kind:a.kind,alert:a.alert,act:a.act&&{type:a.act.type,goal:a.act.goal,t:+a.act.t.toFixed(2)},react:a.react,cds:Object.fromEntries(Object.entries(a.cds).map(([k,v])=>[k,+v.toFixed(2)])),tac:a.vgTacT,intent:a.intent?.mode,x:+a.x.toFixed(2),z:+a.z.toFixed(2),hp:a.hp,chain:a.vgChain?a.vgChain.goal:null,stats:a.vgStats,target:a.targetId};},vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},vzPoseQA(role='walk',step=0,actType=null){/* QA (missão 19/11): força o papel de locomoção do VHAZRAEL e anda 'step' m por passo, sem IA */const s=squadSq();if(!s)return null;const a=s.actors.find(x=>x.alive&&(x.kind==='vhazrael'||x.kind==='vorgazhek'));if(!a)return null;a.alert=1e9;a.decideT=1e9;a.react=null;a.act=actType?{type:actType,t:0,dur:99,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),face:false}:null;if(a.anim.role!==role||a.anim.once)a.anim={role,once:false,speed:1,rev:a.anim.rev+1};if(step){a.x+=Math.sin(a.yaw)*step;a.z+=Math.cos(a.yaw)*step;a.y=terrainHeightAt(a.x,a.z);}return{x:a.x,z:a.z,yaw:a.yaw,role:a.anim.role};},

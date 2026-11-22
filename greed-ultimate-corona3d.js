@@ -1,10 +1,10 @@
 // All geometry is allocated once. Ground, wave curtain and collision share
 // arena-local Z and the same wave radius from the combat clock.
-export function createCorona(T,scene,arena,quality){
- const root=new T.Group();scene.add(root);
+export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
+ const root=new T.Group();root.position.set(origin.x||0,origin.y||0,origin.z||0);scene.add(root);
  const add=(g,m)=>{const o=new T.Mesh(g,m);root.add(o);return o};
  const glow=(color)=>new T.MeshBasicMaterial({color,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide});
- const R=arena.radius, U={clock:{value:0},pressure:{value:0},front:{value:-100},edge:{value:arena.edge},radius:{value:R},fade:{value:1}};
+ const R=arena.radius, U={clock:{value:0},pressure:{value:0},front:{value:-100},edge:{value:arena.edge},radius:{value:R},fade:{value:1},arenaCenter:{value:new T.Vector2(origin.x||0,origin.z||0)}};
  const floor=add(new T.PlaneGeometry(R*2,R*2),new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,
  vertexShader:'varying vec2 p;void main(){p=vec2(position.x,-position.y);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:`varying vec2 p;uniform float clock,pressure,front,edge,radius,fade;
@@ -27,8 +27,8 @@ export function createCorona(T,scene,arena,quality){
  streams.frustumCulled=false;root.add(streams);
  const curtain=add(new T.CylinderGeometry(1,1,1,96,1,true),new T.ShaderMaterial({uniforms:U,transparent:true,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending,
  vertexShader:'varying vec3 w;varying vec2 v;void main(){v=uv;w=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(w,1.);}',
- fragmentShader:`varying vec3 w;varying vec2 v;uniform float edge,clock,radius;
- void main(){if(w.z>=edge||length(w.xz)>radius+.02)discard;
+ fragmentShader:`varying vec3 w;varying vec2 v;uniform float edge,clock,radius;uniform vec2 arenaCenter;
+ void main(){vec2 wp=w.xz-arenaCenter;if(wp.y>=edge||length(wp)>radius+.02)discard;
  float tooth=.38+.30*cos(v.x*94.25)+.2*sin(v.x*213.63+clock*8.);
  float flame=smoothstep(-.2,.12,tooth-v.y);float filament=pow(.5+.5*cos(v.x*528.+sin(v.y*14.+clock*7.)*2.),12.);
  gl_FragColor=vec4(mix(vec3(.55,.04,1.),vec3(1.,.85,.52),pow(1.-v.y,8.)),flame*(.57+filament*.93+.8*exp(-v.y*14.)));}`}));
