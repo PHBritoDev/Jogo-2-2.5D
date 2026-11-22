@@ -1,4 +1,4 @@
-import { createGreedAbyss } from './greed-abyss3d.js?v=colosso339';
+import { createGreedAbyss } from './greed-abyss3d.js?v=colosso341';
 /**
  * MOD 202 — Arenas e portais das dimensões dos Bispos (geometria procedural, sem arquivos novos).
  * O módulo recebe o THREE como parâmetro (o mundo já o carrega) e só cria objetos quando a dimensão é aberta,

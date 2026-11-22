@@ -33,7 +33,7 @@ export function createGreedAbyss(T, parent, radius) {
       '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * .32;');
   };
   const hide=new T.MeshPhongMaterial({vertexColors:true,side:T.DoubleSide,
-    specular:0x716f78,shininess:31});
+    specular:0x8c8790,shininess:41});
   hide.onBeforeCompile=shader=>{
     stone.onBeforeCompile(shader);
     shader.fragmentShader=shader.fragmentShader.replace('#include <specularmap_fragment>',
@@ -169,7 +169,7 @@ export function createGreedAbyss(T, parent, radius) {
       +.006*cos(a*2+j*.36)+.002*sin(5*a-j*.41);
     const crown=sin(Math.PI*u),wear=.55+.45*cos(7*a+2*collars[j]+j);
     const [x,y,z]=section(t,a,0,crown*(.32+.79*wear));
-    return [x,y,z,.032+crown**2*(.11+.24*wear)*(.62+.38*sin(a))];
+    return [x,y,z,.032+crown**2*(.075+.19*wear)*(.62+.38*sin(a))];
   },skull,collars.length);
   // The pharyngeal arches recede on the return wall of the same spline.
   // Each incomplete crescent turns farther around the bend; the central lumen stays open.
@@ -196,7 +196,7 @@ export function createGreedAbyss(T, parent, radius) {
   surface(5,compact?96:132,(u,v)=>{
     const a=v*tau;
     const [x,y,z]=section(1-.007*(1-u),a,.135*u,.38*sin(Math.PI*u));
-    return [x,y,z,.09+.32*sin(Math.PI*u)*(.74+.26*cos(31*a+sin(7*a)))];
+    return [x,y,z,.14+.44*sin(Math.PI*u)*(.74+.26*cos(31*a+sin(7*a)))];
   },skull);
   // A polished black nodule hangs in the gap under the arch. Its thin
   // mineral crescent and three divergent tethers read even in silhouette.
@@ -338,6 +338,20 @@ export function createGreedAbyss(T, parent, radius) {
       upper[1]+(lower[1]-upper[1])*t,upper[2]+(lower[2]-upper[2])*t-.54*sin(t*Math.PI)+r*sin(tau*v),
       .13+.25*(.5+.5*cos(tau*v))];
   },skull,threads.length/2).material=dentin;
+  // Paired wet folds join the upper lip to the recessed side wall. Their
+  // broad attachments narrow to cords in the free span and do not seal the lumen.
+  surface(compact?12:20,5,(u,v,j)=>{
+    const side=j%2?1:-1,rank=Math.floor(j/2);
+    const angle=.62+.23*rank;
+    const start=section(.999,side>0?angle:Math.PI-angle,.075);
+    const end=section(.982,side>0?-angle:Math.PI+angle,.11);
+    const rim=(1-u)**9+u**9, sag=sin(Math.PI*u);
+    const width=.078+.91*rim, phase=v*tau;
+    const tint=.17+.32*(.5+.5*cos(phase-.7))+.13*rim;
+    return [start[0]+(end[0]-start[0])*u+side*(.44+.14*rank)*sag+width*cos(phase),
+      start[1]+(end[1]-start[1])*u-.35*sag,
+      start[2]+(end[2]-start[2])*u-.63*sag+(.055+.22*rim)*sin(phase),tint];
+  },skull,6).material=dentin;
   const specks=new Float32Array(36*3);
   for(let i=0;i<specks.length;i+=3){
     specks[i]=(random()-.5)*58;specks[i+1]=2+random()*16;specks[i+2]=-random()*36;

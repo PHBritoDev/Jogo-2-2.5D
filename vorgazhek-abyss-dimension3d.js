@@ -31,7 +31,9 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    // A low-frequency liquid gleam distinguishes water from a static patterned floor.
    float gleam=pow(max(0.0,sin(q.x*.095+q.y*.032+t*.21)*.5+.5),7.0)*.065;
    float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
-   float shine=(ribbons*.82+silverPatch*.17+foot*.25+gleam)*edge;
+   // Keep the arena abyssal, but make foot contact readable without adding a light or pass.
+   // Only the existing localized ripple receives the extra silver reflection.
+   float shine=(ribbons*.82+silverPatch*.17+foot*.52+gleam)*edge;
    vec3 base=vec3(.0045,.006,.010);
    vec3 silver=vec3(.86,.88,.90);
    gl_FragColor=vec4(base+silver*shine,1.0);
@@ -119,7 +121,9 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  ctx.tick.push((t,dt,camera,options)=>{
   water.uniforms.uTime.value=t;
   const p=options?.playerPosition||options?.player?.position||options?.player||null;
-  if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,p.z-spec.z);
+  // CircleGeometry rotated -90 degrees about X maps local +Y to world -Z.
+  // Convert the player's world Z into the shader's local Y for aligned foot ripples.
+  if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,-(p.z-spec.z));
   if(p)focus.set(p.x-spec.x,(p.y||0)-spec.y,p.z-spec.z);
   else if(camera)focus.copy(camera.position).sub(g.position);
   if(camera)cameraPos.copy(camera.position).sub(g.position);
