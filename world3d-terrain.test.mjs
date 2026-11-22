@@ -130,3 +130,16 @@ test('região remota não rouba a maior parte da cobertura da floresta principal
   assert.ok(trees.length <= 1000, 'sem aumento excessivo de instâncias mobile');
   assert.deepEqual(scatterForest(distant), trees, 'geração determinística');
 });
+
+// Regressão no prado real do prólogo: a região extra não deve esvaziar Eldória.
+test('floresta mantém cobertura no mapa real com prado do prólogo', async () => {
+  const { PROLOGUE_MEADOW } = await import('./act1-world-layout.js');
+  const t = createTerrain({ extraAreas: [PROLOGUE_MEADOW] });
+  const trees = scatterForest(t);
+  const center = trees.filter(p => Math.abs(p.x - t.area.cx) < t.area.hx && Math.abs(p.z - t.area.cz) < t.area.hz);
+  const meadow = trees.filter(p => Math.abs(p.x - PROLOGUE_MEADOW.cx) < PROLOGUE_MEADOW.hx && Math.abs(p.z - PROLOGUE_MEADOW.cz) < PROLOGUE_MEADOW.hz);
+  assert.ok(center.length >= 260, 'o prado não pode rarear a mata central de Eldória');
+  assert.ok(meadow.length >= 10, 'o prado ainda precisa de vegetação');
+  assert.ok(trees.length <= 1000, 'limite de instâncias para mobile');
+  assert.deepEqual(scatterForest(t), trees, 'o mapa real deve ser determinístico');
+});
