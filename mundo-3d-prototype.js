@@ -8792,6 +8792,30 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  weatherState(){const P=eldoriaWeather.params;return{name:eldoriaWeather.name,active:weatherActive,remaining:Math.round(eldoriaWeather.remaining),wet:+eldoriaWeather.wetness.toFixed(2),wind:+eldoriaWeather.windNow.toFixed(2),flash:+eldoriaWeatherView.flash.toFixed(2),rainDrawn:eldoriaWeatherView.rain.geometry.drawRange.count/2,params:Object.fromEntries(Object.entries(P).map(([k,v])=>[k,+v.toFixed(3)]))};},
  strikeNow(dist=600){const e={az:playerYaw+Math.PI,dist,power:Math.min(1,1.25-dist/3200),thunderIn:dist/343};eldoriaWeatherView.strike(player.position,e);setTimeout(()=>worldAudio.thunder&&worldAudio.thunder(),e.thunderIn*1000);return e;},
  killBoss(){if(enemy.visible){enemyHP=1;}},
+ /** Botão ADM: elimina todos os oponentes próximos, preservando morte/fases normais do combate. */
+ killNearby(radius=12){
+  const range=Math.min(24,Math.max(1,Number(radius)||12)),px=player.position.x,pz=player.position.z;
+  let killed=0;const squad=squadSq();
+  if(squadOn&&squad){
+   for(const actor of [...squadAlive()]){
+    if(Math.hypot(actor.x-px,actor.z-pz)>(range+(actor.T?.radius||0)))continue;
+    // Restaura a resolução de morte oficial da esquadra, inclusive transições da Ganância.
+    if(actor.act?.iframes)actor.act.iframes=false;
+    if(actor.guard)actor.guard=false;
+    if(actor.shield?.active)actor.shield.active=false;
+    const before=actor.hp;
+    const amount=Math.max(100000,Math.ceil((actor.maxHp||actor.hp)*10));
+    squad.damageActor(actor.id,amount,{x:px,z:pz,kind:'area',by:'adm-kill'});
+    if(actor.hp<before)killed++;
+   }
+   if(killed){pickSquadFocus(true);if(squadFocus&&squadFocus.alive)writeSquadProxy();}
+  }else if(enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-px,enemy.position.z-pz)<=range){
+   hurtEnemy(Math.max(100000,enemyHP+1),true,false,true);killed=1;
+  }
+  status.textContent=killed?'ADM KILL: '+killed+' oponente'+(killed>1?'s':'')+' atingido'+(killed>1?'s':'')+'.':'ADM KILL: nenhum oponente dentro de '+range+'m.';
+  return killed;
+ },
+
   /** MOD 210 — força uma ultimate de chefe ('void' ou 'nova') e lê o estado dela. */
   ult(k){startSupernova();return bossUlt.kind;},
   /** MOD 211 — testa os poderes novos: 'arc' (Corte de Luz) e 'circle' (Espada do Círculo, no inimigo). */
