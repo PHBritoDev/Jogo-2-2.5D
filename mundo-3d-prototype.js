@@ -1407,7 +1407,7 @@ function precompileWorld(){
  const done=()=>{worldCompiled=true;};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,ilyanEscortPosition:questStep===5&&ilyanNpc&&ilyanNpc.holder.visible?{x:ilyanNpc.holder.position.x,z:ilyanNpc.holder.position.z,yaw:ilyanNpc.holder.rotation.y}:null,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -3314,6 +3314,7 @@ const flyNpcTargets=[];
 // Sua presença no poço e na cela é vinculada ao estágio, sem adicionar clones.
 const ILYAN_WELL={x:VILLAGE_CENTER.x-3.0,z:VILLAGE_CENTER.z-1.6};
 let ilyanNpc=null,ilyanPending=null,ilyanPlace='';
+let ilyanEscortPosition=saved3DProgress.ilyanEscortPosition||null;
 /** Seguimento 3D leve, limitado ao piso caminhável. Sem teleporte ou pathfinding através de parede. */
 function updateIlyanEscort(dt){
  if(!ilyanNpc||!inSewer||questStep!==5||act1Lock||cineActive||portalPull)return;
@@ -3349,6 +3350,7 @@ function updateIlyanEscort(dt){
  }
  h.position.set(chosen.nx,voidSpec.y,chosen.nz);
  h.rotation.y=Math.atan2(chosen.dirX,chosen.dirZ);
+ ilyanEscortPosition={x:h.position.x,z:h.position.z,yaw:h.rotation.y};
  if(ilyanNpc.mixer)ilyanNpc.mixer.update(Math.min(.05,Math.max(0,dt)));
 }
 function syncIlyanPlacement(){
@@ -3362,8 +3364,10 @@ function syncIlyanPlacement(){
  if(ilyanNpc.action)ilyanNpc.action.paused=true;
  if(where==='prison'){
   const p=sewerLocal(questStep===5?SEWER.checkpoints.path:SEWER.cell);
-  h.position.set(p.x+(questStep===5?0:2.1),voidSpec.y,p.z-(questStep===5?1.5:.9));
-  h.rotation.y=Math.PI*.75;
+  const saved=questStep===5?ilyanEscortPosition:null;
+  const valid=!!saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.z)&&Number.isFinite(saved.yaw)&&Math.hypot(saved.x-p.x,saved.z-p.z)<150&&sewerWalkable(saved.x-DIMENSIONS.esgoto.center.x,saved.z-DIMENSIONS.esgoto.center.z,{portalOpen:false});
+  h.position.set(valid?saved.x:p.x+(questStep===5?0:2.1),voidSpec.y,valid?saved.z:p.z-(questStep===5?1.5:.9));
+  h.rotation.y=valid?saved.yaw:Math.PI*.75;
  }else if(where==='town'){
   h.position.set(ILYAN_WELL.x,groundHeightAt(ILYAN_WELL.x,ILYAN_WELL.z),ILYAN_WELL.z);
   h.rotation.y=-.6;
