@@ -397,7 +397,12 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     const back = terrain.height(x, z - step), front = terrain.height(x, z + step);
     if (![left, right, back, front].every(Number.isFinite)) return false;
     const grade = Math.hypot((right - left) / (2 * step), (front - back) / (2 * step));
-    return Number.isFinite(centerY) && grade <= 0.85;
+    // A symmetric gradient can miss a sharp ledge: both sides can be at
+    // equal heights while the trunk center sits on a narrow raised shelf.
+    // Require the sampled root footprint to remain supported as well.
+    const maxDrop = Math.max(Math.abs(left - centerY), Math.abs(right - centerY),
+      Math.abs(back - centerY), Math.abs(front - centerY));
+    return Number.isFinite(centerY) && grade <= 0.85 && maxDrop <= 1.25;
   };
   const rememberTree = (x, z) => {
     const key = bucketKey(Math.floor(x / minSpacing), Math.floor(z / minSpacing));
