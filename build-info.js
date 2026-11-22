@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 342;
-export const BUILD = 'mod342-ganancia-tres-fases';
-export const DESCRIPTION = 'Mod 342: Ganância em três fases';
+export const MOD = 343;
+export const BUILD = 'mod343-ganancia-floresta-vorgazhek';
+export const DESCRIPTION = 'Mod 343: Ganância em três fases, floresta densa e água de VORGAZHEK';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);
