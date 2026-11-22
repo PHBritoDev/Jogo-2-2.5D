@@ -43,6 +43,11 @@ async function main(){
   assert.ok(forward.dx*backward.dx+forward.dz*backward.dz<0,'W/S must move in opposite directions');
   await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.networkFailures,[]);report.ok=true;
+ }catch(err){
+  // A failed movement assertion must be diagnosable from the uploaded JSON,
+  // not only from transient CI stderr. Keep the video and partial captures.
+  report.failure={name:err.name||'Error',message:err.message||String(err)};
+  throw err;
  }finally{
   // Finalize video even when an assertion fails; preserve evidence for diagnosis.
   try{if(page){const video=page.video();await page.close();if(video)report.video=await video.path();}}catch(err){report.errors.push('video finalization: '+err.message);}
