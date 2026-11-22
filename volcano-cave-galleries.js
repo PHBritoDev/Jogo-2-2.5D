@@ -27,9 +27,8 @@ export function upperGalleries(b,l,crystals,torches){
   }
   const fx=x-side*rx*.78;
   l.strip([[fx,y+.2,z-5,2.6,0,0],[fx,y+.2,z,2.6,0,3],[fx-side,y-3,z+1,2.2,0,5],[fx-side*3,-38,z+1.8,1.5,0,24],[fx-side*5,-38,z+8,3.2,0,29]]);
-  crystals.push([x-side*5,y+10,z-9,4.5,.23,jitter(z),0xce91ff]);
+  crystals.push([x-side*5,y+10,z-9,4.5,.23,z*.46,0xce91ff]);
  }
- function jitter(z){return z*.46;}
  for(const [x,z] of [[32,201],[49,201]]){
   b.cliff(x,29,z,8,8,62,0x5e4954);
   for(let k=0;k<3;k++)b.block(x,29+k*.8,z,9-k*.9,.85,8-k*.8,0xa38b83);

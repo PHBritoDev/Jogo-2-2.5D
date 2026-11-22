@@ -98,7 +98,7 @@ export function caveHeat(x,z){
  }return 0;
 }
 export function nearestRest(x,z){
- for(const name of ['overlook','falls','fork','grove','lab','lip','hall','gate']){
+ for(const name of ['entrance','choir','aqueduct','lantern','vestibule','overlook','falls','fork','grove','lab','lip','hall','gate']){
   const [u,v]=nodes[name];if(Math.abs(x-u)<2&&Math.abs(z-v)<2)return nodes[name];
  }return null;
 }

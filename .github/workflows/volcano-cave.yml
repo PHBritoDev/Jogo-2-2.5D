@@ -17,6 +17,7 @@ jobs:
           sparse-checkout: |
             /*.js
             /*.mjs
+            /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
             /CristalCaverna01.glb
             /TochaMedievalTripo.glb
             /tools/qa/volcano-*

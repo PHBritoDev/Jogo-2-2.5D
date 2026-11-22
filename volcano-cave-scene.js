@@ -34,8 +34,8 @@ void main(){
  float veins=1.-smoothstep(.015,.14,abs(field-.66));
  float plates=smoothstep(.57,.76,field);
  float rim=smoothstep(0.,.12+.06*sin(flow*4.),edge);
- vec3 c=mix(vec3(.55,.058,.012),vec3(.078,.012,.019),plates);
- c+=veins*vec3(.95,.48,.055)+.2*(1.-plates)*vec3(.68,.18,.025);
+ vec3 c=mix(vec3(1.,.24,.022),vec3(.10,.015,.018),plates);
+ c+=veins*vec3(1.4,.84,.17)+.2*(1.-plates)*vec3(.68,.18,.025);
  c=mix(vec3(.12,.027,.025),c,rim);
 gl_FragColor=vec4(c,1.);
 #include <fog_fragment>
@@ -199,12 +199,24 @@ export function buildVolcanoCave(T,g,spec,ctx){
  const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
  let updateTrees;const assetUpdates=[[],[],[]];
  resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
+ const galleries=new T.Group();galleries.name="Santuário • galeria superior";groups[0].add(galleries);
  const floors=new T.Group();floors.name="pisos da caverna";g.add(floors);
- const deck=masonry(T,floors,971,{});
+ const stoneMap=new T.TextureLoader().load(new URL('./assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp',import.meta.url).href);
+ stoneMap.wrapS=stoneMap.wrapT=T.RepeatWrapping;
+ stoneMap.colorSpace=T.SRGBColorSpace;
+ const deck=masonry(T,floors,971,{stoneMap});
  plates.forEach((p,j)=>groundPlate(deck,p,j));basaltPaving(deck);deck.finish();
- for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{}),l=molten(T,s,clock),crystals=[],torches=[];
+ for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{stoneMap}),l=molten(T,s,clock),crystals=[],torches=[];
 
-  if(i===0){sanctuary(b,l,crystals,torches);upperGalleries(b,l,crystals,torches); }
+  if(i===0){
+   sanctuary(b,l,crystals,torches);
+   const high=masonry(T,galleries,2491,{stoneMap}),flow=molten(T,galleries,clock),gems=[],lamps=[];
+   upperGalleries(high,flow,gems,lamps);
+   for(const [x,y,z,size,rotation] of gems)solids.push({x,z,base:y-(rotation>2?1.85*size:0),r:.7*size,h:1.85*size});
+   high.finish();flow.finish();flames(T,galleries,lamps,clock);
+   assets(T,galleries,'CristalCaverna01.glb',gems,()=>active,assetUpdates[i]);
+   assets(T,galleries,'TochaMedievalTripo.glb',lamps,()=>active,assetUpdates[i]);
+  }
   if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s);
   for(const h of heatPools.filter(h=>sector(h.z)===i)){l.strip(Array.from({length:13},(_,j)=>{const a=Math.PI*j/12,dz=h.r*Math.cos(a);return [h.x,caveHeight(h.z+dz)+.065,h.z+dz,h.r*Math.sin(a),0,j*.22];}));}
@@ -215,13 +227,13 @@ export function buildVolcanoCave(T,g,spec,ctx){
  }
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
  const tint=new T.Color(),groveFog=new T.Color(0x414050),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x272938),crownSky=new T.Color(0x98949b);
- ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
+ ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;galleries.visible=z>135;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
   const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
   if(groups[1].visible)updateTrees(x,z);
   groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality);});
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
   env.fogFar=226-104*f+150*a;env.fogNear=14-6*f+9*a;
-  tint.setHex(0x563b47).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
+  tint.setHex(0x5d5160).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
   tint.setHex(0x241623).lerp(groveSky,f).lerp(crownSky,a);env.bg=tint.getHex();});
  ctx.refs.caveDispose=()=>{
   active=false;

@@ -60,6 +60,16 @@ export function masonry(T, group, seed, palette){
    const ring=(w)=>[[r,a],[r,b],[r+th,b],[r+th,a]].map(([t,f])=>map(Math.cos(f)*t,h+Math.sin(f)*t,w));
    const A=ring(-depth/2),B=ring(depth/2),k=.85+random()*.25;quad(...A,tint,k);quad(...B,tint,k);for(let j=0;j<4;j++)quad(A[j],A[(j+1)%4],B[(j+1)%4],B[j],tint,k);}
  }
- function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const m=new T.Mesh(g,new T.MeshBasicMaterial({map:tex,vertexColors:true,side:T.DoubleSide}));m.name=group.name+'-basalto';group.add(m);return m;}
+ function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const material=new T.MeshBasicMaterial({map:palette.stoneMap||tex,vertexColors:true,side:T.DoubleSide});
+ if(palette.stoneMap){
+  tex.dispose();
+  // The scan gives the baked lighting relief at walking distance. Sample
+  // neutral luminance so that mineral colours still come from local emitters.
+  material.onBeforeCompile=shader=>{
+   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
+    'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17)); diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);');
+  };
+ }
+ const m=new T.Mesh(g,material);m.name=group.name+'-basalto';group.add(m);return m;}
  return {random,face,quad,block,stalk,cliff,arch,finish,palette};
 }
