@@ -384,7 +384,7 @@ export class Enemy1Squad {
       for(let n=0;n<m.hits.length;n++){
         const open=m.hits[n]-.10,close=m.hits[n]+.11;
         if(previous<=close&&act.t>=open&&!act.contacts.has(n)&&t&&this.los(a.x,a.z,t.x,t.z)&&this.meleeTrace(a,act,t,Math.max(previous,open),Math.min(act.t,close))){
-          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:n<m.hits.length-1?a.T.melee.knock*COMBO_MID_KNOCK:a.T.melee.knock,combo:n+1,attackToken:act}); /* 22/11: TODA janela de combo carrega o token do ataque (o mundo deixa o 2º/3º corte furar a graça de 850 ms do 1º) e só o golpe final empurra forte — antes, só VÉRAXION/Ganância tinham token e o empurrão do 1º corte tirava o herói do alcance dos seguintes */
+          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:n<m.hits.length-1?a.T.melee.knock*COMBO_MID_KNOCK:a.T.melee.knock,combo:n+1,attackToken:act,seqKey:act.seqKey,seqN:act.seqKey?(act.seqBase||0)+n+1:undefined}); /* 22/11: TODA janela de combo carrega o token do ataque (o mundo deixa o 2º/3º corte furar a graça de 850 ms do 1º) e só o golpe final empurra forte — antes, só VÉRAXION/Ganância tinham token e o empurrão do 1º corte tirava o herói do alcance dos seguintes */
           if(result==='hit')act.landed=true;this.event('meleeHit',{actor:a,target:t.id,result,n:n+1});
         }
       }

@@ -117,7 +117,7 @@ import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } 
 import { zkBeastOf, zkBeastMouth, zkBeastMagicHit, zkBeastSwordHit, zkHeroDebuffLeft, zkClearDebuff } from './zarkhael-beast3d.js'; // 21/11: Fera dos Mil Olhos (Bispo 3)
 import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
 import { GK_FILE1, GK_FILE2, GK_ROLES_A, GK_ROLES_B, GK_IN_PLACE, GK_TIME, gkSynthA, gkSynthB, gkPrepareB, gkForceTech, gkStateOf } from './greed-boss3d.js?v=mod342'; // 21/11: Ganância em três fases (NewGanancia1/2.glb)
-import { vxComboFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
+import { vxComboFollowupAllowed, seqFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
@@ -4579,10 +4579,11 @@ function squadDamageTarget(id,dmg,info){
   if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0; // Mod 320: explosão é dano SEPARADO — o pós-acerto do corpo do meteoro não a anula (dash/i-frames reais continuam valendo)
   const now=performance.now();
   const perfect=!!(newHero&&prota302.clock<prota302.iframesUntil),followup=vxComboFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:perfect})
-   ||(!!info.gkSrc&&!!vxLastDamagingContact&&vxLastDamagingContact.gkSrc!==info.gkSrc&&now-vxLastDamagingContact.at>=260&&vxLastDamagingContact.until===playerInvulnerableUntil&&now<playerInvulnerableUntil&&dashRemaining<=0&&!perfect); // 21/11: atacantes independentes da Ganância (arma autônoma, sol, lança) não somem na graça de outro — anti-stunlock de 0,26 s
+   ||(!!info.gkSrc&&!!vxLastDamagingContact&&vxLastDamagingContact.gkSrc!==info.gkSrc&&now-vxLastDamagingContact.at>=260&&vxLastDamagingContact.until===playerInvulnerableUntil&&now<playerInvulnerableUntil&&dashRemaining<=0&&!perfect) // 21/11: atacantes independentes da Ganância (arma autônoma, sol, lança) não somem na graça de outro — anti-stunlock de 0,26 s
+   ||seqFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:perfect}); /* 22/11: SEQUÊNCIA declarada (2ª janela do giro, golpe encadeado) continua o dano em ordem; esquiva/dash protegem */
   const hp0=playerHP,inv0=playerInvulnerableUntil,wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area,vxComboFollowup:followup,pierceShield:!!info.pierceShield});
   if(window.__vxLog)window.__vxLog.push({t:+now.toFixed(0),kind:info.kind,move:info.attackToken?.move?.id,combo:info.combo,inv:+(inv0-now).toFixed(0),followup,dash:dashRemaining>0,res,hp0,hp1:playerHP}); // QA (debug): telemetria de cada contato
-  if(res===true&&(info.kind==='melee'&&info.attackToken||info.gkSrc)){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,gkSrc:info.gkSrc,at:performance.now(),until:playerInvulnerableUntil};}
+  if(res===true&&(info.kind==='melee'&&info.attackToken||info.gkSrc)){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,gkSrc:info.gkSrc,seqKey:info.seqKey,seqN:info.seqN,at:performance.now(),until:playerInvulnerableUntil};}
   if(!res)return 'evaded';if(res==='shield')return 'blocked';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}

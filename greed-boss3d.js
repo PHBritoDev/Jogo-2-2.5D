@@ -209,7 +209,7 @@ function stepBlades(sq, a, dt, t) {
     if (open && e.segs && !s.hit.has(hk)) { const cap = { ...tgt, y: (tgt.y || 0) + (tgt.height || 1.8) * .5 }, rad = (tgt.radius || .4) + .08;
       if (segs.some((sg, i) => bladeContact(e.segs[i][0], e.segs[i][1], sg[0], sg[1], cap, rad)) && sq.los(e.wx, e.wz, tgt.x, tgt.z)) { s.hit.add(hk);
         if (evades(tgt)) sq.event('evaded', { spell: { type: 'gkBlade' }, target: tgt.id });
-        else { const r2 = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: win ? (s['tok' + win] ||= { strike: s.id, win }) : s, weapon: e.key }); // cada JANELA tem token próprio (o giro tem duas)
+        else { const r2 = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: win ? (s['tok' + win] ||= { strike: s.id, win }) : s, weapon: e.key, seqKey: s.c.win > 1 ? 'gkb' + e.id + ':' + s.id : undefined, seqN: win + 1 }); // cada JANELA tem token próprio (o giro tem duas)
           if (r2 === 'blocked') g.stats.scytheBlock++; else if (r2 === 'hit') g.stats.scytheHit++; sq.event('gkBlade', { actor: a, ent: e, phase: 'hit', result: r2, x: tgt.x, z: tgt.z, y: (tgt.y || 0) + 1.1 }); } } }
     // CHOQUE de lâminas: herói golpeando DE FRENTE no preparo/golpe rebate a arma (lança não — regra própria)
     if (s && tgt.attacking && !e.clashCd && e.key !== 'C' && d < S.clashR && s.t < s.w + s.d) { const cx = e.x - tgt.x, cz = e.z - tgt.z, cl = Math.hypot(cx, cz) || 1, fdot = (cx * Math.sin(tgt.yaw ?? 0) + cz * Math.cos(tgt.yaw ?? 0)) / cl; // frente do herói → a ARMA (não o empunhador)
@@ -398,7 +398,7 @@ function stepChain(sq, a, t) { const act = a.act, m = act && act.move, g = a.gk,
   if (act.t < m.close + .06) return; // nunca corta a janela de dano: só a recuperação
   const next = C.list[C.i + 1], pool = BOSS_MOVES[a.kind], nm = pool && pool.find(x => x.id === next); if (!nm) { a.gkChain = null; return; }
   const gap = Math.hypot(t.x - a.x, t.z - a.z) - (t.radius || .4) - a.T.radius; if (gap > a.T.melee.reach + 1.4 || t.dashing || t.evading) { a.gkChain = null; return; }
-  C.i++; a.act = null; a.cds.melee = 0; sq.startMelee(a, t, next); g.stats.chainSteps = (g.stats.chainSteps || 0) + 1; }
+  const base = (act.seqBase || 0) + m.hits.length; C.i++; a.act = null; a.cds.melee = 0; sq.startMelee(a, t, next); if (a.act && a.act.move) { a.act.seqKey = C; a.act.seqBase = base; } g.stats.chainSteps = (g.stats.chainSteps || 0) + 1; } // a corrente é UMA sequência de dano para o resolvedor (o 1º corte do golpe seguinte continua a contagem)
 export function gkBrain(sq, a, dt, t) {
   const g = gkInit(sq, a); if (a.gkBaseHp === undefined) a.gkBaseHp = a.maxHp;
   stepBlades(sq, a, dt, t); stepSpear(sq, a, dt, t); stepSuns(sq, a, dt, t); stepAbyss(sq, a, dt, t);
@@ -412,7 +412,7 @@ export function gkBrain(sq, a, dt, t) {
   if (a.act && a.act.type === 'melee') { const m = a.act.move; if (m && a.act !== a._gkAct) { a._gkAct = a.act; g.stats.combos++; (a.gkHist || (a.gkHist = [])).push(m.id); if (a.gkHist.length > 6) a.gkHist.shift(); a.cds.melee = Math.min(a.cds.melee || 0, (m.duration / (m.rate || 1) + .12) * a.cdMul);
       const U = g.stats.moves || (g.stats.moves = {}); U[m.id] = (U[m.id] || 0) + 1;
       if (!a.gkChain || a.gkChain.list[a.gkChain.i] !== m.id) { a.gkChain = null; const L = (GK_CHAINS[g.phase] || []).filter(c => c[0] === m.id);
-        if (L.length && sq.rand() < CHAIN_P[g.phase]) { const list = L[Math.floor(sq.rand() * L.length)]; a.gkChain = { list, i: 0 }; const K = g.stats.chainsUsed || (g.stats.chainsUsed = {}), key = list.join('>'); K[key] = (K[key] || 0) + 1; } } }
+        if (L.length && sq.rand() < CHAIN_P[g.phase]) { const list = L[Math.floor(sq.rand() * L.length)]; a.gkChain = { list, i: 0 }; a.act.seqKey = a.gkChain; a.act.seqBase = 0; const K = g.stats.chainsUsed || (g.stats.chainsUsed = {}), key = list.join('>'); K[key] = (K[key] || 0) + 1; } } }
     stepChain(sq, a, t); }
   if (!t || a.alert > 0 || a.act || a.react) return;
   if ((a.gkTacT = (a.gkTacT ?? .3) - dt) > 0) return; a.gkTacT = GK_TACTICS.every[0] + sq.rand() * (GK_TACTICS.every[1] - GK_TACTICS.every[0]);

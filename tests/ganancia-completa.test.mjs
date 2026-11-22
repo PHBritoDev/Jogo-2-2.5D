@@ -93,3 +93,22 @@ test('Etapa 7: correntes de golpes nativos (4+ variações), cancelando só a re
     const st = S.boss()?.gk?.stats || {}; Object.keys(st.chainsUsed || {}).forEach(k => used.add(k)); Object.keys(st.moves || {}).forEach(k => moves.add(k)); }
   assert.ok(used.size >= 4, 'variações de corrente: ' + [...used]); assert.ok(moves.size >= 6, 'golpes nativos distintos: ' + [...moves]); assert.equal(cutActive, 0, 'nenhuma janela de dano cortada');
 });
+
+test('revisão: resolvedor do jogo aceita a 2ª janela do giro e o 1º corte do golpe encadeado (graça de 850 ms); esquiva protege', async () => {
+  const { vxComboFollowupAllowed, seqFollowupAllowed } = await import(new URL('veraxion-combo-damage3d.js', R));
+  const resolver = (S, dodge = false) => { let until = -1, last = null; const out = [];
+    return { out, fn: (id, d, info) => { const now = S.sq.time * 1000, ctx = { now, until, dash: dodge, perfectDodge: false };
+      const independent = !!info.gkSrc && !!last && last.gkSrc !== info.gkSrc && now - last.at >= 260 && now < until;
+      const ok = !dodge && (now >= until || vxComboFollowupAllowed(last, info, ctx) || independent || seqFollowupAllowed(last, info, ctx)); out.push({ t: S.sq.time, kind: info.kind, ok, seq: info.seqKey ? info.seqN : null, combo: info.combo });
+      if (ok) { until = now + 850; last = { attackToken: info.attackToken, actor: info.actor, combo: info.combo, gkSrc: info.gkSrc, seqKey: info.seqKey, seqN: info.seqN, at: now, until }; return 'hit'; } return 'evaded'; } }; };
+  // giro: as duas janelas acertam
+  const S = sim(); const r = resolver(S); S.sq.opts ? S.sq.opts.damageTarget = r.fn : null; S.sq.damageTarget = r.fn; S.run(1); force(S, 'foices');
+  S.run(10, () => { const b = S.boss(); b.x = 0; b.z = 16; });
+  const spin = r.out.filter(o => o.kind === 'gkBlade' && o.seq === 2); assert.ok(spin.length >= 1, 'houve 2ª janela de giro'); assert.ok(spin.every(o => o.ok), 'a 2ª janela do giro não é engolida pela graça');
+  // corrente: o 1º corte do golpe seguinte continua a sequência
+  const C = sim({ kind: 'greedB', seed: 7 }); const rc = resolver(C); C.sq.damageTarget = rc.fn; C.sq.meleeTrace = () => true; C.run(1); C.sq.damageActor(C.boss(), 99999, { x: 0, z: 0, by: 'hero' }); C.run(8);
+  C.run(40, () => { C.h.x = 0; C.h.z = 0; });
+  const chained = rc.out.filter((o, i) => o.kind === 'melee' && o.seq && o.combo === 1 && o.seq > 1);
+  assert.ok(chained.length >= 1, 'houve 1º corte de golpe encadeado'); assert.ok(chained.filter(o => o.ok).length >= chained.length * .8, 'cortes encadeados acertam: ' + JSON.stringify(chained));
+  const D = sim(); const rd = resolver(D, true); D.sq.damageTarget = rd.fn; D.run(1); force(D, 'foices'); D.run(8); assert.equal(rd.out.filter(o => o.ok).length, 0, 'esquiva/dash protegem');
+});

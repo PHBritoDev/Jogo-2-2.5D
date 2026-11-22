@@ -13,3 +13,17 @@ export function vxComboFollowupAllowed(last, info, { now, until, dash, perfectDo
     !dash && !perfectDodge
   );
 }
+
+/**
+ * 22/11 — SEQUÊNCIA de dano declarada pelo atacante (`seqKey`/`seqN`): a 2ª janela de um giro da arma autônoma da Ganância e os
+ * golpes de uma corrente (o 1º corte do golpe seguinte continua a contagem). Só fura a graça criada pelo contato ANTERIOR da MESMA
+ * sequência, em ordem crescente e em até 2,3 s; dash e esquiva perfeita continuam protegendo.
+ */
+export function seqFollowupAllowed(last, info, { now, until, dash, perfectDodge } = {}) {
+  return !!(
+    last && info && info.seqKey && last.seqKey === info.seqKey &&
+    Number.isFinite(info.seqN) && Number.isFinite(last.seqN) && info.seqN > last.seqN &&
+    Number.isFinite(now) && now >= last.at && now - last.at <= 2300 &&
+    until === last.until && now < until && !dash && !perfectDodge
+  );
+}
