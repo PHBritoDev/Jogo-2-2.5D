@@ -67,8 +67,12 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
     document.dispatchEvent(new Event('pointerlockchange'));
   });
   report.lockAfter=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.8,{fps:30,draw:false});return d.heroState()});
+  // The first simulation step includes normal deceleration from the last W frame.
+  // Distinguish this short stopping distance from continued movement after release.
   report.lockDrift=Math.hypot(report.lockAfter.p[0]-report.lockBefore.p[0],report.lockAfter.p[2]-report.lockBefore.p[2]);
-  report.lockPass=report.lockAfter.speed<.08&&report.lockDrift<.06;
+  report.lockSettled=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.lockResidualDrift=Math.hypot(report.lockSettled.p[0]-report.lockAfter.p[0],report.lockSettled.p[2]-report.lockAfter.p[2]);
+  report.lockPass=report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
   await capture('stopped-after-pointerlock-switch');
   await page.keyboard.up('w');held=false;
   await page.evaluate(()=>{window.__a1LockTarget=null;document.dispatchEvent(new Event('pointerlockchange'));document.querySelector('#a1-qa-second-lock-target')?.remove()});
