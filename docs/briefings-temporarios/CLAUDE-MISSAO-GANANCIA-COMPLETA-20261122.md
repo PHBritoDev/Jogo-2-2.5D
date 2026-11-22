@@ -54,6 +54,18 @@ Esta missão **já foi autorizada**. **Não pedir confirmação, permissão inte
 
 **Aceite:** vídeo focado em 3+ golpes a distância real, rotacionando totalmente, com dano/contato no gume e variação.
 
+## Etapa 2A — Refinamento obrigatório das quatro armas: NÃO parecer papelão
+
+**Pedido novo do criador (22/11):** as foices, a espada/picareta e a lança da Ganância estão com aparência grossa, chapada, sem ponta/gume, como armas de papelão. Torná-las nitidamente **afiadas, metálicas/cristalinas quando coerente, brilhantes, detalhadas e perigosas**, reproduzindo o refinamento das artes de referência; não trocar a identidade de cada arma.
+
+- Auditar `greed-weapons3d.js`, geometria real, seção transversal, bevel, normais, UV, materiais e como a arma aparece **em gameplay**, não só parada em preview. Verificar se o próprio algoritmo de mesclar meshes, a espessura dos extrudes, geometria pouco subdividida ou iluminação apagam os gumes. NÃO disfarçar uma silhueta ruim apenas elevando emissive/bloom.
+- **Geometria/afiamento:** lâminas afilam progressivamente até o gume, ponta e curvatura com espinha de suporte; variação de espessura plausível, bevel estreito e cristas/superfícies que capturam reflexos. Foices devem ter arcos cortantes elegantes e ameaçadores, sem bico arredondado/chapado; espada/picareta com fio e ponta definidos; lança solar com ponta fina, alongada, espinha central e silhueta distinta.
+- **Materiais/iluminação:** reflexo especular direcional controlado no bordo, roughness e metalness apropriados; highlights móveis que seguem a orientação da lâmina, rim suave e emissive somente nos canais mágicos. Não transformar metal escuro em plástico fluorescente. Dar brilhos próprios às armas cósmica, sanguínea e solar com cores e detalhes coerentes com as referências, sem estourar toda a arma em branco.
+- **Microdetalhes e proporções:** preservar buraco negro/estrelas da foice cósmica, sangue/caveira/correntes da foice rubra, chama branca-dourada da lança e identidade híbrida da quarta arma; reforçar volume 3D e bordas, sem exagerar na grossura nem sacrificar leitura a distância.
+- **VFX associados:** streak de fio luminoso que nasce na borda real e segue a velocidade angular da lâmina, faíscas breves no contato e reflexos no corte; não esconder a geometria sob fumaça ou trilhas gigantes genéricas.
+- **QA obrigatório:** capturas lado a lado referência PNG × arma no jogo, em close e a distância de combate, três ângulos (frontal, 3/4 e lateral), idle, giro/ataque e luz da arena; conferir que realmente parecem afiadas, brilhantes e de alta qualidade. Monitorar FPS, draw calls, triângulos e memória Android. Usar a meta artística mínima de 80% por referência, mas revisar com o criador; se falhar, remodelar/retocar e repetir. **Não declarar concluído por apenas adicionar emissive.**
+- Esta Etapa 2A integra a **Etapa 2**, antes de passar à cena cinematográfica da Etapa 3, sem pedir confirmações e sem atrapalhar Codex.
+
 ## Etapa 3 — Transição morte II → forma III: cena autoral de grande impacto
 
 - Captura do jogo de 32,88s: estudar **0–4s**, estado de morte, limpeza de efeitos e momento da transformação. **Referência de 23,86s** serve EXCLUSIVAMENTE para cena da terceira forma.
