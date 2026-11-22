@@ -82,24 +82,11 @@ export const KITS = {
     S('s1', 'QUATRO SENTENÇAS DO ABISMO', 'veraxion_four_swords', { dmg: 12, cd: 16 }), // MOD 285: Bispo 4 · Skill 1 (veraxion-four-swords3d.js)
     S('s2', 'QUATRO VÓRTICES DO JUÍZO AZUL', 'veraxion_four_blue_tornadoes', { dmg: 20, cd: 24 })], // MOD 286: Bispo 4 · Skill 2 (veraxion-blue-cyclone3d.js)
     sword: null, ult: S('ult', 'A QUEDA DO DEVORADOR LUNAR', 'veraxion_lunar_devourer', { dmg: 32 }) }, // MOD 288: ultimate autoral (veraxion-lunar-ultimate3d.js); uma vez por luta
-  greed1: { color: 0xffd040, color2: 0x3a2400, book: true, skills: [
-    S('s1', 'Portões do Tesouro', 'rain', { n: 30, dmg: 13, cd: 9, r: 3.8, dur: 1.8, gold: true }),
-    S('s2', 'Orbes de Ouro', 'orbs', { n: 5, dmg: 12, cd: 8, speed: 8 }),
-    S('s3', 'Correntes da Cobiça', 'grab', { n: 3, dmg: 14, cd: 10, r: 1.9, root: 1.3, chain: true })],
-    sword: S('sw', 'Corte Dourado', 'wave', { n: 2, dmg: 15, cd: 6 }),
-    ult: S('ult', 'PORTÕES DA AVAREZA', 'gate', { dmg: 34 }) },
-  greed2: { color: 0xffb030, color2: 0x200800, book: true, skills: [
-    S('s1', 'Furacão de Moedas', 'vortex', { dmg: 10, cd: 10, dur: 4.5, speed: 3.6, gold: true }),
-    S('s2', 'Gêiseres de Ouro', 'circles', { n: 6, dmg: 15, cd: 9, r: 1.9 }),
-    S('s3', 'Raio da Ganância', 'line', { n: 2, dmg: 16, cd: 9, len: 14, w: 1.3 })],
-    sword: S('sw', 'Leque Voraz', 'cone', { dmg: 16, cd: 6, r: 5.5, arc: 1.5 }),
-    ult: S('ult', 'MÃOS DA AVAREZA', 'hands', { dmg: 36 }) },
-  greed3: { color: 0xc070ff, color2: 0xffe08a, book: true, skills: [
-    S('s1', 'Orbes do Vazio', 'orbs', { n: 8, dmg: 12, cd: 8, speed: 8 }),
-    S('s2', 'Chuva de Espadas Negras', 'rain', { n: 36, dmg: 14, cd: 10, r: 4.2, dur: 2 }),
-    S('s3', 'A Fome da Ganância', 'blackhole', { dmg: 30, cd: 12 })],
-    sword: S('sw', 'Corte Triplo', 'wave', { n: 3, dmg: 16, cd: 6 }),
-    ult: S('ult', 'SUPERNOVA DA GANÂNCIA', 'nova', { dmg: 46 }) }
+  // MOD 342: a Ganância não usa mais poderes genéricos (chuva, orbes, correntes, buraco negro, supernova...).
+  // As três fases autorais vivem em greed-boss3d.js; estas famílias ficam só com a cor da aura das formas legadas.
+  greed1: { color: 0xffd040, color2: 0x3a2400, book: false, skills: [], sword: null, ult: null },
+  greed2: { color: 0xffb030, color2: 0x200800, book: false, skills: [], sword: null, ult: null },
+  greed3: { color: 0xc070ff, color2: 0xffe08a, book: false, skills: [], sword: null, ult: null }
 };
 export function kitFor(profile) { const f = FAMILY[profile]; return f ? KITS[f] : null; }
 /** Números finais de um poder para este perfil (dano e recarga ajustados pelo nível). */

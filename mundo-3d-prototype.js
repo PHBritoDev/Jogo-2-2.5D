@@ -116,6 +116,7 @@ import { VG_FILE, VG_ROLES, VG_IN_PLACE, VG_TIME, vgSynthClips } from './vorgazh
 import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } from './zarkhael-squad3d.js';
 import { zkBeastOf, zkBeastMouth, zkBeastMagicHit, zkBeastSwordHit, zkHeroDebuffLeft, zkClearDebuff } from './zarkhael-beast3d.js'; // 21/11: Fera dos Mil Olhos (Bispo 3)
 import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
+import { GK_FILE1, GK_FILE2, GK_ROLES_A, GK_ROLES_B, GK_IN_PLACE, GK_TIME, gkSynthA, gkSynthB, gkPrepareB, gkForceTech, gkStateOf } from './greed-boss3d.js?v=mod342'; // 21/11: Ganância em três fases (NewGanancia1/2.glb)
 import { vxComboFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
@@ -1256,6 +1257,7 @@ function damagePlayerFromEnemyAttack(damage=ENEMY_ATTACK_DAMAGE,info=null){
  // Dash, esquiva perfeita e poderes continuam invulneráveis pela checagem no chamador + rites abaixo.
  if(now<playerInvulnerableUntil&&!info?.vxComboFollowup){protaPerfectDodge();return false;}
  if(rites.invulnerable)return false;
+ if(info?.pierceShield&&heroShield.active){heroShield.end(combatClock,'broken');showCombatCallout('ESCUDO PERFURADO');hitStop(70);if(!userSettings.reduceShake)cameraShake(.18);updateCombatHud();} // 21/11: Lança Solar atravessa o escudo (só ela)
  let raw=encounterProfile==='warden'?Math.max(1,Math.round((Number(damage)||ENEMY_ATTACK_DAMAGE)*1.15)):Math.max(1,Number(damage)||ENEMY_ATTACK_DAMAGE);
  // MOD 315: a MESMA resolução de dano para golpe, espada, arco, projétil e magia — i-frames acima, escudo aqui, corpo abaixo
  if(heroShield.active){const sh=heroShieldAbsorb(raw,info);if(sh.passed<=0)return 'shield';raw=sh.passed;}
@@ -3143,6 +3145,8 @@ function beginDimensionFight(){
  /* missão 20/11: ZAR'KHAEL (NewBispo3 + foice) e VÉRAXION (NewBispo4 + duas espadas) lutam SEMPRE na esquadra — campanha e TESTAR; nenhum parâmetro/save devolve Hidras, Chamas, Espada Circular, Seis Selos ou magias antigas */
  else if(b.key==='bishop3'){pack={squad:true,dim:true,rig:'bishop3n',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:zarkhaelSquadDone};startSquadPack();}
  else if(b.key==='bishop4'){pack={squad:true,dim:true,rig:'bishop4n',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:veraxionSquadDone};startSquadPack();}
+ /* missão 21/11: a GANÂNCIA luta SEMPRE na esquadra com os GLBs novos (fase I → II → III); os poderes antigos do perfil greed não são usados */
+ else if(b.key==='greed'){loadRig('greed2n').catch(()=>{});pack={squad:true,dim:true,rig:'greed1n',profile:d.profile,hp:b.hp,spots:[sp.boss],clones:[],index:0,active:false,intro:d.line,onDone:greedSquadDone};startSquadPack();}
  else revealEncounter(d.profile,sp.boss,b.hp,d.line);
  checkpointX=sp.player.x;checkpointZ=sp.player.z;
  const hud=document.getElementById('enemy-hud');if(hud){hud.style.display='';hud.classList.add('boss');}
@@ -3158,6 +3162,23 @@ function beginDimensionFight(){
 /** Fim da luta em esquadra do VHAZRAEL: mesma saída de antes (fala de derrota no Ato I, depois a vitória da dimensão). */
 function vorgazhekSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop2')return;dimensionVictory();}
 function veraxionSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop4')return;if(!b.test&&questStep===ACT4N.boss&&!b.outro){b.outro=true;const a=squadSq()?.actors.find(x=>x.kind==='veraxion');if(a)enemy.position.set(a.x,a.y,a.z);playStory('veraxion-cai',veraxionDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();}
+function greedSquadDone(){const b=dimBattle;if(!b||b.key!=='greed')return;const a=squadSq()?.actors.find(x=>x.kind==='greedB');if(a)enemy.position.set(a.x,a.y,a.z);
+ if(!b.test&&questStep===ACT6N.greed&&!b.outro){b.outro=true;stopAllies6();playStory('ganancia-cai',greedFallScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();}
+/* 21/11 — fases da Ganância: a barra e o nome seguem o corpo vivo; a câmera assume o chefe por instantes na morte/levante */
+const _gkRay=new THREE.Raycaster(),_gkV=new THREE.Vector3(),_gkUp=new THREE.Vector3(0,1,0);
+/** Teto REAL da caverna da Ganância sobre (x,z) — raio para cima contra a malha da arena (só na decisão de voo/pouso). */
+function greedCeilingAt(x,z){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;const gy=terrainHeightAt(x,z);_gkRay.set(_gkV.set(x,gy+2,z),_gkUp);_gkRay.far=45;
+ for(const h of _gkRay.intersectObject(arena.group,true))if(h.object.isMesh&&!h.object.isInstancedMesh&&h.object.visible&&h.face)return h.point.y;return null;}
+/** Ponto da boca colossal (módulo do Codex, sem editá-lo): mesma origem/raio da arena usada por createGreedAbyss. */
+function greedAbyssAnchor(){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;arena.group.updateMatrixWorld(true);const p=arena.group.localToWorld(new THREE.Vector3(7,12.5,-(arenaSpec('greed').radius||30)-6));return{x:p.x,y:p.y,z:p.z};}
+function greedPhaseEvent(d){const a=d.actor,b=dimBattle,story=b&&!b.test&&questStep===ACT6N.greed;
+ if(d.stage==='fall'){showCombatCallout('A GANÂNCIA CAI…');cameraShake(.25);}
+ if(d.stage==='arise'){squadFocus=a;squadManual=false;enemyMaxHP=a.maxHp;enemyHP=a.hp;writeSquadProxy();syncEnemyLabel();showCombatCallout('GANÂNCIA · SEGUNDA FORMA');cameraShake(.35);
+  if(story){enemy.position.set(a.x,a.y,a.z);playStory('ganancia-1',greedPhase2Scene().filter(s=>s.id!=='transformar'),{focus:'enemy'});}}
+ if(d.stage==='die'){enemy.position.set(a.x,a.y,a.z);if(!story)playStory('ganancia-renasce',[{type:'wait',dur:2.4}],{focus:'enemy',face:'enemy'});}
+ if(d.stage==='burst'){enemyMaxHP=a.maxHp;enemyHP=a.hp;writeSquadProxy();syncEnemyLabel();showCombatCallout('GANÂNCIA · FORMA FINAL');cameraShake(.6);vibrate(160);worldAudio.corrupt();
+  if(story){enemy.position.set(a.x,a.y,a.z);playStory('ganancia-2',greedPhase3Scene().filter(s=>s.id!=='transformar'),{focus:'enemy',done:()=>startAllies6()});}}
+}
 function zarkhaelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop3')return;if(!b.test&&questStep===ACT3N.boss&&!b.outro){b.outro=true;const a=squadSq()?.actors.find(x=>x.kind==='zarkhael');if(a)enemy.position.set(a.x,a.y,a.z);playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();}
 function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(b.test){dimensionVictory();return;}if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
@@ -4270,6 +4291,7 @@ function loadRig(name){
   model.scale.setScalar(scale);model.position.set(0,-box.min.y*scale,0);model.visible=false;enemyModelRoot.add(model);
   if(name==='rival')addSandraClue(model);
   if(name==='bishop2')attachCosmicSword(model); // MOD 262: espada cósmica permanente na mão do Bispo 2
+  if(def.prepare)def.prepare(THREE,model,clips);
   if(def.synth)for(const c of def.synth(THREE,clips))clips.push(c);
   const mixer=new THREE.AnimationMixer(model),actions={};
   const inPlace=clip=>{const c=clip.clone();for(const t of c.tracks){if(!/hips[^.]*\.position$/i.test(t.name))continue;const v=t.values;for(let i=3;i<v.length;i+=3){v[i]=v[0];v[i+2]=v[2];}}return c;};
@@ -4429,8 +4451,8 @@ const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
  if(squadRT)return squadRT;
- squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
-  source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':k==='vorgazhek'?'bishop2n':k==='zarkhael'?'bishop3n':k==='veraxion'?'bishop4n':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
+ squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,ceilingAt:greedCeilingAt,abyssAnchor:greedAbyssAnchor,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
+  source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':k==='vorgazhek'?'bishop2n':k==='zarkhael'?'bishop3n':k==='veraxion'?'bishop4n':k==='greedA'?'greed1n':k==='greedB'?'greed2n':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
@@ -4443,12 +4465,12 @@ function e3SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy3'&&(profile
 function e4SquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='enemy4'&&(profile==='demon4'||profile==='miniboss4');}
 /** Mod 317: os bandidos da estrada lutam como esquadra simultânea (espécie 'bandit', só espada). */
 function banditSquadPack(rig,profile){return !SQUAD_LEGACY&&rig==='bandit'&&profile==='bandit1';}
-function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'||P.rig==='bishop2n'||P.rig==='bishop3n'||P.rig==='bishop4n'||P.rig==='bandit'?P.rig:'enemy1';}
-function squadHp(P,kind,n){if(kind==='vorgazhek')return Math.round((P.hp||560)*3.6);if(kind==='zarkhael')return Math.round((P.hp||600)*3.6);if(kind==='veraxion')return Math.round((P.hp||640)*3.6);if(kind==='bandit')return Math.round((P.hp||70)*1.25);if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
+function squadRig(P){return P.rig==='enemy2'||P.rig==='enemy3'||P.rig==='enemy4'||P.rig==='bishop1'||P.rig==='bishop2n'||P.rig==='bishop3n'||P.rig==='bishop4n'||P.rig==='greed1n'||P.rig==='bandit'?P.rig:'enemy1';}
+function squadHp(P,kind,n){if(kind==='vorgazhek')return Math.round((P.hp||560)*3.6);if(kind==='zarkhael')return Math.round((P.hp||600)*3.6);if(kind==='veraxion')return Math.round((P.hp||640)*3.6);if(kind==='greedA')return Math.round((P.hp||520)*3.4);if(kind==='bandit')return Math.round((P.hp||70)*1.25);if(kind==='vhazrael')return Math.round((P.hp||260)*2.5);if(kind==='e4boss')return Math.round((P.hp||560)*1.36);if(kind==='e4')return Math.round((P.hp||190)*1.4*(n>=3?.9:1));if(kind==='e3boss')return Math.round((P.hp||520)*1.35);if(kind==='e3')return Math.round((P.hp||170)*1.48*(n>=3?.9:1));return kind==='warden'?Math.round((P.hp||300)*1.6):kind==='e2boss'?Math.round((P.hp||480)*1.35):kind==='e2'?Math.round((P.hp||150)*1.6*(n>=3?.85:1)):Math.round((P.hp||100)*1.8*(n>=3?.88:1));}
 function startSquadPack(){
  const P=pack;if(!P)return;const rigN=squadRig(P),src=rigSource(rigN);if(!src||!src.model){P.waitRig=true;if(rigN==='enemy1')loadEnemyModel();else loadRig(rigN).catch(()=>{});return;}// espera o rig carregar
  P.waitRig=false;
- const kind=P.rig==='bishop1'?'vhazrael':P.rig==='bishop2n'?'vorgazhek':P.rig==='bishop3n'?'zarkhael':P.rig==='bishop4n'?'veraxion':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':P.rig==='bandit'?'bandit':'common',n=P.spots.length,rt=squadRuntime();
+ const kind=P.rig==='bishop1'?'vhazrael':P.rig==='bishop2n'?'vorgazhek':P.rig==='bishop3n'?'zarkhael':P.rig==='bishop4n'?'veraxion':P.rig==='greed1n'?'greedA':P.rig==='enemy2'?(P.profile==='miniboss2'?'e2boss':'e2'):P.rig==='enemy4'?(P.profile==='miniboss4'?'e4boss':'e4'):P.rig==='enemy3'?(P.profile==='miniboss3'?'e3boss':'e3'):P.profile==='warden'?'warden':P.rig==='bandit'?'bandit':'common',n=P.spots.length,rt=squadRuntime();
  const spots=P.spots.map((s,i)=>{const c=P.clones[i],x=c?c.holder.position.x:s.x,z=c?c.holder.position.z:s.z;return{x,z,yaw:Math.atan2(player.position.x-x,player.position.z-z),kind,hp:squadHp(P,kind,n)};});
  for(let i=0;i<P.clones.length;i++)if(P.clones[i]){disposeClone(P.clones[i]);P.clones[i]=null;}
  squadBlockCache.clear();squadStopAt=0;rt.start(spots,{seed:(questStep*131+act1Sub*17+n*7+1)|0});
@@ -4535,10 +4557,11 @@ function squadDamageTarget(id,dmg,info){
  if(id==='hero'){
   if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0; // Mod 320: explosão é dano SEPARADO — o pós-acerto do corpo do meteoro não a anula (dash/i-frames reais continuam valendo)
   const now=performance.now();
-  const followup=vxComboFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:!!(newHero&&prota302.clock<prota302.iframesUntil)});
-  const hp0=playerHP,inv0=playerInvulnerableUntil,wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area,vxComboFollowup:followup});
+  const perfect=!!(newHero&&prota302.clock<prota302.iframesUntil),followup=vxComboFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:perfect})
+   ||(!!info.gkSrc&&!!vxLastDamagingContact&&vxLastDamagingContact.gkSrc!==info.gkSrc&&now-vxLastDamagingContact.at>=260&&vxLastDamagingContact.until===playerInvulnerableUntil&&now<playerInvulnerableUntil&&dashRemaining<=0&&!perfect); // 21/11: atacantes independentes da Ganância (arma autônoma, sol, lança) não somem na graça de outro — anti-stunlock de 0,26 s
+  const hp0=playerHP,inv0=playerInvulnerableUntil,wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area,vxComboFollowup:followup,pierceShield:!!info.pierceShield});
   if(window.__vxLog)window.__vxLog.push({t:+now.toFixed(0),kind:info.kind,move:info.attackToken?.move?.id,combo:info.combo,inv:+(inv0-now).toFixed(0),followup,dash:dashRemaining>0,res,hp0,hp1:playerHP}); // QA (debug): telemetria de cada contato
-  if(res===true&&info.kind==='melee'&&info.attackToken){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,at:performance.now(),until:playerInvulnerableUntil};}
+  if(res===true&&(info.kind==='melee'&&info.attackToken||info.gkSrc)){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,gkSrc:info.gkSrc,at:performance.now(),until:playerInvulnerableUntil};}
   if(!res)return 'evaded';if(res==='shield')return 'blocked';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
@@ -4687,6 +4710,8 @@ function squadEvent(type,d){
   case 'dodge':worldAudio.whoosh();break;
   case 'reap':showCombatCallout('CEIFA DO ABISMO');break;
   case 'phase2':if(a&&a.kind==='vhazrael'){showCombatCallout('VHAZRAEL NÃO RECUA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='VHAZRAEL ergue a aura carmesim: mais rápido, mais lacaios, mais pressão.';break;}if(a&&a.kind==='e4boss'){showCombatCallout('A MANDÍBULA DESPERTA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O mini-chefe da torre entra em fúria: a espada-mandíbula pulsa e os poderes voltam mais rápido.';break;}if(a&&a.kind==='e3boss'){showCombatCallout('FÚRIA DO DRAGÃO CARMIM');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O Guardião da Distorção entra em fúria: a katana arde, os poderes voltam mais rápido.';break;}showCombatCallout('O GUARDIÃO DESPERTA');worldAudio.roar();cameraShake(.3);status.textContent='O Guardião do Portal desperta a fúria: mais rápido e com garras maiores.';break;
+  case 'gkPhase':greedPhaseEvent(d);break;
+  case 'gkSpear':if(d.phase==='end'&&d.end==='hit')cameraShake(.15);break;
   case 'death':{const P=pack;if(!P)break;if(!P.lab&&!P.dim)registerEnemyDefeat(P.profile);P.index++;if(P.onEach)P.onEach(P.index);worldAudio.hit();cameraShake(.2);if(a===squadFocus){squadFocus=null;squadManual=false;}break;}
  }
 }
@@ -7151,6 +7176,8 @@ function updateLate(dt,now){
 lateSystemsReady=true;
 /* ===================== MOD 197 — ARCO FINAL: OS QUATRO GUARDIÕES E O PECADO DA GANÂNCIA ===================== */
 /* missão 19/11: VORGAZHEK com o corpo novo (NewBispo2_Otimizado.glb) no motor da esquadra; poses de guarda/reação recortadas do próprio GLB */
+RIG_DEFS.greed1n={file:GK_FILE1,height:1.3,roles:GK_ROLES_A,inPlace:GK_IN_PLACE,timeScales:{idle:1,block:1,dash:GK_TIME.dash.speed},synth:gkSynthA};
+RIG_DEFS.greed2n={file:GK_FILE2,height:1.42,roles:GK_ROLES_B,inPlace:GK_IN_PLACE,timeScales:{idle:1,block:1,dash:GK_TIME.dash.speed},synth:gkSynthB,prepare:gkPrepareB};
 RIG_DEFS.bishop4n={file:VX_FILE,height:1.4,roles:VX_ROLES,inPlace:VX_IN_PLACE,timeScales:{idle:1,block:1,dash:VX_TIME.dash.speed},synth:vxSynthClips};
 RIG_DEFS.bishop3n={file:ZK_FILE,height:1.4,roles:ZK_ROLES,inPlace:ZK_IN_PLACE,timeScales:{idle:1,block:1,dash:ZK_TIME.dash.speed},synth:zkSynthClips};
 RIG_DEFS.bishop2n={file:VG_FILE,height:1.4,roles:VG_ROLES,inPlace:VG_IN_PLACE,timeScales:{idle:1,block:1,jump:VG_TIME.jump.speed,dash:VG_TIME.dash.speed},synth:vgSynthClips};
@@ -7429,7 +7456,7 @@ function startSupernova(){
  const N=160,pos=new Float32Array(N*3),seeds=[];for(let i=0;i<N;i++)seeds.push({a:Math.random()*6.28,r:3+Math.random()*16,y:Math.random()*8,s:.5+Math.random()*1.5});
  const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));const pts=new THREE.Points(pg,new THREE.PointsMaterial({map:softDot,color:0xffd88a,size:.35,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));g.add(pts);
  bossUlt.fx={g,core,glow,rings,runes,shell,pillar,safe:{x:sx,z:sz},sDisk,sBeam,pts,pos,seeds,boom:false,R:17};bossUlt.kind='nova';bossUlt.t=0;
- showCombatCallout(ULTIMATES.greed3.name);status.textContent='A Ganância concentra todo o ouro do mundo — entre no círculo de luz ou use o DASH no impacto!';
+ showCombatCallout('SUPERNOVA');status.textContent='A Ganância concentra todo o ouro do mundo — entre no círculo de luz ou use o DASH no impacto!';
  worldAudio.novaCharge&&worldAudio.novaCharge();slowMo(800,.3);vibrate(140);ultDim(.55,.8);
  Object.assign(ultCam,{want:1,height:4.2,dist:17});ultCam.look.set(e.x,ey+4,e.z);playPose(enemyPoseRoot(),'channel',3.2,foeYaw,.9);
 }
@@ -8362,9 +8389,7 @@ function isSprinting(){return (keys.shift||sprintToggle)&&!defending;}
 /* MOD 260: VORGAZHEK/fallen2 não têm mais poder secundário genérico; as correntes ficam só na Avareza III. */
 function greedChains(){status.textContent='A Avareza estende o livro: as correntes da dívida caem sobre você!';const px=player.position.x,pz=player.position.z,vx=moveVX*.5,vz=moveVZ*.5;for(let i=0;i<3;i++)spawnHazard({x:px+vx*(i+1),z:pz+vz*(i+1),radius:2.1,delay:.9+i*.45,damage:18,color:0xd25a2a});}
 const BOSS_POWERS={
- greed1:{cd:9,run(){castBlackHole(enemy.position.x+(player.position.x-enemy.position.x)*.5,enemy.position.z+(player.position.z-enemy.position.z)*.5);}},
- greed2:{cd:7.5,run(){if(Math.random()<.5)castBlackHole(player.position.x+Math.sin(cameraYaw)*2,player.position.z+Math.cos(cameraYaw)*2);else {for(let i=0;i<5;i++){const a=Math.random()*6.28,r=1+Math.random()*4.5;spawnHazard({x:player.position.x+Math.cos(a)*r,z:player.position.z+Math.sin(a)*r,radius:1.8,delay:1.1+i*.18,damage:20,color:0xffc04a});}}}},
- greed3:{cd:6.5,run(){castBlackHole(player.position.x,player.position.z);greedChains();}}
+ /* MOD 342: Ganância sem buraco negro/correntes genéricos — kit autoral em greed-boss3d.js */
 };
 BOSS_POWERS.fallen1={cd:9,run(){castBlackHole(enemy.position.x,enemy.position.z);}};
 /* MOD 267: zarkhael / fallen3 não possuem mais o ataque genérico de pilares. MOD 285: veraxion / fallen4 não disparam mais o Fogo Abissal periódico. */
@@ -8627,6 +8652,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
 vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou 'up' */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='veraxion'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;if(n==='throw')vxStartThrow(s,a,t);else vxStartUpslash(s,a,t);return true;},
+ gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats()};},
  zkBeast(){/* QA (21/11): estado público da Fera e do debuff */const s=squadSq(),L=s&&zkBeastOf(s);return{beast:L?{phase:L.b.phase,x:+L.b.x.toFixed(2),z:+L.b.z.toFixed(2),jaw:+L.b.jaw.toFixed(2),result:L.b.result}:null,debuff:s?+zkHeroDebuffLeft(s).toFixed(1):0,stats:s?.actors.find(a=>a.kind==='zarkhael')?.zkStats||null,aim:!!zkBeastAim()};},
  zkSpiral(){/* QA (teste isolado, não conta como luta orgânica): força a Espiral do Carrasco */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='zarkhael'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;zkStartSpiral(s,a,t);return true;},
  bossActor(){/* QA: estado cru do chefe da esquadra */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.T?.boss);if(!a)return null;return{kind:a.kind,alert:a.alert,act:a.act&&{type:a.act.type,goal:a.act.goal,t:+a.act.t.toFixed(2)},react:a.react,cds:Object.fromEntries(Object.entries(a.cds).map(([k,v])=>[k,+v.toFixed(2)])),tac:a.vgTacT,intent:a.intent?.mode,x:+a.x.toFixed(2),z:+a.z.toFixed(2),hp:a.hp,chain:a.vgChain?a.vgChain.goal:null,stats:a.vgStats,target:a.targetId};},vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},vzPoseQA(role='walk',step=0,actType=null){/* QA (missão 19/11): força o papel de locomoção do VHAZRAEL e anda 'step' m por passo, sem IA */const s=squadSq();if(!s)return null;const a=s.actors.find(x=>x.alive&&(x.kind==='vhazrael'||x.kind==='vorgazhek'));if(!a)return null;a.alert=1e9;a.decideT=1e9;a.react=null;a.act=actType?{type:actType,t:0,dur:99,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),face:false}:null;if(a.anim.role!==role||a.anim.once)a.anim={role,once:false,speed:1,rev:a.anim.rev+1};if(step){a.x+=Math.sin(a.yaw)*step;a.z+=Math.cos(a.yaw)*step;a.y=terrainHeightAt(a.x,a.z);}return{x:a.x,z:a.z,yaw:a.yaw,role:a.anim.role};},

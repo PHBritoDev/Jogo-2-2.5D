@@ -193,5 +193,5 @@ test('janela anti-graça: golpe 2 e 3 do MESMO combo têm dano; dash, esquiva e 
   const main = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.match(main, /vxComboFollowupAllowed\(vxLastDamagingContact,info/);
   assert.match(main, /info\?\.vxComboFollowup/);
-  assert.match(main, /if\(res===true&&info\.kind==='melee'&&info\.attackToken\)/);
+  assert.match(main, /if\(res===true&&(?:\()?info\.kind==='melee'&&info\.attackToken(?:\|\|info\.gkSrc\))?\)/); // MOD 342: Ganância registra também fontes independentes (gkSrc)
 });

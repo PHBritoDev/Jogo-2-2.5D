@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ganância — QA do rig</title>
+<style>html,body{margin:0;background:#0b0910;color:#e6d3ff;font:12px system-ui}#info{position:fixed;left:6px;bottom:4px;max-width:98vw}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><div id="info">…</div>
+<script type="module">
+/* Missão 21/11 (Ganância): inspeção visual do GLB real — clipe/tempo escolhidos, 4 vistas, marcadores nos ossos pedidos. */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search), file = q.get('f') || 'NewGanancia2.glb', clipName = q.get('clip') || '', t = +(q.get('t') || 0), marks = (q.get('bones') || '').split(',').filter(Boolean);
+const PW = 300, PH = 360, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(PW * 4, PH); r.setScissorTest(true); r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.add(new THREE.HemisphereLight(0xffffff, 0x404040, 2.2)); const dl = new THREE.DirectionalLight(0xffffff, 1.6); dl.position.set(2, 3, 4); scene.add(dl);
+const g = await new GLTFLoader().loadAsync('../../' + file); const m = g.scene; scene.add(m); const bone = {}; m.traverse(o => { if (o.isBone) bone[o.name] = o; });
+const mix = new THREE.AnimationMixer(m), clip = g.animations.find(c => c.name === clipName) || g.animations[0] || { name: '—' }; if (clip.tracks) { mix.clipAction(clip).play(); mix.setTime(t); } m.updateMatrixWorld(true);
+const cols = [0xff2020, 0x20ff20, 0x2060ff, 0xffff20, 0xff20ff, 0x20ffff, 0xffffff, 0xff8800];
+marks.forEach((n, i) => { const b = bone[n]; if (!b) return; const s = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), new THREE.MeshBasicMaterial({ color: cols[i % cols.length], depthTest: false })); s.renderOrder = 9; b.getWorldPosition(s.position); scene.add(s); });
+const box = new THREE.Box3().setFromObject(m), c = box.getCenter(new THREE.Vector3()), h = box.max.y - box.min.y, cam = new THREE.PerspectiveCamera(30, PW / PH, .01, 50);
+const views = [[0, 0, 1], [1, 0, 0], [0, 0, -1], [.7, .5, .7]]; const zoom = +(q.get('zoom') || 1), fy = +(q.get('fy') || c.y);
+views.forEach((v, i) => { const d = h * 1.9 / zoom; cam.position.set(c.x + v[0] * d, fy + v[1] * d, c.z + v[2] * d); cam.lookAt(c.x, fy, c.z); r.setViewport(i * PW, 0, PW, PH); r.setScissor(i * PW, 0, PW, PH); scene.background = new THREE.Color(0x2a2830); r.render(scene, cam); });
+document.getElementById('info').textContent = file + ' · ' + clip.name + ' @' + t + ' · ' + marks.join(',') + ' | h=' + h.toFixed(2); window.__done = true;
+</script></body></html>

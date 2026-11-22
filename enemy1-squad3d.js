@@ -382,7 +382,7 @@ export class Enemy1Squad {
       for(let n=0;n<m.hits.length;n++){
         const open=m.hits[n]-.10,close=m.hits[n]+.11;
         if(previous<=close&&act.t>=open&&!act.contacts.has(n)&&t&&this.los(a.x,a.z,t.x,t.z)&&this.meleeTrace(a,act,t,Math.max(previous,open),Math.min(act.t,close))){
-          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:a.T.melee.knock,combo:n+1,attackToken:a.kind==='veraxion'?act:null});
+          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:a.T.melee.knock,combo:n+1,attackToken:(a.kind==='veraxion'||a.kind==='greedA'||a.kind==='greedB')?act:null});
           if(result==='hit')act.landed=true;this.event('meleeHit',{actor:a,target:t.id,result,n:n+1});
         }
       }
