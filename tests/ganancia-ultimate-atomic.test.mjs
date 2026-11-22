@@ -15,6 +15,7 @@ for(const fps of [30,60,120])for(const mode of ['exposto','abrigo','dash','guard
  for(let i=0;i<fps*22;i++){u.update(1/fps,{x:0,z:mode==='abrigo'?28:-5,evading:mode==='dash',blocking:mode==='guarda'});if(u.getState().phase==='escape')assert.equal(focused,false);}
  assert.equal(u.getState().phase,'idle');assert.ok(attached);}
  assert.equal(hits.length,['exposto','guarda'].includes(mode)?2:0);
+ assert.ok(hits.every(hit=>hit.blocked===(mode==='guarda')));
  if(hits.length)assert.notEqual(hits[0].token,hits[1].token);
 });
 test('interrupção em cada fase libera câmera e devolve a mesma arma uma vez',()=>{
@@ -46,4 +47,15 @@ test('a janela começa ao devolver a câmera e cobre a caminhada desde o extremo
  const window=u.getState().escape;assert.ok(window>(a.edge-hero.z)/2.8);
  for(let t=0;t<window+5;t+=1/60){if(hero.z<a.edge+1)hero.z+=2.8/60;u.update(1/60,hero);}
  assert.equal(releases,1);assert.equal(u.getState().phase,'idle');
+});
+
+test('travessia rápida entre dois pontos exteriores cruza a frente em movimento',()=>{
+ const arena=measureRefuge(30,(x,z)=>Math.hypot(x,z)<=30), hits=[];
+ const ritual=createGreedUltimate({arena,speed:2.8,damage:h=>hits.push(h),weapon:{release(){},restore(){}},camera:{focus(){},release(){}}});
+ const hero={x:-12,z:0};
+ ritual.start({phase:3,grounded:true});
+ while(ritual.getState().phase!=='detonate')ritual.update(.01,hero);
+ ritual.update(.12,hero);
+ hero.x=12;ritual.update(.1,hero);
+ assert.equal(hits.length,1);
 });

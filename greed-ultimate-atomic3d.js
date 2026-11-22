@@ -54,12 +54,24 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
         if(phase==='detonate' && !consumed && hero){
           const from=point(1-(dt+slice)/elapsed), to=point(1-dt/elapsed);
           const rate=arena.radius/length;
-          const gap=(u)=>Math.hypot(from.x+(to.x-from.x)*u,from.z+(to.z-from.z)*u)-(before+slice*u)*rate;
-          if(gap(0)*gap(1)<=0){
-            let lo=0,hi=1;const outside=gap(0)>0;
-            if(Math.abs(gap(0))<1e-8)hi=0;
-            else for(let n=0;n<16;n++){const mid=(lo+hi)*.5;if((gap(mid)>0)===outside)lo=mid;else hi=mid;}
-            const x=from.x+(to.x-from.x)*hi,z=from.z+(to.z-from.z)*hi;
+          // Solve |from + u * delta|² = (initialRadius + u * growth)².
+          // A fast dash can intersect the front twice between two samples.
+          const dx=to.x-from.x, dz=to.z-from.z, r=before*rate, growth=slice*rate;
+          const a=dx*dx+dz*dz-growth*growth;
+          const b=2*(from.x*dx+from.z*dz-r*growth);
+          const c=from.x**2+from.z**2-r*r;
+          const disc=b*b-4*a*c;
+          let roots=[];
+          if(Math.abs(c)<1e-9) roots.push(0);
+          if(Math.abs(a)<1e-9){
+            if(Math.abs(b)>1e-9) roots.push(-c/b);
+          } else if(disc>=0){
+            const d=Math.sqrt(disc);
+            roots.push((-b-d)/(2*a),(-b+d)/(2*a));
+          }
+          for(const u of roots.sort((left,right)=>left-right)){
+            if(consumed || u<0 || u>1)continue;
+            const x=from.x+dx*u,z=from.z+dz*u;
             if(arena.walkable(x,z) && !arena.safe(x,z)){
               consumed=true;if(!hero.evading)damage({token:'usura-'+cast,blocked:!!hero.blocking});
             }
