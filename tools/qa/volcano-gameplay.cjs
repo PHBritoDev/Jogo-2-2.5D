@@ -30,7 +30,7 @@ async function main() {
     await page.exposeFunction('landmark',async(name,data)=>{
       metrics.push({name,...data});
       fs.writeFileSync(path.join(output,'route.json'),JSON.stringify(metrics,null,2));
-      await page.screenshot({path:path.join(output,name+'.jpg'),quality:85});
+      await page.screenshot({path:path.join(output,String(metrics.length).padStart(2,'0')+'-'+name+'.jpg'),quality:85});
     });
     await page.evaluate(async()=>{
       const d=SevenSinsDebug3D,{nodes}=await import('/volcano-cave-layout.js');
@@ -75,7 +75,7 @@ async function main() {
       d.placeAt(s.volcanoExit.x,d.groundAt(s.volcanoExit.x,s.volcanoExit.z),s.volcanoExit.z);
       await walk(s.volcanoGate.x,s.volcanoGate.z,'exterior');d.interact();
       for(let i=0;!d.storyState().inVolcano;i++){if(i===1800)throw Error('entrada');await frame();}
-      for(const key of ['choir','aqueduct','lantern','vestibule','overlook','stair','falls','arcade','pass','fork','willow','kiln','ford','roots','lab','door','lab','lip','spine','hall','span','gate','throne','portal']){
+      for(const key of ['choir','aqueduct','lantern','vestibule','overlook','stair','falls','arcade','pass','fork','willow',...(nodes.charcoal?['charcoal','cistern','hollow','kiln']:['kiln']),'ford','roots','lab','door','lab','lip','spine','hall',...(nodes.reliquary?['spine','reliquary','gallery']:[]),'span','gate','throne','portal']){
         if(!nodes[key])continue;
         await walk(nodes[key][0]-1200,nodes[key][1],key);
         if(key==='lab'&&d.storyState().sub===0)await fight(1);

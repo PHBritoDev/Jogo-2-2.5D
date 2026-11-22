@@ -4,13 +4,13 @@ function thorn(T,b,points,radius){
  const curve=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),n=46,sides=9;
  const f=curve.computeFrenetFrames(n,false),p=new T.Vector3(),out=new T.Vector3();let last;
  for(let i=0;i<=n;i++){const u=i/n,r=radius*Math.pow(1-u,.78)+.012;curve.getPointAt(u,p);
-  const ring=Array.from({length:sides},(_,j)=>{const a=j*2*Math.PI/sides+u*4.4,k=r*(.89+.12*Math.sin(4*a+u*7));
+  const ring=Array.from({length:sides},(_,j)=>{const a=j*2*Math.PI/sides+u*4.4,k=r*(.91+.11*Math.sin(4*a+u*7)+.045*Math.cos(i*.93+j*1.7));
    return out.copy(p).addScaledVector(f.normals[i],Math.cos(a)*k).addScaledVector(f.binormals[i],Math.sin(a)*k).toArray();});
   if(last){for(let j=0;j<sides;j++){const k=(j+1)%sides;
    b.quad(last[j],last[k],ring[k],ring[j],j%3?0x38343d:0x4c4149);
    if(j===2||j===7){const mix=(a,c,t)=>a.map((v,m)=>v+(c[m]-v)*t);const w=.09+.07*Math.sin(i*.4);
     b.quad(mix(last[j],last[k],.18),mix(last[j],last[k],.18+w),mix(ring[j],ring[k],.20+w),mix(ring[j],ring[k],.20),0xb33838);}
-   if(i%2===0&&j===(i*7)%sides&&u<.89){const v=new T.Vector3(...ring[j]).sub(p),tip=out.copy(p).addScaledVector(v,2.2).addScaledVector(f.tangents[i],r*.68).toArray();b.face(last[j],ring[k],tip,0x302c35);b.face(ring[k],ring[j],tip,0x4e454b);}
+   if(i%2===0&&j===(i*7)%sides&&u<.89){const v=new T.Vector3(...ring[j]).sub(p),tip=out.copy(p).addScaledVector(v,1.55+.28*Math.sin(i*1.3)).addScaledVector(f.tangents[i],r*.68).toArray();b.face(last[j],ring[k],tip,0x302c35);b.face(ring[k],ring[j],tip,0x4e454b);b.face(ring[j],last[j],tip,0x28252f);}
   }}last=ring;
  }
 }
@@ -20,6 +20,14 @@ function citadel(b,x,y,z,size){
  for(const [u,v,h,r] of [[0,0,28,4],[-6,3,18,2.5],[7,2,16,2],[3,-5,21,3],[-9,-2,13,1.6]]){
   const px=x+u*s,pz=z+v*s;b.stalk([[px,y-1,pz,r*s*1.4],[px,y+h*s*.8,pz,r*s],[px,y+h*s,pz,r*s*.76]],7,stone);
   b.stalk([[px,y+h*s,pz,r*s],[px,y+(h+9)*s,pz,.07]],6,0x474551);
+  // Slender crocketed pinnacles rise around the main roof. Buttresses
+  // continue down the outer shaft so the turrets grow from the masonry.
+  for(let k=0;k<5;k++){
+   const angle=k*2*Math.PI/5+.27,dx=Math.cos(angle)*r*s,dz=Math.sin(angle)*r*s;
+   b.stalk([[px+dx*1.4,y+h*s*.38,pz+dz*1.4,.26*r*s],
+    [px+dx,y+h*s*.92,pz+dz,.18*r*s],[px+dx,y+(h+1.2)*s,pz+dz,.25*r*s],
+    [px+dx,y+(h+3.4+k%2)*s,pz+dz,.025*s]],5,0x827985);
+  }
   // Lancet recesses interrupt the shaft in two registers. The pointed
   // intrados and projecting sill remain legible in silhouette at distance.
   for(let k=0;k<7;k++){
@@ -70,6 +78,10 @@ export function crowns(T,b,group){
  thorn(T,b,[[47,-49,-74],[30,2,-66],[23,23,-53],[11,29,-38],[4,24,-31],[8,17,-35],[12,19,-39]],5.8);
  thorn(T,b,[[-28,-21,-23],[-21,-4,-23],[-16,6,-27],[-12,9,-30],[-9,7,-31]],4.4);
  thorn(T,b,[[37,-43,-136],[40,22,-127],[22,42,-117],[5,48,-135],[-9,39,-145],[-8,30,-143]],8.2);
+ // Near silhouette against the distant city's pale opening. The turn
+ // projects in front of the towers while the upper coil frames the sky.
+ thorn(T,b,[[-17,-31,-51],[-15,-4,-48],[-12,5,-46],[-8,11,-45],[1,15,-50],[9,13,-55],[10,9,-58],[6,8,-57],[5,10,-55]],2.2);
+ thorn(T,b,[[19,-38,-78],[17,-3,-70],[14,9,-65],[9,17,-62],[-2,20,-67],[-7,16,-74],[-4,13,-76]],3.6);
  // Hanging buttresses frame the pale city. Slabs shear in the direction
  // of the chasm; their exposed undersides carry narrow mineral seams.
  for(const side of [-1,1])for(let tier=0;tier<3;tier++){
@@ -85,6 +97,22 @@ export function crowns(T,b,group){
  }
  thorn(T,b,[[55,-30,-112],[32,4,-120],[23,39,-112],[-8,47,-103],[-34,34,-94],[-32,19,-87],[-23,21,-89]],5.3);
  thorn(T,b,[[-39,-48,-64],[-25,-23,-49],[-13,-12,-41],[-8,-9,-33],[-9,-14,-28],[-13,-17,-32]],3.5);
+ // Buttressed nave at the vanishing point. Its open rose window
+ // silhouettes the farther spires; the inner tracery leaves real holes.
+ const cx=-9,cy=19,cz=-133;
+ b.arch(cx,-8,cz,7.3,17,4.4,0x776e79);
+ for(const side of [-1,1]){
+  const sx=cx+side*9.8;
+  b.stalk([[sx,-10,cz,3],[sx,12,cz,2.3],[sx,23,cz,1.4],[sx,34,cz,.08]],6,0x605865);
+  b.arch(sx+side*3,-8,cz+1,2.7,7.8,2.4,0x847880);
+ }
+ for(let j=0;j<16;j++){
+  const a=j*Math.PI/8,e=a+Math.PI/8;
+  const point=(r,t,z)=>[cx+r*Math.cos(t),cy+r*Math.sin(t),cz+z];
+  b.quad(point(5.1,a,1),point(5.1,e,1),point(5.8,e,1),point(5.8,a,1),0xa0979c);
+  b.quad(point(5.8,a,1),point(5.8,e,1),point(5.8,e,-.7),point(5.8,a,-.7),0x615969);
+  if(j%2===0)b.quad(point(.8,a,1),point(.8,e,1),point(5.15,a+.08,1),point(5.15,a,1),0x8c838c);
+ }
  // Throne and broken basalt canopy frame the campaign portal from behind.
  b.block(0,0,-96,7,.55,4.8,0x665862);
  b.block(0,.55,-96,4.6,.66,3.3,0x483d4b);

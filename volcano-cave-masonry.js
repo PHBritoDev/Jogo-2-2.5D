@@ -7,7 +7,10 @@ export function masonry(T, group, seed, palette){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d'),im=ctx.createImageData(128,128);
  for(let y=0;y<128;y++)for(let x=0;x<128;x++){const t=(x+y*128)*4;
-  const grain=187+random()*39+6*Math.sin(y*.29+2*Math.sin(x*.17))+4*Math.sin(y*.7+x*.11);
+  const noise=random();
+  const furrow=Math.cos(x*.33+Math.sin(y*.098)*1.7+Math.sin(x*.17+y*.15)*.6);
+  const grain=palette.bark?138+noise*22+48*furrow+14*Math.cos(x*1.18+.08*y):
+   187+noise*39+6*Math.sin(y*.29+2*Math.sin(x*.17))+4*Math.sin(y*.7+x*.11);
   im.data[t]=im.data[t+1]=im.data[t+2]=grain;im.data[t+3]=255;
  }ctx.putImageData(im,0,0);
  for(let i=0;i<90;i++){let x=random()*128,y=random()*128;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=(random()-.4)*7;y+=random()*4;ctx.lineTo(x,y);}ctx.strokeStyle='rgba(20,15,23,.28)';ctx.stroke();}
@@ -31,6 +34,16 @@ export function masonry(T, group, seed, palette){
     const light=1/(1+(dx*dx+dy*dy+dz*dz)/(r*r));
     const power=light*light;
     red+=power*cr*(.04+color.r*.95);green+=power*cg*(.025+color.g*.8);blue+=power*cb*(.04+color.b);
+   }
+   // Cool skylight reaches upper ledges; rock beneath the crossings
+   // receives less sky and a restrained red reflection from the river.
+   if(palette.stoneMap){
+    const recess=Math.max(0,Math.min(1,(-p[1]-2)/24));
+    const direct=.83+.17*Math.abs(normal.x*.74+normal.y*.53+normal.z*.41);
+    red=red*direct*(1-.39*recess)+recess*(p[2]>78?.043:.006);
+    green*=direct*(1-.55*recess);blue*=1.05-.46*recess;
+    if(p[2]>5&&p[2]<79){const local=Math.exp(-Math.abs(p[0]-8*Math.sin(p[2]*.095))*.25);
+     red+=.042*local;green+=.008*local;blue+=.007*(1-local);}
    }
    col.push(red,green,blue);uv.push((horizontal||alongX?p[0]:p[2])*.29,(horizontal?p[2]:p[1])*.29);}
  }

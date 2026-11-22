@@ -1,4 +1,5 @@
-import {upperGalleries} from './volcano-cave-galleries.js';
+import {caveShafts} from './volcano-cave-atmosphere.js';
+import {upperGalleries,lowerSpillways} from './volcano-cave-galleries.js';
 import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
@@ -33,16 +34,19 @@ void main(){
  float field=grain(p)+.36*grain(p*2.7+vec2(clock*.09,1.));
  float veins=1.-smoothstep(.015,.14,abs(field-.66));
  float plates=smoothstep(.57,.76,field);
+ float filament=grain(vec2(q.x*20.+.8*sin(flow*.4),flow*.28));
+ float stream=smoothstep(.16,.78,filament);
  float rim=smoothstep(0.,.12+.06*sin(flow*4.),edge);
- vec3 c=mix(vec3(1.,.24,.022),vec3(.10,.015,.018),plates);
- c+=veins*vec3(1.4,.84,.17)+.2*(1.-plates)*vec3(.68,.18,.025);
- c=mix(vec3(.12,.027,.025),c,rim);
+ vec3 c=mix(vec3(1.,.41,.046),vec3(.51,.075,.016),plates);
+ c+=stream*vec3(.52,.24,.043)+veins*vec3(.78,.57,.16)+.2*(1.-plates)*vec3(.68,.18,.025);
+ c=mix(vec3(.46,.072,.018),c,rim);
 gl_FragColor=vec4(c,1.);
 #include <fog_fragment>
 }`});const mesh=new T.Mesh(geo,mat);mesh.name='Calhas e cataratas de lava';group.add(mesh);}
  return {strip,finish};
 }
-function groundPlate(b,p,index){const color=p.key.includes('-')?0x71615d:0x605354,ring=p.poly.map(([x,z])=>[x,caveHeight(z)+index*.0003,z]);
+function groundPlate(b,p,index){const forest=p.minZ>5&&p.maxZ<78;
+ const color=forest?0x4a4144:p.key.includes('-')?0x71615d:0x605354,ring=p.poly.map(([x,z])=>[x,caveHeight(z)+index*.0003,z]);
  const x=ring.reduce((s,v)=>s+v[0],0)/ring.length,z=ring.reduce((s,v)=>s+v[2],0)/ring.length;
  for(let i=0;i<ring.length;i++){const a=ring[i],c=ring[(i+1)%ring.length];b.face([x,caveHeight(z)+index*.0003,z],a,c,color,.88+b.random()*.15);
   const depth=p.key.includes('-')?1.4:11+b.random()*9;b.quad(a,c,[c[0],c[1]-depth,c[2]],[a[0],a[1]-depth,a[2]],0x473b41);
@@ -58,7 +62,7 @@ function basaltPaving(batch){
   const x=polygon.reduce((v,p)=>v+p[0],0)/4,z=polygon.reduce((v,p)=>v+p[1],0)/4;
   if(!supported(x,z)||!polygon.every(([u,v])=>supported(u,v)))continue;
   const distribution=hash(i+13,j);
-  if(z<79&&z>0&&distribution>.19)continue;
+  if(z<79&&z>0&&distribution>.065)continue;
   if(caveHeat(x,z)||heatPools.some(h=>Math.hypot(x-h.x,z-h.z)<h.r+1.6))continue;
   const shade=z<0?[0x504b55,0x625965,0x726871]:[0x715d60,0x87726c,0x65545a];
   const base=polygon.map(([u,v])=>[u,caveHeight(v)+.018,v]);
@@ -210,6 +214,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
 
   if(i===0){
    sanctuary(b,l,crystals,torches);
+   lowerSpillways(b,l,crystals);
    const high=masonry(T,galleries,2491,{stoneMap}),flow=molten(T,galleries,clock),gems=[],lamps=[];
    upperGalleries(high,flow,gems,lamps);
    for(const [x,y,z,size,rotation] of gems)solids.push({x,z,base:y-(rotation>2?1.85*size:0),r:.7*size,h:1.85*size});
@@ -219,6 +224,16 @@ export function buildVolcanoCave(T,g,spec,ctx){
   }
   if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s);
+  if(i===0)caveShafts(T,s,[
+   {start:[-29,27,148],end:[-27,-12,153],top:2,bottom:7,tint:0xff7d30,strength:.28},
+   {start:[20,28,78],end:[21,-16,81],top:2,bottom:6,tint:0xff8b38,strength:.33},
+   {start:[15,43,129],end:[10,8,122],top:1,bottom:6,tint:0x9771ff,strength:.14}]);
+  if(i===1)caveShafts(T,s,[
+   {start:[-11,24,37],end:[-1,-1,40],top:1.2,bottom:5.5,tint:0x8fabc2,strength:.094},
+   {start:[7,26,63],end:[1,-1,66],top:1.4,bottom:4,tint:0x8fa6bd,strength:.083}]);
+  if(i===2)caveShafts(T,s,[
+   {start:[-15,74,-110],end:[-24,-42,-97],top:2,bottom:12,tint:0xc9c8da,strength:.14},
+   {start:[-11,76,-109],end:[2,-39,-90],top:.9,bottom:8,tint:0xdddce9,strength:.13}]);
   for(const h of heatPools.filter(h=>sector(h.z)===i)){l.strip(Array.from({length:13},(_,j)=>{const a=Math.PI*j/12,dz=h.r*Math.cos(a);return [h.x,caveHeight(h.z+dz)+.065,h.z+dz,h.r*Math.sin(a),0,j*.22];}));}
   for(const [x,y,z,s,rotation] of crystals){
    solids.push({x,z,base:y-(rotation>2?1.85*s:0),r:.7*s,h:1.85*s});

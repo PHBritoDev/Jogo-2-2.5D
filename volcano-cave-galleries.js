@@ -44,9 +44,45 @@ export function upperGalleries(b,l,crystals,torches){
    if(k===1)for(const side of [-1,1])torches.push([px+side*3.8*nx,h,pz+side*3.8*nz,2,0,0,0xe0ae81]);
   }
  }
+ // Vault buttresses run the full length of the new descent. Long ribs
+ // fold under one another so that gaps reveal a second bank of basalt.
+ for(const side of [-1,1])for(let tier=0;tier<2;tier++){
+  let previous;
+  for(let j=0;j<=32;j++){
+   const z=94+j*6.3,q=j*.71+side*1.7;
+   const wall=side*(76+23*tier+7*Math.sin(q)+3*Math.cos(2.7*q));
+   const top=54+19*tier+6*Math.cos(1.4*q);
+   const profile=[[wall+side*10,-47,z],[wall,4+9*Math.sin(q),z],[wall-side*5,top*.59,z],
+    [wall-side*13,top,z],[wall-side*34,top+7,z],[side*3,top+12+4*Math.sin(q),z]];
+   if(previous)for(let k=1;k<profile.length;k++){
+    b.quad(previous[k-1],profile[k-1],profile[k],previous[k],k<3?0x514657:0x534758,.66+.19*Math.sin(j*2.6+k));
+   }
+   previous=profile;
+  }
+ }
  for(let k=0;k<27;k++){
   const z=177+k*3.8,side=k%2?1:-1,x=side*(19+11*Math.sin(k*1.8)),h=65+7*Math.sin(k*2.3);
   b.stalk([[x,h-11-k%9,z,.08],[x+.8,h-5,z,2.4],[x,h,z,4.8]],7,0x584657,.5);
   if(k%4===0)crystals.push([x,h-7,z,3.8,Math.PI,.7*k,0xbb9cff]);
+ }
+}
+
+// Suspended watercourse behind the nave. The lip projects beyond the
+// retaining wall so the molten sheet stays visible from the landings.
+export function lowerSpillways(b,l,crystals){
+ for(const [x,z,h,r] of [[-19,91,22,2.3],[21,78,29,3.2],[-37,63,37,4.2]]){
+  const base=-26;
+  for(const side of [-1,1]){
+   b.stalk([[x+side*(r+1.7),base,z,3.1],[x+side*(r+1.7),h-4,z,2.3],[x+side*(r+1.7),h,z,1.8]],8,0x675461);
+   b.block(x+side*(r+1.7),h,z,4.2,.6,5,0xa89286);
+  }
+  b.block(x,h-2,z-2,r*2+5,2,6,0x7a6367);
+  // Interleaved tongues narrow and break differently during the plunge.
+  for(let j=0;j<4;j++){
+   const px=x+(j-1.5)*r*.52,w=r*.32,lip=z+1.3+j*.045;
+   l.strip([[px,h+.12,z-4,w,0,0],[px,h+.12,lip,w,0,3],[px,h-1,lip+.14,w,0,4],
+    [px+.18*j,h-9,lip+.65,w*.83,0,9],[px-.33,base+1,lip+2,w*.74,0,21]]);
+  }
+  crystals.push([x+r+2,h+2,z,2.7,.28,2,0xa89dff]);
  }
 }
