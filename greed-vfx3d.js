@@ -140,11 +140,11 @@ export function createGreedVFX(T, scene) {
         abyRings.forEach((m, i) => { m.rotation.set(time * (1.2 + i * .5) + i, time * (.7 - i * .4), i * 1.1); m.scale.setScalar(.9 + .08 * Math.sin(time * 6 + i)); });
         if (s.state === 'charge' && Math.random() < dt * (low ? 8 : 20)) { _v.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize().multiplyScalar(2.2 + aby.scale.x * 1.5); emit(_s.copy(aby.position).add(_v), _v.multiplyScalar(-1.6), .55, .06, Math.random() < .5 ? [.7, .1, 1] : [1, .1, .2], 0, 0, 2); } }
       { const B = abyBoom; if (B.g.visible) { B.t += dt; const t = B.t, k = B.big; B.U.uT.value = time;
-          const pulse = t < .5 ? out3(t / .2) * (1 + .15 * Math.sin(t * 40)) : 1 - ease((t - .5) / .4) * .85; B.core.scale.setScalar(Math.max(.01, 1.6 * k * pulse)); B.U.uK.value = 1.3 - ease((t - .55) / .45);
-          B.vio.scale.setScalar(.6 * k * (1 + t * 2)); B.vU.uK.value = 1 - ease(t / .5);
-          B.ring.position.y = B.gy - B.g.position.y + .05; B.ring.scale.setScalar(.5 + out3(t / .7) * 4.2 * k); B.UR.uK.value = 1 - ease((t - .2) / .6);
-          const L = (t < .35 ? out3(t / .35) : 1 - ease((t - .5) / .5)) * 3.2 * k; for (let i = 0; i < B.dirs.length; i++) { _q.setFromUnitVectors(_s.set(0, 1, 0), B.dirs[i]); _m.compose(_v.set(0, 0, 0), _q, _s.set(1 + k * .3, Math.max(.001, L * (.6 + (i % 3) * .25)), 1 + k * .3)); B.rays.setMatrixAt(i, _m); _m.compose(_v, _q, _s.set(1.8 + k * .3, Math.max(.001, L * (.65 + (i % 3) * .25)), 1.8 + k * .3)); B.raysGlow.setMatrixAt(i, _m); }
-          B.rays.instanceMatrix.needsUpdate = B.raysGlow.instanceMatrix.needsUpdate = true; if (t > 1.2) B.g.visible = false; } }
+          const pulse = t < .75 ? out3(t / .2) * (1 + .15 * Math.sin(t * 40)) : 1 - ease((t - .75) / .85) * .85; B.core.scale.setScalar(Math.max(.01, 1.6 * k * pulse)); B.U.uK.value = 1.3 - ease((t - .7) / .9); /* 22/11: estouro sustentado ~2 s (ref. 5,85 s) */
+          B.vio.scale.setScalar(.6 * k * (1 + t * 2)); B.vU.uK.value = 1 - ease(t / .9);
+          B.ring.position.y = B.gy - B.g.position.y + .05; B.ring.scale.setScalar(.5 + out3(t / 1.1) * 4.2 * k); B.UR.uK.value = 1 - ease((t - .3) / 1.1);
+          const L = (t < .35 ? out3(t / .35) : 1 - ease((t - .6) / .8)) * 3.2 * k; for (let i = 0; i < B.dirs.length; i++) { _q.setFromUnitVectors(_s.set(0, 1, 0), B.dirs[i]); _m.compose(_v.set(0, 0, 0), _q, _s.set(1 + k * .3, Math.max(.001, L * (.6 + (i % 3) * .25)), 1 + k * .3)); B.rays.setMatrixAt(i, _m); _m.compose(_v, _q, _s.set(1.8 + k * .3, Math.max(.001, L * (.65 + (i % 3) * .25)), 1.8 + k * .3)); B.raysGlow.setMatrixAt(i, _m); }
+          B.rays.instanceMatrix.needsUpdate = B.raysGlow.instanceMatrix.needsUpdate = true; if (t > 2.05) B.g.visible = false; } }
       if (rev) { rev.t += dt; const a = rev.a; haloU.uT.value = PU.uT.value = time; halo.position.set(a.x, a.y + .05, a.z);
         if (rev.stage === 'die') { haloU.uK.value = ease(rev.t / 1.5) * .8; halo.scale.setScalar(1.5 + rev.t * .5); }
         if (rev.stage === 'charge') { const k = ease(rev.t / 1.4); haloU.uK.value = .8 + .2 * k; halo.scale.setScalar(Math.max(.6, 2.6 - 1.8 * k));
