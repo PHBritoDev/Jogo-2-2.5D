@@ -125,6 +125,8 @@ function launchBlade(sq, a, key, t, side, mode = 'outbound') {
   e.wx = e.x; e.wz = e.z; g.ents.push(e); g.away[key] = true; sq.event('gkBlade', { actor: a, ent: e, phase: 'launch' }); return e;
 }
 /** Segmento do gume no mundo a partir da pose da arma (centro W, eixo da haste e alcance). */
+/** esquiva real (dash/esquiva perfeita) anula; a graça pós-acerto (iframes sem `evading`) vai ao resolvedor do jogo, que libera fontes independentes */
+const evades = tg => !!tg.iframes && tg.evading !== false;
 function bladeSeg(e) { const L = e.key === 'C' ? 1.55 : 1.35, c = e.key === 'C' ? .2 : .35, o = { base: { x: e.x + e.ax[0] * c, y: e.y + e.ax[1] * c, z: e.z + e.ax[2] * c }, tip: { x: e.x + e.ax[0] * L, y: e.y + e.ax[1] * L, z: e.z + e.ax[2] * L } };
   if (e.key === 'C') return o; // gume da lâmina/picareta: sai do topo da haste no eixo X do modelo (= haste × normal), como no runtime
   const [ax, ay, az] = e.ax, [nx, ny, nz] = e.nrm, X = [ay * nz - az * ny, az * nx - ax * nz, ax * ny - ay * nx], l = Math.hypot(...X) || 1, E = .8, h = L - .12;
@@ -176,7 +178,7 @@ function stepBlades(sq, a, dt, t) {
     const seg = bladeSeg(e), s = e.strike, open = s && s.t >= S.windup - .02 && s.t <= S.windup + S.strikeDur + .04;
     if (open && e.base && !s.hit.has(tgt.id)) { const cap = { ...tgt, y: (tgt.y || 0) + (tgt.height || 1.8) * .5 };
       if ((bladeContact(e.base, e.tip, seg.base, seg.tip, cap, (tgt.radius || .4) + .1) || (e.eb && seg.eb && bladeContact(e.eb, e.et, seg.eb, seg.et, cap, (tgt.radius || .4) + .1))) && sq.los(e.wx, e.wz, tgt.x, tgt.z)) { s.hit.add(tgt.id);
-        if (tgt.iframes) sq.event('evaded', { spell: { type: 'gkBlade' }, target: tgt.id });
+        if (evades(tgt)) sq.event('evaded', { spell: { type: 'gkBlade' }, target: tgt.id });
         else { const r = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: s, weapon: e.key });
           if (r === 'blocked') g.stats.scytheBlock++; else if (r === 'hit') g.stats.scytheHit++; sq.event('gkBlade', { actor: a, ent: e, phase: 'hit', result: r, x: tgt.x, z: tgt.z }); } } }
     // CHOQUE de lâminas: herói golpeando de frente na janela do golpe (ou do preparo) rebate a arma (lança não — regra própria)
@@ -208,7 +210,7 @@ function stepSpear(sq, a, dt, t) {
     const gy = sq.ground(sp.x, sp.z); if (sp.y < gy + .35) { if (sp.dy < -.35) { end = 'wall'; break; } sp.y = gy + .35; sp.dy = Math.max(0, sp.dy); } // raso: nivela e segue reta (só crava se mergulhar)
     for (const tg of sq.enemyTargets()) { if (!tg.alive) continue; const cap = { ...tg, y: (tg.y || 0) + (tg.height || 1.8) * .5 };
       if (!bladeContact({ x: px, y: py, z: pz }, { x: px + sp.dx * .9, y: py + sp.dy * .9, z: pz + sp.dz * .9 }, { x: sp.x, y: sp.y, z: sp.z }, { x: sp.x + sp.dx * .9, y: sp.y + sp.dy * .9, z: sp.z + sp.dz * .9 }, cap, (tg.radius || .4) + P.radius * .5)) continue;
-      if (tg.iframes) { if (!sp.evaded) { sp.evaded = true; sq.event('evaded', { spell: { type: 'gkSpear' }, target: tg.id }); } continue; }
+      if (evades(tg)) { if (!sp.evaded) { sp.evaded = true; sq.event('evaded', { spell: { type: 'gkSpear' }, target: tg.id }); } continue; }
       const r = sq.damageTarget(tg.id, P.dmg, { kind: 'gkSpear', actor: a.id, x: sp.x, z: sp.z, knock: .9, combo: 1, pierceShield: true, gkSrc: 'spear' + sp.id });
       if (r === 'hit' || r === 'blocked') { g.stats.spearHit++; if (r === 'blocked') g.stats.spearPierce++; } end = 'hit'; sp.target = tg.id; break; } }
   if (!end && sp.t >= P.life) end = 'timeout';
@@ -237,12 +239,12 @@ function stepSuns(sq, a, dt, t) {
       for (let k = 0; k < steps && !boom; k++) { s.x += s.vx * dt / steps; s.y += s.vy * dt / steps; s.z += s.vz * dt / steps;
         if (sq.blocked(s.x, s.z) || s.y <= sq.ground(s.x, s.z) + .3) { boom = 'ground'; break; }
         for (const tg of sq.enemyTargets()) { if (!tg.alive) continue; const cy = (tg.y || 0) + (tg.height || 1.8) * .5, dd = Math.hypot(tg.x - s.x, (cy - s.y) * .6, tg.z - s.z);
-          if (dd > U.radius + (tg.radius || .4)) continue; if (tg.iframes) { sq.event('evaded', { spell: { type: 'gkSun' }, target: tg.id }); continue; }
+          if (dd > U.radius + (tg.radius || .4)) continue; if (evades(tg)) { sq.event('evaded', { spell: { type: 'gkSun' }, target: tg.id }); continue; }
           s.hit.add(tg.id); const r = sq.damageTarget(tg.id, U.direct, { kind: 'gkSun', actor: a.id, x: s.x, z: s.z, knock: .7, combo: 1, gkSrc: 'sun' + s.id }); if (r === 'hit') g.stats.sunHit++; boom = 'hero'; break; } }
       if (!boom && s.ft > 3) boom = 'air';
       if (boom) { s.state = 'done'; // explosão: área só em quem NÃO levou o impacto direto deste mesmo sol
         for (const tg of sq.enemyTargets()) { if (!tg.alive || s.hit.has(tg.id)) continue; if (Math.hypot(tg.x - s.x, tg.z - s.z) > U.boom + (tg.radius || .4) || Math.abs((tg.y || 0) - s.y) > 2.5) continue; if (!sq.los(s.x, s.z, tg.x, tg.z)) continue;
-          if (tg.iframes) continue; const r = sq.damageTarget(tg.id, U.area, { kind: 'gkSunArea', actor: a.id, x: s.x, z: s.z, knock: .5, area: true, gkSrc: 'sunA' + s.id }); if (r === 'hit') g.stats.sunArea++; }
+          if (evades(tg)) continue; const r = sq.damageTarget(tg.id, U.area, { kind: 'gkSunArea', actor: a.id, x: s.x, z: s.z, knock: .5, area: true, gkSrc: 'sunA' + s.id }); if (r === 'hit') g.stats.sunArea++; }
         sq.event('gkSuns', { actor: a, phase: 'boom', sun: s, where: boom, gy: sq.ground(s.x, s.z) }); } } }
   if (g.suns.every(s => s.state === 'done')) g.suns = [];
 }
@@ -260,9 +262,9 @@ function stepAbyss(sq, a, dt, t) {
     for (let k = 0; k < steps && !boom; k++) { s.x += s.vx * dt / steps; s.y += s.vy * dt / steps; s.z += s.vz * dt / steps;
       if (s.y <= sq.ground(s.x, s.z) + .4) { boom = 'ground'; break; }
       for (const tg of sq.enemyTargets()) { if (!tg.alive) continue; const cy = (tg.y || 0) + (tg.height || 1.8) * .5; if (Math.hypot(tg.x - s.x, (cy - s.y) * .6, tg.z - s.z) > B.radius + (tg.radius || .4)) continue;
-        if (tg.iframes) { sq.event('evaded', { spell: { type: 'gkAbyss' }, target: tg.id }); continue; } s.hit.add(tg.id); const r = sq.damageTarget(tg.id, B.direct, { kind: 'gkAbyss', actor: a.id, x: s.x, z: s.z, knock: 1, gkSrc: 'aby' + s.id }); if (r === 'hit') g.stats.abyssHit++; boom = 'hero'; break; } }
+        if (evades(tg)) { sq.event('evaded', { spell: { type: 'gkAbyss' }, target: tg.id }); continue; } s.hit.add(tg.id); const r = sq.damageTarget(tg.id, B.direct, { kind: 'gkAbyss', actor: a.id, x: s.x, z: s.z, knock: 1, gkSrc: 'aby' + s.id }); if (r === 'hit') g.stats.abyssHit++; boom = 'hero'; break; } }
     if (!boom && s.ft > 6) boom = 'air';
-    if (boom) { for (const tg of sq.enemyTargets()) { if (!tg.alive || s.hit.has(tg.id) || tg.iframes) continue; if (Math.hypot(tg.x - s.x, tg.z - s.z) > B.boom + (tg.radius || .4)) continue; sq.damageTarget(tg.id, B.area, { kind: 'gkAbyssArea', actor: a.id, x: s.x, z: s.z, knock: .8, area: true, gkSrc: 'abyA' + s.id }); }
+    if (boom) { for (const tg of sq.enemyTargets()) { if (!tg.alive || s.hit.has(tg.id) || evades(tg)) continue; if (Math.hypot(tg.x - s.x, tg.z - s.z) > B.boom + (tg.radius || .4)) continue; sq.damageTarget(tg.id, B.area, { kind: 'gkAbyssArea', actor: a.id, x: s.x, z: s.z, knock: .8, area: true, gkSrc: 'abyA' + s.id }); }
       s.state = 'boom'; s.bt = 0; sq.event('gkAbyss', { actor: a, phase: 'boom', sphere: s, where: boom, gy: sq.ground(s.x, s.z) });
       g.abyssT = Math.max(4, B.slow + (B.fast - B.slow) * clamp((1 - a.hp / a.maxHp) / .7, 0, 1) - s.t); /* disparo→disparo: 25 s → 20 s conforme a vida cai */ /* depois da 1ª: 25 s → 20 s conforme a vida cai */ } return; }
   if (s.state === 'boom') { s.bt += dt; if (s.bt > 1.2) g.sphere = null; }
@@ -300,7 +302,7 @@ function stepFlight(sq, a, dt, t) {
     const u = clamp(act.st / .62, 0, 1), k = ease(u); a.x = act.from.x + (act.lock.x - act.from.x) * k * .92; a.z = act.from.z + (act.lock.z - act.from.z) * k * .92; if (sq.blocked(a.x, a.z)) { a.x = act.from.x; a.z = act.from.z; act.st = .62; }
     air(act.from.h * (1 - k * k)); g.wing = { mode: 'dive', k: 1 };
     if (!act.hitDone && u >= .86 && tgt) { act.hitDone = true; const d = Math.hypot(tgt.x - a.x, tgt.z - a.z) - (tgt.radius || .4);
-      if (d < 2.1 && Math.abs((tgt.y || 0) - a.y) < 1.6) { if (tgt.iframes) sq.event('evaded', { spell: { type: 'gkDive' }, target: tgt.id }); else { const r = sq.damageTarget(tgt.id, 18, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: 1.1, combo: 1, gkSrc: 'dive' + act.dives }); sq.event('meleeHit', { actor: a, target: tgt.id, result: r, n: 1, move: 'mergulho' }); } } sq.event('gkFly', { actor: a, phase: 'impact' }); }
+      if (d < 2.1 && Math.abs((tgt.y || 0) - a.y) < 1.6) { if (evades(tgt)) sq.event('evaded', { spell: { type: 'gkDive' }, target: tgt.id }); else { const r = sq.damageTarget(tgt.id, 18, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: 1.1, combo: 1, gkSrc: 'dive' + act.dives }); sq.event('meleeHit', { actor: a, target: tgt.id, result: r, n: 1, move: 'mergulho' }); } } sq.event('gkFly', { actor: a, phase: 'impact' }); }
     if (u >= 1) { act.dives++; if (act.dives < 2 && sq.rand() < .32) { act.stage = 'takeoff'; act.st = .25; act.cruise = .5; flyAnim(sq, a, 'gk_jump'); } else { act.stage = 'land'; act.st = 0; flyAnim(sq, a, 'gk_land'); } } return; }
   if (act.stage === 'land') { a.airY = Math.max(0, a.airY - 9 * dt); air(a.airY); g.wing = { mode: 'brake', k: 1 - clamp(act.st / .8, 0, 1) }; if (a.airY <= 0 && act.st > .55) { a.gkFlip = 0; g.wing = { mode: 'fold', k: 0 }; act.t = act.dur; sq.event('gkFly', { actor: a, phase: 'landed' }); } }
 }
@@ -357,7 +359,7 @@ export function gkBrain(sq, a, dt, t) {
   const toward = -((t.vx || 0) * (t.x - a.x) + (t.vz || 0) * (t.z - a.z)) / (d || 1), side = sq.rand() < .5 ? 1 : -1, hpk = a.hp / a.maxHp;
   const freeScythes = ['A', 'B'].filter(k => !g.away[k] && (g.hands.R === k || g.hands.L === k)), clock = sq.time - (g.lastTech ?? -4) > 7 ? .55 : 0; // relógio de técnica: nada de só combos colados
   if (ph < 3 && can && see && !a.cds.gkThrow && freeScythes.length && gap >= (clock ? .2 : GK.throw.gap[0]) && gap <= GK.throw.gap[1]) opts.push(['foices', .42 + (toward < -1.5 ? .25 : 0) + clock]);
-  if (can && see && !a.cds.gkSpear && !g.spear && !g.away.C && (g.hands.R === 'C' || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && gap >= (clock ? 1.6 : GK.spear.gap[0]) && gap <= GK.spear.gap[1]) opts.push(['lanca', .4 + (toward < -1.5 ? .3 : 0) + (t.blocking ? .3 : 0) + clock * .8]);
+  if (can && see && !a.cds.gkSpear && !g.spear && (!g.away.C || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && (g.hands.R === 'C' || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && gap >= (clock ? 1.6 : GK.spear.gap[0]) && gap <= GK.spear.gap[1]) opts.push(['lanca', .4 + (toward < -1.5 ? .3 : 0) + (t.blocking ? .3 : 0) + clock * .8]);
   if (ph >= 2 && !a.cds.gkFly && can) opts.push(['voo', .34 + (gap > 6 ? .2 : 0) + (ph >= 3 ? .1 : 0) + clock]);
   if (ph >= 2 && !a.cds.gkSuns && can && see && gap > (clock ? 1.2 : 3) && gap < 16 && !g.suns.length) opts.push(['sois', .3 + clock * .7]);
   if (ph >= 3 && !a.cds.gkTele) { const orb = g.ents.filter(e => e.mode === 'orbit'), duel = g.ents.filter(e => e.mode === 'tele' || e.mode === 'outbound').length, budget = hpk > .6 ? 2 : hpk > .3 ? 3 : 4;
@@ -387,7 +389,7 @@ function stepThrow(sq, a, dt, t) {
 export function gkForceTech(sq, a, t, name) {
   const g = gkInit(sq, a); if (!t || (a.act && a.act.type !== 'melee')) return false; a.act = null;
   if (name === 'foices') { const k = ['A', 'B'].filter(x => !g.away[x]); if (!k.length) return false; if (g.phase < 3) setHands(a, 'scythes'); sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, keys: g.phase >= 2 ? k : [k[0]], what: 'blades', release: g.phase >= 2 ? GK.throw.phase2Release : GK.throw.release }); return true; }
-  if (name === 'lanca') { if (g.spear || g.away.C) return false; if (g.phase < 3) setHands(a, 'spearblade'); else { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: g.phase >= 2 ? GK.throw.phase2Release : GK.spear.release }); return true; }
+  if (name === 'lanca') { if (g.spear || (g.away.C && !(g.phase >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit')))) return false; if (g.phase < 3) setHands(a, 'spearblade'); else { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: g.phase >= 2 ? GK.throw.phase2Release : GK.spear.release }); return true; }
   if (name.startsWith('voo')) return g.phase >= 2 && startFlight(sq, a, t, name.split('-')[1] || 'dive');
   if (name === 'sois') { if (g.phase < 2 || g.suns.length) return false; sq.begin(a, { type: 'gkSunsCast', dur: 2.4, anim: 'cast', face: true, tid: t.id }); return true; }
   if (name === 'telecinese') { if (g.phase < 3) return false; const orb = g.ents.filter(e => e.mode === 'orbit'); orb.forEach((e, i) => { e.mode = 'outbound'; e.t = 0; e.life = 7; e.wx = e.x; e.wz = e.z; e.side = i % 2 ? -1 : 1; e.vx = 0; e.vz = 0; }); return orb.length > 0; }

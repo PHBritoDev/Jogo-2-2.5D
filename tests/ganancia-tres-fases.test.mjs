@@ -102,3 +102,14 @@ test('fase III: esfera do abismo — primeira em 30–40 s, depois 20–25 s com
   b.hp = b.maxHp * .2; S.run(30); const f2 = S.of('gkAbyss', 'fire'); assert.ok(f2.length >= 2);
   const gap = f2.at(-1).t - f2.at(-2).t; assert.ok(gap >= 18 && gap <= 30, 'intervalo ' + gap.toFixed(1));
 });
+
+test('revisão: choque só de frente (yaw real), graça pós-acerto vai ao resolvedor, lança em órbita arremessável na fase III', () => {
+  const clashWith = facing => { const C = sim(); C.run(1); force(C, 'foices'); C.run(8, t => { C.h.attacking = (t % .8) < .3; const e = C.boss().gk.ents[0]; const yawTo = e ? Math.atan2(e.x - C.h.x, e.z - C.h.z) : 0; C.h.yaw = facing ? yawTo : yawTo + Math.PI; }); return C.boss().gk.stats.clash; };
+  assert.ok(clashWith(true) >= 1, 'de frente repele'); assert.equal(clashWith(false), 0, 'de costas não repele');
+  const grace = evading => { const S = sim(); S.h.iframes = true; S.h.evading = evading; S.run(1); force(S, 'foices'); S.run(8); return S.dmg.filter(d => d.kind === 'gkBlade').length; };
+  assert.ok(grace(false) >= 1, 'graça pós-acerto: o jogo decide (fontes independentes)'); assert.equal(grace(true), 0, 'esquiva real anula');
+  const S = sim({ kind: 'greedB' }); S.run(1); S.sq.damageActor(S.boss(), 99999, { x: 0, z: 0, by: 'hero' }); S.run(7); assert.equal(S.boss().gk.phase, 3);
+  assert.ok(force(S, 'lanca'), 'lança em órbita pode ser arremessada'); S.run(4); assert.ok(S.of('gkSpear', 'launch').length >= 1);
+  const N = sim({ kind: 'greedB', seed: 7 }); N.run(1); N.sq.damageActor(N.boss(), 99999, { x: 0, z: 0, by: 'hero' }); N.run(90, t => { N.h.x = Math.sin(t * .4) * 9; N.h.z = Math.cos(t * .3) * 9; });
+  assert.ok(N.of('gkSpear', 'launch').length >= 1, 'a IA da fase III escolhe a lança sozinha');
+});

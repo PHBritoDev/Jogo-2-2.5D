@@ -4822,7 +4822,7 @@ function updateSquadCombat(dt,now){
  if(squadKnock&&!held){const k=Math.min(1,dt/squadKnock.t);const nx=player.position.x+squadKnock.x*dt*4,nz=player.position.z+squadKnock.z*dt*4;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;squadKnock.t-=dt;if(squadKnock.t<=0)squadKnock=null;void k;}
  // 4) lógica + corpos + VFX
  const targets=[{id:'hero',team:'hero',x:player.position.x,y:player.position.y,z:player.position.z,vx:moveVX,vz:moveVZ,radius:.42,height:playerReferenceHeight||1.7,alive:playerHP>0,priority:1,
-  iframes:dashing||now<playerInvulnerableUntil,dashing,blocking:defending||heroShield.active,attacking:now<attackCooldown-160||!!rites.active,casting:now<squadEdge.castUntil,ultimate:vzDuel||whiteHole.active,ccResist:0,air:Math.max(0,player.position.y-terrainHeightAt(player.position.x,player.position.z))}];
+  iframes:dashing||now<playerInvulnerableUntil,evading:dashing||!!(newHero&&prota302.clock<prota302.iframesUntil),yaw:playerYaw,dashing,blocking:defending||heroShield.active,attacking:now<attackCooldown-160||!!rites.active,casting:now<squadEdge.castUntil,ultimate:vzDuel||whiteHole.active,ccResist:0,air:Math.max(0,player.position.y-terrainHeightAt(player.position.x,player.position.z))}];
  // sucção leve dos furacões/fissura do Enemy2 (com teto: dá para sair andando ou com dash)
  if(playerHP>0&&!dashing){const pl=pullOn(s,targets[0]);if(pl.x||pl.z){const nx=player.position.x+pl.x*dt,nz=player.position.z+pl.z*dt;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;}}
  for(const al of squadAllies)targets.push(allyTarget(al));
