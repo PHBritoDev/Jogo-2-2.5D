@@ -34,10 +34,14 @@ async function main(){
    await page.keyboard.down(key);await page.waitForTimeout(1250);await page.keyboard.up(key);
    await page.waitForTimeout(300);await shot(label);
    const after=await page.evaluate(()=>SevenSinsDebug3D.state());
-   report.motion.push({key,before,after,screenshot:label+'.png'});
+   const dx=after.x-before.x,dz=after.z-before.z,distance=Math.hypot(dx,dz);
+   report.motion.push({key,before,after,dx,dz,distance,screenshot:label+'.png'});
+   assert.ok(Number.isFinite(distance)&&distance>0.05,`${key} did not move the protagonist: ${distance}`);
   }
+  const [forward,backward]=report.motion;
+  assert.ok(forward.dx*backward.dx+forward.dz*backward.dz<0,'W/S must move in opposite directions');
   await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
-  assert.deepEqual(report.errors,[]);report.ok=true;
+  assert.deepEqual(report.errors,[]);assert.deepEqual(report.networkFailures,[]);report.ok=true;
   await context.close();
  }finally{fs.writeFileSync(path.join(out,'resultado.json'),JSON.stringify(report,null,2)+'\n');await browser.close();}
  console.log(JSON.stringify({ok:report.ok,errors:report.errors,shots:report.screenshots,navigation:report.navigation},null,2));
