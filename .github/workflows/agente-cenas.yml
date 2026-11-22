@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 28
     env:
       TARGET: ${{ inputs.tested_sha }}
-      BASE: 8a404d8201a3920cf25546fcd5c0fe9714cbb1c1
+      BASE: 36ae737d21130619767f1cf0a2e3bffee1ff242a
       GAME_URL: http://127.0.0.1:4173/
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +39,8 @@ jobs:
           QA_OUTPUT="$RUNNER_TEMP/provas/antes" node "$RUNNER_TEMP/greed-framing.cjs"
           git checkout --detach "$TARGET"
           QA_OUTPUT="$RUNNER_TEMP/provas/depois" node "$RUNNER_TEMP/greed-framing.cjs"
+      - name: Regressão de campanha e chefes
+        run: node --test act6-flow.test.mjs dimensions3d.test.mjs finale-flow.test.mjs powers3d.test.mjs ultimates3d.test.mjs
       - name: Geometria e três fases da campanha
         run: |
           node tools/qa/greed-anatomy.cjs
