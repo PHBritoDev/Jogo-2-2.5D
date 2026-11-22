@@ -26,20 +26,21 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
   let escape = (arena.radius + arena.edge + 1) / speed + 1.1;
   const phases = [['announce',1.15],['throw',1.12],['charge',2.65],['escape',escape],
     ['detonate',1.2],['aftermath',1.65],['recover',.65]];
-  let previous=null;
+  let previous=null, ownsCamera=false;
+  function releaseCamera(){if(ownsCamera){ownsCamera=false;camera.release();}}
   let index=-1, time=0, cast=0, consumed=false, disposed=false, detached=false;
   const state=()=>({phase:phases[index]?.[0] || 'idle', progress:index<0?0:time/phases[index][1], cast,
     front:index===4?arena.radius*time/phases[4][1]:0, escape});
   function end(){
     if(index<0)return;
     if(detached) weapon.restore();
-    camera.release();
+    releaseCamera();
     previous=null; detached=false; index=-1; time=0; beat('idle');
   }
   return {getState:state,cancel:end,dispose(){end();disposed=true;},
     start({phase,grounded,busy}){
       if(disposed || index>=0 || phase!==3 || !grounded || busy)return false;
-      index=0;time=0;cast++;consumed=false;camera.focus();beat('announce');return true;
+      index=0;time=0;cast++;consumed=false;ownsCamera=true;camera.focus();beat('announce');return true;
     },
     update(dt,hero){
       if(!Number.isFinite(dt)||dt<=0)return;
@@ -72,11 +73,33 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
             const span=Math.sqrt(Math.max(0,arena.radius**2-z*z))-.3;
             const distance=hero ? Math.hypot(Math.max(0,Math.abs(hero.x)-span),Math.max(0,z-hero.z)) : arena.radius+z;
             escape=distance/speed+2;
-            phases[3][1]=escape;camera.release();
+            phases[3][1]=escape;releaseCamera();
           }
           beat(phases[index][0]);
         }
       }
       previous=index>=0 && hero ? {x:hero.x,z:hero.z} : null;
     }};
+}
+
+// Campaign seam: the host owns the combat clock, defense pipeline, animations
+// and camera lease. Never enter during the resurrection or another boss action.
+export function createGreedAtomicEncounter(ritual) {
+  let owner=null, spent=false, armed=false;
+  return {
+    tick(dt, encounter, hero) {
+      if (!encounter || encounter.id!==owner || encounter.teleported || !encounter.alive) {
+        ritual.cancel();
+        if (!encounter || encounter.id!==owner) spent=false;
+        owner=encounter?.id ?? null;
+        armed=false;
+        if (!encounter || encounter.teleported || !encounter.alive) return;
+      }
+      if(encounter.phase!==3){ritual.cancel();armed=false;return;}
+      if(encounter.hpRatio<=.45)armed=true;
+      if(!spent && armed && ritual.start(encounter))spent=true;
+      ritual.update(dt,hero);
+    },
+    end(){ritual.cancel();owner=null;spent=false;armed=false;}
+  };
 }

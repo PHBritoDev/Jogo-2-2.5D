@@ -3,10 +3,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {arenaSpec} from '../../dimensions3d.js';
 import {createGreedAbyss} from '../../greed-abyss3d.js';
 import {buildBloodScythe} from '../../greed-weapons3d.js';
-import {createGreedUltimate,measureRefuge} from '../../greed-ultimate-atomic3d.js';
+import {createGreedUltimate,measureRefuge,createGreedAtomicEncounter} from '../../greed-ultimate-atomic3d.js';
 import {createCorona} from '../../greed-ultimate-corona3d.js';
 
-const low=new URLSearchParams(location.search).get('quality')==='low', canvas=document.querySelector('canvas');
+const quality=new URLSearchParams(location.search).get('quality')||'medium';
+const low=quality==='low', canvas=document.querySelector('canvas');
 const gl=new T.WebGLRenderer({canvas,antialias:!low,preserveDrawingBuffer:new URLSearchParams(location.search).has('qa')});
 gl.setPixelRatio(Math.min(devicePixelRatio,low?1:1.5));
 const scene=new T.Scene(),cam=new T.PerspectiveCamera(43,1,.06,210);
@@ -37,7 +38,7 @@ hand.add(blade);hand.updateWorldMatrix(true,false);
 blade.scale.setScalar(1/hand.getWorldScale(new T.Vector3()).x);blade.rotation.z=-.7;
 const mount={position:blade.position.clone(),rotation:blade.quaternion.clone(),scale:blade.scale.clone()};
 const anchor=new T.Vector3(),launch=new T.Vector3(),landing=new T.Vector3(),originQ=new T.Quaternion(),goalQ=new T.Quaternion();
-const crown=createCorona(T,scene,arena,low?'low':'high');
+const crown=createCorona(T,scene,arena,quality);
 for(const name of ['Bone_043','Bone_045'])boss.model.getObjectByName(name)?.scale.multiplyScalar(1.8);
 const keyLight=new T.DirectionalLight(0xffead1,2.2);keyLight.position.set(2,5,6);scene.add(keyLight);
 const walk=hero.mixer.clipAction(T.AnimationClip.findByName(hero.clips,'Walking'));
@@ -55,8 +56,9 @@ const hud=document.querySelector('#status');
 const ult=createGreedUltimate({arena,speed:2.8,camera:{focus(){focused=true},release(){focused=false}},
  weapon:{release(){scene.attach(blade);launch.copy(blade.position);originQ.copy(blade.quaternion);detached=true},restore(){hand.add(blade);blade.position.copy(mount.position);blade.quaternion.copy(mount.rotation);blade.scale.copy(mount.scale);detached=false}},
  damage({blocked}){health-=blocked?12:60},
- beat(phase){phaseTime=0;hud.textContent=labels[phase];if(phase==='throw')action.reset().play();if(phase==='idle')action.stop();if(phase==='detonate')note(130,.9);if(phase==='announce')note(75,1.3)}});
-let target=null;
+ beat(phase){phaseTime=0;hud.textContent=labels[phase];if(phase==='throw')action.reset().play();if(phase==='idle')action.stop();if(phase==='detonate')note(130,.9);if(phase==='announce')note(75,1.3);if(phase==='throw')note(530,.35);if(phase==='charge')note(164,2.2);if(phase==='recover')note(245,.45)}});
+const encounterDriver=createGreedAtomicEncounter(ult);
+let encounter=null, target=null;
 const keys=new Set(),ray=new T.Raycaster(),plane=new T.Plane(new T.Vector3(0,1,0),0);
 onkeydown=e=>keys.add(e.key.toLowerCase());onkeyup=e=>keys.delete(e.key.toLowerCase());onblur=()=>keys.clear();
 canvas.onpointerdown=e=>{if(focused)return;ray.setFromCamera(new T.Vector2(2*e.clientX/innerWidth-1,1-2*e.clientY/innerHeight),cam);target=ray.ray.intersectPlane(plane,new T.Vector3());if(target && !arena.walkable(target.x,target.z))target=null};
@@ -73,7 +75,7 @@ function step(dt,draw=true){
   }
   if(stride.lengthSq()){stride.normalize();hero.root.rotation.y=Math.atan2(stride.x,stride.z);const p=hero.root.position; if(arena.walkable(p.x+stride.x*2.8*dt,p.z+stride.z*2.8*dt))p.addScaledVector(stride,2.8*dt);}
  }
- ult.update(dt,hero.root.position);const s=ult.getState(),p=s.progress;
+ encounterDriver.tick(dt,encounter,hero.root.position);const s=ult.getState(),p=s.progress;
  if(detached){
   const u=s.phase==='throw'?T.MathUtils.clamp((p*1.12-.42)/.70,0,1):1;
   blade.position.lerpVectors(launch,landing.set(0,8,0),1-(1-u)**2);
@@ -84,13 +86,13 @@ function step(dt,draw=true){
  if(s.phase==='announce'){eye.set(2.1,3.5,4.5);to.set(0,3.1,0)}
  else if(s.phase==='throw'||s.phase==='charge'){eye.set(4,2,8+(s.phase==='charge'?p*8:0));to.set(0,Math.max(2,anchor.y*.73),0)}
  else if(s.phase==='idle'){eye.set(5,3.3,8);to.set(0,2,0)}
- else{eye.set(-2,45,11);to.set(0,0,4)}
+ else{const wide=s.phase==='escape'?Math.max(0,1-phaseTime/2.3):0;eye.set(15-13*wide,14+18*wide,19-7*wide);to.set(0,2,3+hero.root.position.z*.20)}
  const k=1-Math.exp(-dt*4.2);cam.fov=T.MathUtils.lerp(cam.fov,focused||s.phase==='idle'?43:66,k);cam.updateProjectionMatrix();cam.position.lerp(eye,k);look.lerp(to,k);cam.lookAt(look);
  abyss.update(clock,dt,cam,{player:hero.root.position});if(draw)gl.render(scene,cam);
 }
-function start(){health=100;target=null;return ult.start({phase:3,grounded:true,busy:false})}
+function start(){health=100;target=null;encounterDriver.end();encounter={id:Symbol(),phase:3,grounded:true,busy:false,hpRatio:.4,alive:true};encounterDriver.tick(0,encounter,hero.root.position);return true}
 const btn=document.querySelector('#cast');btn.disabled=false;hud.textContent=labels.idle;
 btn.onclick=()=>{ctx??=new AudioContext();ctx.resume();if(ult.getState().phase!=='idle')ult.cancel();start()};
-window.atomicQA={boss,cam,start,step,state:ult.getState,arena,hero:hero.root,stats:()=>({...gl.info.render,health}),manual(){manual=true}};
+window.atomicQA={boss,cam,start,step,state:ult.getState,arena,hero:hero.root,stats:()=>({...gl.info.render,...gl.info.memory,health,heroZ:hero.root.position.z,safe:arena.safe(hero.root.position.x,hero.root.position.z)}),manual(){manual=true}};
 let last=performance.now();function frame(now){if(!manual&&!document.hidden)step(Math.min(.05,(now-last)/1000));last=now;requestAnimationFrame(frame)}requestAnimationFrame(frame);
 addEventListener('pagehide',()=>{ult.dispose();crown.dispose();abyss.dispose();gl.dispose()},{once:true});
