@@ -48,7 +48,7 @@ export function createGreedCampaignUltimate(T,scene,{center,radius,quality='medi
      const root=b.gk.roots.D; // a espada híbrida real D, e não uma mesh genérica
      if(root)blade=root;
      const local={x:hero.x-center.x,z:hero.z-center.z,evading:!!hero.evading,blocking:!!hero.blocking};
-     const busy=!!paused||!!a.pendingDeath||!!(a.act && a.act.type!=='idle')||!!a.gk?.wing && a.gk.wing.mode==='flap'||a.airY>.25;
+     const ac=a.act;const busy=!!paused||!!a.pendingDeath||!!(ac && (ac.type==='gkPhase'||ac.type==='gkFly'||ac.type==='gkThrow'||ac.type==='gkAtomic'||(ac.move && ac.phase!=='recovery')))||a.airY>.25;
      const was=ultimate.getState().phase;
      const encounter={id:a.id,phase:a.gk.phase,grounded:a.airY<=.25,busy,hpRatio:a.hp/Math.max(1,a.maxHp),alive:a.alive};
      if(!paused)driver.tick(dt,encounter,local);
