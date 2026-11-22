@@ -5,14 +5,21 @@
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head><body><div id="info">…</div>
 <script type="module">
-/* Missão 21/11 — as quatro armas da Ganância lado a lado (frente e 3/4), sem pós-processamento. */
+/* QA das quatro armas da Ganância: colunas A–D; linhas frontal, 3/4, perfil e CLOSE da cabeça/gume.
+   ?dark=1 usa fundo e luz da arena (escura); ?t=tempo do shader. Sem pós-processamento. */
 import * as THREE from 'three';
 import { buildGreedArsenal } from '../../greed-weapons3d.js';
-const PW = 300, PH = 420, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(PW * 4, PH * 2); r.setScissorTest(true); r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
-const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2c2a32); scene.add(new THREE.HemisphereLight(0xffffff, 0x303040, 1.6)); const dl = new THREE.DirectionalLight(0xfff0e0, 2.2); dl.position.set(2, 4, 3); scene.add(dl);
+const q = new URLSearchParams(location.search), dark = q.get('dark') === '1', T0 = +(q.get('t') || 1.3);
+const PW = 300, PH = 360, ROWS = 4, r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(PW * 4, PH * ROWS); r.setScissorTest(true); r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(dark ? 0x0b0a0d : 0x2c2a32);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x303040, dark ? .35 : 1.6)); const dl = new THREE.DirectionalLight(0xfff0e0, dark ? .6 : 2.2); dl.position.set(2, 4, 3); scene.add(dl);
 const W = buildGreedArsenal(THREE), keys = ['A', 'B', 'C', 'D'], cam = new THREE.PerspectiveCamera(32, PW / PH, .01, 30);
-keys.forEach(k => { scene.add(W[k]); W[k].visible = false; W[k].userData.updateFx(1.3, .3); });
-keys.forEach((k, i) => { for (const [row, ang] of [[1, 0], [0, .9]]) { keys.forEach(j => W[j].visible = j === k); const w = W[k]; w.rotation.set(0, ang, 0); const box = new THREE.Box3().setFromObject(w), c = box.getCenter(new THREE.Vector3()), h = Math.max(box.max.y - box.min.y, box.max.x - box.min.x);
-  cam.position.set(c.x, c.y, c.z + h * 1.75); cam.lookAt(c); r.setViewport(i * PW, row * PH, PW, PH); r.setScissor(i * PW, row * PH, PW, PH); r.render(scene, cam); } });
-document.getElementById('info').textContent = 'A cósmica · B sanguínea · C solar · D picareta gêmea | calls ' + r.info.render.calls; window.__done = true;
+keys.forEach(k => { scene.add(W[k]); W[k].visible = false; W[k].userData.updateFx(T0, .3); });
+const views = [[0, 0, 1], [.9, 0, 1], [1.45, 0, 1], [.35, .25, .42]];
+keys.forEach((k, i) => views.forEach(([ang, tilt, zoom], row) => { keys.forEach(j => W[j].visible = j === k); const w = W[k]; w.rotation.set(tilt, ang, 0); w.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(w), c = box.getCenter(new THREE.Vector3()), h = Math.max(box.max.y - box.min.y, box.max.x - box.min.x);
+  if (row === 3) { const tip = w.userData.tip.clone().applyMatrix4(w.matrixWorld), head = new THREE.Vector3(0, w.userData.len - .35, 0).applyMatrix4(w.matrixWorld); c.copy(tip).lerp(head, .55); }
+  cam.position.set(c.x, c.y, c.z + h * 1.75 * zoom); cam.lookAt(c); const y = (ROWS - 1 - row) * PH; r.setViewport(i * PW, y, PW, PH); r.setScissor(i * PW, y, PW, PH); r.render(scene, cam); }));
+document.getElementById('info').textContent = 'A cósmica · B sanguínea · C solar · D picareta gêmea | frontal · 3/4 · perfil · close | calls ' + r.info.render.calls + (dark ? ' | luz da arena' : '');
+window.__done = true;
 </script></body></html>

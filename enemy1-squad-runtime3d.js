@@ -23,7 +23,6 @@ import { vxGrip, vxMoveClips } from './veraxion-squad3d.js';
 import { createVeraxionVFX } from './veraxion-vfx3d.js?v=mod333';
 import { createVeraxionBloomVFX } from './veraxion-bloom-vfx3d.js?v=mod336'; // 21/11: Florescer Abissal (arcos radiais 3D)
 import { createGreedRuntime } from './greed-runtime3d.js?v=mod342'; // 21/11: Ganância (3 fases, 4 armas, voo, sóis, abismo)
-import { GK_MOVES_A, GK_MOVES_B } from './greed-boss3d.js?v=mod342';
 import { createZarkhaelSpiralVFX } from './zarkhael-spiral-vfx3d.js?v=mod332';
 import { createZarkhaelBeastVFX } from './zarkhael-beast-vfx3d.js?v=mod336'; // 21/11: Fera dos Mil Olhos + cúpula rasgada
 import { createVorgazhekVFX } from './vorgazhek-vfx3d.js?v=mod331';
@@ -99,7 +98,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       }
       if(a.kind==='greedA'||a.kind==='greedB'){ // missão 21/11: Ganância — 4 armas (pares por mão), traço das DUAS mãos medido no próprio clipe
         const clipOf=r=>src.actions?.[r]?.getClip?.()||null;gkRT.attach(b,a);
-        if(!combatCache.has(a.kind)){const grip=vxGrip(T),E=[[[0,.25,0],[0,1.0,0]],[[0,1.0,0],[.75,1.25,0]],[[0,1.0,0],[0,1.5,0]]],clips=vxMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},a.kind==='greedA'?GK_MOVES_A:GK_MOVES_B,grip,E,E);clips.__grip=grip;combatCache.set(a.kind,clips);}
+        if(!combatCache.has(a.kind)){const grip=vxGrip(T),E=[[[0,.25,0],[0,1.0,0]],[[0,1.0,0],[.75,1.25,0]],[[0,1.0,0],[0,1.5,0]]],clips=vxMoveClips(T,model,ctx.clone,r=>{const c=clipOf(r);return c?inPlaceClip(c,{vertical:r==='dash'}):null;},BOSS_MOVES[a.kind],grip,E,E) /* 22/11: os MESMOS objetos de golpe do motor (o loader carrega greed-boss3d com ?v=BUILD; o import fixo ?v=mod342 era OUTRA instância e o traço/aimR nunca chegava ao golpe usado) */;clips.__grip=grip;combatCache.set(a.kind,clips);}
         b.grip=combatCache.get(a.kind).__grip;attachAfterimages(T,scene,b,ctx.clone);for(const [i,g] of (b.after?.ghosts||[]).entries())g.mat.color.setHex([0x5a0810,0x2a0a40,0x6a4a10][i%3]);
       }
       if(a.kind==='veraxion'){ // missão 20/11: NewBispo4.glb — duas espadas (A direita, B esquerda), traço das DUAS lâminas (e do pé no chute) do mesmo clipe
@@ -127,7 +126,7 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
       }
       for(const [id,clip]of Object.entries(combatCache.get(a.kind)))if(id!=='__grip')acts[id]=mixer.clipAction(clip);
       const angle=a.kind==='warden'?1.9:a.kind==='e3boss'?2.3:a.kind==='e4boss'?2.5:a.kind==='vhazrael'||a.kind==='vorgazhek'||a.kind==='zarkhael'?2.4:3.3,reach=a.kind==='warden'?1.8:a.kind==='e3boss'?3:a.kind==='e4boss'?3.4:a.kind==='vhazrael'||a.kind==='vorgazhek'?3:a.kind==='zarkhael'?3.3:3.2;
-      if(a.kind!=='zarkhael'&&a.kind!=='veraxion')b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:a.kind==='vorgazhek'?0x5fe8ff:a.kind==='zarkhael'?0xc64dff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));if(b.tell){b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);} /* missão 20/11: sem setor/cone no chão para ZAR'KHAEL e VÉRAXION — o aviso é a pose/brilho da arma */
+      if(a.kind!=='zarkhael'&&a.kind!=='veraxion'&&a.kind!=='greedA'&&a.kind!=='greedB')b.tell=new T.Mesh(new T.RingGeometry(.3,reach,28,1,-Math.PI/2-angle/2,angle),new T.MeshBasicMaterial({color:a.kind==='warden'?0xe08aff:a.kind==='e3boss'?0xff2a40:a.kind==='e4boss'?0xc040ff:a.kind==='vhazrael'?0xff1a5a:a.kind==='vorgazhek'?0x5fe8ff:a.kind==='zarkhael'?0xc64dff:0xffa250,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false}));if(b.tell){b.tell.rotation.x=-Math.PI/2;b.tell.position.y=.05;b.tell.visible=false;holder.add(b.tell);} /* missão 20/11: sem setor/cone no chão para ZAR'KHAEL e VÉRAXION — o aviso é a pose/brilho da arma; 22/11: idem Ganância (o setor amarelo era o aviso artificial do vídeo de 9 s) */
     }
     if (a.kind==='vhazrael') b.seal=makeJudgmentSeal(T,scene,a.T.leap.strike.r);
     play(b, 'idle', false, 1, 0);
@@ -230,6 +229,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
   const POSE = { claws: 'slam', spiral: 'cast', judgment: 'channel', vortex: 'channel', trinity: 'slam', collapse: 'slam' };
   function onEvent(type, d) {
     if (type.startsWith('gk')) gkRT.event(type, d, bodies); // 21/11: Ganância — sóis, abismo, fases, armas
+    if (type === 'gkBlade' && d.phase === 'hit' && d.result !== 'evaded' && ctx.slash && d.ent) { const e = d.ent, l = Math.hypot(d.x - e.wx, d.z - e.wz) || 1; // 22/11: corte da arma autônoma = impacto sakuga no estilo dela
+      ctx.slash.impact({ x: d.x, y: d.y ?? 1.1, z: d.z }, { x: (d.x - e.wx) / l, y: 0, z: (d.z - e.wz) / l }, { style: { A: 'greedCosmic', B: 'greedBlood', C: 'greedSolar', D: 'greedHybrid' }[e.key] || 'greedCosmic', power: d.result === 'blocked' ? .35 : .65 }); }
     if (type === 'meleeHit' && d.result !== 'evaded' && d.actor && (d.actor.kind === 'greedA' || d.actor.kind === 'greedB') && ctx.slash) { const tg = squad && squad.targets.find(t => t.id === d.target), g = d.actor.gk, m = d.actor.act?.move, hand = m?.hands?.[Math.max(0, (d.n || 1) - 1)] || 'R', w = g && g.hands[hand]; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: { A: 'greedCosmic', B: 'greedBlood', C: 'greedSolar', D: 'greedHybrid' }[w] || 'greedBlood', power: m?.hits.length > 2 ? .7 : .55 }); }
     if (type === 'cast' && ctx.pose && !E3K[d.actor.kind]) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, POSE[d.skill] || 'cast', d.skill === 'judgment' || d.skill === 'vortex' ? 1.5 : 1.1, () => d.actor.yaw); }
     if (type === 'counterCast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, 'thrust', .7, () => d.actor.yaw); }
@@ -277,12 +278,12 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     /** Escurecimento local pedido pela Tempestade de Nadir (0..1); o jogo aplica e restaura. */
     get dim() { return stormDim(squad); },
     /** Extinção Orbital em curso (fase, tempo, magia) — o jogo usa para câmera, cena orbital e bloqueio de controle. */
-    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, zarkhaelBeastVFX: zbfx, veraxionBloomVFX: vbfx, greedRT: gkRT, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
+    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, zarkhaelBeastVFX: zbfx, veraxionBloomVFX: vbfx, greedRT: gkRT, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, bodyInfo(id) { const b = bodies.get(id); if (!b) return null; let meshes = 0, shown = 0; b.model.traverse(o => { if (o.isMesh) { meshes++; let v = true, p = o; while (p) { if (!p.visible) { v = false; break; } p = p.parent; } if (v && o.material && (o.material.opacity ?? 1) > .05) shown++; } }); const w = new b.model.position.constructor(); b.model.getWorldPosition(w); return { holder: b.holder.visible, model: b.model.visible, meshes, shown, wy: +w.y.toFixed(2), hy: +b.holder.position.y.toFixed(2), my: +b.model.position.y.toFixed(2), scale: +b.model.scale.x.toFixed(3), parent: !!b.holder.parent }; }, // QA (22/11): visibilidade real do corpo // Mod 320: QA do rastro do dash
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
       stop(); squad = new Enemy1Squad({ seed, ground: ctx.ground, blocked: ctx.blocked, los: ctx.los, damageTarget: ctx.damageTarget, event: onEvent, meleeTrace:(a,act,t,lo,hi)=>bossTraceContact(combatCache.get(a.kind)?.[act.move.id]?.combatTrace,lo,hi,a,t,p=>ctx.blocked(p.x,p.z),act.fromPose) });
-      squad.ceilingAt = ctx.ceilingAt || null; squad.abyssAnchor = ctx.abyssAnchor ? ctx.abyssAnchor() : null; // 21/11: teto real (voo/pouso invertido) e boca do abismo (fase III)
+      squad.ceilingAt = ctx.ceilingAt || null; squad.hangSpot = ctx.hangSpot || null; squad.abyssAnchor = ctx.abyssAnchor ? ctx.abyssAnchor() : null; // 21/11: teto real (voo/pouso invertido) e boca do abismo (fase III)
       squad.spawn(spots); for (const a of squad.actors) { const b = makeBody(a); if (b) bodies.set(a.id, b); }
       return squad;
     },
