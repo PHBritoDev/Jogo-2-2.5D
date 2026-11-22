@@ -8,7 +8,7 @@ const end = source.indexOf('function syncIlyanPlacement()', start);
 assert.ok(start >= 0 && end > start, 'escort function must exist');
 const escortSource = source.slice(start, end);
 
-function stepEscort({ playerZ, walkable = true, startZ = -37, walkableFn = null }) {
+function stepEscort({ playerZ, walkable = true, startZ = -37, walkableFn = null, ticks = 1 }) {
   const holder = { visible: true, position: { x: 40, z: startZ, set(x, y, z) { this.x = x; this.z = z; } }, rotation: {} };
   const action = { paused: true };
   const context = {
@@ -17,9 +17,10 @@ function stepEscort({ playerZ, walkable = true, startZ = -37, walkableFn = null 
     player: { position: { x: 40, z: playerZ } },
     DIMENSIONS: { esgoto: { center: { x: 0, z: 0 } } },
     SEWER: { emptyPath: { from: { x: 40 } } }, voidSpec: { y: 0 },
-    sewerWalkable: (x, z) => walkableFn ? walkableFn(x, z) : walkable
+    sewerWalkable: (x, z) => walkableFn ? walkableFn(x, z) : walkable,
+    ticks
   };
-  new Function(...Object.keys(context), escortSource + '; updateIlyanEscort(0.05);')(...Object.values(context));
+  new Function(...Object.keys(context), escortSource + '; for(let i=0;i<ticks;i++)updateIlyanEscort(0.05);')(...Object.values(context));
   return { holder, action };
 }
 
@@ -56,4 +57,16 @@ test('Ilyan permanece parado se nenhuma direção caminhável existir', () => {
   assert.equal(holder.position.z, -37);
   assert.equal(holder.position.x, 40);
   assert.equal(action.paused, true);
+});
+
+// Reproduz cinco segundos de acompanhamento, não apenas um único frame.
+test('Ilyan mantém progresso ao longo de 100 frames com desvio lateral', () => {
+  const { holder, action } = stepEscort({
+    playerZ: -130,
+    ticks: 100,
+    walkableFn: (x, z) => x > 40.02 && z < -37
+  });
+  assert.ok(holder.position.z < -48, 'NPC deve avançar pelo corredor sem congelar após o desvio');
+  assert.ok(holder.position.x > 40.02, 'NPC deve permanecer no lado caminhável');
+  assert.equal(action.paused, false);
 });
