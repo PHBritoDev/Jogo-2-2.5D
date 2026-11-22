@@ -399,9 +399,9 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   // A distant side region used to expand the rectangle into empty wilderness,
   // wasting attempts and visibly thinning the original forest.
   const regions = [];
-  const addRegion = (cx, cz, hx, hz) => {
-    const x0 = cx - hx - 70, x1 = cx + hx + 70;
-    const z0 = cz - hz - 70, z1 = cz + hz + 70;
+  const addRegion = (cx, cz, hx, hz, margin = 70) => {
+    const x0 = cx - hx - margin, x1 = cx + hx + margin;
+    const z0 = cz - hz - margin, z1 = cz + hz + margin;
     const width = x1 - x0, depth = z1 - z0;
     if (![x0, x1, z0, z1, width, depth].every(v => Number.isFinite(Math.fround(v)))) return;
     const weight = width * depth;
@@ -412,7 +412,8 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   const forestExtras = Array.isArray(terrain.extraAreas) ? terrain.extraAreas : [];
   for (const e of forestExtras) {
     if (![e?.cx, e?.cz, e?.hx, e?.hz].every(Number.isFinite) || e.hx < 0 || e.hz < 0) continue;
-    addRegion(e.cx, e.cz, e.hx, e.hz);
+    // Avoid wasting side-region attempts far outside its actual playable bounds.
+    addRegion(e.cx, e.cz, e.hx, e.hz, 35);
   }
   if (!regions.length) return specs;
   const totalWeight = regions.reduce((sum, region) => sum + region.weight, 0);
@@ -424,11 +425,17 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   for (let i = 0; i < total; i++) {
     let region = regions[0];
     if (regions.length > 1) {
-      let pick = rnd() * totalWeight;
-      for (const candidate of regions) {
-        pick -= candidate.weight;
-        region = candidate;
-        if (pick < 0) break;
+      // Keep the original valley populated when a far-off side area is added.
+      // Reserve at least 85% of the existing fixed mobile sampling budget for it.
+      const mainShare = Math.max(.85, regions[0].weight / totalWeight);
+      if (rnd() >= mainShare) {
+        const extraWeight = totalWeight - regions[0].weight;
+        let pick = rnd() * extraWeight;
+        for (let j = 1; j < regions.length; j++) {
+          pick -= regions[j].weight;
+          region = regions[j];
+          if (pick < 0) break;
+        }
       }
     }
     const x = region.x0 + rnd() * (region.x1 - region.x0);
