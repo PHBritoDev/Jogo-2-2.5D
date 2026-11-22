@@ -117,6 +117,7 @@ import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } 
 import { zkBeastOf, zkBeastMouth, zkBeastMagicHit, zkBeastSwordHit, zkHeroDebuffLeft, zkClearDebuff } from './zarkhael-beast3d.js'; // 21/11: Fera dos Mil Olhos (Bispo 3)
 import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
 import {createGreedCampaignUltimate} from './greed-ultimate-campaign3d.js';
+import {createAdmPanel} from './adm-panel3d.js';
 import { GK_FILE1, GK_FILE2, GK_ROLES_A, GK_ROLES_B, GK_IN_PLACE, GK_TIME, gkSynthA, gkSynthB, gkPrepareB, gkForceTech, gkStateOf } from './greed-boss3d.js?v=mod342'; // 21/11: Ganância em três fases (NewGanancia1/2.glb)
 import { vxComboFollowupAllowed, seqFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
@@ -4250,11 +4251,31 @@ function journeyTeleport(key){
  player.position.set(S.x,y,S.z);playerYaw=S.yaw;player.rotation.y=S.yaw;cameraYaw=S.yaw+Math.PI;verticalVelocity=0;grounded=true;moveVX=moveVZ=0;dashRemaining=0;journeyFall.on=false;checkpointX=S.x;checkpointZ=S.z;
  for(let i=0;i<10;i++)updatePlayerCamera(1);status.textContent='TP de teste — '+S.name;return true;
 }
-if(new URLSearchParams(location.search).get('adm')==='1'){const mountAdm=()=>{const el=document.createElement('div');el.id='adm-panel';el.style.cssText='position:fixed;right:8px;top:calc(env(safe-area-inset-top) + 112px);z-index:31;display:flex;flex-direction:column;gap:4px;align-items:flex-end';
- const st='border-radius:9px;border:1px solid #c8a24a;background:#1e1608e6;color:#ffe6b0;font:700 11px system-ui;padding:6px 9px;min-height:30px',menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:4px';
- const tog=document.createElement('button');tog.type='button';tog.textContent='ADM (teste) ▾';tog.style.cssText=st;tog.onclick=()=>{menu.style.display=menu.style.display==='none'?'flex':'none';};
- for(const [k,t] of [['eldoria','TP Cidade 1 — Eldória'],['vale','Ir ao Vale do Entardecer (início da jornada)']]){const b=document.createElement('button');b.type='button';b.textContent=t;b.dataset.tp=k;b.style.cssText=st;b.onclick=()=>{journeyTeleport(k);menu.style.display='none';};menu.appendChild(b);}
- el.append(tog,menu);document.body.appendChild(el);};if(document.readyState==='complete')mountAdm();else addEventListener('load',mountAdm);} // o mundo carrega por blob depois do load
+/** Painel ADM Mod 350: categorias em uma única interface mobile/PC.
+ * Atalho por URL ?adm=1. TESTES não modificam arquivos de save ao entrar com ?testeDimensao. */
+if(new URLSearchParams(location.search).get('adm')==='1'){
+ const mountAdm=()=>{
+  createAdmPanel({
+   getState:()=>{
+    const a=squadSq()?.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB'));
+    return{inGreed:!!dimBattle?.active&&dimBattle.key==='greed',phase:a?.gk?.phase||0};
+   },
+   onTeleport:key=>journeyTeleport(key)?'Teleporte realizado.':'Teleporte indisponível neste local ou durante combate.',
+   onDimension:key=>{
+    if(!DIMENSIONS[key])return 'Dimensão não encontrada.';
+    location.href='mundo-3d-prototype.html?adm=1&debug3d=1&testeDimensao='+encodeURIComponent(key);
+    return 'Abrindo teste isolado da dimensão.';
+   },
+   onUltimate:()=>greedAdmCastUltimate(),
+   onPhase:()=>greedAdmNextPhase(),
+   onKill:()=>{
+    const count=window.SevenSinsDebug3D?.killNearby?.(12)??0;
+    return count?'Foram atingidos '+count+' adversário(s).':'Nenhum adversário próximo.';
+   }
+  });
+ };
+ if(document.readyState==='complete')mountAdm();else addEventListener('load',mountAdm);
+}
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
  const N=terrainLowSpec?900:1800,pos=new Float32Array(N*2*3),seed=new Float32Array(N*2);
@@ -4481,6 +4502,30 @@ function squadRuntime(){
 const squadSq=()=>squadRT&&squadRT.squad;
 /** Mod 349: ultimate do Codex ligada ao corpo real da fase III, sem editar o motor do Claude. */
 let greedAtomic=null;
+function greedAdmCastUltimate(){
+ const a=squadSq()?.actors.find(x=>x.alive&&x.kind==='greedB');
+ if(!dimBattle?.active||dimBattle.key!=='greed')return 'Entre no teste da Dimensão V — Ganância.';
+ if(!a||a.gk?.phase!==3)return 'A ultimate só pode ser ativada na fase III. Use “Próxima fase”.';
+ if(cineActive||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
+ if(greedAtomic.active)return 'O Juízo da Usura já está em execução.';
+ if(!greedAtomic.force())return 'Aguarde o chefe ficar pronto e tente novamente.';
+ showCombatCallout('ADM · JUÍZO DA USURA');
+ return 'Ultimate solicitada! A Ganância iniciará o ritual no próximo quadro.';
+}
+function greedAdmNextPhase(){
+ if(!dimBattle?.active||dimBattle.key!=='greed')return 'Abra o teste da Dimensão V — Ganância primeiro.';
+ const squad=squadSq(),a=squad?.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB'));
+ if(!a)return 'Aguarde o carregamento da Ganância.';
+ if(a.gk?.phase>=3)return 'A Ganância já está na fase III.';
+ if(a.act?.type==='gkPhase'||a.pendingDeath)return 'Transição entre fases já em andamento.';
+ // Atalho DEV: mantém a lógica real de morte e transição do motor; nunca teleporta o boss de fase.
+ if(a.act?.iframes)a.act.iframes=false;
+ const before=a.hp;
+ squad.damageActor(a.id,Math.max(100000,a.maxHp*10),{x:player.position.x,z:player.position.z,kind:'area',by:'adm-phase'});
+ return a.hp<before||a.pendingDeath||a.act?.type==='gkPhase'
+  ? 'Avanço de fase iniciado. Aguarde a animação cinematográfica.'
+  : 'O chefe está protegido por uma animação; tente novamente após ela.';
+}
 function greedAtomicEnd(){if(greedAtomic){greedAtomic.dispose();greedAtomic=null;}}
 function greedAtomicTick(dt,paused=false){
  if(!dimBattle?.active||dimBattle.key!=='greed'||!squadOn||!squadRT){greedAtomicEnd();return;}
@@ -4846,6 +4891,8 @@ function dimTestFight(key){
  startDimensionBattle(key,{hp:DIMENSIONS[key].hp,returnTo:{x:-5,z:16},test:true,onVictory:()=>{status.textContent='Teste concluído: vitória. Escolha uma luta para repetir.';},onAbort:()=>{status.textContent='Teste encerrado. Escolha uma luta para repetir.';}});
 }
 function dimTestPanel(){
+ // ?adm=1 já dispõe de um painel unificado. Evita dois menus sobre o HUD.
+ if(new URLSearchParams(location.search).get('adm')==='1')return;
  if(dimTest.panel)return;const el=document.createElement('div');el.id='dim-test-panel';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 118px);left:8px;z-index:30;display:flex;flex-direction:column;gap:5px;width:min(300px,62vw)';
  const menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:5px';
  const tog=document.createElement('button');tog.type='button';tog.textContent='⚙ TESTE DAS DIMENSÕES (nada é salvo) ▾';tog.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ff6a7a;background:#3a0a14ee;color:#ffd6dc;font:800 11px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(tog,()=>{menu.style.display=menu.style.display==='none'?'flex':'none';});el.appendChild(tog);el.appendChild(menu);
