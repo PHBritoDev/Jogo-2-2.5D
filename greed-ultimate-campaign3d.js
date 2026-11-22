@@ -8,7 +8,7 @@ import {createCorona} from './greed-ultimate-corona3d.js';
 export function createGreedCampaignUltimate(T,scene,{center,radius,quality='medium',camera,beat,damage}){
  const arena=measureRefuge(radius,(x,z)=>Math.hypot(x,z)<=radius);
  const corona=createCorona(T,scene,arena,quality,center);
- const anchor=new T.Vector3(),launch=new T.Vector3(),high=new T.Vector3(center.x,center.y+8,center.z),handPos=new T.Vector3(),handQuat=new T.Quaternion(),originalQuat=new T.Quaternion();
+ const anchor=new T.Vector3(),launch=new T.Vector3(),high=new T.Vector3(center.x,center.y+8,center.z),originPoint=new T.Vector3(center.x,center.y,center.z),handPos=new T.Vector3(),handQuat=new T.Quaternion(),originalQuat=new T.Quaternion(),spinQ=new T.Quaternion(),spinAxis=new T.Vector3(0,1,0);
  let actor=null,body=null,blade=null,detached=false,elapsed=0,casting=false,lastPhase='idle';
  function pointAtHand(){
    if(!blade||!body?.hand)return;
@@ -60,11 +60,11 @@ export function createGreedCampaignUltimate(T,scene,{center,radius,quality='medi
          else{
            const t=st.phase==='throw'?Math.max(0,Math.min(1,(st.progress*1.12-.42)/.7)):1;
            blade.position.lerpVectors(launch,high,1-(1-t)**2);
-           blade.quaternion.copy(originalQuat).multiply(new T.Quaternion().setFromAxisAngle(T.Object3D.DEFAULT_UP,elapsed*2.8));
+           blade.quaternion.copy(originalQuat).multiply(spinQ.setFromAxisAngle(spinAxis,elapsed*2.8));
            if(st.phase==='recover'){pointAtHand();}
            blade.visible=true;
          }
-         anchor.copy(blade.position).sub(new T.Vector3(center.x,center.y,center.z));
+         anchor.copy(blade.position).sub(originPoint);
        } else anchor.set(a.x-center.x,8,a.z-center.z);
        corona.update(st,elapsed,anchor);
        camera(casting,st.phase,a,st);
