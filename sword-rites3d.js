@@ -167,7 +167,9 @@ export class SwordRites {
     // Secondary energy contacts need the same visible impact cue as the primary hit.
     // Keep hitstop/shake disabled for a crowd to avoid stacking camera impulses.
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),radius=o.radius||.5;
-    this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius},hitstop:0,shake:0});}}}
+    const dx=o.x-e.x,dz=o.z-e.z,radial=Math.hypot(dx,dz)||1;
+    const contact=e.kind==='sector'?{x:o.x-dx/radial*radius,y:o.y,z:o.z-dz/radial*radius}:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius};
+    this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:contact,hitstop:0,shake:0});}}}
    if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
