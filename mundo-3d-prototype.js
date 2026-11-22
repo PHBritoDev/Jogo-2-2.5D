@@ -4320,7 +4320,7 @@ const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
-function actorObj(key){if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[2]||null;return null;}
+function actorObj(key){if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[1]||null;return null;}
 function actorPos(key,out){
  const a=storyAnchors[key];if(a){out.set(a.x,a.y!==undefined?a.y:terrainHeightAt(a.x,a.z),a.z);return out;}
  const o=actorObj(key);if(o){o.getWorldPosition(out);return out;}return out.copy(player.position);
@@ -5487,7 +5487,7 @@ function forestCleared(){
  playStory('chave',keyFoundScene(),{focus:'cage',face:'cage'});
 }
 function openCage(){
- act1Lock=true;childrenFreed=true;bumpStat('rescues');save3DProgress();
+ act1Lock=true;childrenFreed=true;/* Jaula aberta não confirma resgate: não inflar estatística */save3DProgress();
  playStory('gaiola',cageScene(),{focus:'cage',face:'cage',done:()=>{act1Lock=false;for(const k of act1Props?act1Props.kids:[])k.visible=false;act1Advance(3,1);if(pack)packNext();}});
 }
 function childrenCleared(){act1Advance(3,2);}
@@ -5533,7 +5533,7 @@ function storyDo(id,args){
   case 'entregar-ouro':{
    coins=Math.max(0,coins-ACT1.bribe);updateQuestHud();showRewardPop('−'+ACT1.bribe+' MOEDAS');worldAudio.coins();
    const bag=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),mat(0x7a5a2a));bag.scale.set(1,1.2,1);scene.add(bag);
-   const v=vendorRoots[2],to=v?v.position.clone():P.clone();
+   const v=vendorRoots[1],to=v?v.position.clone():P.clone();
    storyFx.push({t:0,tick(t){const k=Math.min(1,t/1.3);bag.position.set(THREE.MathUtils.lerp(P.x,to.x,k),P.y+1.05+Math.sin(k*Math.PI)*.35,THREE.MathUtils.lerp(P.z,to.z,k));if(k>=1){scene.remove(bag);return false;}},finish(){scene.remove(bag);}});
    break;}
   case 'anoitecer':nightFalls(false);break;
