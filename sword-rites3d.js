@@ -115,6 +115,25 @@ export class SwordRites {
      if(bladeContact(prev.base,ext(prev),blade.base,ext(blade),target,(target.radius||.48)+(a.def.drive?.2:.12))&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
       a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
      }
+    }
+    // Each physical swing may also connect with nearby bodies crossed by the actual blade.
+    // A per-swing set prevents repeated damage from 120 Hz substeps; the primary target
+    // retains its original hit/impact behavior and damage budget.
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&ctx.others?.length){
+     const prev=this.prevBlade||blade;
+     const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
+     a.bladeSideHits=a.bladeSideHits||new Set();
+     if(!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
+      for(const other of ctx.others){
+       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+       if(!bladeContact(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12))continue;
+       if(segmentBlocked(ctx.from,other,this.api.blocked))continue;
+       a.bladeSideHits.add(other.id);
+       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
+       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
+       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
+      }
+     }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
    if(a.kind==='prota'){
@@ -144,7 +163,7 @@ export class SwordRites {
    const unblockedThisFrame=!e.done;
    const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
    // Inimigos secundários também devem ser atingidos no último quadro, sem atravessar paredes.
-   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
+   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
    if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}

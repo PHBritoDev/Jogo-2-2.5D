@@ -22,3 +22,21 @@ test('skills remain restricted to two swords, ownership and mana enforced',()=>{
 test('switching swords keeps independent cooldowns and cancels current action',()=>{const x=rig();x.r.cast('aurora',{mana:100,from:x.from,target:x.t});x.step(.1,'prota');assert(!x.r.busy);assert(x.r.cooldowns.aurora>0);assert(x.r.cast('prota',{mana:100,from:x.from,target:x.t}).ok);});
 test('50+ casts clean up simulation, target moving within wave volume',()=>{const x=rig();for(let i=0;i<55;i++){x.r.cooldowns.aurora=0;x.r.cast('aurora',{mana:100,from:x.from,target:x.t});x.t.x=i%2?.2:-.2;x.step(4,'aurora');assert.equal(x.r.waves.length,0);assert(!x.r.busy);}assert.equal(x.hits.length,220);});
 test('sandbox saves never mutate campaign, inventory, hearts or map',()=>{const original=new Map([['save','production']]),storage={getItem:k=>original.get(k)||null,setItem:(k,v)=>original.set(k,v),removeItem:k=>original.delete(k)};const testStore=isolatedSwordStorage(storage,true);assert.equal(testStore.getItem('save'),'production');for(const k of ['save','owned','hearts','map'])testStore.setItem(k,'test');testStore.removeItem('save');assert.equal(original.get('save'),'production');assert.equal(original.size,1);assert.equal(testStore.getItem('save'),null);assert.equal(isolatedSwordStorage(storage,false),storage);});
+
+test('physical blade can hit secondary enemy once per swing without hitting distant enemies',()=>{
+ const primary=target(),secondary={...target(),id:8,x:.3},far={...target(),id:9,x:5};
+ const hits=[],r=new SwordRites({hit:(damage,id)=>hits.push(id),pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}})});
+ assert(r.attack('prota',{target:primary}));
+ for(let i=0;i<90;i++)r.update(1/120,{from:{x:0,y:0,z:0},target:primary,others:[secondary,far],sword:'prota'});
+ assert.deepEqual(hits.sort(),[7,8]);
+});
+test('physical secondary contact is blocked by a wall',()=>{
+ const primary=target(),secondary={...target(),id:8,x:.3};
+ const hits=[],r=new SwordRites({blocked:p=>p.x>.15,hit:(damage,id)=>hits.push(id),pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}})});
+ assert(r.attack('prota',{target:primary}));
+ for(let i=0;i<90;i++)r.update(1/120,{from:{x:0,y:0,z:0},target:primary,others:[secondary],sword:'prota'});
+ assert.deepEqual(hits,[7]);
+});
+
+// Ensure the production multihit regression suite runs in combat315's existing test entrypoint.
+import './tests/a2-basic-blade-multitarget.test.mjs';
