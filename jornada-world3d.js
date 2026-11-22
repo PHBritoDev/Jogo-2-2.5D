@@ -1,6 +1,7 @@
 import { abyssEdge, inJourney, inAbyss, journeyHeight, volcanoHeight, volcanoGully, craterFloor, journeyBoundary, polyProject, fbm2, ROUTE, RIVER2, BRIDGE, ABYSS, CITY2, VOLCANO2, GATE2, CAVE2, TRAIL2, trailDistance, WATERFALL, FALL_POOL, ABYSS_FALLS, CITY_PROPS, cinzariaLayout, cinzariaStyle, cinzariaLandmarks, riverDepth, JOURNEY_BOUNDS } from './jornada3d.js';
 import { auroraUniforms, patchAuroraGround } from './aurora-luz3d.js';
 import { createRippleSim, createWaterMaterial, riverGeometry, poolGeometry, createSpray, createFallMaterial, makeFall, createLava, lavaChannelPath } from './fluidos3d.js';
+import { diffInstanceBlocks, markInstanceUpload } from './instance-upload3d.js';
 /**
  * Mod 321/323 — o MUNDO VISÍVEL da jornada (o relevo e as regras vêm de jornada3d.js; a física usa a mesma função).
  *  • Terreno em BLOCOS com LOD e streaming: blocos finos de 64 m (célula 2 m, saia contra frestas) perto do herói e
@@ -179,6 +180,7 @@ export function createJourneyWorld(T, scene, opts = {}) {
   const flowerMat = new T.MeshLambertMaterial({ map: flowerTex, alphaTest: .5, side: T.DoubleSide }); flowerMat.onBeforeCompile = liftShader;
   const FLOWER_MAX = low ? 1100 : 2800, flowers = new T.InstancedMesh(flowerGeo, flowerMat, FLOWER_MAX); flowers.count = 0; flowers.frustumCulled = false; flowers.name = 'jornada-flores'; root.add(flowers);
   const FLOWER_COLORS = [0xf3e9f7, 0xd9a2e0, 0x9f8ce8, 0xfff1a8, 0xf6b6c6, 0xffffff, 0xf0a060, 0x8fb4f0];
+  let grassPlan = [], flowerPlan = [];
   const onRoad = (x, z, w) => polyProject(x, z, ROUTE, ROUTE_CUM).d < w;
   const tmpM = new T.Matrix4(), tmpQ = new T.Quaternion(), tmpS = new T.Vector3(), tmpP = new T.Vector3(), UP = new T.Vector3(0, 1, 0);
   function* tileVegetationGen(t, x0, z0) {
@@ -203,14 +205,25 @@ export function createJourneyWorld(T, scene, opts = {}) {
     t.veg = { G, GC, g, F, FC, f };
   }
   function fillInstances(px, pz) {
-    const list = [...near.values()].filter(t => t.veg).map(t => { const [x0, z0] = nearOrigin(t.i, t.j); return { t, d: Math.hypot(x0 + 32 - px, z0 + 32 - pz) }; }).filter(o => o.d < 118).sort((a, b) => a.d - b.d);
-    let g = 0, f = 0; const GA = grass.instanceMatrix.array, FA = flowers.instanceMatrix.array;
+    const list = [...near.values()].filter(t => t.veg).map(t => { const [x0, z0] = nearOrigin(t.i, t.j); return { t, d: Math.hypot(x0 + 32 - px, z0 + 32 - pz) }; }).filter(o => o.d < 118);
+    const grassBlocks = list.map(({ t, d }) => ({ id: t.i + ':' + t.j, count: t.veg.g, distance: d }));
+    const flowerBlocks = list.map(({ t, d }) => ({ id: t.i + ':' + t.j, count: t.veg.f, distance: d }));
+    const gPlan = diffInstanceBlocks(grassPlan, grassBlocks, GRASS_MAX);
+    const fPlan = diffInstanceBlocks(flowerPlan, flowerBlocks, FLOWER_MAX);
+    if (!gPlan.changed && !fPlan.changed) return;
+    const byId = new Map(list.map(({ t }) => [t.i + ':' + t.j, t]));
     if (!grass.instanceColor) grass.setColorAt(0, C.setRGB(1, 1, 1)); if (!flowers.instanceColor) flowers.setColorAt(0, C.setRGB(1, 1, 1));
-    const GCA = grass.instanceColor.array, FCA = flowers.instanceColor.array;
-    for (const { t } of list) { const v = t.veg, ng = Math.min(v.g, GRASS_MAX - g), nf = Math.min(v.f, FLOWER_MAX - f);
-      if (ng > 0) { GA.set(v.G.subarray(0, ng * 16), g * 16); GCA.set(v.GC.subarray(0, ng * 3), g * 3); g += ng; }
-      if (nf > 0) { FA.set(v.F.subarray(0, nf * 16), f * 16); FCA.set(v.FC.subarray(0, nf * 3), f * 3); f += nf; } }
-    grass.count = g; flowers.count = f; grass.instanceMatrix.needsUpdate = flowers.instanceMatrix.needsUpdate = true; grass.instanceColor.needsUpdate = flowers.instanceColor.needsUpdate = true;
+    const GA = grass.instanceMatrix.array, FA = flowers.instanceMatrix.array, GCA = grass.instanceColor.array, FCA = flowers.instanceColor.array;
+    if (gPlan.changed) {
+      let g = 0;
+      for (const item of gPlan.order) { const v = byId.get(item.id).veg; GA.set(v.G.subarray(0, item.count * 16), g * 16); GCA.set(v.GC.subarray(0, item.count * 3), g * 3); g += item.count; }
+      grass.count = g; grassPlan = gPlan.order; markInstanceUpload(grass.instanceMatrix, 0, g * 16); markInstanceUpload(grass.instanceColor, 0, g * 3);
+    }
+    if (fPlan.changed) {
+      let f = 0;
+      for (const item of fPlan.order) { const v = byId.get(item.id).veg; FA.set(v.F.subarray(0, item.count * 16), f * 16); FCA.set(v.FC.subarray(0, item.count * 3), f * 3); f += item.count; }
+      flowers.count = f; flowerPlan = fPlan.order; markInstanceUpload(flowers.instanceMatrix, 0, f * 16); markInstanceUpload(flowers.instanceColor, 0, f * 3);
+    }
   }
 
   /* ---------------- árvores (plano para o acervo de espécies) e rochas ---------------- */
@@ -252,10 +265,10 @@ export function createJourneyWorld(T, scene, opts = {}) {
     if (!speciesTrees) for (const s of treeSpots) { if (Math.hypot(s.x - px, s.z - pz) > 330 || tr >= TREE_MAX) continue; const h = height(s.x, s.z), th = 3.4 * s.s;
       mx.position.set(s.x, h - .1, s.z); mx.rotation.set(0, 0, 0); mx.scale.set(s.s, th, s.s); mx.updateMatrix(); trunks.setMatrixAt(tr++, mx.matrix);
       for (const [oy, sc, ox, oz] of [[th + 1.2 * s.s, 2.2 * s.s, 0, 0], [th + 2.3 * s.s, 1.6 * s.s, .6 * s.s, .3 * s.s], [th + 1.7 * s.s, 1.5 * s.s, -.7 * s.s, -.4 * s.s]]) { if (cr >= TREE_MAX * 3) break; mx.position.set(s.x + ox, h + oy, s.z + oz); mx.scale.set(sc, sc * .8, sc); mx.updateMatrix(); crowns.setMatrixAt(cr, mx.matrix); C.setHSL(.24 + hash(cr, 1, 51) * .06, .42, .28 + hash(cr, 2, 52) * .08); crowns.setColorAt(cr, C); cr++; } }
-    trunks.count = tr; crowns.count = cr; trunks.instanceMatrix.needsUpdate = crowns.instanceMatrix.needsUpdate = true; if (crowns.instanceColor) crowns.instanceColor.needsUpdate = true;
+    trunks.count = tr; crowns.count = cr; markInstanceUpload(trunks.instanceMatrix, 0, tr * 16); markInstanceUpload(crowns.instanceMatrix, 0, cr * 16); if (crowns.instanceColor) markInstanceUpload(crowns.instanceColor, 0, cr * 3);
     let rk = 0; rockSpots.forEach((s, i) => { if (Math.hypot(s.x - px, s.z - pz) > 300 || rk >= ROCK_MAX) return; mx.position.set(s.x, (s.y ?? height(s.x, s.z)) + s.s * .15, s.z); mx.rotation.set((hash(i, 1, 61) - .5) * .5, hash(i, 2, 62) * 6.28, (hash(i, 3, 63) - .5) * .4); mx.scale.set(s.s * 1.2, s.s * .8, s.s); mx.updateMatrix(); rocks.setMatrixAt(rk, mx.matrix);
       C.setHex(s.dark >= 1 ? 0x57504b : s.dark > 0 ? 0x77716c : 0x9a9284).multiplyScalar(.85 + hash(i, 4, 64) * .3); rocks.setColorAt(rk, C); rk++; });
-    rocks.count = rk; rocks.instanceMatrix.needsUpdate = true; if (rocks.instanceColor) rocks.instanceColor.needsUpdate = true;
+    rocks.count = rk; markInstanceUpload(rocks.instanceMatrix, 0, rk * 16); if (rocks.instanceColor) markInstanceUpload(rocks.instanceColor, 0, rk * 3);
   }
 
   /* grupos com LOD por distância (o plano de corte da jornada é longo: o que está longe e é pequeno não vai para a GPU) */
