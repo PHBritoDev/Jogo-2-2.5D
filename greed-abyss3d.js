@@ -116,7 +116,7 @@ export function createGreedAbyss(T, parent, radius) {
   group.add(skull);
   const spine=new T.CatmullRomCurve3([
     [-40,-22,-32],[-38,-4,-19],[-40,12,-17],[-34,24,-13],
-    [-19,30,-13],[-1,30,-17],[13,24,-19],[18,15,-18],
+    [-19,27,-13],[-1,27,-17],[13,24,-19],[18,15,-18],
     [15,8,-12],[7,3,-8],[0,0,0]
   ].map(p=>new T.Vector3(...p)));
   const samples=192,frames=spine.computeFrenetFrames(samples,false);
@@ -137,7 +137,7 @@ export function createGreedAbyss(T, parent, radius) {
     const width=7.3+2.8*sin(Math.PI*t)+1.5*(1-t)+corrugation+cheek;
     const height=width*(1.04+.61*muzzle);
     // Flatten the upper palate and lengthen the side walls toward the lips.
-    const power=1-.30*muzzle,c=cos(a),s=sin(a);
+    const power=1-.09*muzzle,c=cos(a),s=sin(a);
     const x=(width*(1-inset)+relief)*Math.sign(c)*Math.abs(c)**power;
     const y=(height*(1-inset)+relief)*Math.sign(s)*Math.abs(s)**power;
     const lip=muzzle**4*(1.9*s+.42*cos(3*a+.45));
@@ -168,9 +168,20 @@ export function createGreedAbyss(T, parent, radius) {
     const t=.041+(j+.45*(collars[j]-.5))*.024+(u-.5)*(.012+.009*collars[j])
       +.006*cos(a*2+j*.36)+.002*sin(5*a-j*.41);
     const crown=sin(Math.PI*u),wear=.55+.45*cos(7*a+2*collars[j]+j);
-    const [x,y,z]=section(t,a,0,crown*(.38+.92*wear));
+    const [x,y,z]=section(t,a,0,crown*(.32+.79*wear));
     return [x,y,z,.032+crown**2*(.11+.24*wear)*(.62+.38*sin(a))];
   },skull,collars.length);
+  // The pharyngeal arches recede on the return wall of the same spline.
+  // Each incomplete crescent turns farther around the bend; the central lumen stays open.
+  surface(4,compact?22:36,(u,v,j)=>{
+    const a=-1.4+4.8*v+.38*j;
+    const depth=.09+j*.125+(u-.5)*.055+.024*sin(2*a+j);
+    const fold=.5+.5*cos(37*depth+.9*sin(3*a+depth*4));
+    const inset=.13+.86*depth**1.24+.027*fold*sin(Math.PI*depth);
+    const edge=sin(Math.PI*u)*sin(Math.PI*v);
+    const [x,y,z]=section(1-.26*depth,a,inset,-.28*edge);
+    return [x,y,z,.009+.17*edge**2*Math.exp(-3.1*depth)];
+  },skull,6);
   // Low, split cheek plates run lengthwise across the last vertebrae.
   // They flare over the hinge and converge onto the upper edge of the gape.
   surface(compact?18:28,5,(u,v,j)=>{
@@ -297,7 +308,7 @@ export function createGreedAbyss(T, parent, radius) {
       const [x,y,z]=section(depth,a,row?.11:.029);
       const sign=s>-.34?-1:1,extra=s>.25?2.3:.6;
       const joint=v<mid?bay:bayList[(j+1)%bayList.length];
-      const drop=.21+cusp*(.7+extra+joint.drop**2*4.3);
+      const drop=.18+cusp*(.4+extra*.55+joint.drop**3*4.7);
       const side=cos(a);
       return [x-side*.10*u*drop,y+sign*u*drop,z-.20*u*drop+.08*sin(Math.PI*u),
         .12+.40*(1-.65*u)*(.56+.44*cos(a-1))+.09*cusp];
