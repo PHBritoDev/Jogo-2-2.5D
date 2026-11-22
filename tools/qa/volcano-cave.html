@@ -58,8 +58,9 @@ async function run(){
   };
   camera.position.copy(hero);
   const aim=z=>{
-   camera.lookAt(hero.x,2,z);
    arena.update(1100,camera,180,{player:hero,quality:'low'});
+   camera.lookAt(hero.x,2,z);
+   renderer.render(scene,camera);
    return counts();
   };
   const south=aim(hero.z-30),north=aim(hero.z+30);

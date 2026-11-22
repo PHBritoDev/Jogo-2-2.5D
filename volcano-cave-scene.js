@@ -201,7 +201,8 @@ function sanctuary(b,l,crystals,torches){
 }
 export function buildVolcanoCave(T,g,spec,ctx){
  const names=['Santuário das Cataratas de Fogo','Bosque das Veias Ardentes','Abismo das Coroas Mortas'];
- const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
+ const lod=new T.LOD();lod.name="Instâncias da caverna";g.add(lod);
+ const groups=names.map(n=>{const s=new T.Group();s.name=n;lod.add(s);return s;}),clock={value:0};
  let updateTrees,updateRavine;const assetUpdates=[[],[],[]];
  resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
  const galleries=new T.Group();galleries.name="Santuário • galeria superior";groups[0].add(galleries);
@@ -244,13 +245,21 @@ export function buildVolcanoCave(T,g,spec,ctx){
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
  const tint=new T.Color(),groveFog=new T.Color(0x414050),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x272938),crownSky=new T.Color(0x98949b);
  const frustum=new T.Frustum(),clipFromCave=new T.Matrix4();
- ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;galleries.visible=z>135;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
-  const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
-  // Cull with the rendered camera; cutscenes can look away from the hero.
-  c.updateWorldMatrix(true,false);g.updateWorldMatrix(true,false);
-  frustum.setFromProjectionMatrix(clipFromCave.multiplyMatrices(c.projectionMatrix,c.matrixWorldInverse).multiply(g.matrixWorld));
-  if(groups[1].visible){updateTrees(x,z,frustum);updateRavine(z,env.bg);}
-  groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality,frustum);});
+ const localHero=new T.Vector3();let quality='low';
+ // Three calls LOD.update while building the render list, after cinematic
+ // overrides and camera shake, before it traverses the instance batches.
+ lod.update=camera=>{
+  frustum.setFromProjectionMatrix(clipFromCave.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse).multiply(g.matrixWorld));
+  const {x,y,z}=localHero;
+  if(groups[1].visible)updateTrees(x,z,frustum);
+  groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,quality,frustum);});
+ };
+ ctx.tick.push((t,dt,c,opts)=>{
+  clock.value=t;quality=opts?.quality;
+  localHero.copy(opts?.player||c.position).sub(g.position);
+  const z=localHero.z;
+  groups[0].visible=z>77;galleries.visible=z>135;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
+  if(groups[1].visible)updateRavine(z,env.bg);
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
   env.fogFar=226-104*f+150*a;env.fogNear=14-6*f+9*a;
   tint.setHex(0x5d5160).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
