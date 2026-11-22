@@ -5,7 +5,7 @@ const base=process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173';
 const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','vorgazhek-runtime');fs.mkdirSync(out,{recursive:true});
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- const report={ok:false,errors:[],screenshots:[],networkFailures:[],state:null,navigation:null,renderer:'Chromium SwiftShader, not mobile FPS'};
+ const report={ok:false,errors:[],screenshots:[],networkFailures:[],state:null,navigation:null,motion:[],renderer:'Chromium SwiftShader, not mobile FPS'};
  try{
   const context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1,recordVideo:{dir:path.join(out,'videos')}});
   const page=await context.newPage();
@@ -27,6 +27,15 @@ async function main(){
   report.navigation=await page.evaluate(()=>({centerBlocked:SevenSinsDebug3D.collisionAt(800,0),innerBlocked:SevenSinsDebug3D.collisionAt(862,0),outsideBlocked:SevenSinsDebug3D.collisionAt(893,0)}));
   assert.equal(report.navigation.centerBlocked,false);assert.equal(report.navigation.innerBlocked,false);assert.equal(report.navigation.outsideBlocked,true);
   await page.evaluate(()=>{SevenSinsDebug3D.fly(null);SevenSinsDebug3D.view(.65,.08,8.5);});await page.waitForTimeout(1500);await shot('02-angulo-lateral');
+  // Record real forward/backward input at fixed exposure and camera before mobile framing.
+  // Screenshots and positions reveal whether the water highlight survives movement.
+  for(const [key,label] of [['KeyW','04-avanco-z'],['KeyS','05-retorno-z']]){
+   const before=await page.evaluate(()=>SevenSinsDebug3D.state());
+   await page.keyboard.down(key);await page.waitForTimeout(1250);await page.keyboard.up(key);
+   await page.waitForTimeout(300);await shot(label);
+   const after=await page.evaluate(()=>SevenSinsDebug3D.state());
+   report.motion.push({key,before,after,screenshot:label+'.png'});
+  }
   await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
   assert.deepEqual(report.errors,[]);report.ok=true;
   await context.close();
