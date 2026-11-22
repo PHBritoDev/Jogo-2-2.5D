@@ -29,3 +29,13 @@ test('forest retains flat pockets next to steep slopes', () => {
   assert.ok(trees.length > 0);
   assert.ok(trees.every(t => t.x >= 0), 'steep negative-X hillside must stay clear');
 });
+
+test('forest rejects narrow raised shelves even when central gradient cancels out', () => {
+  // The center of a narrow raised shelf is higher than both neighbors;
+  // central differences alone falsely classify that tree root as flat.
+  const terrain = { ...base, height: (x) => Math.abs(x) < 1 ? 4 : 0 };
+  const trees = scatterForest(terrain, options);
+  assert.ok(trees.length > 0, 'level ground away from shelf must remain forested');
+  assert.ok(trees.every(t => Math.abs(t.x) >= 2.25),
+    'no tree root may straddle the unsupported raised shelf');
+});
