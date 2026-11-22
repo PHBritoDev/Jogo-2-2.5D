@@ -76,6 +76,25 @@ export function upperGalleries(b,l,crystals,torches){
 // Suspended watercourse behind the nave. The lip projects beyond the
 // retaining wall so the molten sheet stays visible from the landings.
 export function lowerSpillways(b,l,crystals){
+ // The high sanctuary sits on the third arcade. Its open bronze
+ // armillary encloses a single crystal, visible through both ring planes.
+ const ox=-9,oz=65,altar=36,oy=altar+9;
+ for(let k=0;k<4;k++)b.block(ox,altar-3+k*.75,oz,28-k*1.4,.8,12-k*.7,0x9b817a);
+ for(const side of [-1,1]){
+  b.stalk([[ox+side*11,24,oz,3.5],[ox+side*11,altar,oz,2.5]],7,0x746678);
+  mourner(b,ox+side*11,altar,oz+1,1.7);
+ }
+ for(const yaw of [0,1.05]){
+  const point=(a,r,w)=>[ox+Math.cos(a)*r*Math.cos(yaw)+w*Math.sin(yaw),
+   oy+Math.sin(a)*r,oz-Math.cos(a)*r*Math.sin(yaw)+w*Math.cos(yaw)];
+  for(let k=0;k<40;k++){
+   const a=k*Math.PI/20,c=a+Math.PI/20;
+   b.quad(point(a,7.7,.28),point(c,7.7,.28),point(c,8.18,.28),point(a,8.18,.28),0xdcb782);
+   b.quad(point(a,8.18,.28),point(c,8.18,.28),point(c,8.18,-.28),point(a,8.18,-.28),0x8b7159);
+   if(k%5===0)b.face(point(a-.054,8,.29),point(a+.054,8,.29),point(a,9.25,.29),0xffc784);
+  }
+ }
+ crystals.push([ox,oy,oz,2.55,0,.65,0xff8e62]);
  for(const [x,z,h,r] of [[-19,91,22,2.3],[21,78,29,3.2],[-37,63,37,4.2]]){
   const base=-26;
   for(const side of [-1,1]){

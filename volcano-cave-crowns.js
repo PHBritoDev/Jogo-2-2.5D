@@ -45,7 +45,33 @@ function citadel(b,x,y,z,size){
  }
  for(let j=-2;j<=2;j++)b.arch(x+j*4.7*s,y+2*s,z+6*s,1.9*s,4*s,2*s,0x807784);
 }
-export function crowns(T,b,group){
+// Detached stone lamellae hang below the broken shelf. Their triangular
+// profiles have a lit rim, a dark hanging face and a slow lateral drift.
+function suspendedShale(T,b,group,clock){
+ const positions=[],colors=[],phases=[];
+ for(let i=0;i<72;i++){
+  const side=i%2?1:-1,x=side*(9+b.random()*35),z=-22-b.random()*111;
+  const y=(i%4===0?1:-1)*(2+b.random()*22),r=.14+b.random()*.65;
+  const a=[x-r,y,z],c=[x+r*.68,y+.1*r,z-.2*r],d=[x+.23*r,y+.18*r,z+r],tip=[x-.18*r,y-2.4*r,z+.36*r];
+  const phase=b.random()*6;
+  for(const [v,hue] of [[[a,c,d],0x948a91],[[a,d,tip],0x413945],[[d,c,tip],0x66545e],[[c,a,tip],0x322e38]]){
+   const color=new T.Color(hue);
+   for(const point of v){positions.push(...point);colors.push(color.r,color.g,color.b);phases.push(phase);}
+  }
+ }
+ const geo=new T.BufferGeometry();
+ geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+ geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));
+ geo.setAttribute('phase',new T.Float32BufferAttribute(phases,1));
+ const mat=new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide});
+ mat.onBeforeCompile=shader=>{
+  shader.uniforms.drift=clock;
+  shader.vertexShader='uniform float drift;attribute float phase;\n'+shader.vertexShader.replace('#include <begin_vertex>',
+   '#include <begin_vertex>\ntransformed.y+=.28*sin(.47*drift+phase);transformed.x+=.13*cos(.39*drift+phase);');
+ };
+ const mesh=new T.Mesh(geo,mat);mesh.name='Lascas suspensas do abismo';group.add(mesh);
+}
+export function crowns(T,b,group,clock){
  // Distant luminous stone vault: the pale slit silhouettes the city while the
  // underside of the abyss stays dark. One opaque backdrop, no stacked fog cards.
  const vault=new T.Mesh(new T.SphereGeometry(1,42,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,
@@ -128,6 +154,18 @@ export function crowns(T,b,group){
  for(let i=0;i<55;i++){const x=(i%2?-1:1)*(17+b.random()*78),z=-17-b.random()*166,y=-12-b.random()*54;
   b.stalk([[x,y-14,z,2+b.random()*3],[x+1,y,z,1.7],[x+2,y+3+b.random()*8,z-1,.06]],5,0x3c3443);}
  for(const [x,z] of [[-4,-16],[5.5,-51],[-10,-78],[11,-84]]){b.stalk([[x,-1,z,.85],[x,1,z,.65],[x+.2,2,z,.2]],6,0x615562);}
+ // Oblique bedding planes lead the eye down into the unlit chasm. Their
+ // split columns tuck underneath each other rather than sealing the horizon.
+ for(const side of [-1,1])for(let j=0;j<18;j++){
+  const x=side*(34+8*Math.cos(j*.61)),z=-13-j*6.8,top=-4+5*Math.sin(j*.57);
+  const p=[x,top,z],q=[x+side*4,top+1.3,z+2.8],r=[x+side*9,top+3.7,z-3.7],u=[x+side*3,top-1,z-5.8];
+  b.quad(p,q,r,u,0x847b85);
+  const end=[x+side*1.8,top-27-14*b.random(),z-2.6];
+  b.face(p,u,end,0x46414d);b.face(u,r,end,0x574953);b.face(q,p,end,0x655b64);
+  if(j%3===0)b.face([x,top-.2,z],[x+side*.52,top-3.3,z-.34],[end[0],end[1]+6,end[2]],0x833a43);
+ }
+ suspendedShale(T,b,group,clock);
+
 }
 export function ritual(T,group,refs){
  const stone=new T.MeshStandardMaterial({color:0x61535c,roughness:.95}),iron=new T.MeshStandardMaterial({color:0x4c3c34,roughness:.56,metalness:.32});
