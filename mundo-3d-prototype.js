@@ -3331,14 +3331,24 @@ function updateIlyanEscort(dt){
  if(action)action.paused=!moving;
  if(!moving)return;
  const step=Math.min(len,Math.min(.05,Math.max(0,dt))*2.45);
- const nx=h.position.x+vx/len*step,nz=h.position.z+vz/len*step;
- // A própria geometria de colisão do esgoto valida o próximo ponto.
- if(!sewerWalkable(nx-origin.x,nz-origin.z,{portalOpen:false})){
+ // Desvio local quando a linha reta encontra uma rocha/parede. Todos os
+ // candidatos passam pela colisão real; nunca atravessar obstáculos ou teleportar.
+ const ux=vx/len,uz=vz/len;
+ let chosen=null;
+ for(const angle of [0,.4,-.4,.8,-.8,1.2,-1.2,1.57,-1.57]){
+  const c=Math.cos(angle),sn=Math.sin(angle);
+  const dirX=ux*c-uz*sn,dirZ=ux*sn+uz*c;
+  const nx=h.position.x+dirX*step,nz=h.position.z+dirZ*step;
+  if(!sewerWalkable(nx-origin.x,nz-origin.z,{portalOpen:false}))continue;
+  chosen={nx,nz,dirX,dirZ};
+  break;
+ }
+ if(!chosen){
   if(action)action.paused=true;
   return;
  }
- h.position.set(nx,voidSpec.y,nz);
- h.rotation.y=Math.atan2(vx,vz);
+ h.position.set(chosen.nx,voidSpec.y,chosen.nz);
+ h.rotation.y=Math.atan2(chosen.dirX,chosen.dirZ);
  if(ilyanNpc.mixer)ilyanNpc.mixer.update(Math.min(.05,Math.max(0,dt)));
 }
 function syncIlyanPlacement(){
