@@ -19,7 +19,8 @@ test('one physical swing damages primary and secondary capsule once, never dista
  for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
  assert.deepEqual(e.hits.map(h=>h.id).sort(),[1,2]);
  assert.equal(e.impacts.filter(id=>id===2).length,1);
- assert(e.hits.every(h=>h.damage>0&&h.kind==='basic'));
+ assert(e.hits.every(h=>h.damage>0));
+ assert.deepEqual(e.hits.map(h=>[h.id,h.kind]),[[1,'basic'],[2,'energy-side']]);
 });
 test('secondary physical contact respects obstruction',()=>{
  const e=encounter((p)=>p.x>.15);assert(e.rites.attack('prota',{target:e.primary}));
@@ -34,7 +35,20 @@ test('hybrid blade and travelling wave never double-hit the same secondary enemy
  e.rites.api.moveset=()=>hybrid;
  assert(e.rites.attack('prota',{target:e.primary}));
  for(let i=0;i<180;i++)e.rites.update(1/120,e.ctx);
- assert.deepEqual(e.hits.filter(h=>h.id===2).map(h=>h.kind),['basic']);
+ assert.deepEqual(e.hits.filter(h=>h.id===2).map(h=>h.kind),['energy-side']);
  assert.equal(e.impacts.filter(id=>id===2).length,1);
  assert.equal(e.hits.filter(h=>h.id===1).length,1);
+});
+
+// The actual world callback only damages the primary siegeEpoch on 'basic';
+// secondary actors are handled through the pre-existing 'energy-side' route.
+test('secondary physical strike reaches the production-style squad damage bridge',()=>{
+ const e=encounter(),applied=[];
+ e.rites.api.hit=(damage,id,kind)=>{
+  if(kind==='energy-side' || (kind==='basic'&&id===e.primary.id))applied.push({id,damage});
+ };
+ assert(e.rites.attack('prota',{target:e.primary}));
+ for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
+ assert.deepEqual(applied.map(h=>h.id),[1,2]);
+ assert(applied.every(h=>h.damage>0));
 });
