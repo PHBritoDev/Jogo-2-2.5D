@@ -5,10 +5,11 @@ const base=process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173';
 const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','vorgazhek-runtime');fs.mkdirSync(out,{recursive:true});
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ let context=null;let page=null;
  const report={ok:false,errors:[],screenshots:[],networkFailures:[],state:null,navigation:null,motion:[],renderer:'Chromium SwiftShader, not mobile FPS'};
  try{
-  const context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1,recordVideo:{dir:path.join(out,'videos')}});
-  const page=await context.newPage();
+  context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1,recordVideo:{dir:path.join(out,'videos')}});
+  page=await context.newPage();
   page.on('pageerror',err=>report.errors.push(err.message));
   page.on('console',msg=>{if(msg.type()==='error'&&/shader|WebGL|compile|INVALID/i.test(msg.text()))report.errors.push(msg.text());});
   page.on('response',res=>{if(res.status()>=400&&!res.url().endsWith('favicon.ico'))report.networkFailures.push({status:res.status(),url:res.url()});});
@@ -42,8 +43,13 @@ async function main(){
   assert.ok(forward.dx*backward.dx+forward.dz*backward.dz<0,'W/S must move in opposite directions');
   await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.networkFailures,[]);report.ok=true;
-  await context.close();
- }finally{fs.writeFileSync(path.join(out,'resultado.json'),JSON.stringify(report,null,2)+'\n');await browser.close();}
+ }finally{
+  // Finalize video even when an assertion fails; preserve evidence for diagnosis.
+  try{if(page){const video=page.video();await page.close();if(video)report.video=await video.path();}}catch(err){report.errors.push('video finalization: '+err.message);}
+  try{if(context)await context.close();}catch(err){report.errors.push('context close: '+err.message);}
+  fs.writeFileSync(path.join(out,'resultado.json'),JSON.stringify(report,null,2)+'\n');
+  await browser.close();
+ }
  console.log(JSON.stringify({ok:report.ok,errors:report.errors,shots:report.screenshots,navigation:report.navigation},null,2));
 }
 main().catch(err=>{console.error(err);process.exitCode=1});
