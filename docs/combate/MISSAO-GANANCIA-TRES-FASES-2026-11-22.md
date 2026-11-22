@@ -27,10 +27,14 @@ Poderes genéricos da Ganância: kits `greed1/2/3` (chuva, orbes, correntes, fur
 ## Testes
 `tests/ganancia-tres-fases.test.mjs` (no CI `combat315.yml`): assets, versão, integração, remoção dos genéricos, fluxo I→II→III, foices 10 s + multi-hit + escudo + choque, lança 5 s + escudo, 4 sóis independentes, voo/teto, abismo 30–40 s e 20–25 s. Suíte completa: mesmas falhas pré-existentes da `main` (luzes/shader/energyBody/Bispo 4/Mod 256/262/278), nenhuma nova.
 
-## Evidências
-`docs/combate/evidencias/ganancia-tres-fases/` — quadros do jogo, folhas comparativas com as referências e vídeo comparativo.
+## Evidências (`docs/combate/evidencias/ganancia-tres-fases/`)
+- `comparativo-referencias.mp4` — referência (em cima) × jogo (embaixo): ressurreição, 4 mini-sóis, esfera/explosão do abismo.
+- `comp-armas.jpg`, `comp-modelos.jpg`, `comp-mini-sois.jpg`, `comp-ressurreicao.jpg`, `comp-abismo.jpg` — folhas lado a lado.
+- `fase1-para-2.jpg`, `fase3-perto.jpg`, `mobile-852x393-fluxo.jpg` — jogo real (fluxo I→II→III em 852×393 sem erros de console).
+- `renderer.info` no fluxo completo (SwiftShader, 960×540): 109–119 draw calls, ~237 mil triângulos, 0 erros.
 
 ## Limitações reais
 - QA visual em SwiftShader (CPU), sem GPU/Android real: não há medição de FPS em aparelho.
+- **Pendurar no teto**: o teto real da garganta da arena fica a ~80 m sobre o chão (medido por raycast no jogo); só as paredes de rocha além do raio jogável têm teto baixo. Pela regra do briefing o pendurar **aborta** (teto < 7,5 m ou > 18 m) e o voo vira mergulho ou sóis aéreos. A lógica de pendurar com pés ancorados está pronta e testada para arenas com teto alcançável.
 - O par inferior de asas é um GLB separado preso à coluna; em poses extremas pode haver leve interpenetração com a capa.
 - Similaridade com as referências avaliada a olho, sem métrica numérica.

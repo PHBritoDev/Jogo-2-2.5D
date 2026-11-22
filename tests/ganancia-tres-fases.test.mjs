@@ -90,6 +90,8 @@ test('voo: pendura no teto só com teto real; sem teto aborta para mergulho', ()
   assert.equal(N.of('gkFly', 'hang').length, 0, 'sem teto não pendura');
   const L = sim({ kind: 'greedB', ceil: G.GK.fly.minCeil - 1 }); L.run(1); force(L, 'voo-hang'); L.run(14);
   assert.equal(L.of('gkFly', 'hang').length, 0, 'teto baixo não pendura');
+  const H = sim({ kind: 'greedB', ceil: 80 }); H.run(1); force(H, 'voo-hang'); H.run(14);
+  assert.equal(H.of('gkFly', 'hang').length, 0, 'teto alto demais (garganta ~80 m) aborta'); assert.ok(Math.max(...H.of('gkFly').map(e => e.d.actor.airY || 0)) < 8, 'não sobe até o teto distante');
 });
 
 test('fase III: esfera do abismo — primeira em 30–40 s, depois 20–25 s com vida baixa', () => {

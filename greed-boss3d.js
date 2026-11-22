@@ -84,7 +84,7 @@ export const GK = Object.freeze({
   scythe: { life: 10, speed: 11, maxSpeed: 7.8, accel: 20, keep: 1.35, windup: .34, strikeDur: .3, recoil: .38, dmg: 9, reach: 1.45, clashR: 2.3, clashCd: .6, stun: .9, repel: 9 },
   spear: { speed: 18, turn: 1.7, life: 5, radius: .55, dmg: 22, gap: [3.5, 16], cd: 9, release: 1.67 },
   throw: { release: 1.67, gap: [2, 12], cd: 8, phase2Release: .7 },
-  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 12, minCeil: 7.5 },
+  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 12, minCeil: 7.5, maxCeil: 18 },
   suns: { n: 4, form: .45, hold: .35, gap: .36, speed: 11.5, radius: .55, boom: 2.3, direct: 14, area: 8, cd: 14 },
   abyss: { first: [32, 38], slow: 25, fast: 20, charge: 3.3, speed: 9.5, radius: 1, boom: 3.2, direct: 24, area: 12 },
   tele: { duel: [6, 8], orbitR: 1.7 },
@@ -285,7 +285,7 @@ function stepFlight(sq, a, dt, t) {
   if (act.stage === 'cruise') { air(act.alt + Math.sin(sq.time * 2.2) * .25); act.face = false;
     if (tgt) { const ang = Math.atan2(a.x - tgt.x, a.z - tgt.z) + act.orbitDir * F.speed / F.radius * dt; glide(tgt.x + Math.sin(ang) * F.radius, tgt.z + Math.cos(ang) * F.radius, F.speed); a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -5 * dt, 5 * dt)); }
     if (act.st >= act.cruise) { act.st = 0;
-      if (act.plan === 'hang' && sq.ceilingAt) { const c = sq.ceilingAt(a.x, a.z); if (c && c - a.y > 3 && c - sq.ground(a.x, a.z) >= F.minCeil) { act.stage = 'toCeil'; act.ceil = c; sq.event('gkFly', { actor: a, phase: 'toCeil', ceil: c }); return; } act.plan = 'suns'; }
+      if (act.plan === 'hang' && sq.ceilingAt) { const c = sq.ceilingAt(a.x, a.z); if (c && c - a.y > 3 && c - sq.ground(a.x, a.z) >= F.minCeil && c - sq.ground(a.x, a.z) <= F.maxCeil) { /* teto real e alcançável (a garganta da arena tem ~80 m: aborta) */ act.stage = 'toCeil'; act.ceil = c; sq.event('gkFly', { actor: a, phase: 'toCeil', ceil: c }); return; } act.plan = 'suns'; }
       if (act.plan === 'suns') { act.stage = 'cast'; startSuns(sq, a, tgt); sq.event('gkFly', { actor: a, phase: 'castAir' }); return; }
       act.stage = 'dive'; act.lock = tgt ? { x: tgt.x + (tgt.vx || 0) * .3, z: tgt.z + (tgt.vz || 0) * .3 } : { x: a.x, z: a.z }; act.from = { x: a.x, z: a.z, h: a.airY }; act.hitDone = false; flyAnim(sq, a, 'gk_dive'); g.stats.dives++; sq.event('gkFly', { actor: a, phase: 'dive', lock: act.lock }); }
     return; }
@@ -394,7 +394,7 @@ export function gkForceTech(sq, a, t, name) {
   if (name === 'abismo') { g.abyssT = 0; return g.phase >= 3; }
   return false;
 }
-export function gkStateOf(a) { const g = a && a.gk; if (!g) return null; return { kind: a.kind, phase: g.phase, hp: a.hp, maxHp: a.maxHp, act: a.act && (a.act.type + (a.act.stage ? ':' + a.act.stage : '') + (a.act.move ? ':' + a.act.move.id : '')), hands: { ...g.hands }, ents: g.ents.map(e => e.key + ':' + e.mode), spear: g.spear && (g.spear.alive ? 'fly' : g.spear.end), suns: g.suns.map(s => s.state), sphere: g.sphere && g.sphere.state, airY: +(a.airY || 0).toFixed(2), x: +a.x.toFixed(2), z: +a.z.toFixed(2), stats: g.stats }; }
+export function gkStateOf(a) { const g = a && a.gk; if (!g) return null; return { kind: a.kind, phase: g.phase, hp: a.hp, maxHp: a.maxHp, act: a.act && (a.act.type + (a.act.stage ? ':' + a.act.stage : '') + (a.act.move ? ':' + a.act.move.id : '')), hands: { ...g.hands }, ents: g.ents.map(e => e.key + ':' + e.mode), spear: g.spear && (g.spear.alive ? 'fly' : g.spear.end), suns: g.suns.map(s => s.state), sphere: g.sphere && g.sphere.state, sp: g.sphere && [+g.sphere.x.toFixed(2), +g.sphere.y.toFixed(2), +g.sphere.z.toFixed(2)], airY: +(a.airY || 0).toFixed(2), x: +a.x.toFixed(2), z: +a.z.toFixed(2), stats: g.stats }; }
 /** Cancelamento (saída da dimensão, morte): armas e projéteis somem, nada fica preso no ar. */
 export function gkCancel(sq, a) { const g = a.gk; if (!g) return; g.ents = []; g.away = {}; g.spear = null; g.suns = []; g.sphere = null; a.airY = 0; a.gkFlip = 0; }
 

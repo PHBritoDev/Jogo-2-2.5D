@@ -25,8 +25,10 @@ float tear=smoothstep(.36,.5,n);vec3 c=mix(vec3(1.,.35,.04),vec3(1.,.9,.6),pow(f
 const RING_F = `uniform float uK,uT;uniform vec3 uC;varying vec2 vUv;${NOISE}void main(){vec2 p=vUv*2.-1.;float r=length(p),a=atan(p.y,p.x);float band=smoothstep(.12,.0,abs(r-.82))*(.6+.4*vn(vec3(a*6.,r*4.,uT*3.)));float a2=band*uK;if(a2<.01)discard;gl_FragColor=vec4(uC*a2*1.4,a2);}`;
 const ABY_F = `uniform float uT,uK,uP;varying vec3 vP,vN,vW;${NOISE}void main(){vec3 V=normalize(cameraPosition-vW);float f=abs(dot(normalize(vN),V));vec3 q=vP*2.6+vec3(uT*.5,uT*.3,-uT*.4);
 float n=fbm(q),cr=abs(vn(q*1.7)-.5)*2.,cr2=abs(vn(q*3.9+3.)-.5)*2.;float crack=smoothstep(.1,.0,cr)+smoothstep(.07,.0,cr2)*.6;
-vec3 c=mix(vec3(.45,.0,.02),vec3(1.,.08,.06),smoothstep(.3,.8,n)*pow(f,.7));c=mix(c,vec3(.06,0.,.09),clamp(crack,0.,1.)*.9);c+=vec3(.75,.1,1.)*smoothstep(.25,.05,cr)*(1.-smoothstep(.06,0.,cr))*.9;
-c+=vec3(1.,.2,.7)*pow(1.-f,2.5)*.8;c*=.8+.4*sin(uT*7.+uP*3.);gl_FragColor=vec4(c*uK,1.);}`;
+vec3 c=mix(vec3(.45,.0,.02),vec3(1.,.08,.06),smoothstep(.3,.8,n)*pow(f,.7));c=mix(c,vec3(.035,0.,.05),clamp(crack,0.,1.)*.95);c+=vec3(.42,.04,.62)*smoothstep(.25,.05,cr)*(1.-smoothstep(.06,0.,cr))*.6;
+c+=vec3(1.,.1,.18)*pow(1.-f,2.5)*.5; /* ref.: vermelho-sangue, rachaduras roxo-negras (menos rosa) */c*=.8+.4*sin(uT*7.+uP*3.);gl_FragColor=vec4(c*uK,1.);}`;
+// estouro do abismo: mesma esfera + miolo quente branco-laranja voltado à câmera (ref. 4,8 s), que esfria conforme uK cai
+const ABY_BOOM_F = ABY_F.replace('gl_FragColor=vec4(c*uK,1.);', 'c+=vec3(1.,.62,.36)*pow(f,2.6)*clamp(uK-.25,0.,1.)*2.2+vec3(1.,.15,.55)*pow(1.-f,1.5)*.6;gl_FragColor=vec4(c*uK,1.);');
 const PILLAR_F = `uniform float uK,uT;varying vec2 vUv;${NOISE}void main(){float x=abs(vUv.x-.5)*2.;float n=vn(vec3(vUv.x*8.,vUv.y*3.-uT*2.5,uT));float a=(1.-x*x)*smoothstep(1.,.0,vUv.y)*(.5+.5*n)*uK;if(a<.01)discard;gl_FragColor=vec4(mix(vec3(.9,.05,.1),vec3(1.,.45,.6),n)*a*1.5,a);}`;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, ease = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }, out3 = x => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
 
@@ -63,7 +65,7 @@ export function createGreedVFX(T, scene) {
   const abyRings = [0, 1, 2].map(i => { const m = new T.Mesh(keepG(new T.TorusGeometry(1.5 + i * .25, .035, 5, 48)), keep(new T.MeshBasicMaterial({ color: i === 1 ? 0x1a0028 : 0xb43aff, transparent: true, opacity: .8, blending: i === 1 ? T.NormalBlending : T.AdditiveBlending, depthWrite: false, toneMapped: false }))); aby.add(m); return m; });
   const abyHalo = new T.Mesh(sph, sm(CORONA_F.replace('mix(vec3(1.,.5,.08),vec3(1.,.85,.4),n)', 'mix(vec3(.9,.05,.2),vec3(.7,.15,1.),n)'), { uT: AU.uT, uK: { value: .8 }, uDisp: { value: .4 } })); abyHalo.scale.setScalar(1.6); aby.add(abyHalo);
   let abyRef = null;
-  const abyBoom = (() => { const g = new T.Group(); g.visible = false; root.add(g); const U = { uT: { value: 0 }, uK: { value: 1 }, uP: { value: 0 }, uDisp: { value: .35 } }; const core = new T.Mesh(sph, sm(ABY_F, U, false));
+  const abyBoom = (() => { const g = new T.Group(); g.visible = false; root.add(g); const U = { uT: { value: 0 }, uK: { value: 1 }, uP: { value: 0 }, uDisp: { value: .35 } }; const core = new T.Mesh(sph, sm(ABY_BOOM_F, U, false));
     const vU = { uT: U.uT, uK: { value: 1 }, uDisp: { value: .1 } }, vio = new T.Mesh(sphLo, sm('uniform float uT,uK;varying vec3 vP,vN,vW;void main(){vec3 V=normalize(cameraPosition-vW);float f=abs(dot(normalize(vN),V));gl_FragColor=vec4(vec3(.75,.2,1.)*pow(f,2.)*uK*1.8,pow(f,2.)*uK);}', vU));
     const RN = 18, rays = new T.InstancedMesh(keepG((() => { const c = new T.ConeGeometry(.12, 1, 4); c.translate(0, .5, 0); return c; })()), keep(new T.MeshBasicMaterial({ color: 0x14000e, transparent: true, depthWrite: false })), RN);
     const raysGlow = new T.InstancedMesh(rays.geometry, keep(new T.MeshBasicMaterial({ color: 0xff3ad0, transparent: true, opacity: .55, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })), RN);
@@ -76,6 +78,12 @@ export function createGreedVFX(T, scene) {
     for (let i = 0; i < (low ? 8 : 18); i++) { _v.set(Math.random() - .5, Math.random() - .3, Math.random() - .5).normalize().multiplyScalar(6 + Math.random() * 5); emit(B.g.position, _v, .45 + Math.random() * .4, .05, i % 2 ? [1, .15, .5] : [.7, .2, 1], 0, 2.5, 3); } }
   /* ---------- ressurreição ---------- */
   const PU = { uT: { value: 0 }, uK: { value: 0 } }, pillar = new T.Mesh(keepG(new T.CylinderGeometry(.9, 1.3, 9, 24, 1, true)), sm(PILLAR_F, PU, true, UV)); pillar.geometry.translate(0, 4.5, 0); pillar.visible = false; pillar.renderOrder = 11; root.add(pillar);
+  // gaiola de vidro fraturado (ref. ressurreição): dois dodecaedros de arestas neon giram na subida e estilhaçam no estouro
+  const cage = new T.Group(); cage.visible = false; root.add(cage);
+  const cageA = new T.LineSegments(keepG(new T.EdgesGeometry(new T.DodecahedronGeometry(1.35))), keep(new T.LineBasicMaterial({ color: 0xff2030, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })));
+  const cageB = new T.LineSegments(keepG(new T.EdgesGeometry(new T.IcosahedronGeometry(.85))), keep(new T.LineBasicMaterial({ color: 0x9a6bff, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })));
+  const cageCore = new T.Mesh(keepG(new T.SphereGeometry(.42, 16, 12)), keep(new T.MeshBasicMaterial({ color: 0xff7a8a, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })));
+  cage.add(cageA, cageB, cageCore); cageA.renderOrder = cageB.renderOrder = cageCore.renderOrder = 12;
   const haloU = { uT: { value: 0 }, uK: { value: 0 }, uC: { value: new T.Color(.9, .05, .2) } }, halo = new T.Mesh(plane, sm(RING_F, haloU, true, UV)); halo.visible = false; root.add(halo);
   let rev = null;
   /* ---------- sangue e penas ---------- */
@@ -102,13 +110,13 @@ export function createGreedVFX(T, scene) {
     event(type, d, bodies) {
       if (type === 'gkSuns') { if (d.phase === 'summon') for (const s of d.suns) { const S = suns.find(x => !x.ref) || suns[0]; S.ref = s; S.g.visible = true; }
         if (d.phase === 'boom') { const S = suns.find(x => x.ref === d.sun); if (S) { S.ref = null; S.g.visible = false; } solarBoom(d.sun.x, d.sun.y, d.sun.z, d.gy ?? d.sun.y - .3); } }
-      if (type === 'gkAbyss') { if (d.phase === 'charge') { abyRef = d.sphere; aby.visible = true; } if (d.phase === 'boom') { aby.visible = false; abyssBoom(d.sphere.x, d.sphere.y, d.sphere.z, d.gy ?? d.sphere.y - .5, 1 + (d.sphere.power || 0) * .4); abyRef = null; } }
+      if (type === 'gkAbyss') { if (d.phase === 'charge') { abyRef = d.sphere; aby.visible = true; } if (d.phase === 'boom') { aby.visible = false; const gy = d.gy ?? d.sphere.y - .5; abyssBoom(d.sphere.x, d.sphere.y, d.sphere.z, gy, 1 + (d.sphere.power || 0) * .4); solarBoom(d.sphere.x, d.sphere.y, d.sphere.z, gy, .45); /* ref.: miolo laranja/branco dentro do estouro magenta */ abyRef = null; } }
       if (type === 'gkPhase') { const a = d.actor, B = bodies && bodies.get(a.id), cy = a.y + 1.2;
         if (d.stage === 'fall') { for (let i = 0; i < 24; i++) { _v.set(Math.random() - .5, Math.random() * .7, Math.random() - .5).normalize().multiplyScalar(2 + Math.random() * 3); emit(_s.set(a.x, cy, a.z), _v, 1, .05, [.9, .05, .1], -3, 1, 1.5); } }
         if (d.stage === 'arise') { abyssBoom(a.x, cy, a.z, a.y, .7); for (let i = 0; i < 10; i++) this.feather(_s.set(a.x + (Math.random() - .5), cy + Math.random(), a.z + (Math.random() - .5)), 2); }
         if (d.stage === 'die') { rev = { a, t: 0, stage: 'die' }; halo.visible = true; halo.position.set(a.x, a.y + .05, a.z); }
-        if (d.stage === 'rise' && rev) { rev.stage = 'rise'; rev.t = 0; pillar.visible = true; pillar.position.set(a.x, a.y, a.z); }
-        if (d.stage === 'burst') { abyssBoom(a.x, cy, a.z, a.y, 1.8); solarBoom(a.x, cy, a.z, a.y, .6); if (rev) { rev.stage = 'burst'; rev.t = 0; } }
+        if (d.stage === 'rise' && rev) { rev.stage = 'rise'; rev.t = 0; pillar.visible = true; pillar.position.set(a.x, a.y, a.z); cage.visible = true; }
+        if (d.stage === 'burst') { abyssBoom(a.x, cy, a.z, a.y, .75); cage.visible = false; for (let i = 0; i < (low ? 18 : 40); i++) { _v.set(Math.random() - .5, Math.random() - .35, Math.random() - .5).normalize().multiplyScalar(5 + Math.random() * 7); shard(_s.set(a.x, cy + .6, a.z), _v, .9 + Math.random() * .6, .16 + Math.random() * .2, null); } if (rev) { rev.stage = 'burst'; rev.t = 0; } }
         if (d.stage === 'done' && rev) rev.stage = 'end'; }
       if (type === 'gkBlade') { const e = d.ent; if (d.phase === 'clash') for (let i = 0; i < (low ? 10 : 20); i++) { _v.set(Math.random() - .5, Math.random() - .3, Math.random() - .5).normalize().multiplyScalar(4 + Math.random() * 4); emit(_s.set(d.x, d.y, d.z), _v, .3, .035, i % 2 ? [1, .9, .6] : TINT[e.key][0], -4, 1.5, 3); }
         if (d.phase === 'hit') for (let i = 0; i < 8; i++) { _v.set(Math.random() - .5, Math.random() * .6, Math.random() - .5).normalize().multiplyScalar(3); emit(_s.set(d.x, e.y, d.z), _v, .3, .03, TINT[e.key][0], -3, 1.5, 2.5); }
@@ -135,6 +143,7 @@ export function createGreedVFX(T, scene) {
           B.rays.instanceMatrix.needsUpdate = B.raysGlow.instanceMatrix.needsUpdate = true; if (t > 1.2) B.g.visible = false; } }
       if (rev) { rev.t += dt; const a = rev.a; haloU.uT.value = PU.uT.value = time; halo.position.set(a.x, a.y + .05, a.z);
         if (rev.stage === 'die') { haloU.uK.value = ease(rev.t / 1.5) * .8; halo.scale.setScalar(1.5 + rev.t * .5); }
+        if (cage.visible) { const k = ease(rev.t / 1.4); cage.position.set(a.x, a.y + .8 + 1.1 * k, a.z); cage.scale.setScalar(.6 + .9 * k); cageA.rotation.set(time * .9, time * 1.3, 0); cageB.rotation.set(-time * 1.6, time * .7, time); cageA.material.opacity = .35 + .65 * k * (.75 + .25 * Math.sin(time * 30)); cageB.material.opacity = .6 * k; cageCore.material.opacity = .25 + .45 * k; cageCore.scale.setScalar(.25 + k * (.45 + .1 * Math.sin(time * 25))); }
         if (rev.stage === 'rise') { haloU.uK.value = 1; PU.uK.value = ease(rev.t / .8); pillar.scale.set(1, ease(rev.t / 1.2), 1); if (Math.random() < dt * 30) { _v.set(Math.random() - .5, Math.random() * .2, Math.random() - .5).normalize().multiplyScalar(4); shard(_s.set(a.x, a.y + .5, a.z).add(_v), _v.multiplyScalar(-.9), .9, .12 + Math.random() * .1, null); } }
         if (rev.stage === 'burst' || rev.stage === 'end') { PU.uK.value = Math.max(0, PU.uK.value - dt * 1.6); haloU.uK.value = Math.max(0, haloU.uK.value - dt); if (PU.uK.value <= 0 && haloU.uK.value <= 0) { pillar.visible = halo.visible = false; rev = null; } } }
       // partículas
@@ -154,7 +163,7 @@ export function createGreedVFX(T, scene) {
         if (f.age > 4) f.on = false; _e.set(Math.sin(f.r) * .8, f.r, Math.cos(f.r * .7) * .6); _q.setFromEuler(_e); const s = f.age > 3.4 ? (4 - f.age) / .6 : 1; _m.compose(f.p, _q, _s.set(s, s, s)); feathers.setMatrixAt(i, _m); }
       feathers.instanceMatrix.needsUpdate = true; },
     stats() { return { suns: suns.filter(s => s.ref).length, booms: booms.filter(b => b.g.visible).length, abyss: aby.visible, abyBoom: abyBoom.g.visible, parts: P.filter(p => p.on).length, shards: SH.filter(s => s.on).length, drops: D.filter(d => d.on).length, feathers: F.filter(f => f.on).length, rev: !!rev }; },
-    clear() { for (const S of suns) { S.ref = null; S.g.visible = false; } for (const B of booms) B.g.visible = false; aby.visible = false; abyRef = null; abyBoom.g.visible = false; for (const q of P) q.on = false; for (const q of SH) q.on = false; for (const d of D) d.on = false; for (const f of F) f.on = false; rev = null; pillar.visible = halo.visible = false; },
+    clear() { cage.visible = false; for (const S of suns) { S.ref = null; S.g.visible = false; } for (const B of booms) B.g.visible = false; aby.visible = false; abyRef = null; abyBoom.g.visible = false; for (const q of P) q.on = false; for (const q of SH) q.on = false; for (const d of D) d.on = false; for (const f of F) f.on = false; rev = null; pillar.visible = halo.visible = false; },
     dispose() { this.clear(); scene.remove(root); for (const g of geos) g.dispose(); for (const m of mats) m.dispose(); for (const m of [parts, shards, drops, splats, feathers, abyBoom.rays, abyBoom.raysGlow]) m.dispose?.(); },
     solarBoom, abyssBoom
   };
