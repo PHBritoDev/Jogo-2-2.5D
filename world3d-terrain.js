@@ -395,35 +395,44 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   };
   // Invalid primary bounds must not reverse the forest span or poison sampling.
   if (![area?.cx, area?.cz, area?.hx, area?.hz].every(Number.isFinite) || area.hx < 0 || area.hz < 0) return specs;
-  const span = { x0: area.cx - area.hx - 70, x1: area.cx + area.hx + 70, z0: area.cz - area.hz - 70, z1: area.cz + area.hz + 70 };
-  // Optional regions may come from restored/generated map data; malformed containers
-  // must not crash forest generation or erase the valid primary region.
+  // Sample each playable forest region instead of its combined bounding box.
+  // A distant side region used to expand the rectangle into empty wilderness,
+  // wasting attempts and visibly thinning the original forest.
+  const regions = [];
+  const addRegion = (cx, cz, hx, hz) => {
+    const x0 = cx - hx - 70, x1 = cx + hx + 70;
+    const z0 = cz - hz - 70, z1 = cz + hz + 70;
+    const width = x1 - x0, depth = z1 - z0;
+    if (![x0, x1, z0, z1, width, depth].every(v => Number.isFinite(Math.fround(v)))) return;
+    const weight = width * depth;
+    if (!Number.isFinite(weight) || weight <= 0) return;
+    regions.push({ x0, x1, z0, z1, weight });
+  };
+  addRegion(area.cx, area.cz, area.hx, area.hz);
   const forestExtras = Array.isArray(terrain.extraAreas) ? terrain.extraAreas : [];
   for (const e of forestExtras) {
-    // A corrupt optional region must not poison the entire forest sampling span.
     if (![e?.cx, e?.cz, e?.hx, e?.hz].every(Number.isFinite) || e.hx < 0 || e.hz < 0) continue;
-    const x0 = e.cx - e.hx - 70, x1 = e.cx + e.hx + 70;
-    const z0 = e.cz - e.hz - 70, z1 = e.cz + e.hz + 70;
-    if (![x0, x1, z0, z1].every(v => Number.isFinite(Math.fround(v)))) continue;
-    // A distant but individually representable optional region can make the
-    // combined extent overflow Float32. Ignore only that region: the playable
-    // base forest must not disappear because of unrelated map data.
-    const next = {
-      x0: Math.min(span.x0, x0), x1: Math.max(span.x1, x1),
-      z0: Math.min(span.z0, z0), z1: Math.max(span.z1, z1),
-    };
-    if (![next.x1 - next.x0, next.z1 - next.z0].every(v => Number.isFinite(Math.fround(v)))) continue;
-    Object.assign(span, next);
+    addRegion(e.cx, e.cz, e.hx, e.hz);
   }
-  // Endpoints can be representable while their difference overflows Float32.
-  // A non-representable span would generate unstable world coordinates on mobile.
-  if (![span.x0, span.x1, span.z0, span.z1, span.x1 - span.x0, span.z1 - span.z0].every(v => Number.isFinite(Math.fround(v)))) return specs;
+  if (!regions.length) return specs;
+  const totalWeight = regions.reduce((sum, region) => sum + region.weight, 0);
+  if (!Number.isFinite(totalWeight)) return specs;
   // A malformed or unbounded sample budget must never stall the mobile main thread.
   // Normal gameplay budgets (2600, or 60% on low spec) are unchanged.
   const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : 2600;
   const total = lowSpec ? Math.round(budget * .6) : budget;
   for (let i = 0; i < total; i++) {
-    const x = span.x0 + rnd() * (span.x1 - span.x0), z = span.z0 + rnd() * (span.z1 - span.z0);
+    let region = regions[0];
+    if (regions.length > 1) {
+      let pick = rnd() * totalWeight;
+      for (const candidate of regions) {
+        pick -= candidate.weight;
+        region = candidate;
+        if (pick < 0) break;
+      }
+    }
+    const x = region.x0 + rnd() * (region.x1 - region.x0);
+    const z = region.z0 + rnd() * (region.z1 - region.z0);
     const d = terrain.boundaryDistance(x, z);
     // Invalid boundary samples must not classify a cell as a walkable forest slope.
     if (!Number.isFinite(d)) continue;
