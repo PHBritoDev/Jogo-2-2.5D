@@ -384,5 +384,25 @@ await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
   attach();new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 })();
 </script>
+<script>
+/* ADM: execução manual de KILL em adversários num raio de 12 m. Invisível sem ?adm=1. */
+(function(){
+  if(new URLSearchParams(location.search).get('adm')!=='1')return;
+  const b=document.createElement('button');b.id='adm-kill-nearby';b.type='button';
+  b.textContent='☠ KILL · PERTO';b.title='Eliminar inimigos e chefes até 12 metros (fases seguem normalmente)';
+  b.style.cssText='position:fixed;left:12px;top:43%;z-index:390;min-height:42px;padding:9px 12px;border:1px solid #ff7b83;border-radius:10px;background:#360b17e8;color:#fff1f1;font:800 12px system-ui;letter-spacing:.03em;box-shadow:0 3px 14px #000a;cursor:pointer;touch-action:manipulation;pointer-events:auto';
+  let busy=false;
+  b.addEventListener('click',()=>{
+    if(busy)return;
+    const api=window.SevenSinsDebug3D;
+    if(typeof api?.killNearby!=='function'){b.textContent='Carregando…';setTimeout(()=>{b.textContent='☠ KILL · PERTO';},1000);return;}
+    busy=true;
+    try{const n=api.killNearby(12);b.textContent=n?'☠ '+n+' ELIMINADO'+(n>1?'S':''):'SEM ALVO PRÓXIMO';}
+    catch(err){console.error('[ADM] Kill perto',err);b.textContent='ERRO NO KILL';}
+    setTimeout(()=>{busy=false;b.textContent='☠ KILL · PERTO';},1000);
+  });
+  document.body.appendChild(b);
+})();
+</script>
 </body>
 </html>
