@@ -26,3 +26,15 @@ test('secondary physical contact respects obstruction',()=>{
  for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
  assert.equal(e.hits.some(h=>h.id===2),false);
 });
+
+test('hybrid blade and travelling wave never double-hit the same secondary enemy',()=>{
+ const e=encounter();
+ const hybrid={clip:'Rite_Crescent',duration:.72,open:.235,close:.41,buffer:.28,multiplier:1,
+  hit:'hybrid',count:1,energy:{kind:'wave',at:.27,roll:.85,radius:1.7,speed:17,range:6.5,band:.8,life:.5,falloff:true}};
+ e.rites.api.moveset=()=>hybrid;
+ assert(e.rites.attack('prota',{target:e.primary}));
+ for(let i=0;i<180;i++)e.rites.update(1/120,e.ctx);
+ assert.deepEqual(e.hits.filter(h=>h.id===2).map(h=>h.kind),['basic']);
+ assert.equal(e.impacts.filter(id=>id===2).length,1);
+ assert.equal(e.hits.filter(h=>h.id===1).length,1);
+});
