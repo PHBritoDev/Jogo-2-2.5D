@@ -46,13 +46,44 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.phase='visibilitychange';
   await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
   report.last=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.3,{fps:30,draw:false});return d.heroState()});
-  report.drift=Math.hypot(report.last.p[0]-report.after.p[0],report.last.p[2]-report.after.p[2]);
+  // Exercise the real page's keyboard binding while pointer lock switches A -> B.
+  // A stale KeyW must not continue moving the hero without a new keydown.
+  report.phase='pointerlock-switch';
+  await page.keyboard.up('w');held=false;
+  await page.evaluate(()=>{
+    const canvas=document.querySelector('#scene');
+    if(!canvas)throw Error('scene canvas absent');
+    const other=document.createElement('canvas');
+    other.id='a1-qa-second-lock-target';
+    document.body.append(other);
+    Object.defineProperty(document,'pointerLockElement',{configurable:true,get:()=>window.__a1LockTarget});
+    window.__a1LockTarget=canvas;
+    document.dispatchEvent(new Event('pointerlockchange'));
+  });
+  await page.keyboard.down('w');held=true;
+  report.lockBefore=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.4,{fps:30,draw:false});return d.heroState()});
+  await page.evaluate(()=>{
+    window.__a1LockTarget=document.querySelector('#a1-qa-second-lock-target');
+    document.dispatchEvent(new Event('pointerlockchange'));
+  });
+  report.lockAfter=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.8,{fps:30,draw:false});return d.heroState()});
+  // The first simulation step includes normal deceleration from the last W frame.
+  // Distinguish this short stopping distance from continued movement after release.
+  report.lockDrift=Math.hypot(report.lockAfter.p[0]-report.lockBefore.p[0],report.lockAfter.p[2]-report.lockBefore.p[2]);
+  report.lockSettled=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.lockResidualDrift=Math.hypot(report.lockSettled.p[0]-report.lockAfter.p[0],report.lockSettled.p[2]-report.lockAfter.p[2]);
+  report.lockPass=report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
+  await capture('stopped-after-pointerlock-switch');
+  await page.keyboard.up('w');held=false;
+  await page.evaluate(()=>{window.__a1LockTarget=null;document.dispatchEvent(new Event('pointerlockchange'));document.querySelector('#a1-qa-second-lock-target')?.remove()});
+    report.drift=Math.hypot(report.last.p[0]-report.after.p[0],report.last.p[2]-report.after.p[2]);
   report.motion=Math.hypot(report.forward.p[0]-report.start.p[0],report.forward.p[2]-report.start.p[2]);
   report.inputPass=report.motion>.2&&report.after.speed<.08&&report.last.speed<.08&&report.drift<.06;
-  report.capturePass=Object.values(report.screenshots).length===2&&Object.values(report.screenshots).every(s=>s==='playwright'||s==='cdp');
-  report.pass=report.inputPass&&report.capturePass;
+  report.capturePass=Object.values(report.screenshots).length===3&&Object.values(report.screenshots).every(s=>s==='playwright'||s==='cdp');
+  report.pass=report.inputPass&&report.capturePass&&report.lockPass;
   report.phase='complete';
   if(!report.inputPass)throw Error('Movimento fantasma: tecla persistente ou estado não validado');
+  if(!report.lockPass)throw Error('Pointer lock A->B manteve movimento ou velocidade residual');
   if(!report.capturePass)throw Error('QA de input concluído, mas captura visual falhou; veja report.json');
  }catch(e){
   failed=e;report.errors.push('test: '+e.message);

@@ -44,7 +44,12 @@ export function bindMovementKeys(win, doc) {
     for (const [code, press] of held) if (press.fullscreen !== doc.fullscreenElement) release(code);
   });
   doc.addEventListener('pointerlockchange', () => {
-    if (!doc.pointerLockElement) for (const [code, press] of held) if (press.pointer) release(code);
+    // Pointer lock can move directly from one element to another without a
+    // null intermediate state. Keys held in the old context must not keep
+    // walking the hero after the capture target changes.
+    for (const [code, press] of held) {
+      if (press.pointer !== doc.pointerLockElement) release(code);
+    }
   });
   return state;
 }

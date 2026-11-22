@@ -1,3 +1,4 @@
+import {ravine} from './volcano-cave-ravine.js';
 import {caveShafts} from './volcano-cave-atmosphere.js';
 import {upperGalleries,lowerSpillways} from './volcano-cave-galleries.js';
 import {assetLod} from './volcano-cave-asset-lod.js';
@@ -201,7 +202,7 @@ function sanctuary(b,l,crystals,torches){
 export function buildVolcanoCave(T,g,spec,ctx){
  const names=['Santuário das Cataratas de Fogo','Bosque das Veias Ardentes','Abismo das Coroas Mortas'];
  const groups=names.map(n=>{const s=new T.Group();s.name=n;g.add(s);return s;}),clock={value:0};
- let updateTrees;const assetUpdates=[[],[],[]];
+ let updateTrees,updateRavine;const assetUpdates=[[],[],[]];
  resetStructures();solids.splice(0,solids.length,...fixedRocks);let active=true;const env={bg:0x241623,fog:0x563b47,fogNear:14,fogFar:178,hemi:[0xf0b7ba,0x694146,1.2],sun:[0,0],light:[0xff7026,3,46,[-31,22,126]],exposure:1.1};
  const galleries=new T.Group();galleries.name="Santuário • galeria superior";groups[0].add(galleries);
  const floors=new T.Group();floors.name="pisos da caverna";g.add(floors);
@@ -222,7 +223,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
    assets(T,galleries,'CristalCaverna01.glb',gems,()=>active,assetUpdates[i]);
    assets(T,galleries,'TochaMedievalTripo.glb',lamps,()=>active,assetUpdates[i]);
   }
-  if(i===1){updateTrees=grove(T,b,l,s,crystals,clock);ritual(T,s,ctx.refs);}
+  if(i===1){updateTrees=grove(T,b,l,s,crystals,clock);updateRavine=ravine(T,s);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s,clock);
   if(i===0)caveShafts(T,s,[
    {start:[-29,27,148],end:[-27,-12,153],top:2,bottom:7,tint:0xff7d30,strength:.28},
@@ -244,7 +245,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
  const tint=new T.Color(),groveFog=new T.Color(0x414050),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x272938),crownSky=new T.Color(0x98949b);
  ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;galleries.visible=z>135;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
   const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
-  if(groups[1].visible)updateTrees(x,z);
+  if(groups[1].visible){updateTrees(x,z);updateRavine(z,env.bg);}
   groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality);});
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
   env.fogFar=226-104*f+150*a;env.fogNear=14-6*f+9*a;
