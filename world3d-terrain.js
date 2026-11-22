@@ -388,6 +388,17 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
     }
     return true;
   };
+  // Trees on near-vertical ground visibly hang over the downhill edge.
+  // Sample the same terrain height used by the rendered mesh, only for
+  // accepted planting candidates, keeping the mobile startup cost bounded.
+  const stableGround = (x, z, centerY) => {
+    const step = 1.25;
+    const left = terrain.height(x - step, z), right = terrain.height(x + step, z);
+    const back = terrain.height(x, z - step), front = terrain.height(x, z + step);
+    if (![left, right, back, front].every(Number.isFinite)) return false;
+    const grade = Math.hypot((right - left) / (2 * step), (front - back) / (2 * step));
+    return Number.isFinite(centerY) && grade <= 0.85;
+  };
   const rememberTree = (x, z) => {
     const key = bucketKey(Math.floor(x / minSpacing), Math.floor(z / minSpacing));
     if (!buckets.has(key)) buckets.set(key, []);
@@ -454,7 +465,7 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       // Reject invalid height samples before producing a world-space instance.
       if (!Number.isFinite(Math.fround(terrain.height(x, z)))) continue;
       const kind = density > .6 && rnd() < .45 ? 'conifer' : (rnd() < .52 ? 'oak' : 'round');
-      if (!canPlant(x, z)) continue;
+      if (!canPlant(x, z) || !stableGround(x, z, terrain.height(x, z))) continue;
       specs.push({ x, z, kind, s: .8 + rnd() * .75, rot: rnd() * Math.PI * 2, tint: rnd(), collide: true });
       rememberTree(x, z);
     } else if (d > 5 && d < 62) {
@@ -469,7 +480,7 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
       if (!Number.isFinite(water) || water > -.25) continue;
       if (!Number.isFinite(Math.fround(y)) || y > 38 + density * 12) continue;
       if (rnd() > (.78 - smoothstep(10, 46, y) * .7) * smoothstep(.22, .5, density + .12)) continue;
-      if (!canPlant(x, z)) continue;
+      if (!canPlant(x, z) || !stableGround(x, z, y)) continue;
       specs.push({ x, z, kind: 'conifer', s: .85 + rnd() * .9, rot: rnd() * Math.PI * 2, tint: rnd(), collide: false });
       rememberTree(x, z);
     }
