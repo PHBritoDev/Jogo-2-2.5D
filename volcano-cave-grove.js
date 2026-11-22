@@ -24,9 +24,13 @@ function limb(T,b,points,radii,hot,smooth=false){
   b.quad(a,c,d,e,[0x392e35,0x44383b,0x30272c,0x514047][(j+k)%4]);
   if(hot&&(j===2||j===6)&&radii[k]>.09){const mix=(a,z,f)=>a.map((x,i)=>x+(z[i]-x)*f);
    const s=.3+.15*Math.sin(k*2.7+j),w=.055+.13*Math.abs(Math.sin(k*3.7));
-   const q0=mix(a,c,s-.10),q1=mix(a,c,s+w+.12),q2=mix(e,d,.43+w+.14),q3=mix(e,d,.43-.08);
-   b.quad(q0,q1,q2,q3,0x983422);b.quad(mix(a,c,s),mix(a,c,s+w),mix(e,d,.43+w),mix(e,d,.43),k%3===1?0xffbd64:0xff642d);
-   if(k%2===1)b.face(mix(a,c,s),mix(a,c,s+.09),mix(q0,e,.6),0xff6925);
+   // Lift the exposed seam away from the bark. Coplanar strips flicker
+   // at walking distance, particularly with a mobile depth buffer.
+   const lifted=(left,right,f,center,scale)=>mix(center,mix(left,right,f),scale);
+   const edge=(f,scale)=>lifted(a,c,f,points[k-1],scale);
+   const end=(f,scale)=>lifted(e,d,f,points[k],scale);
+   b.quad(edge(s-.10,1.026),edge(s+w+.12,1.026),end(.57+w,1.026),end(.35,1.026),0xa23120);
+   b.quad(edge(s,1.045),edge(s+w,1.045),end(.43+w,1.045),end(.43,1.045),k%3===1?0xffc17a:0xff6328);
   }
  }
 }
@@ -42,7 +46,7 @@ function tree(T,type,low=false){
   if(low&&j%2)continue;
   limb(T,b,[[0,1,0],[Math.cos(a),.45,Math.sin(a)],[Math.cos(a+.22)*L,.13,Math.sin(a+.22)*L],[Math.cos(a+.44)*(L+1),-.18,Math.sin(a+.44)*(L+1)]],[.65,.46,.18,.02],j%3===0);
  }
- for(let j=0;j<9;j++){const at=pts[2+j%4],a=j*2.4+type*.9,L=1.7+rand()*2.2,H=type===3?1:2.3+rand()*2;
+ for(let j=0;j<9;j+=low?2:1){const at=pts[2+j%4],a=j*2.4+type*.9,L=1.7+rand()*2.2,H=type===3?1:2.3+rand()*2;
   const bend=(s,h,tw)=>[at[0]+Math.cos(a+tw)*L*s,at[1]+H*h,at[2]+Math.sin(a+tw)*L*s];
   const joint=bend(.72,.37,.14),tip=bend(1,1,.6);
   limb(T,b,[at,bend(.43,.13,-.15),joint,tip,bend(1.13,1.32,.84)],[.38,.29,.21,.11,.012],true,!low);
@@ -59,6 +63,12 @@ export function grove(T,b,l,group,crystals){
   if(trees.some(t=>Math.hypot(t[0]-x,t[1]-z)<4.8))continue;trees.push([x,z,i%4,.61+random()*1.15]);}
  for(const [x,z,type,s] of trees){stands[type].push([x,z,s,random()*6]);b.cliff(x,-.65,z,3.8*s,4.4*s,6+random()*5,0x514349);
   solids.push({x,z,r:1.14*s,h:5.4*s,base:-.25});}
+ // Across the ash basin, tree silhouettes step up the ravine in three
+ // staggered rows. Reuse the existing far meshes and instance batches.
+ for(let band=0;band<3;band++)for(const side of [-1,1])for(let j=0;j<9;j++){
+  const x=side*(43+band*17+5*Math.sin(j*2.1)),z=1+j*10+band*4;
+  stands[(band+j)%4].push([x,z,1.5+.32*band+.5*Math.cos(j),j*2.1,band*5-2]);
+ }
  const dummy=new T.Object3D(),clusters=[];
  stands.forEach((arr,type)=>{
   const near=tree(T,type),far=tree(T,type,true);
@@ -67,8 +77,8 @@ export function grove(T,b,l,group,crystals){
    const m=new T.InstancedMesh(src.geometry,near.material,arr.length);
    m.name='Carvão vivo '+type;m.instanceMatrix.setUsage(T.DynamicDrawUsage);group.add(m);return m;
   });
-  const entries=arr.map(([x,z,s,yaw])=>{
-   dummy.position.set(x,-.15,z);dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(s);dummy.updateMatrix();
+  const entries=arr.map(([x,z,s,yaw,elevation=-.15])=>{
+   dummy.position.set(x,elevation,z);dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(s);dummy.updateMatrix();
    return {x,z,matrix:dummy.matrix.clone()};
   });
   clusters.push({parts,entries});
@@ -110,8 +120,8 @@ export function grove(T,b,l,group,crystals){
  for(const o of fixedRocks)b.stalk([[o.x,-.22,o.z,o.r],[o.x,o.h*.7,o.z,o.r*.85],[o.x+.2,o.h,o.z+.3,o.r*.5]],8,0x453e48);
  for(let j=0;j<17;j++){const a=j*2.399,z=41+Math.sin(a)*48;let x=Math.cos(a)*60;
   if(z<20&&Math.abs(x)<48)x=(x<0?-1:1)*48;
-  b.cliff(x,22+random()*12,z,14,19,31,0x403441);}
- for(let j=0;j<14;j++){const a=j*2.399,x=Math.cos(a)*36,z=43+Math.sin(a)*42;b.cliff(x,23+random()*7,z,20,20,4,0x372f39);}
+  b.cliff(x,9+random()*7,z,13,14,22,0x403441);}
+ for(let j=0;j<14;j++){const a=j*2.399,x=Math.cos(a)*36,z=43+Math.sin(a)*42;b.cliff(x,36+random()*9,z,16,15,4,0x372f39);}
  l.strip(creek.map(([x,z,r],i)=>[x,-.135,z,r,0,i*4]));
  b.arch(17,-1,65,3.3,2.1,2,0x71606a,.45);
  crystals.push([-28,.7,53,2.2,-.2,1.5,0xce99ff]);

@@ -16,11 +16,12 @@ export function masonry(T, group, seed, palette){
  // Bake local irradiance into stone vertices. Height-independent emitters
  // represent the entire falling sheet; point emitters light crystal niches.
  const sources=group.name.includes('Santuário')||group.name.includes('pisos')?[
+  [37,20,225,24,.92,.28,.07,true],[-38,14,248,19,1,.21,.03,true],[-48,22,201,26,1,.26,.05,true],
   [-31,5,149,22,1,.28,.05,true],[29,4,122,19,1,.27,.04,true],
   [51,12,104,28,1,.32,.05,true],[-50,7,91,20,1,.24,.05,true],
   [-11,17,160,10,.50,.11,1],[12,10,124,10,.10,.34,1],
   [-28,24,128,15,.46,.10,.86],[30,13,111,14,.27,.13,1]
- ]:[];
+ ]:group.name.includes('Bosque')?[[-8,1,64,9,1,.18,.025],[4,1,31,8,.98,.14,.015]]:[];
  function face(a,b,c,tint,variation=1){normal.crossVectors(v.set(b[0]-a[0],b[1]-a[1],b[2]-a[2]),w.set(c[0]-a[0],c[1]-a[1],c[2]-a[2])).normalize();
   const horizontal=Math.abs(normal.y)>.6,alongX=Math.abs(normal.z)>Math.abs(normal.x);
   color.set(tint).multiplyScalar(variation*(.72+.26*Math.abs(normal.x)+.36*Math.max(0,normal.y)+.14*Math.max(0,normal.z)));

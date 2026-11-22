@@ -70,6 +70,21 @@ export function crowns(T,b,group){
  thorn(T,b,[[47,-49,-74],[30,2,-66],[23,23,-53],[11,29,-38],[4,24,-31],[8,17,-35],[12,19,-39]],5.8);
  thorn(T,b,[[-28,-21,-23],[-21,-4,-23],[-16,6,-27],[-12,9,-30],[-9,7,-31]],4.4);
  thorn(T,b,[[37,-43,-136],[40,22,-127],[22,42,-117],[5,48,-135],[-9,39,-145],[-8,30,-143]],8.2);
+ // Hanging buttresses frame the pale city. Slabs shear in the direction
+ // of the chasm; their exposed undersides carry narrow mineral seams.
+ for(const side of [-1,1])for(let tier=0;tier<3;tier++){
+  for(let j=0;j<6;j++){
+   const z=-28-j*16-tier*7,x=side*(13+tier*19+3*Math.sin(j)),y=-6-tier*13-j%3*2;
+   const a=[x,y,z],c=[x+side*7,y+1,z-2],d=[x+side*9,y+.8,z-9],e=[x+side*1.2,y-.7,z-6];
+   b.quad(a,c,d,e,0x837c85);
+   const tip=[x+side*5,y-11-tier*2,z-4];
+   b.face(e,d,tip,0x49434f);b.face(a,e,tip,0x514552);b.face(c,a,tip,0x635762);
+   const seam=t=>a.map((n,k)=>n+(tip[k]-n)*t);
+   b.face(seam(.12),[x+side*1.1,y-2.3,z-.4],seam(.78),0x973e49);
+  }
+ }
+ thorn(T,b,[[55,-30,-112],[32,4,-120],[23,39,-112],[-8,47,-103],[-34,34,-94],[-32,19,-87],[-23,21,-89]],5.3);
+ thorn(T,b,[[-39,-48,-64],[-25,-23,-49],[-13,-12,-41],[-8,-9,-33],[-9,-14,-28],[-13,-17,-32]],3.5);
  // Throne and broken basalt canopy frame the campaign portal from behind.
  b.block(0,0,-96,7,.55,4.8,0x665862);
  b.block(0,.55,-96,4.6,.66,3.3,0x483d4b);

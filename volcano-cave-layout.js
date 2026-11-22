@@ -1,22 +1,22 @@
 // Local metres in the existing Act II arena. A deck polygon is used by both the
 // mesh builder and the support query. Campaign rooms stay at datum zero.
-export const caveHeight = z => Math.max(0, Math.min(21, (z - 79) * .23));
+export const caveHeight = z => Math.max(0, Math.min(21, (z - 79) * .23) + Math.max(0, z - 172) * .16);
 export const nodes = {
-  entrance:[0,172], overlook:[-7,154], stair:[-15,137], falls:[0,112], arcade:[9,96], pass:[0,81],
+  entrance:[8,263], choir:[-16,245], aqueduct:[-22,219], lantern:[9,202], vestibule:[0,172], overlook:[-7,154], stair:[-15,137], falls:[0,112], arcade:[9,96], pass:[0,81],
   fork:[-3,68], cells:[0,50], grove:[0,40], ford:[-4,26], roots:[-6,14], lab:[0,0],
   willow:[-24,54], kiln:[-21,33], arch:[17,60], cinder:[22,42], hollow:[-27,19],
   door:[-22.4,0], gold:[-31,0], lip:[0,-15], spine:[-3,-29], hall:[0,-46],
   span:[3,-60], gate:[0,-68], throne:[0,-82], portal:[0,-90]
 };
 export const safePathGraph=[
- ['entrance','overlook',4.6],['overlook','stair',4],['stair','falls',4.7],['falls','arcade',5],
+ ['entrance','choir',4.4],['choir','aqueduct',4.2],['aqueduct','lantern',4],['lantern','vestibule',4.5],['vestibule','overlook',4.6],['overlook','stair',4],['stair','falls',4.7],['falls','arcade',5],
  ['arcade','pass',4.3],['pass','fork',4.8],['fork','cells',4.6],['cells','grove',5],['grove','ford',4.8],
  ['ford','roots',4.3],['roots','lab',5],['fork','willow',3.8],['willow','kiln',4],['kiln','ford',4],
  ['cells','arch',4.1],['arch','cinder',3.8],['cinder','grove',4.2],['kiln','hollow',3.7],['hollow','roots',4],
  ['lab','door',3],['door','gold',3],['lab','lip',5.4],['lip','spine',4.3],['spine','hall',4.3],
  ['hall','span',4.5],['span','gate',4.1],['gate','throne',5.3],['throne','portal',5.5]
 ];
-const pads={entrance:6,overlook:8,stair:5,falls:8,arcade:6,pass:6,fork:8,cells:10,grove:6,ford:8,roots:7,lab:12,
+const pads={entrance:6,choir:7,aqueduct:6,lantern:7,vestibule:6,overlook:8,stair:5,falls:8,arcade:6,pass:6,fork:8,cells:10,grove:6,ford:8,roots:7,lab:12,
  willow:6,kiln:7,arch:7,cinder:6,hollow:6,door:3.2,gold:8,lip:8,spine:6,hall:13,span:5,gate:6,throne:17,portal:6};
 export const plates=[];
 function plate(poly,key){plates.push({poly,key,minX:Math.min(...poly.map(p=>p[0])),maxX:Math.max(...poly.map(p=>p[0])),minZ:Math.min(...poly.map(p=>p[1])),maxZ:Math.max(...poly.map(p=>p[1]))});}
@@ -48,7 +48,7 @@ export const structures=[];
 const bins=new Map(),cell=5;
 export function resetStructures(){structures.length=0;bins.clear();}
 export function addStructure(x,y,z,w,h,d,angle=0){
- if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>185||y>95||y+h<-.25)return;
+ if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>275||y>95||y+h<-.25)return;
  const cs=Math.cos(angle),sn=Math.sin(angle),radX=(Math.abs(cs)*w+Math.abs(sn)*d)/2+.3,radZ=(Math.abs(sn)*w+Math.abs(cs)*d)/2+.3;
  const o={x,y,z,w:w/2,h,d:d/2,cs,sn};structures.push(o);
  indexBounds(o,x-radX,x+radX,z-radZ,z+radZ);

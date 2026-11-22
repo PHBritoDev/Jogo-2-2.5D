@@ -31,7 +31,7 @@ export const VOLCANO = {
   labSpots: [{ x: -4, z: -5 }, { x: 4.5, z: -4 }, { x: 0, z: -7.4 }],
   hallSpots: [{ x: -6, z: -42 }, { x: 6, z: -42 }, { x: -7, z: -50 }, { x: 7, z: -50 }, { x: 0, z: -54 }],
   checkpoints: {
-    entrance: { x: 0, z: 172, yaw: Math.PI }, // MOD 326-B: a entrada agora fica no começo do túnel de chegada
+    entrance: { x: 8, z: 263, yaw: Math.PI }, // MOD 326-B: a entrada agora fica no começo do túnel de chegada
     lab: { x: 0, z: 9, yaw: Math.PI },
     hall: { x: 0, z: -34, yaw: Math.PI },
     throne: { x: 0, z: -68, yaw: Math.PI }

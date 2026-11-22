@@ -1,3 +1,4 @@
+import {upperGalleries} from './volcano-cave-galleries.js';
 import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
@@ -52,7 +53,7 @@ function groundPlate(b,p,index){const color=p.key.includes('-')?0x71615d:0x60535
 function basaltPaving(batch){
  const hash=(x,z)=>{const n=Math.sin(x*127.1+z*311.7)*43758.5453;return n-Math.floor(n);};
  const corner=(i,j)=>[(i+.4*(hash(i,j)-.5))*2.2,(j+.5*(hash(j,i+67)-.5))*1.65];
- for(let j=-59;j<109;j++)for(let i=-17;i<=17;i++){
+ for(let j=-59;j<164;j++)for(let i=-17;i<=17;i++){
   const polygon=[corner(i,j),corner(i,j+1),corner(i+1,j+1),corner(i+1,j)];
   const x=polygon.reduce((v,p)=>v+p[0],0)/4,z=polygon.reduce((v,p)=>v+p[1],0)/4;
   if(!supported(x,z)||!polygon.every(([u,v])=>supported(u,v)))continue;
@@ -203,7 +204,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
  plates.forEach((p,j)=>groundPlate(deck,p,j));basaltPaving(deck);deck.finish();
  for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{}),l=molten(T,s,clock),crystals=[],torches=[];
 
-  if(i===0)sanctuary(b,l,crystals,torches);
+  if(i===0){sanctuary(b,l,crystals,torches);upperGalleries(b,l,crystals,torches); }
   if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s);
   for(const h of heatPools.filter(h=>sector(h.z)===i)){l.strip(Array.from({length:13},(_,j)=>{const a=Math.PI*j/12,dz=h.r*Math.cos(a);return [h.x,caveHeight(h.z+dz)+.065,h.z+dz,h.r*Math.sin(a),0,j*.22];}));}
@@ -213,13 +214,13 @@ export function buildVolcanoCave(T,g,spec,ctx){
   l.finish();b.finish();flames(T,s,torches,clock);assets(T,s,'CristalCaverna01.glb',crystals,()=>active,assetUpdates[i]);assets(T,s,'TochaMedievalTripo.glb',torches,()=>active,assetUpdates[i]);
  }
  ctx.refs.lavaHeat=caveHeat;ctx.refs.statues=[{x:-9,z:-89},{x:9,z:-89}];
- const tint=new T.Color(),groveFog=new T.Color(0x392b36),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x241d28),crownSky=new T.Color(0x98949b);
+ const tint=new T.Color(),groveFog=new T.Color(0x414050),crownFog=new T.Color(0x777480),groveSky=new T.Color(0x272938),crownSky=new T.Color(0x98949b);
  ctx.tick.push((t,dt,c,opts)=>{clock.value=t;const z=(opts?.player||c.position).z-spec.z;groups[0].visible=z>77;groups[1].visible=z>-70&&z<145;groups[2].visible=z<22;
   const viewer=opts?.player||c.position,x=viewer.x-spec.x,y=viewer.y-spec.y;
   if(groups[1].visible)updateTrees(x,z);
   groups.forEach((group,i)=>{if(group.visible)for(const update of assetUpdates[i])update(x,y,z,opts?.quality);});
   const f=Math.max(0,Math.min(1,(86-z)/18)),a=Math.max(0,Math.min(1,(-z-3)/25));
-  env.fogFar=178-92*f+140*a;env.fogNear=14-6*f+9*a;
+  env.fogFar=226-104*f+150*a;env.fogNear=14-6*f+9*a;
   tint.setHex(0x563b47).lerp(groveFog,f).lerp(crownFog,a);env.fog=tint.getHex();
   tint.setHex(0x241623).lerp(groveSky,f).lerp(crownSky,a);env.bg=tint.getHex();});
  ctx.refs.caveDispose=()=>{
