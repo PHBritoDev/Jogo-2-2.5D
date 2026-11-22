@@ -4929,14 +4929,16 @@ function buildAct1Props(){
  const L=new GLTFLoader();
  // Substitui a cidade antiga por GLBs autorais de Eldória, sem mover vendedores,
  // moradores ou pontos de missão. O roteiro v1 permanece documento de produção.
+ // Model loads can finish while the player is fighting below the world.
+ const villageGround=(x,z)=>terrain3D.height(x,z);
  const eldoriaCity=mountEldoriaLiveVillage({
-   THREE,GLTFLoader,group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,
+   THREE,GLTFLoader,group:villageGroup,groundHeightAt:villageGround,center:VILLAGE_CENTER,
    obstacles:marketObstacles,lowSpec:terrainLowSpec,mergeStatic:mergeGroupMeshes
  });
  act1Props.eldoria=eldoriaCity;
  /* MOD 291 — marco 3: cidade bonita e íntegra (o Bispo levou o dinheiro, não as casas): deques e escadas nas árvores
     ancestrais, a passarela suspensa do criador entre duas delas, canteiros, sebes, cercas claras e lampiões. */
- act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
+ act1Props.dressing=mountCityDressing(THREE,GLTFLoader,{group:villageGroup,groundHeightAt:villageGround,center:VILLAGE_CENTER,plots:ELDORIA_PLOTS,lowSpec:terrainLowSpec,obstacles:marketObstacles,
   structures:treeStructurePlan(VILLAGE_CENTER),walk:eldoriaWalk,fetchModel:eldoriaCity.fetchModel,
   lamps:[], // MOD 316: os 10 postes/lanternas de caixa saíram; a praça usa só as 2 tochas GLB
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
