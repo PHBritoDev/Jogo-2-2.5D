@@ -21,7 +21,8 @@ const force = (S, name) => { for (let i = 0; i < 600; i++) { const b = S.boss();
 
 test('assets e integração: GLBs, versão 342, runtime e mundo ligados, Codex intocado', () => {
   for (const f of ['NewGanancia1.glb', 'NewGanancia2.glb', 'GananciaAsas2.glb']) assert.ok(fs.statSync(new URL(f, R)).size > 1e5, f);
-  assert.match(read('build-info.js'), /MOD = 342/);
+  const buildMatch = read('build-info.js').match(/export const MOD = (\d+);/);
+  assert.ok(buildMatch && Number(buildMatch[1]) >= 342, 'build deve conter a integração Ganância da Mod 342 ou superior');
   const m = read('mundo-3d-prototype.js'), rt = read('enemy1-squad-runtime3d.js');
   assert.match(m, /from '\.\/greed-boss3d\.js\?v=mod342'|from '\.\/greed-boss3d\.js'/);
   assert.match(m, /rig:'greed1n'/); assert.match(m, /greedCeilingAt/); assert.match(m, /greedAbyssAnchor/);
