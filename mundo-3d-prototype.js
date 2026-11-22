@@ -4481,7 +4481,7 @@ function squadRuntime(){
 const squadSq=()=>squadRT&&squadRT.squad;
 /** Mod 349: ultimate do Codex ligada ao corpo real da fase III, sem editar o motor do Claude. */
 let greedAtomic=null;
-function greedAtomicEnd(){if(greedAtomic)greedAtomic.clear();}
+function greedAtomicEnd(){if(greedAtomic){greedAtomic.dispose();greedAtomic=null;}}
 function greedAtomicTick(dt,paused=false){
  if(!dimBattle?.active||dimBattle.key!=='greed'||!squadOn||!squadRT){greedAtomicEnd();return;}
  const sq=squadSq(),a=sq?.actors.find(x=>x.alive&&x.kind==='greedB'),b=a&&squadRT.body(a.id);
