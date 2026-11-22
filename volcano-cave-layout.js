@@ -43,7 +43,15 @@ export function inBasin(x,z){
   const [a,b]=basin[i],[c,d]=basin[j];if((b>z)!==(d>z)&&x<(c-a)*(z-b)/(d-b)+a)inside=!inside;
  }return inside;
 }
-export function caveFloor(x,z){return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
+// Horizontal nosings occupy the middle flight between the two landings.
+export const choirStairs=Array.from({length:18},(_,i)=>{
+ const z=222+i,center=v=>nodes.aqueduct[0]+(v-nodes.aqueduct[1])*(nodes.choir[0]-nodes.aqueduct[0])/(nodes.choir[1]-nodes.aqueduct[1]);
+ return {z,x0:center(z),x1:center(z+1),half:4.12,y:caveHeight(z+1)+.09};
+});
+export function caveFloor(x,z){
+ const step=choirStairs[Math.floor(z)-222];
+ if(step && Math.abs(x-step.x0-(z-step.z)*(step.x1-step.x0))<=step.half)return step.y;
+ return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
 export const fixedRocks=[{x:15,z:20,base:-.2,r:2.4,h:3.3}];
 export const solids=[...fixedRocks];
 export const structures=[];

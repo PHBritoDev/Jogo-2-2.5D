@@ -51,3 +51,15 @@ test('travessia do riacho usa a altura da passarela e não queima o herói', asy
  }
  assert(dry>0&&hot>0);
 });
+
+test('os degraus do coro sustentam os dois pés na mesma cota da malha',async()=>{
+ const {choirStairs,caveFloor}=await import('./volcano-cave-layout.js');
+ for(const [i,step] of choirStairs.entries()){
+  for(const t of [.01,.5,.99])for(const offset of [-3.8,0,3.8]){
+   const x=step.x0+(step.x1-step.x0)*t+offset;
+   assert.equal(caveFloor(x,step.z+t),step.y);
+   assert(volcanoWalkable(x,step.z+t,{doorOpen:true}));
+  }
+  if(i)assert(step.y-choirStairs[i-1].y<.18);
+ }
+});

@@ -222,7 +222,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
    assets(T,galleries,'CristalCaverna01.glb',gems,()=>active,assetUpdates[i]);
    assets(T,galleries,'TochaMedievalTripo.glb',lamps,()=>active,assetUpdates[i]);
   }
-  if(i===1){updateTrees=grove(T,b,l,s,crystals);ritual(T,s,ctx.refs);}
+  if(i===1){updateTrees=grove(T,b,l,s,crystals,clock);ritual(T,s,ctx.refs);}
   if(i===2)crowns(T,b,s);
   if(i===0)caveShafts(T,s,[
    {start:[-29,27,148],end:[-27,-12,153],top:2,bottom:7,tint:0xff7d30,strength:.28},

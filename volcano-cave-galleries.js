@@ -1,4 +1,4 @@
-import {caveHeight,nodes} from './volcano-cave-layout.js';
+import {caveHeight,nodes,choirStairs} from './volcano-cave-layout.js';
 
 // Paired mourning figures look down over the spillway. Facets of the pleated
 // mantle share the same vertex-light bake as the terrace, even on low.
@@ -16,6 +16,12 @@ function mourner(b,x,y,z,s){
  }
 }
 export function upperGalleries(b,l,crystals,torches){
+ // Each tread and its riser use the same four corners as the floor query.
+ for(const [i,{x0,x1,z,y,half}] of choirStairs.entries()){
+  const lo=[x0-half,y,z],ro=[x0+half,y,z];
+  b.quad(lo,ro,[x1+half,y,z+1],[x1-half,y,z+1],i%3===0?0xa08980:0x937b76);
+  b.quad(lo,[lo[0],y-.27,z],[ro[0],y-.27,z],ro,0x675659);
+ }
  const strata=[[-55,26,248,21,35],[47,19,225,22,39],[-64,7,200,24,42],[71,42,164,25,37],[-76,50,150,22,38]];
  for(const [x,y,z,rx,rz] of strata){
   b.cliff(x,y,z,rx,rz,77,0x594856);

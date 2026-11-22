@@ -79,8 +79,18 @@ export function masonry(T, group, seed, palette){
   // The scan gives the baked lighting relief at walking distance. Sample
   // neutral luminance so that mineral colours still come from local emitters.
   material.onBeforeCompile=shader=>{
-   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
-    'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17)); diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);');
+   // Interpolate the reflection of the nearest spillway at vertices. A
+   // single scanned stone texture breaks the highlight into wet facets.
+   shader.vertexShader='varying float wetGlint;\n'+shader.vertexShader.replace('#include <project_vertex>',`
+    #include <project_vertex>
+    vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);
+    vec3 delta=spill-position;
+    vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));
+    float wet=1./(1.+dot(delta,delta)*.003);
+    wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);
+   `);
+   shader.fragmentShader='varying float wetGlint;\n'+shader.fragmentShader.replace('#include <map_fragment>',
+    'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17)); diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8); diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);');
   };
  }
  const m=new T.Mesh(g,material);m.name=group.name+'-basalto';group.add(m);return m;}

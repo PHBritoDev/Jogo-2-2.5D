@@ -34,12 +34,14 @@ function limb(T,b,points,radii,hot,smooth=false,n=8){
   }
  }
 }
-function tree(T,type,low=false){
+function tree(T,type,clock,low=false){
  const group=new T.Group(),b=masonry(T,group,1401+type,{bark:true}),rand=b.random;
  const spines=[[[0,0,0],[-.4,2,0],[.7,4,.6],[.1,6,.3],[-1.4,8,.8],[-2.1,10,.4]],
  [[0,0,0],[.3,2,0],[2,3,.5],[3.6,3.15,.8],[4.7,5,1],[4.2,6,.6]],
  [[0,0,0],[-1,2,.1],[-1.5,4,-.3],[-.4,6,-.8],[1,7.7,.2],[.3,9,1.1]],
- [[0,0,0],[.6,2,.4],[.5,4.1,.9],[-.4,5,.3],[-.6,5.6,-.6],[.2,6.2,-1.3]]];
+ [[0,0,0],[.6,2,.4],[.5,4.1,.9],[-.4,5,.3],[-.6,5.6,-.6],[.2,6.2,-1.3]],
+ [[0,0,0],[-.9,2,.1],[-2.4,3.3,-.7],[-2.1,5,-1.6],[-.6,7.8,-2.6],[1.1,9,-2.2]],
+ [[0,0,0],[.8,1.9,.6],[2.2,3,1.2],[2,4.7,2.3],[.7,6.1,2.8],[-1,7.2,1.8]]];
  const pts=spines[type];limb(T,b,pts,[1.5,.99,.79,.54,.34,.10],true,!low,low?5:8);
  for(let j=0;j<7;j++){
   const a=j*.90+rand()*.3,L=2+rand()*2;
@@ -54,30 +56,41 @@ function tree(T,type,low=false){
   limb(T,b,[joint,bend(1.04,.47,-.18),bend(1.34,.82,-.34)],[.16,.115,.008],false);
   limb(T,b,[tip,bend(.87,1.16,.71),bend(.81,1.45,.83)],[.095,.05,.006],false);
  }
- return b.finish();
+ const mesh=b.finish();
+ // Bake the ember mask from the authored vein colours. Bark stays cool
+ // while molten fissures breathe out of phase on neighbouring trunks.
+ mesh.material.onBeforeCompile=shader=>{
+  shader.uniforms.emberTime=clock;
+  shader.vertexShader='uniform float emberTime;\n'+shader.vertexShader.replace('#include <color_vertex>',`
+   #include <color_vertex>
+   float heat=smoothstep(.22,.62,color.r-color.b);
+   vColor+=heat*vec3(.19,.036,.002)*(1.+.28*sin(emberTime*.83+position.y*.6+instanceMatrix[3].x));
+  `);
+ };
+ return mesh;
 }
-export function grove(T,b,l,group,crystals){
- const random=b.random,stands=[[],[],[],[]];
+export function grove(T,b,l,group,crystals,clock){
+ const random=b.random,stands=Array.from({length:6},()=>[]);
  const trees=[[-9,70,0,1.9],[6,62,2,1.55],[-11,45,1,1.5],[10,38,3,1.5],[-14,18,0,1.3],[7,9,1,1.35],[-30,54,2,1.3],[13,64,3,1.2]];
  for(let i=0;i<160;i++){const x=(random()-.5)*103,z=-7+random()*92;if(supported(x,z)||Object.values(nodes).some(([a,c])=>Math.hypot(x-a,z-c)<8))continue;
-  if(trees.some(t=>Math.hypot(t[0]-x,t[1]-z)<4.8))continue;trees.push([x,z,i%4,.61+random()*1.15]);}
+  if(trees.some(t=>Math.hypot(t[0]-x,t[1]-z)<4.8))continue;trees.push([x,z,i%6,.61+random()*1.15]);}
  for(const [x,z,type,s] of trees){stands[type].push([x,z,s,random()*6]);b.cliff(x,-.65,z,3.8*s,4.4*s,6+random()*5,0x514349);
   solids.push({x,z,r:1.14*s,h:5.4*s,base:-.25});}
  // Across the ash basin, tree silhouettes step up the ravine in three
  // staggered rows. Reuse the existing far meshes and instance batches.
  for(let band=0;band<3;band++)for(const side of [-1,1])for(let j=0;j<9;j++){
   const x=side*(43+band*17+5*Math.sin(j*2.1)),z=1+j*10+band*4;
-  stands[(band+j)%4].push([x,z,1.5+.32*band+.5*Math.cos(j),j*2.1,band*5-2]);
+  stands[(band+j)%6].push([x,z,1.5+.32*band+.5*Math.cos(j),j*2.1,band*5-2]);
  }
  // The trail vanishes into a cold stand behind the ritual chamber.
  // Only its far LOD is visible; hide it when crossing into the abyss.
  for(let i=0;i<42;i++){
   const row=i%3,x=(Math.floor(i/3)-6.5)*9.7+3*Math.sin(i),z=-32-row*21-4*Math.sin(i*1.6);
-  stands[i%4].push([x,z,.95+.25*row+.5*Math.cos(i*1.7),i*.71,row*1.4-1,true]);
+  stands[i%6].push([x,z,.95+.25*row+.5*Math.cos(i*1.7),i*.71,row*1.4-1,true]);
  }
  const dummy=new T.Object3D(),clusters=[];
  stands.forEach((arr,type)=>{
-  const near=tree(T,type),far=tree(T,type,true);
+  const near=tree(T,type,clock),far=tree(T,type,clock,true);
   far.material.map.dispose();far.material.dispose();
   const parts=[near,far].map(src=>{
    const m=new T.InstancedMesh(src.geometry,near.material,arr.length);
@@ -126,7 +139,7 @@ export function grove(T,b,l,group,crystals){
  for(let i=0;i<basin.length;i++){const [x,z]=basin[i],[u,v]=basin[(i+1)%basin.length];b.face([0,-.19,39],[x,-.19,z],[u,-.19,v],0x48414a);}
  for(const o of fixedRocks)b.stalk([[o.x,-.22,o.z,o.r],[o.x,o.h*.7,o.z,o.r*.85],[o.x+.2,o.h,o.z+.3,o.r*.5]],8,0x453e48);
  for(let j=0;j<17;j++){const a=j*2.399,z=41+Math.sin(a)*48;let x=Math.cos(a)*60;
-  if(z<20&&Math.abs(x)<48)x=(x<0?-1:1)*48;
+  if((z<20||z>66)&&Math.abs(x)<48)x=(x<0?-1:1)*48;
   b.cliff(x,9+random()*7,z,13,14,22,0x403441);}
  for(let j=0;j<14;j++){const a=j*2.399,x=Math.cos(a)*36,z=43+Math.sin(a)*42;b.cliff(x,36+random()*9,z,16,15,4,0x372f39);}
  l.strip(creek.map(([x,z,r],i)=>[x,-.135,z,r,0,i*4]));
