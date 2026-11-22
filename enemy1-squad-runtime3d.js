@@ -229,6 +229,8 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
   const POSE = { claws: 'slam', spiral: 'cast', judgment: 'channel', vortex: 'channel', trinity: 'slam', collapse: 'slam' };
   function onEvent(type, d) {
     if (type.startsWith('gk')) gkRT.event(type, d, bodies); // 21/11: Ganância — sóis, abismo, fases, armas
+    if (type === 'gkBlade' && d.phase === 'hit' && d.result !== 'evaded' && ctx.slash && d.ent) { const e = d.ent, l = Math.hypot(d.x - e.wx, d.z - e.wz) || 1; // 22/11: corte da arma autônoma = impacto sakuga no estilo dela
+      ctx.slash.impact({ x: d.x, y: d.y ?? 1.1, z: d.z }, { x: (d.x - e.wx) / l, y: 0, z: (d.z - e.wz) / l }, { style: { A: 'greedCosmic', B: 'greedBlood', C: 'greedSolar', D: 'greedHybrid' }[e.key] || 'greedCosmic', power: d.result === 'blocked' ? .35 : .65 }); }
     if (type === 'meleeHit' && d.result !== 'evaded' && d.actor && (d.actor.kind === 'greedA' || d.actor.kind === 'greedB') && ctx.slash) { const tg = squad && squad.targets.find(t => t.id === d.target), g = d.actor.gk, m = d.actor.act?.move, hand = m?.hands?.[Math.max(0, (d.n || 1) - 1)] || 'R', w = g && g.hands[hand]; if (tg) ctx.slash.impact({ x: tg.x, y: (tg.y || 0) + (tg.height || 1.8) * .55, z: tg.z }, { x: Math.sin(d.actor.yaw), y: .1, z: Math.cos(d.actor.yaw) }, { style: { A: 'greedCosmic', B: 'greedBlood', C: 'greedSolar', D: 'greedHybrid' }[w] || 'greedBlood', power: m?.hits.length > 2 ? .7 : .55 }); }
     if (type === 'cast' && ctx.pose && !E3K[d.actor.kind]) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, POSE[d.skill] || 'cast', d.skill === 'judgment' || d.skill === 'vortex' ? 1.5 : 1.1, () => d.actor.yaw); }
     if (type === 'counterCast' && ctx.pose) { const b = bodies.get(d.actor.id); if (b) ctx.pose(b.model, 'thrust', .7, () => d.actor.yaw); }
@@ -276,12 +278,12 @@ const _v = new T.Vector3(), _v2 = new T.Vector3(), _q = new T.Quaternion(), _m =
     /** Escurecimento local pedido pela Tempestade de Nadir (0..1); o jogo aplica e restaura. */
     get dim() { return stormDim(squad); },
     /** Extinção Orbital em curso (fase, tempo, magia) — o jogo usa para câmera, cena orbital e bloqueio de controle. */
-    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, zarkhaelBeastVFX: zbfx, veraxionBloomVFX: vbfx, greedRT: gkRT, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, // Mod 320: QA do rastro do dash
+    get orbit() { return orbit; }, vhazraelVFX: vzfx, vorgazhekVFX: vgfx, zarkhaelVFX: zkfx, zarkhaelBeastVFX: zbfx, veraxionBloomVFX: vbfx, greedRT: gkRT, veraxionVFX: vxfx, vzAfter(id) { return afterimageStats(bodies.get(id)); }, bodyInfo(id) { const b = bodies.get(id); if (!b) return null; let meshes = 0, shown = 0; b.model.traverse(o => { if (o.isMesh) { meshes++; let v = true, p = o; while (p) { if (!p.visible) { v = false; break; } p = p.parent; } if (v && o.material && (o.material.opacity ?? 1) > .05) shown++; } }); const w = new b.model.position.constructor(); b.model.getWorldPosition(w); return { holder: b.holder.visible, model: b.model.visible, meshes, shown, wy: +w.y.toFixed(2), hy: +b.holder.position.y.toFixed(2), my: +b.model.position.y.toFixed(2), scale: +b.model.scale.x.toFixed(3), parent: !!b.holder.parent }; }, // QA (22/11): visibilidade real do corpo // Mod 320: QA do rastro do dash
     body(id) { return bodies.get(id) || null; },
     /** spots: [{x,z,yaw,kind,hp}] */
     start(spots, { seed = 237 } = {}) {
       stop(); squad = new Enemy1Squad({ seed, ground: ctx.ground, blocked: ctx.blocked, los: ctx.los, damageTarget: ctx.damageTarget, event: onEvent, meleeTrace:(a,act,t,lo,hi)=>bossTraceContact(combatCache.get(a.kind)?.[act.move.id]?.combatTrace,lo,hi,a,t,p=>ctx.blocked(p.x,p.z),act.fromPose) });
-      squad.ceilingAt = ctx.ceilingAt || null; squad.abyssAnchor = ctx.abyssAnchor ? ctx.abyssAnchor() : null; // 21/11: teto real (voo/pouso invertido) e boca do abismo (fase III)
+      squad.ceilingAt = ctx.ceilingAt || null; squad.hangSpot = ctx.hangSpot || null; squad.abyssAnchor = ctx.abyssAnchor ? ctx.abyssAnchor() : null; // 21/11: teto real (voo/pouso invertido) e boca do abismo (fase III)
       squad.spawn(spots); for (const a of squad.actors) { const b = makeBody(a); if (b) bodies.set(a.id, b); }
       return squad;
     },

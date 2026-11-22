@@ -23,9 +23,12 @@ export function createGreedRuntime(T, scene, ctx = {}) {
   function loadWings() { if (wingsSrc || wingsLoading) return; wingsLoading = true; new GLTFLoader().load(GK_WINGS, g => { wingsSrc = g.scene; }, undefined, () => { wingsLoading = false; }); }
   function boneMap(model) { const m = {}; model.traverse(o => { if (o.isBone) m[o.name] = o; }); return m; }
   function bindAxis(bone, worldAxis) { bone.updateWorldMatrix(true, false); bone.getWorldQuaternion(_q); return worldAxis.clone().applyQuaternion(_q.clone().invert()).normalize(); }
+  const FILL = { value: .42 }; // intensidade da luz própria do chefe (qualidade baixa reduz em pose())
   function aura(mats, color) { for (const m of mats) { if (!m.isMeshStandardMaterial || m.userData.gkAura) continue; m.userData.gkAura = { value: 0 }; const U = m.userData.gkAura, C = new T.Color(color);
-      m.onBeforeCompile = sh => { sh.uniforms.gkRimK = U; sh.uniforms.gkRimC = { value: C }; sh.fragmentShader = 'uniform float gkRimK;uniform vec3 gkRimC;\n' + sh.fragmentShader.replace('#include <lights_fragment_begin>', '#include <lights_fragment_begin>\n totalEmissiveRadiance += gkRimC * pow(1.0 - saturate(dot(normal, geometryViewDir)), 3.0) * gkRimK;'); };
-      m.customProgramCacheKey = () => 'gkAura'; m.needsUpdate = true; } }
+      // 22/11 (Etapa 9): LUZ SÓ DO CHEFE — chave virtual em espaço de vista (de cima/esquerda da câmera) + preenchimento suave aplicados
+      // como emissivo no próprio material: realça ouro, vermelho, joias e rosto na arena escura sem luz nova, sombra ou draw call extra.
+      m.onBeforeCompile = sh => { sh.uniforms.gkRimK = U; sh.uniforms.gkRimC = { value: C }; sh.uniforms.gkFill = FILL; sh.fragmentShader = 'uniform float gkRimK;uniform vec3 gkRimC;uniform float gkFill;\n' + sh.fragmentShader.replace('#include <lights_fragment_begin>', '#include <lights_fragment_begin>\n totalEmissiveRadiance += gkRimC * pow(1.0 - saturate(dot(normal, geometryViewDir)), 3.0) * gkRimK;\n { vec3 gkL = normalize(vec3(-.45, .75, .5)); float gkD = max(dot(normal, gkL), 0.); vec3 gkH = normalize(gkL + geometryViewDir); totalEmissiveRadiance += gkFill * (diffuseColor.rgb * (.22 + .78 * gkD) + mix(vec3(.04), diffuseColor.rgb, metalnessFactor) * pow(max(dot(normal, gkH), 0.), 24.) * (1. - roughnessFactor) * 2.2); }'); };
+      m.customProgramCacheKey = () => 'gkAura2'; m.needsUpdate = true; } }
   return {
     vfx,
     /** Prende o arsenal e os enfeites ao corpo novo (chamado uma vez por corpo). */
@@ -54,16 +57,16 @@ export function createGreedRuntime(T, scene, ctx = {}) {
       const placeHand = (root, hand) => { hand.updateWorldMatrix(true, false); hand.getWorldPosition(root.position); hand.getWorldQuaternion(root.quaternion).multiply(grip);
         const L = 1.2, ax = _v.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .1 - root.position.y; if (ax.y < floor) { const want = Math.asin(clamp(floor / L, -1, 1)), cur = Math.asin(clamp(ax.y / L, -1, 1)); _v2.set(-ax.z, 0, ax.x); if (_v2.lengthSq() < 1e-4) _v2.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); _q.setFromAxisAngle(_v2.normalize(), want - cur); root.quaternion.premultiply(_q); } };
       const ents = g ? g.ents : [], held = { [g?.hands?.R]: 'R', [g?.hands?.L]: 'L' };
-      for (const k of 'ABCD') { const r = G.roots[k], w = G.W[k]; let on = false, trail = false;
+      for (const k of 'ABCD') { const r = G.roots[k], w = G.W[k]; let on = false, trail = false, tkey = null;
         if (a.alive && held[k] && !(a.act && a.act.type === 'gkPhase')) { placeHand(r, held[k] === 'R' ? b.hand : b.lhand); on = true; trail = !!(a.act && a.act.move) || (a.act && a.act.type === 'gkFly' && a.act.stage === 'dive'); }
         else { const e = ents.find(x => x.key === k && x.mode !== 'gone'); const sp = k === 'C' && g?.spear && (g.spear.alive || g.spear.dead < .5) ? g.spear : null;
           if (sp) { r.position.set(sp.x, sp.y, sp.z); _y.set(sp.dx, sp.dy, sp.dz).normalize(); _z.set(0, 1, 0).cross(_y).normalize(); if (_z.lengthSq() < .01) _z.set(1, 0, 0); _x.crossVectors(_y, _z); _m.makeBasis(_x, _y, _z); r.quaternion.setFromRotationMatrix(_m); r.position.addScaledVector(_y, -.6); on = sp.alive; trail = sp.alive; }
           else if (e) { r.position.set(e.x, e.y, e.z); _y.set(...e.ax).normalize(); _z.set(...e.nrm); _z.addScaledVector(_y, -_z.dot(_y)); if (_z.lengthSq() < 1e-4) _z.set(1, 0, 0).addScaledVector(_y, -_y.x); _z.normalize(); _x.crossVectors(_y, _z); _m.makeBasis(_x, _y, _z); r.quaternion.setFromRotationMatrix(_m);
-            if (e.mode === 'outbound') r.quaternion.premultiply(_q.setFromAxisAngle(_v.set(0, 1, 0), 0)); r.position.addScaledVector(_y, -.55);
-            on = true; trail = !!(e.strike && e.strike.t > .2) || e.mode === 'outbound'; vfx.weaponAura(k, r, e.mode, dt); } }
+            /* 22/11: a origem lógica JÁ é o punho (pivô do golpe) — sem deslocamento: o gume visto é o gume que dá dano */
+            on = true; trail = !!(e.strike && e.strike.t > e.strike.w - .06 && e.strike.t < e.strike.w + e.strike.d + .12) || e.mode === 'outbound'; tkey = e.strike ? 'gkE' + k + ':' + e.strike.id : 'gkO' + k + ':' + e.id; vfx.weaponAura(k, r, e.mode, dt); } }
         r.visible = on && vis; if (r.visible !== G.vis[k]) { if (G.vis[k] !== undefined) vfx.flashWeapon(k, r.position, r.visible); G.vis[k] = r.visible; }
         w.userData.updateFx(time, (a.act && a.act.glow) || (phase >= 3 ? .35 : 0), low);
-        if (trail && r.visible && slash) { r.updateMatrixWorld(true); const ud = w.userData; _v.copy(ud.tipA).applyMatrix4(w.matrixWorld); _v2.copy(ud.tipB).applyMatrix4(w.matrixWorld); const key = 'gk' + k + ':' + (a.act?.rev ?? '') + (a.anim?.rev ?? 0); slash.sample(key, _v, _v2, { style: ud.style, gain: .85, extend: .7, inner: .15 }); } }
+        if (trail && r.visible && slash) { r.updateMatrixWorld(true); const ud = w.userData; _v.copy(ud.tipA).applyMatrix4(w.matrixWorld); _v2.copy(ud.tipB).applyMatrix4(w.matrixWorld); const key = tkey || ('gk' + k + ':' + (a.act?.rev ?? '') + (a.anim?.rev ?? 0)); slash.sample(key, _v, _v2, { style: ud.style, gain: tkey ? 1 : .7, extend: tkey ? .7 : .45, inner: .15 }); } } /* 22/11: rastro por GOLPE da arma autônoma (não emenda golpes) */
       // asas (fase II/III): batida procedural pelos ossos-base nas costas, com fase/amplitude pelo modo de voo
       if (G.wings) { const wm = g?.wing || { mode: 'fold', k: 0 }, mode = wm.mode, f = mode === 'flap' ? 2.3 : mode === 'hover' ? 3.1 : mode === 'brake' ? 1.6 : .7, amp = mode === 'flap' ? .62 : mode === 'hover' ? .48 : mode === 'brake' ? .3 : mode === 'dive' ? .05 : .06;
         G.flapPh += dt * f * Math.PI * 2; G.flap += ((mode === 'dive' ? -.55 : mode === 'brake' ? .55 : mode === 'fold' ? -.08 : .1) - G.flap) * Math.min(1, dt * 4);
