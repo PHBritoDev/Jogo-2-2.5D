@@ -72,6 +72,7 @@ function baseProgress() {
     childrenFreed: false,
     awakeningSeen: false,
     actCardSeen: false,
+    ilyanEscortPosition: null,
     wardenTaunted: false,
     wardenDefeated: false,
     portalOpened: false,
@@ -159,7 +160,8 @@ export function migrateProgress(raw) {
     captorsTaunted: !!raw.captorsTaunted,
     childrenFreed: !!raw.childrenFreed,
     awakeningSeen: !!raw.awakeningSeen,
-    actCardSeen: !!raw.actCardSeen
+    actCardSeen: !!raw.actCardSeen,
+    ilyanEscortPosition: raw.ilyanEscortPosition && Number.isFinite(raw.ilyanEscortPosition.x) && Number.isFinite(raw.ilyanEscortPosition.z) && Number.isFinite(raw.ilyanEscortPosition.yaw) ? { x: raw.ilyanEscortPosition.x, z: raw.ilyanEscortPosition.z, yaw: raw.ilyanEscortPosition.yaw } : null
   };
   const version = Number(raw.version);
   if (version >= ACT1.version) {
