@@ -37,3 +37,6 @@ test('physical secondary contact is blocked by a wall',()=>{
  for(let i=0;i<90;i++)r.update(1/120,{from:{x:0,y:0,z:0},target:primary,others:[secondary],sword:'prota'});
  assert.deepEqual(hits,[7]);
 });
+
+// Ensure the production multihit regression suite runs in combat315's existing test entrypoint.
+import './tests/a2-basic-blade-multitarget.test.mjs';
