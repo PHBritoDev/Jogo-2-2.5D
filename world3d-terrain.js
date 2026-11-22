@@ -424,11 +424,17 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   for (let i = 0; i < total; i++) {
     let region = regions[0];
     if (regions.length > 1) {
-      let pick = rnd() * totalWeight;
-      for (const candidate of regions) {
-        pick -= candidate.weight;
-        region = candidate;
-        if (pick < 0) break;
+      // Keep the original valley populated when a far-off side area is added.
+      // Reserve at least 85% of the existing fixed mobile sampling budget for it.
+      const mainShare = Math.max(.85, regions[0].weight / totalWeight);
+      if (rnd() >= mainShare) {
+        const extraWeight = totalWeight - regions[0].weight;
+        let pick = rnd() * extraWeight;
+        for (let j = 1; j < regions.length; j++) {
+          pick -= regions[j].weight;
+          region = regions[j];
+          if (pick < 0) break;
+        }
       }
     }
     const x = region.x0 + rnd() * (region.x1 - region.x0);
