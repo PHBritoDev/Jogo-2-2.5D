@@ -1,3 +1,4 @@
+import { MOD } from '../build-info.js';
 /* MOD 342 — Ganância em três fases: fluxo de fases, armas autônomas, lança, sóis, abismo, voo/teto e multi-hit. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,9 +20,9 @@ function sim({ kind = 'greedA', hp = 1000, ceil = 14, seed = 3, hero = {} } = {}
 }
 const force = (S, name) => { for (let i = 0; i < 600; i++) { const b = S.boss(); if (b && G.gkForceTech(S.sq, b, S.h, name)) return true; S.sq.update(1 / 60); } return false; };
 
-test('assets e integração: GLBs, versão 342, runtime e mundo ligados, Codex intocado', () => {
+test('assets e integração: GLBs, versão mínima 342, runtime e mundo ligados, Codex intocado', () => {
   for (const f of ['NewGanancia1.glb', 'NewGanancia2.glb', 'GananciaAsas2.glb']) assert.ok(fs.statSync(new URL(f, R)).size > 1e5, f);
-  assert.match(read('build-info.js'), /MOD = 342/);
+  assert.ok(Number.isInteger(MOD) && MOD >= 342, `A integração da Ganância exige Mod 342 ou posterior. Mod atual: ${MOD}`);
   const m = read('mundo-3d-prototype.js'), rt = read('enemy1-squad-runtime3d.js');
   assert.match(m, /from '\.\/greed-boss3d\.js\?v=mod342'|from '\.\/greed-boss3d\.js'/);
   assert.match(m, /rig:'greed1n'/); assert.match(m, /greedCeilingAt/); assert.match(m, /greedAbyssAnchor/);

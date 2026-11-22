@@ -98,14 +98,23 @@ export function caveBlocked(x,z,doorOpen){const y=caveFloor(x,z)+.8;return inStr
 export function caveWall(x,y,z){return y>94||inStructure(x,y,z,.12)||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
 export const heatPools=[{x:3,z:110.3,r:1.15},{x:-2.9,z:114.2,r:.95},{x:1,z:26,r:1.65},{x:25.5,z:40,r:1.35}];
 export const creek=[[-35,83,1.7],[-20,68,2],[-12,49,2.2],[9,33,1.7],[3,15,2.3],[-16,1,1.6]];
+// The narrow eastern tributary follows the player's descent and rejoins
+// the main flow at the ford. Geometry and contact use these same banks.
+export const tributary=[[4,77,1.1],[5.4,70,1.35],[3.8,65,1.65],[6.8,59,1.28],[7.2,53,1.35],[6.1,47,1.5],[8.4,41,1.23],[7.8,36,1.45],[9,33,1.7]];
+export const channels=[creek,tributary];
+export function bankDistance(x,z){
+ let distance=Infinity;
+ for(const path of channels)for(let i=1;i<path.length;i++){
+  const [ax,az,ar]=path[i-1],[bx,bz,br]=path[i];
+  if(z>az||z<bz)continue;
+  const t=(az-z)/(az-bz);
+  distance=Math.min(distance,Math.abs(x-ax-(bx-ax)*t)-(ar+(br-ar)*t));
+ }
+ return distance;
+}
 export function caveHeat(x,z){
  if(heatPools.some(o=>(x-o.x)**2+(z-o.z)**2<o.r**2))return 1;
- if(z<=83&&z>=1&&!supported(x,z)&&inBasin(x,z)){
-  for(let i=1;i<creek.length;i++){const [ax,az,ar]=creek[i-1],[bx,bz,br]=creek[i];
-   if(z>az||z<bz)continue;const t=(az-z)/(az-bz);
-   return Math.abs(x-ax-(bx-ax)*t)<ar+(br-ar)*t?1:0;
-  }
- }return 0;
+ return z<=83&&z>=1&&!supported(x,z)&&inBasin(x,z)&&bankDistance(x,z)<0?1:0;
 }
 export function nearestRest(x,z){
  for(const name of ['entrance','choir','aqueduct','lantern','vestibule','overlook','falls','fork','grove','lab','lip','hall','gate']){

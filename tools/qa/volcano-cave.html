@@ -31,6 +31,12 @@ async function run(){
    renderer.render(scene,camera);
    views.push({key,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles});
   }
+  // The outer rim of the grove used to cover the forward view from the arcade.
+  const [ax,az]=nodes.arcade;
+  const forward=new THREE.Raycaster(new THREE.Vector3(ax,caveHeight(az)+2.7,az),
+   new THREE.Vector3(0,-.025,-1).normalize(),0,12);
+  const rim=arena.group.getObjectByName('Bosque das Veias Ardentes-basalto');
+  check(rim && !forward.intersectObject(rim,false).length,'Falésia do bosque encobre a arcada');
   let paths=0;
   for(const [a,b] of safePathGraph){
    const [x,z]=nodes[a],[u,v]=nodes[b],steps=Math.ceil(Math.hypot(u-x,v-z)*3);

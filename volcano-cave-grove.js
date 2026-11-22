@@ -1,5 +1,5 @@
 import { masonry } from './volcano-cave-masonry.js';
-import {solids,supported,nodes,basin,fixedRocks,creek} from './volcano-cave-layout.js';
+import {solids,supported,nodes,basin,fixedRocks,creek,tributary,bankDistance} from './volcano-cave-layout.js';
 
 // A rotating cross-section follows each branch's tangent. A split on the same
 // bark strip exposes the orange core, tapering out before the tips.
@@ -34,7 +34,7 @@ function limb(T,b,points,radii,hot,smooth=false,n=8){
   }
  }
 }
-function tree(T,type,clock,low=false){
+function tree(T,type,clock,barkMap,low=false){
  const group=new T.Group(),b=masonry(T,group,1401+type,{bark:true}),rand=b.random;
  const spines=[[[0,0,0],[-.4,2,0],[.7,4,.6],[.1,6,.3],[-1.4,8,.8],[-2.1,10,.4]],
  [[0,0,0],[.3,2,0],[2,3,.5],[3.6,3.15,.8],[4.7,5,1],[4.2,6,.6]],
@@ -48,6 +48,22 @@ function tree(T,type,clock,low=false){
   if(low)continue;
   limb(T,b,[[0,1,0],[Math.cos(a),.45,Math.sin(a)],[Math.cos(a+.22)*L,.13,Math.sin(a+.22)*L],[Math.cos(a+.44)*(L+1),-.18,Math.sin(a+.44)*(L+1)]],[.65,.46,.18,.02],j%3===0);
  }
+ if(!low){
+  // Fire in an exposed knot: concentric lips follow the tangent of the
+  // trunk. Their irregular edges wrap onto the cylinder at both ends.
+  for(const [segment,azimuth] of [[1,type*.83],[2,type*.83+2.6]]){
+   const [px,py,pz]=pts[segment],r=segment===1?1.01:.79;
+   let previous;
+   for(const [width,height,depth,hue] of [[.52,1.02,1.04,0x33272a],[.43,.88,1.15,0x643026],[.32,.73,1.12,0xdb4d22],[.13,.48,1.10,0xffa538],[.015,.09,1.11,0xffd488]]){
+    const ring=Array.from({length:13},(_,k)=>{
+     const a=k*2*Math.PI/13,angle=azimuth+Math.cos(a)*width+.10*Math.sin(2*a+type);
+     return [px+r*depth*Math.cos(angle),py+Math.sin(a)*height,pz+r*depth*Math.sin(angle)];
+    });
+    if(previous)for(let k=0;k<13;k++){const l=(k+1)%13;b.quad(previous[k],previous[l],ring[l],ring[k],hue);}
+    previous=ring;
+   }
+  }
+ }
  for(let j=0;j<9;j+=low?2:1){const at=pts[2+j%4],a=j*2.4+type*.9,L=1.7+rand()*2.2,H=type===3?1:2.3+rand()*2;
   const bend=(s,h,tw)=>[at[0]+Math.cos(a+tw)*L*s,at[1]+H*h,at[2]+Math.sin(a+tw)*L*s];
   const joint=bend(.72,.37,.14),tip=bend(1,1,.6);
@@ -57,12 +73,19 @@ function tree(T,type,clock,low=false){
   limb(T,b,[tip,bend(.87,1.16,.71),bend(.81,1.45,.83)],[.095,.05,.006],false);
  }
  const mesh=b.finish();
+ mesh.material.map.dispose();mesh.material.map=barkMap;
  // Bake the ember mask from the authored vein colours. Bark stays cool
  // while molten fissures breathe out of phase on neighbouring trunks.
  mesh.material.onBeforeCompile=shader=>{
   shader.uniforms.emberTime=clock;
-  shader.vertexShader='uniform float emberTime;\n'+shader.vertexShader.replace('#include <color_vertex>',`
+  shader.fragmentShader='varying float emberPulse;\n'+shader.fragmentShader.replace('#include <map_fragment>',`
+   vec3 bark=texture2D(map,vMapUv).rgb;
+   diffuseColor.rgb*=.24+1.3*bark.r;
+   diffuseColor.rgb+=vec3(.024,.026,.034)*bark.b+emberPulse*bark.g*vec3(.88,.093,.009);
+  `);
+  shader.vertexShader='uniform float emberTime;varying float emberPulse;\n'+shader.vertexShader.replace('#include <color_vertex>',`
    #include <color_vertex>
+   emberPulse=.91+.09*sin(emberTime*.69+position.y*.83+instanceMatrix[3].z);
    float heat=smoothstep(.22,.62,color.r-color.b);
    vColor+=heat*vec3(.19,.036,.002)*(1.+.28*sin(emberTime*.83+position.y*.6+instanceMatrix[3].x));
   `);
@@ -88,10 +111,12 @@ export function grove(T,b,l,group,crystals,clock){
   const row=i%3,x=(Math.floor(i/3)-6.5)*9.7+3*Math.sin(i),z=-32-row*21-4*Math.sin(i*1.6);
   stands[i%6].push([x,z,.95+.25*row+.5*Math.cos(i*1.7),i*.71,row*1.4-1,true]);
  }
+ const barkMap=new T.TextureLoader().load(new URL('./volcano-cave-bark.webp',import.meta.url).href);
+ barkMap.wrapS=barkMap.wrapT=T.RepeatWrapping;
  const dummy=new T.Object3D(),clusters=[];
  stands.forEach((arr,type)=>{
-  const near=tree(T,type,clock),far=tree(T,type,clock,true);
-  far.material.map.dispose();far.material.dispose();
+  const near=tree(T,type,clock,barkMap),far=tree(T,type,clock,barkMap,true);
+  far.material.dispose();
   const parts=[near,far].map(src=>{
    const m=new T.InstancedMesh(src.geometry,near.material,arr.length);
    m.name='Carvão vivo '+type;m.instanceMatrix.setUsage(T.DynamicDrawUsage);group.add(m);return m;
@@ -136,12 +161,27 @@ export function grove(T,b,l,group,crystals,clock){
   for(const side of [-1,1])b.quad([x+side*.27,.044,z],[x+side*.27+.08,.044,z],[x+side*.35+.16,.044,z-2.9],[x+side*.35,.044,z-2.55],0x31252b);
  }
  // Draw the low ash bed beneath the distinct traversable shelves.
- for(let i=0;i<basin.length;i++){const [x,z]=basin[i],[u,v]=basin[(i+1)%basin.length];b.face([0,-.19,39],[x,-.19,z],[u,-.19,v],0x48414a);}
+ // Fan subdivisions carry warm reflected light radially through the ash.
+ // Adjacent sectors share the boundary samples, including the outside rim.
+ const bed=(x,z)=>[x,-.207+.016*Math.sin(.72*x+.2*z)*Math.cos(.91*z),z];
+ for(let i=0;i<basin.length;i++){
+  const [x,z]=basin[i],[u,v]=basin[(i+1)%basin.length];
+  const n=15;
+  const sample=(a,c)=>bed((a*x+c*u)/n,39+(a*(z-39)+c*(v-39))/n);
+  for(let a=0;a<n;a++)for(let c=0;c<n-a;c++){
+   const p=sample(a,c),q=sample(a+1,c),r=sample(a,c+1);
+   const light=Math.exp(-Math.max(0,bankDistance(p[0],p[2]))*.38);
+   const shade=new T.Color(0x423d46).lerp(new T.Color(0x9c4b31),light);
+   b.face(p,q,r,shade);
+   if(a+c+1<n)b.face(q,sample(a+1,c+1),r,shade);
+  }
+ }
  for(const o of fixedRocks)b.stalk([[o.x,-.22,o.z,o.r],[o.x,o.h*.7,o.z,o.r*.85],[o.x+.2,o.h,o.z+.3,o.r*.5]],8,0x453e48);
  for(let j=0;j<17;j++){const a=j*2.399,z=41+Math.sin(a)*48;let x=Math.cos(a)*60;
   if((z<20||z>66)&&Math.abs(x)<48)x=(x<0?-1:1)*48;
   b.cliff(x,9+random()*7,z,13,14,22,0x403441);}
  for(let j=0;j<14;j++){const a=j*2.399,x=Math.cos(a)*36,z=43+Math.sin(a)*42;b.cliff(x,36+random()*9,z,16,15,4,0x372f39);}
+ l.strip(tributary.map(([x,z,r],i)=>[x,-.134,z,r,0,i*1.7]));
  l.strip(creek.map(([x,z,r],i)=>[x,-.135,z,r,0,i*4]));
  b.arch(17,-1,65,3.3,2.1,2,0x71606a,.45);
  crystals.push([-28,.7,53,2.2,-.2,1.5,0xce99ff]);

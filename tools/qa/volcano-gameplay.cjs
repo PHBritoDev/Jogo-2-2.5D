@@ -89,6 +89,19 @@ async function main() {
     await sleep(1500);
     const result=await page.evaluate(()=>({vs:SevenSinsDebug3D.dimState().vs,boss:SevenSinsDebug3D.dimState().battle?.key}));
     if(!result.vs || result.boss!=='bishop2')throw Error(JSON.stringify(result));
+    const route=metrics.filter(p=>p.name!=='exterior');
+    const metres=route.reduce((sum,p)=>sum+p.metres,0);
+    const seconds=route.reduce((sum,p)=>sum+p.seconds,0);
+    console.log('cave: '+JSON.stringify({metres,seconds,landmarks:route.length,boss:result.boss,errors}));
+    if(process.env.GITHUB_STEP_SUMMARY){
+      const rows=route.map(p=>[p.name,p.metres.toFixed(1),p.seconds.toFixed(1),p.p95?.toFixed(1)??'—',p.render.calls,p.render.tris].join(' | '));
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,[
+        '### Travessia com Chromium e SwiftShader','',
+        metres.toFixed(1)+' m percorridos. Portal confirmado para '+result.boss+'.',
+        'Tempo e p95 medidos no runner Linux com gravação ativa.','',
+        'Trecho | m | s | p95 (ms) | Draw calls | Triângulos','---|---:|---:|---:|---:|---:',...rows,''
+      ].join('\n'));
+    }
     if(errors.length)throw Error(errors.join('\n'));
   } finally {
     fs.writeFileSync(path.join(output,'errors.json'),JSON.stringify(errors));
