@@ -105,10 +105,13 @@ test('Mod 260/261 — kit do Bispo 2: s1 (tornados), s3 (portais) e espada (Ecli
   const seen = new Set(); for (const prof of ['vorgazhek', 'fallen2']) for (const d of [1, 2, 4, 6, 10, 15]) for (const cds of [{ sw: 9 }, { sw: 9, s1: 5 }, { sw: 9, s3: 5 }, { sw: 9, s1: 5, s3: 5 }]) { const m = pickMove(prof, cds, d, ''); if (m) seen.add(m.id); }
   assert.deepEqual([...seen].sort(), ['s1', 's3']); // com a espada em recarga, só as duas magias
   assert.equal(ultimateFor('vorgazhek').kind, 'vorgazhek_cosmic_judgment'); assert.equal(ultimateFor('fallen2').kind, 'vorgazhek_cosmic_judgment'); assert.equal(ultimateDue('vorgazhek', .9, 0), -1); // MOD 262
-  for (const p of ['vhazrael', 'greed3', 'fallen1']) { assert.ok(ultimateFor(p), 'ultimate de ' + p); assert.ok(pickMove(p, {}, 4, ''), 'kit de ' + p); } /* Bispo 3/fallen3 sem ultimate genérica (Mod 267) */
+  for (const p of ['vhazrael', 'fallen1']) { assert.ok(ultimateFor(p), 'ultimate de ' + p); assert.ok(pickMove(p, {}, 4, ''), 'kit de ' + p); } /* Bispo 3/fallen3 sem ultimate genérica (Mod 267) */
   assert.equal(KITS.vhazrael.sword.disabled, undefined);
   const src = fs.readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(src.includes("case 'portal_swords':startPortalSwords(m);break;") && src.includes('updatePortalSwords(dt);') && src.includes('stopPortalSwords();stopTornadoRitual();useRig'), 'ligado ao motor real e limpo ao sair');
   assert.ok(!src.includes('BOSS_POWERS.vorgazhek') && !src.includes('BOSS_POWERS.fallen2') && !src.includes("kind==='forge'"), 'sem rota secundária antiga');
   assert.ok(src.includes('if(portalSwords||tornadoRitual||eclipseSword)return;') && src.includes('if(tornadoRitual||portalSwords||eclipseSword){kitState.t'), 'não empilha com os Vórtices e o bispo espera');
+});
+test('MOD 342: Ganância sem poderes genéricos (kit/ultimate vazios)', () => {
+  for (const p of ['greed1', 'greed2', 'greed3']) { assert.equal(ultimateFor(p), null, p); assert.equal(pickMove(p, {}, 4, ''), null, p); }
 });

@@ -85,5 +85,5 @@ test('IA do Bispo 3 — utilidade por distância, sem spam, espera o dash, pune 
   assert.ok(src.includes('isZarkhaelProfile(prof)?chooseZarkhaelMove('), 'Bispo 3 usa a IA por utilidade');
   assert.ok(!/function spawnEnemyProjectile|function updateEnemyProjectiles/.test(src), 'Mod 264 preservada');
   assert.ok(!/BOSS_POWERS\.fallen3=|BOSS_POWERS\.zarkhael/.test(src), 'poder genérico antigo de pilares do Bispo 3 excluído (Mod 267)');
-  for (const p of ['vhazrael', 'vorgazhek', 'greed1']) assert.ok(pickMove(p, {}, 4, '') !== undefined, 'outros perfis intactos'); assert.equal(KITS.vorgazhek.skills[0].type, 'tornadoes');
+  for (const p of ['vhazrael', 'vorgazhek']) assert.ok(pickMove(p, {}, 4, '') !== undefined, 'outros perfis intactos'); assert.equal(KITS.vorgazhek.skills[0].type, 'tornadoes');
 });
