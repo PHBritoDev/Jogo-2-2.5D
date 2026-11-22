@@ -35,7 +35,12 @@ export const ACT1 = {
 const BANNED = ['porra', 'merda', 'caralho', 'fdp', 'puta', 'viado', 'cuzao', 'buceta'];
 
 export function sanitizePlayerName(raw) {
-  const name = String(raw || '').replace(/\s+/g, ' ').trim();
+  // Quebras de linha e controles não podem virar espaços válidos no nome do jogador.
+  // Preserva apenas espaços comuns para nomes compostos e saves legítimos.
+  if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/u.test(String(raw ?? ''))) {
+    return { ok: false, error: 'Use letras e espaços, sem quebras de linha ou controles.' };
+  }
+  const name = String(raw || '').replace(/ +/g, ' ').trim();
   if (name.length < 3 || name.length > 12) return { ok: false, error: 'Use de 3 a 12 caracteres, em uma única linha.' };
   if (!/^[\p{L}][\p{L} '\-.]{2,11}$/u.test(name)) {
     return { ok: false, error: 'Use letras, espaço, apóstrofo ou hífen.' };
