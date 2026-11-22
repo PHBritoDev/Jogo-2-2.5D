@@ -129,7 +129,8 @@ export class SwordRites {
        if(!bladeContact(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12))continue;
        if(segmentBlocked(ctx.from,other,this.api.blocked))continue;
        a.bladeSideHits.add(other.id);
-       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'basic',{target:other,by:'blade'});
+       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
+       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
        this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
       }
      }
