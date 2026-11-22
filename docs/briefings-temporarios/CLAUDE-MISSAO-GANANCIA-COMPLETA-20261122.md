@@ -2,6 +2,16 @@
 
 > **Ordem de execução.** Este documento é a fonte de trabalho desta missão. As referências originais serão enviadas pelo criador à conversa do Claude; o GitHub não contém automaticamente os vídeos anexados ao ChatGPT. **Não presumir que viu vídeo/foto não recebidos; se faltar mídia, usar descrição textual e QA real, mantendo a comparação visual pendente.** Entrega em silêncio operacional: não enviar resumos, justificativas ou andamento ao chat; registrar PR, commits, testes e evidências no GitHub. Mensagem final somente link da PR e estado objetivo, se necessário. Não declarar concluído sem critérios satisfeitos.
 
+## AUTONOMIA TOTAL DE EXECUÇÃO — NÃO INTERROMPER O CRIADOR
+
+Esta missão **já foi autorizada**. **Não pedir confirmação, permissão intermediária, escolha de prioridade, autorização para prosseguir à etapa seguinte, nem enviar perguntas ou resumos entre etapas.** O Claude deve executar as etapas 1–9 na ordem, tomando decisões técnicas fundamentadas por conta própria, testando, corrigindo e avançando sem aguardar respostas. O criador enviará os arquivos de referência quando disponíveis; não interromper só para perguntar sobre os dois vídeos de gameplay, pois pode reproduzir e capturar a versão atual.
+
+- Se uma solução falhar ou não atingir a rubrica de qualidade, refazer e testar sem pedir aprovação entre tentativas. Registrar detalhes e evidências apenas na PR. Não interpretar "revisão artística do criador" como checkpoint que bloqueia a **implementação**: concluir todas as etapas e então deixar a revisão humana **final** explicitamente pendente.
+- Se uma dependência envolver arquivo/área reservada ao Codex ou outro agente, **não tocar nela** nem pedir ao criador para resolver: usar interfaces/hook já existentes e continuar as partes independentes. Deixar bloqueio específico e proposta de integração na issue #519 ou PR; sem alterações conflitantes e sem perguntas no chat.
+- Se mídia não chegar ou ferramenta de vídeo falhar, não pedir ao criador para reenviar durante a execução: prosseguir com código, descrição e QA local possível; marcar apenas comparação específica como pendente, sem afirmar que a viu.
+- Evitar pedir permissão para bibliotecas locais, testes, alterações e branches normais dentro do escopo autorizado. **Não gastar dinheiro/créditos, não alterar cânone, não forçar merge ou sobrescrever trabalho protegido sem autorização explícita já existente.** Quando algo indispensável exigir autorização que não existe, deixar isso pendente no GitHub e avançar outra parte segura, em silêncio.
+- Ao terminar cada etapa, passar **automaticamente** à seguinte. **Não esperar confirmação ou enviar mensagem entre as nove etapas.** Status da implementação e rastreabilidade ficam exclusivamente no GitHub; ao finalizar, no máximo um link curto da PR e indicação de pendências objetivas, sem resumão.
+
 ## Proteção de escopo e preparação obrigatória
 
 1. Ler este arquivo e `AGENTS.md`, `docs/combate/MISSAO-GANANCIA-TRES-FASES-2026-11-22.md`, `docs/GUIA-PARA-IAS.md` e contratos relevantes da `main`. Conferir PRs abertas/HEAD atual, responsáveis em #519 e trabalho ativo do Codex.
