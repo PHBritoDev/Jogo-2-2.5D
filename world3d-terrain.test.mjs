@@ -118,3 +118,15 @@ test('floresta com região distante mantém densidade no vale e povoamento na á
     assert.ok(distant.waterDepth(tree.x, tree.z) <= -.25, 'árvore não deve nascer na água');
   }
 });
+
+
+test('região remota não rouba a maior parte da cobertura da floresta principal', () => {
+  const distant = createTerrain({ extraAreas: [{ cx: 650, cz: -60, hx: 40, hz: 35 }] });
+  const trees = scatterForest(distant);
+  const mainTrees = trees.filter(t => t.x < 300);
+  const extraTrees = trees.filter(t => t.x > 300);
+  assert.ok(mainTrees.length >= 700, 'mata principal deve conservar a maior parte das árvores');
+  assert.ok(extraTrees.length >= 80, 'região distante ainda precisa de mata');
+  assert.ok(trees.length <= 1000, 'sem aumento excessivo de instâncias mobile');
+  assert.deepEqual(scatterForest(distant), trees, 'geração determinística');
+});
