@@ -1,6 +1,6 @@
 import {ravine} from './volcano-cave-ravine.js';
 import {caveShafts} from './volcano-cave-atmosphere.js';
-import {upperGalleries,lowerSpillways} from './volcano-cave-galleries.js';
+import {calderaVault,upperGalleries,lowerSpillways} from './volcano-cave-galleries.js';
 import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
 import {grove} from './volcano-cave-grove.js';
@@ -215,6 +215,7 @@ export function buildVolcanoCave(T,g,spec,ctx){
  for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{stoneMap}),l=molten(T,s,clock),crystals=[],torches=[];
 
   if(i===0){
+   calderaVault(T,s);
    sanctuary(b,l,crystals,torches);
    lowerSpillways(b,l,crystals);
    const high=masonry(T,galleries,2491,{stoneMap}),flow=molten(T,galleries,clock),gems=[],lamps=[];

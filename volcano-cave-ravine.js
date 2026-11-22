@@ -48,7 +48,7 @@ export function ravine(T,group){
   }`});
  const horizon=new T.Mesh(new T.SphereGeometry(1,32,16),material);
  horizon.position.set(0,8,28);horizon.scale.set(182,95,192);
- horizon.name='Luz da garganta';horizon.renderOrder=-6;group.add(horizon);
+ horizon.name='Luz da garganta';horizon.renderOrder=900;group.add(horizon);
  return (z,background)=>{
   const blend=Math.max(0,Math.min(1,(z-4)/12,(84-z)/12));
   material.uniforms.veil.value=blend;material.uniforms.sky.value.setHex(background).convertLinearToSRGB();

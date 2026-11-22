@@ -84,7 +84,7 @@ export function crowns(T,b,group,clock){
    vec3 c=mix(vec3(.10,.09,.12),vec3(.49,.47,.51),smoothstep(-.74,.23,d.y));
    c+=vec3(.21,.21,.19)*(slit+beam);c-=.12*bank*smoothstep(.28,.8,d.y);
    gl_FragColor=vec4(c,1.);}`}));
- vault.position.set(0,-14,-95);vault.scale.set(245,135,240);vault.renderOrder=-5;group.add(vault);
+ vault.position.set(0,-14,-95);vault.scale.set(245,135,240);vault.renderOrder=901;group.add(vault);
  // Fractured paving at human scale. Splits carry a dull ember deep in a
  // charred seam; scoria teeth mark exposed lips without fencing the arena.
  for(let j=0;j<59;j++){let x=(b.random()-.5)*5.4,z=-14-b.random()*77;

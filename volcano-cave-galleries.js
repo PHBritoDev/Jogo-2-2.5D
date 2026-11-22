@@ -111,3 +111,34 @@ export function lowerSpillways(b,l,crystals){
   crystals.push([x+r+2,h+2,z,2.7,.28,2,0xa89dff]);
  }
 }
+
+// The distant caldera closes the sightlines through the aqueduct. Its folds
+// and reflected furnace light are baked once in local space.
+export function calderaVault(T, group) {
+ const shell = new T.SphereGeometry(1, 80, 32);
+ const vertices = shell.getAttribute('position');
+ const colors = [], color = new T.Color();
+ const ash = new T.Color(0x272135), scoria = new T.Color(0x684952);
+ const fire = new T.Color(0xe47d4c), violet = new T.Color(0x795ca1);
+ for (let i = 0; i < vertices.count; i++) {
+  const x = vertices.getX(i), y = vertices.getY(i), z = vertices.getZ(i);
+  const angle = Math.atan2(x, -z);
+  const folds = .5 + .5 * Math.sin(angle * 15 + 1.6 * Math.sin(7 * y + 3 * angle) + 11 * y);
+  const strata = .5 + .5 * Math.cos(36 * y + 4 * Math.sin(angle * 7));
+  const rim = 1 - Math.min(1, Math.abs(y - .03) * 1.85);
+  const radius = .91 + .07 * folds + .025 * strata;
+  vertices.setXYZ(i, x * 184 * radius, y * 93 * radius, z * 208 * radius);
+  color.copy(ash).lerp(scoria, .18 + folds * .44 + strata * .24);
+  color.lerp(fire, rim * rim * (.12 + .44 * Math.pow(folds, 5)));
+  color.lerp(violet, Math.max(0, y) * strata * .4);
+  colors.push(color.r, color.g, color.b);
+ }
+ shell.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+ const vault = new T.Mesh(shell, new T.MeshBasicMaterial({
+  vertexColors: true, side: T.BackSide, fog: false, depthWrite: false
+ }));
+ vault.position.set(0, 3, 169);
+ vault.name = 'Caldeira acima dos aquedutos';
+ vault.renderOrder = 902;
+ group.add(vault);
+}
