@@ -87,8 +87,8 @@ export const GK = Object.freeze({
   scythe: { life: 10, speed: 11, maxSpeed: 7.8, accel: 20, keep: 1.35, windup: .34, strikeDur: .3, recoil: .38, dmg: 9, reach: 1.45, clashR: 2.3, clashCd: .6, stun: .9, repel: 9 },
   spear: { speed: 18, turn: 1.7, life: 5, radius: .55, dmg: 22, gap: [3.5, 16], cd: 9, release: 1.15 },
   throw: { release: 1.15, gap: [2, 12], cd: 8, phase2Release: .7, p1Dur: 1.6, p1Speed: 1.45 }, // 22/11: arremesso da fase I 45% mais rápido (o vídeo de 9 s mostrava ritmo lento)
-  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 12, minCeil: 7.5, maxCeil: 22, spotSpeed: 11 },
-  suns: { n: 4, form: .55, hold: .35, gap: .42, speed: 13, radius: 1.7, boom: 4.6, direct: 14, area: 8, cd: 14 }, // 22/11 (Etapa 5): sóis ~4× maiores (raio 1,7 m) e área proporcional
+  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 18, minCeil: 7.5, maxCeil: 22, spotSpeed: 11 },
+  suns: { n: 4, form: .55, hold: .35, gap: .42, speed: 13, radius: 1.7, boom: 4.6, direct: 14, area: 8, cd: 30 }, // 22/11 (Etapa 5): sóis ~4× maiores (raio 1,7 m) e área proporcional
   abyss: { first: [32, 38], slow: 25, fast: 20, charge: 4.2, speed: 24, radius: 2.6, boom: 6.5, direct: 24, area: 12 }, // 22/11 (Etapa 6): carga gradual dentro da garganta, ~2,5× mais rápida, ~3× maior
   tele: { duel: [6, 8], orbitR: 1.7 },
   phase: { fall: 2.6, arise: 1.9, revive: { die: 2.2, hold: .8, charge: 1.4, rise: 1.83, burst: .35, reveal: 1.1 } } // 22/11: diretor II→III (~7,7 s)
@@ -212,7 +212,7 @@ function stepBlades(sq, a, dt, t) {
         else { const r2 = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: win ? (s['tok' + win] ||= { strike: s.id, win }) : s, weapon: e.key }); // cada JANELA tem token próprio (o giro tem duas)
           if (r2 === 'blocked') g.stats.scytheBlock++; else if (r2 === 'hit') g.stats.scytheHit++; sq.event('gkBlade', { actor: a, ent: e, phase: 'hit', result: r2, x: tgt.x, z: tgt.z, y: (tgt.y || 0) + 1.1 }); } } }
     // CHOQUE de lâminas: herói golpeando DE FRENTE no preparo/golpe rebate a arma (lança não — regra própria)
-    if (s && tgt.attacking && !e.clashCd && e.key !== 'C' && d < S.clashR && s.t < s.w + s.d) { const fdot = -(ux * Math.sin(tgt.yaw ?? 0) + uz * Math.cos(tgt.yaw ?? 0));
+    if (s && tgt.attacking && !e.clashCd && e.key !== 'C' && d < S.clashR && s.t < s.w + s.d) { const cx = e.x - tgt.x, cz = e.z - tgt.z, cl = Math.hypot(cx, cz) || 1, fdot = (cx * Math.sin(tgt.yaw ?? 0) + cz * Math.cos(tgt.yaw ?? 0)) / cl; // frente do herói → a ARMA (não o empunhador)
       if (tgt.yaw === undefined || fdot > .2) { e.strike = null; e.stun = S.stun; e.vx = -ux * S.repel; e.vz = -uz * S.repel; e.clashCd = S.clashCd; g.stats.clash++; sq.event('gkBlade', { actor: a, ent: e, phase: 'clash', x: e.x, y: e.y + 1, z: e.z }); } }
     e.segs = segs; }
   // armas que acabaram: liberam a mão (a fase I/II re-materializa o par)
@@ -311,7 +311,7 @@ function startFlight(sq, a, t, plan) {
   const ceil = sq.ceilingAt ? sq.ceilingAt(a.x, a.z) : null, alt = Math.min(F.alt, ceil ? ceil - (a.y) - F.ceilMargin : F.alt);
   if (alt < 2.6 && !spot) return false; g.stats.flights++;
   sq.begin(a, { type: 'gkFly', dur: 40, anim: 'gk_jump', token: 'melee', tid: t && t.id, face: true, stage: 'takeoff', st: 0, alt: Math.max(2.6, alt), plan, spot, cruise: F.cruise[0] + sq.rand() * (F.cruise[1] - F.cruise[0]), dives: 0, orbitDir: sq.rand() < .5 ? -1 : 1 });
-  a.cds.gkFly = F.cd * a.cdMul; sq.event('gkFly', { actor: a, phase: 'takeoff' }); return true;
+  a.cds.gkFly = F.cd * a.cdMul; a.cds.gkSuns = Math.max(a.cds.gkSuns || 0, (plan === 'hang' ? GK.suns.cd : 8) * a.cdMul); sq.event('gkFly', { actor: a, phase: 'takeoff' }); return true; // voo e pendurar dividem a janela: chão ≥ 60% do tempo
 }
 function flyAnim(sq, a, role) { if (a.anim.role !== role) a.anim = { role, once: role !== 'gk_fly' && role !== 'gk_hang', speed: 1, rev: a.anim.rev + 1 }; }
 function stepFlight(sq, a, dt, t) {
@@ -319,7 +319,7 @@ function stepFlight(sq, a, dt, t) {
   const air = h => { a.airY = Math.max(0, h); a.airV = 0; a.y = sq.ground(a.x, a.z) + a.airY; };
   const glide = (tx, tz, sp) => { const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz); if (d < .05) return d; const st = Math.min(d, sp * dt), nx = a.x + dx / d * st, nz = a.z + dz / d * st; if (!sq.blocked(nx, nz)) { a.x = nx; a.z = nz; } a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(dx, dz) - a.yaw), -6 * dt, 6 * dt)); return d; };
   g.wing = { mode: 'flap', k: 1 };
-  if (act.stage === 'takeoff') { air(act.alt * ease(act.st / .7)); if (act.st >= .7) { act.stage = 'cruise'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'cruise' }); } return; }
+  if (act.stage === 'takeoff') { air(act.alt * ease(act.st / .7)); if (act.st >= .7 && act.plan === 'hang' && act.spot && !act.home) { act.stage = 'cruise'; act.st = act.cruise; flyAnim(sq, a, 'gk_fly'); return; } /* pendurar: sobe direto rumo à superfície */ if (act.st >= .7) { act.stage = 'cruise'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'cruise' }); } return; }
   if (act.stage === 'cruise') { air(act.alt + Math.sin(sq.time * 2.2) * .25); act.face = false;
     if (tgt) { const ang = Math.atan2(a.x - tgt.x, a.z - tgt.z) + act.orbitDir * F.speed / F.radius * dt; glide(tgt.x + Math.sin(ang) * F.radius, tgt.z + Math.cos(ang) * F.radius, F.speed); a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -5 * dt, 5 * dt)); }
     if (act.st >= act.cruise) { act.st = 0;
@@ -331,8 +331,8 @@ function stepFlight(sq, a, dt, t) {
     const want = act.ceil - sq.ground(a.x, a.z) - 1.25; a.gkCeil = act.ceil; a.airY += clamp(want - a.airY, -F.rise * dt, F.rise * dt); air(a.airY); if (dh < .3 && Math.abs(want - a.airY) < .05) { act.stage = 'hang'; act.st = 0; act.flip = 0; flyAnim(sq, a, 'gk_hang'); g.stats.hangs++; sq.event('gkFly', { actor: a, phase: 'hang', ceil: act.ceil }); } return; }
   if (act.stage === 'hang') { g.wing = { mode: 'fold', k: 1 }; air(act.ceil - sq.ground(a.x, a.z) - 1.25); /* preso à superfície (sem gravidade) */ a.gkFlip = clamp(act.st / .45, 0, 1); if (tgt) a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -3 * dt, 3 * dt));
     if (!act.sunsCast && act.st > .6) { act.sunsCast = true; startSuns(sq, a, tgt); }
-    if (act.st >= F.hang && !g.suns.length) { act.stage = 'drop'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'drop' }); } return; }
-  if (act.stage === 'drop') { a.gkFlip = 1 - clamp(act.st / .4, 0, 1); if (act.st > .35 && act.home) { const dx = act.home.x - a.x, dz = act.home.z - a.z, dh = Math.hypot(dx, dz); if (dh > .1) { const stp = Math.min(dh, F.spotSpeed * 1.2 * dt); a.x += dx / dh * stp; a.z += dz / dh * stp; } }
+    if (act.st >= F.hang && !g.suns.some(q => q.state === 'forming' || q.state === 'hold')) { act.stage = 'drop'; /* solta assim que os 4 sóis partiram */ act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'drop' }); } return; }
+  if (act.stage === 'drop') { a.gkFlip = 1 - clamp(act.st / .4, 0, 1); if (act.st > .35 && act.home) { const dx = act.home.x - a.x, dz = act.home.z - a.z, dh = Math.hypot(dx, dz); if (dh > .1) { const stp = Math.min(dh, F.spotSpeed * 1.5 * dt); a.x += dx / dh * stp; a.z += dz / dh * stp; } }
     a.airY = Math.max(act.alt, a.airY - 6 * dt); air(a.airY); if (act.st > .5 && (!act.home || Math.hypot(act.home.x - a.x, act.home.z - a.z) < .4)) { act.stage = 'cruise'; act.st = 0; act.plan = 'dive'; act.cruise = .6; act.home = null; } return; }
   if (act.stage === 'cast') { air(act.alt + Math.sin(sq.time * 2.2) * .15); g.wing = { mode: 'hover', k: 1 }; if (tgt) a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -4 * dt, 4 * dt));
     if (act.st > 1.2 && !g.suns.length) { act.stage = 'land'; act.st = 0; flyAnim(sq, a, 'gk_land'); } return; }
@@ -383,7 +383,7 @@ function dashTo(sq, a, t, f, s, len = 1) { const d = Math.hypot(t.x - a.x, t.z -
   const reach = GK.dash.speed * GK.dash.time * len; if (sq.blocked(a.x + dx * reach, a.z + dz * reach)) return false;
   sq.begin(a, { type: 'dodge', dur: GK.dash.time * len, anim: 'dash', animFrom: GK_TIME.dash.from, animSpeed: GK_TIME.dash.speed, dx, dz, iframes: s !== 0, face: true, chain: f > 0 ? 'melee' : undefined, token: f > 0 ? 'melee' : undefined, tid: t.id });
   a.cds.dodge = GK.dash.minStart; a.gkLastDash = sq.time; return true; }
-export const GK_TACTICS = Object.freeze({ every: [.28, .5] });
+export const GK_TACTICS = Object.freeze({ every: [.2, .38] }); // 22/11: decide mais rápido (menos tempo morto)
 /** 22/11 (Etapa 7) — CORRENTES de golpes nativos: o próximo corte cancela a RECUPERAÇÃO do anterior (nunca a janela de dano) se o herói
  *  continua ao alcance; cada golpe mantém janelas/tokens próprios. Fase I: pares curtos; II: pares; III: trios. Esquiva/dash do herói
  *  quebra a corrente (há sempre uma brecha de resposta). */
@@ -421,7 +421,7 @@ export function gkBrain(sq, a, dt, t) {
   const freeScythes = ['A', 'B'].filter(k => !g.away[k] && (g.hands.R === k || g.hands.L === k)), clock = sq.time - (g.lastTech ?? -4) > 7 ? .55 : 0; // relógio de técnica: nada de só combos colados
   if (ph < 3 && can && see && !a.cds.gkThrow && freeScythes.length && gap >= (clock ? .2 : GK.throw.gap[0]) && gap <= GK.throw.gap[1]) opts.push(['foices', .42 + (toward < -1.5 ? .25 : 0) + clock]);
   if (can && see && !a.cds.gkSpear && !g.spear && (!g.away.C || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && (g.hands.R === 'C' || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && gap >= (clock ? 1.6 : GK.spear.gap[0]) && gap <= GK.spear.gap[1]) opts.push(['lanca', .4 + (toward < -1.5 ? .3 : 0) + (t.blocking ? .3 : 0) + clock * .8]);
-  if (ph >= 2 && !a.cds.gkFly && can) opts.push(['voo', .34 + (gap > 6 ? .2 : 0) + (ph >= 3 ? .1 : 0) + clock]);
+  if (ph >= 2 && !a.cds.gkFly && can) opts.push(['voo', .18 + (gap > 6 ? .28 : 0) + (ph >= 3 ? .08 : 0) + clock * .6]); // 22/11: voo é pontuação, não o padrão (chão ≥ ~55%)
   if (ph >= 2 && !a.cds.gkSuns && can && see && gap > (clock ? 1.2 : 3) && gap < 16 && !g.suns.length) opts.push(['sois', .3 + clock * .7]);
   if (ph >= 3 && !a.cds.gkTele) { const orb = g.ents.filter(e => e.mode === 'orbit'), duel = g.ents.filter(e => e.mode === 'tele' || e.mode === 'outbound').length, budget = hpk > .6 ? 2 : hpk > .3 ? 3 : 4;
     if (orb.length && duel < budget) opts.push(['telecinese', .5 + (gap > 3 ? .2 : 0)]); }
@@ -464,6 +464,6 @@ export function gkCancel(sq, a) { const g = a.gk; if (!g) return; for (const q o
 const BASE = { ...E1.common, radius: .5, height: 2.2, poise: 80, flinch: 99, stamina: 180, sight: 44, leash: 70, boss: true, pref: [1.4, 2.6], phase2: -1, furyCd: .82, staggerArmor: 2,
   speed: { walk: 2.9, run: 6.4, strafe: 3.3, back: 2.4, turn: 10 }, melee: { max: 3, reach: 2.8, arc: .1, windup: .4, hits: [.4], dur: 1, dmg: 13, cd: 1, knock: .45 }, aimWarp: { warp: 2, warpSpeed: 7 },
   dash: { speed: GK.dash.speed, time: GK.dash.time, cd: GK.dash.cd }, block: { chance: .14, dur: .5, cd: 3.4, cost: 14, reduce: .8 }, dodge: { chance: .24, cd: GK.dash.cd },
-  counter: { ...E1.common.counter, chance: 0, cd: 99 }, leap: null, shield: null, decide: [.14, .24], gap: .36, kit: [], interrupt: true, feint: null, maxBig: 1,
+  counter: { ...E1.common.counter, chance: 0, cd: 99 }, leap: null, shield: null, decide: [.1, .2], gap: .3, kit: [], interrupt: true, feint: null, maxBig: 1,
   brain: gkBrain, pickMove: gkPickMove, moveAim: vxAim, holdDeath: gkHoldDeath };
 export const GREED = Object.freeze({ A: registerKind('greedA', { ...BASE, hp: 2300 }), B: registerKind('greedB', { ...BASE, hp: 2600, melee: { ...BASE.melee, dmg: 14 } }) });
