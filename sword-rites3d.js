@@ -115,6 +115,24 @@ export class SwordRites {
      if(bladeContact(prev.base,ext(prev),blade.base,ext(blade),target,(target.radius||.48)+(a.def.drive?.2:.12))&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
       a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
      }
+    }
+    // Each physical swing may also connect with nearby bodies crossed by the actual blade.
+    // A per-swing set prevents repeated damage from 120 Hz substeps; the primary target
+    // retains its original hit/impact behavior and damage budget.
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&ctx.others?.length){
+     const prev=this.prevBlade||blade;
+     const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
+     a.bladeSideHits=a.bladeSideHits||new Set();
+     if(!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
+      for(const other of ctx.others){
+       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+       if(!bladeContact(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12))continue;
+       if(segmentBlocked(ctx.from,other,this.api.blocked))continue;
+       a.bladeSideHits.add(other.id);
+       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'basic',{target:other,by:'blade'});
+       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
+      }
+     }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
    if(a.kind==='prota'){
