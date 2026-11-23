@@ -123,7 +123,8 @@ async function vendorPosition(page, index) {
 
 async function interactVendor(page, index) {
   const v = await vendorPosition(page, index);
-  const offsets = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];
+  // Ficar fora do pivô do NPC evita sobreposição do herói e da câmera.
+  const offsets = [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [0, 0]];
   for (const offset of offsets) {
     await page.evaluate(({ x, z }) => {
       const d = window.SevenSinsDebug3D;
@@ -151,6 +152,8 @@ async function drainDialogue(page, expected, screenshotName) {
     const p = document.getElementById('dialog-panel');
     return !!p && !p.classList.contains('hidden');
   }, null, { timeout: 15000 });
+  // O teleporte QA move o ator imediatamente; aguardar a câmera real acompanhar antes da foto.
+  await page.waitForTimeout(750);
   const pages = [];
   for (let i = 0; i < 20; i++) {
     const hidden = await page.evaluate(() => {
@@ -220,6 +223,7 @@ async function tryCollectFlowerAt(page, x, z, before) {
         return Number(s.ervas?.progress || 0) > previous;
       } catch (_) { return false; }
     }, before, { timeout: 1100 });
+    await page.waitForTimeout(350);
     return true;
   } catch (_) {
     return false;
