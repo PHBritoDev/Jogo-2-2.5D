@@ -6,7 +6,7 @@ export function getVorgazhekLighting(radius = 85) {
   // Cool sky fill and a restrained rim keep armor readable without lifting the abyss.
   hemi: [0xa3abb1, 0x030304, 1.1],
   sun: [0xc1cad1, .48],
-  // The same single local point light; intensity only, no new light or shadow pass.
+  // Retarget the same single local point light over the combat center; no added light or shadow pass.
   light: [0xe7e7ec, 8, Math.max(150, R * 2), [0, 8, 7]],
   exposure: 1.12
  };
