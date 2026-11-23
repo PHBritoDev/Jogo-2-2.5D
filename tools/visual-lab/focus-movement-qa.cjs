@@ -28,9 +28,11 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   }
  };
  const frameHero=async state=>page.evaluate(({p})=>{
-  const d=SevenSinsDebug3D,from=[p[0]+3.4,p[1]+2.8,p[2]+7.2],to=[p[0],p[1]+1,p[2]];
-  d.camFix(from,to);
-  return {from,to,cam:d.heroState().cam};
+  const d=SevenSinsDebug3D,from=[p[0]+1.1,p[1]+4.8,p[2]+4.6],to=[p[0],p[1]+.95,p[2]];
+  // Use the same camera override API as the combat visual lab. The previous
+  // camFix angle placed the QA camera outside the bridge rail and hid the hero.
+  d.fly(from,to);d.render();
+  return {method:'fly',from,to,cam:d.heroState().cam};
  },{p:state.p});
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
@@ -92,6 +94,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.frameAfterPointerLock=await frameHero(report.lockSettled);
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await capture('stopped-after-pointerlock-switch');
+  await page.evaluate(()=>SevenSinsDebug3D.fly(null));
   await page.keyboard.up('w');held=false;
   await page.evaluate(()=>{window.__a1LockTarget=null;document.dispatchEvent(new Event('pointerlockchange'));document.querySelector('#a1-qa-second-lock-target')?.remove()});
   report.drift=Math.hypot(report.last.p[0]-report.after.p[0],report.last.p[2]-report.after.p[2]);
