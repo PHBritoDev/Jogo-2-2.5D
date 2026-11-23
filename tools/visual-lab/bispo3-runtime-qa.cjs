@@ -22,15 +22,32 @@ async function main(){
   report.quality=[];
   for(const q of ['max','high','low']){await p.evaluate(q=>{const s=document.querySelector('#graphics-profile-3d');s.value=q;s.dispatchEvent(new Event('change'));},q);await p.waitForTimeout(1000);report.quality.push(await p.evaluate(()=>SevenSinsDebug3D.dimensionVisualState()));}
   assert.deepEqual(report.quality.map(x=>x.quality),['high','medium','low']);
-  // Request powers, but accept them ONLY after actual runtime phase evidence.
-  await p.evaluate(()=>SevenSinsDebug3D.speed(8));
+  // Unlock once. Launch each skill exactly once; waitForFunction below is read-only.
+  await p.evaluate(()=>{const d=SevenSinsDebug3D;d.god();d.skills();d.speed(8);});
+  report.launches={};
   for(const id of ['s1','s2','sw','ult']){
-    const h=await p.waitForFunction(id=>{const d=SevenSinsDebug3D;d.god();d.power();d.kitMove(id);const s=d.dimState();return id==='s1'?(s.hydra?.phase==='charge'?s.hydra:null):id==='s2'?(s.moonFlames?.fired>0?s.moonFlames:null):id==='sw'?(['spin','wave','detonate'].includes(d.dimensionVisualState()?.swordPhase)?d.dimensionVisualState().swordPhase:null):(s.cinematic?.vfx?s.cinematic:null);},id,{timeout:180000,polling:250});
+    if(id==='ult')await p.evaluate(()=>SevenSinsDebug3D.speed(2));
+    const launch=await p.evaluate(id=>{
+      const d=SevenSinsDebug3D;
+      d.power();
+      const response=d.kitMove(id);
+      const s=d.dimState(),visual=d.dimensionVisualState();
+      return {response,profile:s.profile,phase:id==='s1'?s.hydra?.phase:id==='s2'?s.moonFlames?.phase:id==='ult'?s.cinematic?.phase:visual?.swordPhase};
+    },id);
+    report.launches[id]=launch;
+    const h=await p.waitForFunction(id=>{
+      const d=SevenSinsDebug3D,s=d.dimState(),visual=d.dimensionVisualState();
+      return id==='s1'?(s.hydra?.phase==='charge'?s.hydra:null):
+        id==='s2'?(s.moonFlames?.fired>0?s.moonFlames:null):
+        id==='sw'?(['spin','wave','detonate'].includes(visual?.swordPhase)?visual.swordPhase:null):
+        (s.cinematic?.phase==='aura'?s.cinematic:null);
+    },id,{timeout:180000,polling:250});
     report.skills[id]=await h.jsonValue();await shot('02-poder-'+id);
     if(id==='ult'){
       const c=await p.waitForFunction(()=>{const s=SevenSinsDebug3D.dimState().cinematic;return s?.occluders===3?s:null;},null,{timeout:90000,polling:100});report.cinematic=await c.jsonValue();assert.equal(report.cinematic.occluders,3);await shot('03-camera-ultimate');
     }
     await p.waitForFunction(()=>{const d=SevenSinsDebug3D,s=d.dimState();return !s.hydra&&!s.moonFlames&&!s.cinematic&&!d.dimensionVisualState()?.swordPhase;},null,{timeout:180000,polling:100});
+    if(id==='ult')await p.evaluate(()=>SevenSinsDebug3D.speed(1));
   }
   report.restored=await p.evaluate(()=>SevenSinsDebug3D.dimensionVisualState());assert.ok(report.restored.architectureVisible.every(Boolean));
   await p.evaluate(()=>{SevenSinsDebug3D.speed(1);const buttons=[...document.querySelectorAll('#dim-test-panel button')];buttons.find(b=>b.textContent.includes('Sair da dimensão')).click();});
