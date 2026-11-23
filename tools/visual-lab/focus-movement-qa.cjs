@@ -27,6 +27,11 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
    }finally{if(session)try{await session.detach()}catch{}}
   }
  };
+ const frameHero=async state=>page.evaluate(({p})=>{
+  const d=SevenSinsDebug3D,from=[p[0]+3.4,p[1]+2.8,p[2]+7.2],to=[p[0],p[1]+1,p[2]];
+  d.camFix(from,to);
+  return {from,to,cam:d.heroState().cam};
+ },{p:state.p});
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
   page=await browser.newPage({viewport:{width:1280,height:720}});
@@ -38,10 +43,12 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.start=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.freeRoam();d.motionQA({x:40,z:30,enemyDistance:0});d.combatStep(.35,{fps:30,draw:false});return d.heroState()});
   await page.keyboard.down('w');held=true;
   report.forward=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.frameMoving=await frameHero(report.forward);
   await capture('moving-before-blur');
   report.phase='blur';
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   report.after=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.7,{fps:30,draw:false});return d.heroState()});
+  report.frameAfterBlur=await frameHero(report.after);
   await capture('stopped-after-blur');
   report.phase='visibilitychange';
   await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
@@ -78,6 +85,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.lockSettled=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
   report.lockResidualDrift=Math.hypot(report.lockSettled.p[0]-report.lockAfter.p[0],report.lockSettled.p[2]-report.lockAfter.p[2]);
   report.lockPass=report.lockDuplicate.repeat===false&&report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
+  report.frameAfterPointerLock=await frameHero(report.lockSettled);
   await capture('stopped-after-pointerlock-switch');
   await page.keyboard.up('w');held=false;
   await page.evaluate(()=>{window.__a1LockTarget=null;document.dispatchEvent(new Event('pointerlockchange'));document.querySelector('#a1-qa-second-lock-target')?.remove()});
