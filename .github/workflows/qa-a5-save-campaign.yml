@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar arquivo JS
-        run: node --check act1-flow.js && node --check act2-flow.js && node --check sidequests3d.js
+        run: node --check act1-flow.js && node --check act2-flow.js && node --check sidequests3d.js && node --check mundo-3d-prototype.js
       - name: Executar regressão das missões opcionais
         run: node --test sidequests3d.test.mjs
       - name: Executar teste específico e contrato base
