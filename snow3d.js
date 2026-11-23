@@ -7,6 +7,7 @@
  *  DISTORTED   a dimensão distorcida (tema "distorted"): os controles ficam invertidos.
  * Coordenadas das áreas internas são locais (somadas ao centro da dimensão no jogo).
  */
+import { COAT_STALL } from './sakura-route3d.js';
 export const SNOW_CITY = {
   center: { x: 150, z: -40 }, radius: 46, name: 'Invernália',
   plaza: { x: 148, z: -40 },
@@ -17,7 +18,7 @@ export const SNOW_CITY = {
   villager: { x: 141, z: -34 },
   // MOD 217 — o vendedor fica no começo da subida (antes estava colado na cidade); a jornada até Invernália passa por
   // marcos: a fogueira dos viajantes, a placa, a carroça quebrada na neve e o santuário congelado na curva.
-  seller: { x: 64, z: -31 },
+  seller: COAT_STALL,
   journey: [{ k: 'fogueira', x: 71, z: -36 }, { k: 'placa', x: 80, z: -27.6 }, { k: 'carroca', x: 92.5, z: -24.5, yaw: .5 }, { k: 'santuario', x: 104.5, z: -43.5 }, { k: 'pinheiros', x: 86, z: -42 }, { k: 'pinheiros', x: 97, z: -18 }],
   cave: { x: 186, z: -70, yaw: -Math.PI * .75 },
   houses: [

@@ -1,0 +1,55 @@
+import test from 'node:test';
+import {createSakuraWorld} from './sakura-world3d.js';
+import assert from 'node:assert/strict';
+import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
+import {CITY2,GATE2} from './jornada3d.js';
+import {DISTRICT_SPOTS} from './act2-flow.js';
+import {migrateProgress} from './act1-flow.js';
+import {MAP_BOUNDS,V4_MAP_BOUNDS,migrateLegacyFog,createMapState,isRevealed} from './map3d.js';
+
+test('a saída canônica do bilhete fica fora da cratera e encontra a passagem do anel de basalto',()=>{
+ assert.ok(Math.hypot(FROM_CITY[0].x-CITY2.x,FROM_CITY[0].z-CITY2.z)>22.5);
+ assert.equal(FROM_CITY[0].x,DISTRICT_SPOTS.note.x+1.2);
+ for(const w of SHELTERS)assert.ok(sampleRoad(w.x,w.z).d>8,w.id+' atravessa o caminho');
+ assert.ok(routeGround(INLET_BRIDGE.x,INLET_BRIDGE.z)>SPRING_LAKE.y+.45);
+ assert.ok(!roadBlocked(INLET_BRIDGE.x,INLET_BRIDGE.z));
+ assert.deepEqual([FROM_CITY.at(-1).x,FROM_CITY.at(-1).z],[GATE2.out.x,GATE2.out.z]);
+ assert.ok(leavesVolcano(-275,sampleRoad(-1606,-275)));
+ assert.equal(leavesVolcano(GATE2.z,sampleRoad(GATE2.x,GATE2.z)),false);
+});
+test('cada metro do eixo, do retorno e de nove desvios é atravessável e contínuo',()=>{
+ assert.equal(typeof createSakuraWorld,'function');assert.ok(LENGTHS.at(-1)>5000);
+ assert.equal(DETOURS.length,9);
+ for(const road of [ROUTE,CITY_ROAD,...DETOURS.map(d=>d.points)])for(let j=1;j<road.length;j++){
+  const a=road[j-1],b=road[j],n=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z));let previous;
+  for(let k=0;k<=n;k++){const t=k/n,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t,p=sampleRoad(x,z);
+   if(x<198&&road===CITY_ROAD)continue; // última praça pertence ao mapa original
+   const h=routeGround(x,z,p);assert.ok(Number.isFinite(h));assert.ok(!roadBlocked(x,z,p),'colisão '+[x,z]);
+   if(previous!==undefined)assert.ok(Math.abs(h-previous)<1,'degrau '+[x,z,h,previous]);previous=h;
+  }
+ }
+});
+test('a ponte tem chão acima da ravina, as margens e a água aberta se distinguem do gelo',()=>{
+ const b=GLACIER_BRIDGE,x=b.x+b.dx*b.len*.5,z=b.z+b.dz*b.len*.5;
+ assert.ok(routeGround(x,z)-landscape(x,z)>40);
+ assert.ok(roadBlocked(x+b.dz*3.4,z-b.dx*3.4));assert.ok(!roadBlocked(x,z));
+ assert.ok(lakeDepth(SPRING_LAKE.x,SPRING_LAKE.z)>1.25);
+ assert.ok(!roadBlocked(ICE_LAKE.x,ICE_LAKE.z));assert.ok(roadBlocked(825,-1702));
+});
+test('portas, passarelas e escadas ligam a nave, as galerias e o trono',()=>{
+ assert.ok(!roadBlocked(DOJO.x,DOJO.z-10.6));assert.ok(roadBlocked(DOJO.x+7,DOJO.z-10.6));
+ assert.ok(!roadBlocked(CASTLE.x,CASTLE.z-39.9));assert.ok(roadBlocked(CASTLE.x+9,CASTLE.z-39.9));
+ for(const s of [-1,1]){const x=CASTLE.x+s*19;assert.equal(routeGround(x,CASTLE.z-12),81);assert.equal(routeGround(x,CASTLE.z+18),88);}
+ assert.deepEqual(nextGuide(THRONE.x,THRONE.z,2),CITY_ROAD[1]);
+});
+test('saves antigos conservam a campanha e novos saves conservam os marcos de descanso',()=>{
+ for(const step of [12,15,16,17,18,19,21]){const s=migrateProgress({version:6,act1Rev:2,questStep:step,coins:132,act1Sub:1,bishopsDefeated:2});assert.equal(s.questStep,step);assert.equal(s.coins,132);assert.equal(s.sakuraRest,-1);}
+ for(const [raw,expected] of [[23,23],[61,61],[1000,-1],['23',-1]])assert.equal(migrateProgress({version:6,act1Rev:2,questStep:15,sakuraRest:raw}).sakuraRest,expected);
+});
+test('névoa da v4 conserva um abrigo conhecido sem revelar antecipadamente o castelo',()=>{
+ const v=V4_MAP_BOUNDS,x=-1228,z=-74,k=Math.floor((z-v.z0)*v.cells/v.size)*v.cells+Math.floor((x-v.x0)*v.cells/v.size);
+ const bytes=Buffer.alloc(Math.ceil(v.cells*v.cells/8));bytes[k>>3]|=1<<(k&7);
+ const state=createMapState(migrateLegacyFog({cells:bytes.toString('base64'),pois:['cinzaria'],waystones:['abrigo-cinzaria']},v));
+ assert.ok(isRevealed(state,x,z));assert.ok(!isRevealed(state,CASTLE.x,CASTLE.z));assert.ok(state.waystones.has('abrigo-cinzaria'));
+ for(const p of ROUTE){assert.ok(p.x>=MAP_BOUNDS.x0&&p.z>=MAP_BOUNDS.z0&&p.x<MAP_BOUNDS.x0+MAP_BOUNDS.size);}
+});
