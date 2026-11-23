@@ -73,9 +73,9 @@ jobs:
           VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
           VISUAL_BRANCH_SHA: '${{ github.event.pull_request.head.sha }}'
           VISUAL_BASE_SHA: '${{ github.event.pull_request.base.sha }}'
-          RUN_ARENA: '${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.arena == 'true' }}'
-          RUN_RUNTIME: '${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.runtime == 'true' }}'
-          RUN_AB: '${{ github.event_name == 'pull_request' && steps.paths.outputs.ab == 'true' }}'
+          RUN_ARENA: ${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.arena == 'true' }}
+          RUN_RUNTIME: ${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.runtime == 'true' }}
+          RUN_AB: ${{ github.event_name == 'pull_request' && steps.paths.outputs.ab == 'true' }}
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo2-http.log 2>&1 &
           if [ -d work/baseline ]; then
