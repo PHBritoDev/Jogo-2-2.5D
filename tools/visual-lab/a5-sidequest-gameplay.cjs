@@ -160,8 +160,9 @@ async function vendorPosition(page, index) {
 
 async function interactVendor(page, index) {
   const v = await vendorPosition(page, index);
-  // Ficar fora do pivô do NPC evita sobreposição do herói e da câmera.
+  // Avaliar posições de aproximação com a sonda de câmera, sem mover a câmera de QA.
   const offsets = [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [0, 0]];
+  const vendorPos = await page.evaluate((i) => window.SevenSinsDebug3D.regressionState().vendors[i].pos, index);
   const candidates = [];
   for (const offset of offsets) {
     await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.teleport(x, z), { x: v.x + offset[0], z: v.z + offset[1] });
@@ -171,7 +172,7 @@ async function interactVendor(page, index) {
       let vendor = null;
       try { vendor = typeof d.camView === 'function' ? d.camView(pos) : null; } catch (_) {}
       return { player: typeof d.camView === 'function' ? d.camView() : null, vendor };
-    }, await page.evaluate((i) => window.SevenSinsDebug3D.regressionState().vendors[i].pos, index));
+    }, vendorPos);
     const clear = (view) => !view || (view.onScreen && !view.blocked);
     const score = (camera.settled ? 2 : 0) + (clear(views.player) ? 2 : -3) + (clear(views.vendor) ? 2 : -3);
     candidates.push({ offset, score, settled: camera.settled, player: views.player, vendor: views.vendor });
@@ -179,12 +180,14 @@ async function interactVendor(page, index) {
   }
   candidates.sort((a, b) => b.score - a.score);
   report.vendorApproaches.push({ vendor: v.name, candidates });
-  const selected = candidates[0]?.offset || offsets[0];
-  await page.evaluate(({ x, z }) => {
-    const d = window.SevenSinsDebug3D;
-    d.teleport(x, z);
-    d.interact();
-  }, { x: v.x + selected[0], z: v.z + selected[1] });
+
+  for (const candidate of candidates) {
+    const offset = candidate.offset;
+    await page.evaluate(({ x, z }) => {
+      const d = window.SevenSinsDebug3D;
+      d.teleport(x, z);
+      d.interact();
+    }, { x: v.x + offset[0], z: v.z + offset[1] });
     try {
       await page.waitForFunction(() => {
         const p = document.getElementById('dialog-panel');
@@ -195,7 +198,7 @@ async function interactVendor(page, index) {
       await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
       await waitWorld(page);
     } catch (_) {
-      // Tenta o próximo ponto de aproximação do mesmo vendedor.
+      // Tenta a próxima posição avaliada do mesmo vendedor.
     }
   }
   throw new Error('Não abriu diálogo de vendedor no índice ' + index + ' (' + v.name + ')');
