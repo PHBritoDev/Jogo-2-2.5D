@@ -5,7 +5,7 @@ import { JOURNEY_HOLES, inJourney } from '../jornada3d.js';
 import { ROAD_TERRAIN_PATCH } from '../act1-world-layout.js';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
+const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES, TERRAIN_EDGE_WALK_INPUT, terrainEdgeWalkCameraYaw } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
@@ -158,4 +158,14 @@ test('A3 walk scan crosses each fine-grid boundary in both directions', () => {
       }
     }
   }
+});
+
+
+test('A3 live walk replay faces the world path and uses forward input', () => {
+  assert.deepEqual(TERRAIN_EDGE_WALK_INPUT, {x:0,z:-1});
+  const closeYaw = (actual,expected) => assert.ok(Math.abs(actual-expected) < 1e-8, actual + ' != ' + expected);
+  closeYaw(terrainEdgeWalkCameraYaw([0,0],[0,1]), Math.PI);
+  closeYaw(terrainEdgeWalkCameraYaw([0,0],[0,-1]), 0);
+  closeYaw(terrainEdgeWalkCameraYaw([0,0],[1,0]), Math.PI / 2);
+  closeYaw(terrainEdgeWalkCameraYaw([0,0],[-1,0]), -Math.PI / 2);
 });

@@ -16,4 +16,8 @@ const TERRAIN_EDGE_WALK_LINES = Object.freeze([
   Object.freeze({name:"z-norte",axis:"z",boundary:39,interiorSign:-1,min:-199,max:195,step:8,walkDepth:6,probeOffset:1,seconds:5}),
   Object.freeze({name:"z-sul",axis:"z",boundary:-291,interiorSign:1,min:-199,max:195,step:8,walkDepth:6,probeOffset:1,seconds:5}),
 ]);
-module.exports = { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES };
+const TERRAIN_EDGE_WALK_INPUT = Object.freeze({x:0,z:-1});
+function terrainEdgeWalkCameraYaw(start,end) {
+  return Math.atan2(end[0]-start[0], -(end[1]-start[1]));
+}
+module.exports = { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES, TERRAIN_EDGE_WALK_INPUT, terrainEdgeWalkCameraYaw };

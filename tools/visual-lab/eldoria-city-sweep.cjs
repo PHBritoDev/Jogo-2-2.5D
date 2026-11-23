@@ -3,7 +3,7 @@
 const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
-const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES } = require("./a3-terrain-edge-plan.cjs");
+const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES, TERRAIN_EDGE_WALK_INPUT, terrainEdgeWalkCameraYaw } = require("./a3-terrain-edge-plan.cjs");
 const output = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "eldoria-city-sweep");
 fs.mkdirSync(output,{recursive:true});
 const base = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
@@ -313,28 +313,33 @@ async function captureMainBaseline(browser,base,output,report){
        const selected=edgeTraversal.selected;
        const dx=selected.end[0]-selected.start[0], dz=selected.end[1]-selected.start[1];
        const length=Math.hypot(dx,dz), direction={x:dx/length,z:dz/length};
-       await page.evaluate(({start,direction})=>{
+       const yaw=terrainEdgeWalkCameraYaw(selected.start,selected.end);
+       await page.evaluate(({start,yaw})=>{
          const api=window.SevenSinsDebug3D;
-         api.teleport(start[0],start[1],0);
-         api.view(Math.atan2(direction.x,-direction.z),.18,7);
-       },{start:selected.start,direction});
+         api.teleport(start[0],start[1],yaw);
+         api.view(yaw,.18,7);
+       },{start:selected.start,yaw});
        let liveState=await page.evaluate(()=>window.SevenSinsDebug3D.walkState());
-       let liveProgress=0;
+       let liveProgress=0, lateralMeters=0;
        for(let i=0;i<48;i++){
-         liveState=await page.evaluate(direction=>{
+         liveState=await page.evaluate(input=>{
            const api=window.SevenSinsDebug3D;
-           api.motionStep(.25,direction);
+           api.motionStep(.25,input);
            return api.walkState();
-         },direction);
+         },TERRAIN_EDGE_WALK_INPUT);
          await page.waitForTimeout(100);
-         liveProgress=(liveState.x-selected.start[0])*direction.x+(liveState.z-selected.start[1])*direction.z;
-         if(liveProgress>=length-.5) break;
+         const deltaX=liveState.x-selected.start[0], deltaZ=liveState.z-selected.start[1];
+         liveProgress=deltaX*direction.x+deltaZ*direction.z;
+         lateralMeters=Math.abs(deltaX*(-direction.z)+deltaZ*direction.x);
+         if(liveProgress>=length-.5 || lateralMeters>2.5) break;
        }
+       const reached=liveProgress>=length-1.5&&lateralMeters<=1.5&&liveState.grounded!==false;
        edgeTraversal.liveReplay={
          start:selected.start,end:selected.end,targetMeters:+length.toFixed(2),
-         progressMeters:+liveProgress.toFixed(2),final:liveState,
-         reached:liveProgress>=length-1.5
+         progressMeters:+liveProgress.toFixed(2),lateralMeters:+lateralMeters.toFixed(2),
+         yaw,final:liveState,reached
        };
+       if(!reached) report.errors.push("Replay jogável desviou da costura "+selected.line+": "+JSON.stringify(edgeTraversal.liveReplay));
        const walkShot=path.join(dir,"travessia-"+safe(selected.line)+".png");
        await page.screenshot({path:walkShot,timeout:65000,animations:"disabled"});
        edgeTraversal.liveReplay.image=path.relative(output,walkShot);
