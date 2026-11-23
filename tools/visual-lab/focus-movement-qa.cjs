@@ -42,15 +42,17 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   await page.goto('http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.combatStep&&document.querySelector('#loading')?.classList.contains('hidden'),null,{timeout:120000});
   report.phase='movement';
-  report.start=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.freeRoam();d.motionQA({x:40,z:30,enemyDistance:0});d.combatStep(.35,{fps:30,draw:false});return d.heroState()});
+  report.start=await page.evaluate(()=>{const d=SevenSinsDebug3D,lane=d.motionLane();if(!lane)throw Error('no flat QA lane found');d.freeRoam();d.motionQA({x:lane.x,z:lane.z,enemyDistance:0});d.combatStep(.35,{fps:30,draw:false});return {...d.heroState(),qaLane:{x:lane.x,y:lane.y,z:lane.z}}});
   await page.keyboard.down('w');held=true;
   report.forward=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
   report.frameMoving=await frameHero(report.forward);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await capture('moving-before-blur');
   report.phase='blur';
   await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   report.after=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.7,{fps:30,draw:false});return d.heroState()});
   report.frameAfterBlur=await frameHero(report.after);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await capture('stopped-after-blur');
   report.phase='visibilitychange';
   await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
@@ -88,6 +90,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.lockResidualDrift=Math.hypot(report.lockSettled.p[0]-report.lockAfter.p[0],report.lockSettled.p[2]-report.lockAfter.p[2]);
   report.lockPass=report.lockDuplicate.repeat===false&&report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
   report.frameAfterPointerLock=await frameHero(report.lockSettled);
+  await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await capture('stopped-after-pointerlock-switch');
   await page.keyboard.up('w');held=false;
   await page.evaluate(()=>{window.__a1LockTarget=null;document.dispatchEvent(new Event('pointerlockchange'));document.querySelector('#a1-qa-second-lock-target')?.remove()});
