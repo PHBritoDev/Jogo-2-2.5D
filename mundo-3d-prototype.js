@@ -8575,7 +8575,7 @@ const rites=new SwordRites({
  },
  hit:(damage,id,kind,x)=>{if(kind==='energy-side'){protaSideHit(damage,id,x);return;}if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
  event:(type,e)=>{
-  if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
+  if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,targetId:e.target?.id??null,waveSerial:e.energy?.serial??e.wave?.serial??e.serial??null,by:e.by??null,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
   // MOD 315: espada inicial — crescente varrido amostrado da lâmina real, onda (= volume de dano) e impacto estrelado
   if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'&&e.a.def?.drive)tryBladeClash(e.a,e.blade);

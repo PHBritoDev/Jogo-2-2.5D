@@ -111,12 +111,13 @@ fs.mkdirSync(dir, { recursive: true });
       const s = D.squadState();
       const r = D.riteState();
       return { actors: s.snap.actors, events: r.events, projectiles: r.projectiles,
-        active: r.active, sword: r.sword };
+        active: r.active, sword: r.sword, vfx: r.vfx };
     });
     const before = new Map(report.steps.before.actors.map(a => [a.id, a]));
     const after = new Map(report.steps.after.actors.map(a => [a.id, a]));
     const trackedIds = [report.steps.before.primaryId, ...report.steps.before.sideIds];
     const impactEvents = report.steps.after.events.filter(e => e.type === 'impact' && e.position);
+    report.steps.after.impactEventsByTargetId = Object.fromEntries(trackedIds.map(id => [id, impactEvents.filter(e => e.targetId === id).map(e => ({ waveSerial: e.waveSerial, at: e.at, by: e.by, position: e.position }))]));
     const belongsTo = (e, a) => Math.abs(e.position.x - a.x) < .12 &&
       Math.abs(e.position.z - a.z) < .8;
     report.steps.after.mappedImpactsById = Object.fromEntries(trackedIds.map(id => {
@@ -143,10 +144,17 @@ fs.mkdirSync(dir, { recursive: true });
         `as quatro ondas precisam emitir exatamente um impacto separado em ${id}`);
       assert.equal(new Set(report.steps.after.impactTimesById[id]).size, 4,
         `cada impacto de ${id} precisa vir de uma onda/instante distinto`);
+      const direct = impactEvents.filter(e => e.targetId === id);
+      assert.equal(direct.length, 4, `os quatro eventos precisam identificar diretamente ${id}`);
+      assert.equal(new Set(direct.map(e => e.waveSerial)).size, 4,
+        `cada evento de ${id} precisa pertencer a uma onda distinta`);
+      assert.ok(direct.every(e => e.by === 'energy'), `impactos de ${id} precisam vir da energia real`);
     }
     assert.equal(after.get(report.steps.before.controlId)?.hp, before.get(report.steps.before.controlId).hp,
       'alvo fora da largura da onda deve permanecer sem dano');
     assert.equal(report.steps.after.controlImpacts, 0, 'alvo fora da onda não pode receber impacto visual');
+    assert.equal(impactEvents.filter(e => e.targetId === report.steps.before.controlId).length, 0,
+      'controle fora da onda não pode receber evento de impacto por ID');
     assert.equal(report.steps.after.projectiles.length, 0, 'as quatro ondas precisam dissipar antes do fim do QA');
     assert.deepEqual(report.errors, [], 'sem exceções WebGL/JS ou respostas HTTP falhas');
     await page.screenshot({ path: path.join(dir, '05-dissipacao.png'), timeout: 120000 });
