@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { readFileSync } from 'node:fs';
+import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { WAYSTONES } from './map3d.js';
+
+const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
   const s = createSideState();
@@ -16,16 +20,16 @@ test('missões abrem conforme a campanha e só contam itens quando ativas', () =
   assert.equal(turnInSide(s, 'ervas'), null, 'recompensa uma vez só');
 });
 
-test('atualizações incompletas e contagens antigas não apagam pedras já registradas', () => {
+test('atualizações incompletas e snapshot ausente preserva progresso e o atual reconcilia o mapa', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
   acceptSide(s, 'abrigos');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
   refreshSide(s, { questStep: 2 });
   assert.equal(s.abrigos.progress, 2, 'sem contagem não deve zerar progresso');
-  refreshSide(s, { questStep: 2, waystones: 1 });
-  assert.equal(s.abrigos.progress, 2, 'contagem desatualizada não retrocede progresso');
-  refreshSide(s, { questStep: 2, waystones: 3 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(1) });
+  assert.equal(s.abrigos.progress, 1, 'snapshot atual do mapa reconcilia progresso salvo divergente');
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
 });
 
@@ -33,9 +37,9 @@ test('abrigos acompanham as pedras registradas; diário mostra progresso', () =>
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
   acceptSide(s, 'abrigos');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
   assert.deepEqual(activeSideLines(s), ['Pedras que Lembram · 2/3']);
-  refreshSide(s, { questStep: 2, waystones: 3 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
   assert.equal(questForGiver(s, 'ARTESANATO').id, 'abrigos');
   const back = createSideState(JSON.parse(JSON.stringify(s)));
@@ -51,9 +55,11 @@ test('reload da vila limita contadores inválidos sem concluir missões indevida
   const s = createSideState(saved);
   assert.equal(s.ervas.progress, 0);
   assert.equal(s.pingente.progress, 0);
-  assert.equal(s.abrigos.progress, 3);
+  assert.equal(s.abrigos.progress, 0, 'save acima da meta é inválido');
   assert.equal(s.abrigos.state, 'active');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
+  assert.equal(s.abrigos.state, 'active');
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
   assert.equal(s.ervas.state, 'active');
   assert.equal(turnInSide(s, 'ervas'), null);
@@ -93,6 +99,10 @@ test('save inconsistente não permite entregar missão sem progresso comprovado'
   assert.equal(s.pingente.state, 'active');
   assert.equal(turnInSide(s, 'ervas'), null);
   assert.equal(turnInSide(s, 'pingente'), null);
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
+  assert.equal(s.abrigos.state, 'active');
+  assert.equal(turnInSide(s, 'abrigos'), null, 'save ready não paga sem os três abrigos locais');
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
   assert.deepEqual(turnInSide(s, 'abrigos'), SIDE_QUESTS[2].reward);
   assert.equal(turnInSide(s, 'abrigos'), null);
@@ -167,7 +177,11 @@ test('progresso negativo ou acima da meta durante a sessão é normalizado', () 
   assert.equal(s.pingente.state, 'ready');
   s.pingente.progress = 999;
   refreshSide(s, { questStep: 2 });
-  assert.equal(s.pingente.progress, 1);
+  assert.equal(s.pingente.progress, 0, 'progresso acima da meta deve ser invalidado');
+  assert.equal(s.pingente.state, 'active');
+  assert.equal(turnInSide(s, 'pingente'), null);
+  collectSide(s, 'pingente');
+  assert.equal(s.pingente.state, 'ready');
   assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
 });
 
@@ -201,12 +215,12 @@ test('pedras de abrigo ignoram arrays e objetos de contagem durante a sessão', 
   const state = createSideState();
   refreshSide(state, { questStep: 2 });
   assert.equal(acceptSide(state, 'abrigos'), true);
-  for (const invalid of [[3], true, { valueOf: () => 3 }, '3']) {
+  for (const invalid of [3, [3], true, { valueOf: () => 3 }, '3']) {
     refreshSide(state, { questStep: 2, waystones: invalid });
     assert.equal(state.abrigos.progress, 0);
     assert.equal(state.abrigos.state, 'active');
   }
-  refreshSide(state, { questStep: 2, waystones: 3 });
+  refreshSide(state, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(state.abrigos.state, 'ready');
 });
 
@@ -225,4 +239,32 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+});
+
+
+test('Pedras que Lembram conta somente os três IDs de Eldória', () => {
+  const mapIds = new Set(WAYSTONES.map((stone) => stone.id));
+  assert.deepEqual(SIDE_QUEST_WAYSTONES, ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);
+  for (const id of SIDE_QUEST_WAYSTONES) assert.ok(mapIds.has(id), id + ' precisa existir no mapa');
+  const laterActIds = WAYSTONES.filter((stone) => !SIDE_QUEST_WAYSTONES.includes(stone.id)).map((stone) => stone.id);
+  assert.equal(laterActIds.length, 3, 'o mapa tem três abrigos da jornada posterior');
+
+  const state = createSideState();
+  refreshSide(state, { questStep: 2 });
+  assert.equal(acceptSide(state, 'abrigos'), true);
+  refreshSide(state, { questStep: 2, waystones: new Set(laterActIds) });
+  assert.equal(state.abrigos.progress, 0, 'abrigos de outros atos não concluem a missão de Eldória');
+  refreshSide(state, { questStep: 2, waystones: new Set([SIDE_QUEST_WAYSTONES[0], ...laterActIds]) });
+  assert.equal(state.abrigos.progress, 1, 'somente o abrigo local conta');
+  refreshSide(state, { questStep: 2, waystones: new Set(SIDE_QUEST_WAYSTONES) });
+  assert.equal(state.abrigos.progress, 3);
+  assert.equal(state.abrigos.state, 'ready');
+  refreshSide(state, { questStep: 2, waystones: [...SIDE_QUEST_WAYSTONES] });
+  assert.equal(state.abrigos.state, 'ready', 'arrays com IDs canônicos também são aceitos');
+});
+
+test('runtime fornece o Set de IDs registrados, não a contagem global', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.match(runtime, /function refreshSideQuests\\(\\)\\{refreshSide\\(sideState,\\{questStep,waystones:mapState\\.waystones\\}\\)/);
+  assert.doesNotMatch(runtime, /function refreshSideQuests\\(\\)\\{refreshSide\\(sideState,\\{questStep,waystones:mapState\\.waystones\\.size\\}\\)/);
 });

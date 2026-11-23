@@ -1,7 +1,12 @@
-name: QA direcionado A5 — regressão de produção
+name: QA direcionado A5 — missões de Eldória
 on:
   pull_request:
     paths:
+      - 'sidequests3d.js'
+      - 'sidequests3d.test.mjs'
+      - 'map3d.js'
+      - 'map3d.test.mjs'
+      - 'mundo-3d-prototype.js'
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
       - 'act2-flow.js'
@@ -20,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verificar arquivo JS
-        run: node --check act1-flow.js && node --check act2-flow.js
-      - name: Executar teste específico e contrato base
-        run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
+      - name: Verificar sintaxe dos módulos de campanha
+        run: node --check act1-flow.js && node --check act2-flow.js && node --check sidequests3d.js && node --check mundo-3d-prototype.js
+      - name: Executar regressões de missões, mapa e campanha
+        run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
