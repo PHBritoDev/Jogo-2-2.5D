@@ -265,6 +265,6 @@ test('Pedras que Lembram conta somente os três IDs de Eldória', () => {
 
 test('runtime fornece o Set de IDs registrados, não a contagem global', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
-  assert.match(runtime, /function refreshSideQuests\\(\\)\\{refreshSide\\(sideState,\\{questStep,waystones:mapState\\.waystones\\}\\)/);
-  assert.doesNotMatch(runtime, /function refreshSideQuests\\(\\)\\{refreshSide\\(sideState,\\{questStep,waystones:mapState\\.waystones\\.size\\}\\)/);
+  assert.ok(runtime.includes("function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones})"));
+  assert.ok(!runtime.includes("function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size})"));
 });
