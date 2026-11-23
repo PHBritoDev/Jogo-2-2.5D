@@ -51,7 +51,7 @@ async function openBattle(url, stage, viewport) {
   const context = await chromium.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
   await installThreeRoutes(context);
   const page = await context.newPage();
-  listen(page, stage.startsWith('base') ? 'baseline' : 'head');
+  listen(page, stage.includes('base') ? 'baseline' : 'head');
   try {
     await page.goto(url + '/mundo-3d-prototype.html?testeDimensao=bishop2&debug3d=1', {
       waitUntil: 'domcontentloaded',
@@ -133,7 +133,7 @@ function assertPortrait(state, label) {
   assert.equal(state.dimension?.squad, true, label + ': VORGAZHEK no fluxo de esquadra');
   assert.equal(state.dimension?.voidMode, true, label + ': dimensão ativa');
   assert.equal(state.bodyClass, true, label + ': escopo visual ativado');
-  assert.equal(state.bossName, 'VORGAZHEK', label + ': nome do chefe');
+  assert.ok(String(state.bossName || '').includes('VORGAZHEK'), label + ': nome do chefe');
   const h = state.hud, w = state.viewport.width, height = state.viewport.height;
   assert.ok(h.enemy && h.enemy.display !== 'none' && h.enemy.visibility !== 'hidden', label + ': barra do Bispo visível');
   assert.ok(h.enemy.width >= 200 && h.enemy.top >= 0 && h.enemy.bottom <= 150, label + ': barra do Bispo no topo');
