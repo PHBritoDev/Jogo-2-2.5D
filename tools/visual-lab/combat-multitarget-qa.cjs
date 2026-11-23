@@ -194,6 +194,60 @@ fs.mkdirSync(dir, { recursive: true });
     assert.equal(report.steps.after.active, null, 'o rito precisa liberar a ação ao terminar');
     assert.deepEqual(report.errors, [], 'sem exceções WebGL/JS ou respostas HTTP falhas');
     await page.screenshot({ path: path.join(dir, '06-dissipacao.png'), timeout: 120000 });
+    // Reproduz também o golpe físico real: dois secundários precisam receber VFX em pontos próprios da lâmina.
+    report.steps.physicalBefore = await page.evaluate(() => {
+      const D = window.SevenSinsDebug3D;
+      const state = D.squadState(), primaryId = state.focus;
+      const sides = state.snap.actors.filter(a => a.id !== primaryId);
+      if (!primaryId || sides.length < 3) throw new Error('Esquadra física não forneceu foco + três secundários.');
+      D.teleport(-5, 16, Math.PI);
+      D.squadPose(primaryId, -5, 14.9, 0, true);
+      D.squadPose(sides[0].id, -5.45, 14.9, 0, true);
+      D.squadPose(sides[1].id, -4.55, 14.9, 0, true);
+      D.squadPose(sides[2].id, -8.8, 14.9, 0, true);
+      D.squadPause(true);
+      D.riteEquip('aurora');
+      D.view(.7, .16, 6);
+      D.combatStep(.1, { fps: 30, draw: true });
+      D.fly([-5, 4.6, 18], [-5, 1, 14.6]);
+      D.render();
+      const actors = D.squadState().snap.actors, pick = id => actors.find(a => a.id === id);
+      return { primaryId, sideIds: [sides[0].id, sides[1].id], controlId: sides[2].id,
+        actors: [primaryId, sides[0].id, sides[1].id, sides[2].id].map(pick),
+        eventCount: (D.riteState().events || []).length };
+    });
+    report.steps.physicalImpact = await page.evaluate(eventStart => {
+      const D = window.SevenSinsDebug3D;
+      D.combatAction('attack');
+      D.combatStep(.3, { fps: 60, draw: true });
+      const r = D.riteState(), squad = D.squadState();
+      return { events: (r.events || []).slice(eventStart).filter(e => e.type === 'impact')
+          .map(e => ({ targetId: e.targetId, by: e.by, secondary: e.secondary, position: e.position })),
+        actors: squad.snap.actors, vfx: r.vfx, active: r.active };
+    }, report.steps.physicalBefore.eventCount);
+    const physicalBefore = new Map(report.steps.physicalBefore.actors.map(a => [a.id, a]));
+    const physicalAfter = new Map(report.steps.physicalImpact.actors.map(a => [a.id, a]));
+    const physicalSideEvents = report.steps.physicalImpact.events.filter(e => e.by === 'blade' && e.secondary);
+    assert.equal(physicalSideEvents.length, 2, 'golpe físico real precisa atingir os dois secundários');
+    assert.deepEqual(physicalSideEvents.map(e => e.targetId).sort(), [...report.steps.physicalBefore.sideIds].sort());
+    assert.ok(physicalSideEvents.every(e => e.position && Number.isFinite(e.position.x)), 'cada VFX físico precisa ter posição');
+    assert.ok(Math.abs(physicalSideEvents[0].position.x - physicalSideEvents[1].position.x) > .35,
+      'cada inimigo secundário precisa receber o VFX no próprio ponto da lâmina');
+    for (const id of report.steps.physicalBefore.sideIds)
+      assert.ok(physicalAfter.get(id).hp < physicalBefore.get(id).hp, `golpe físico precisa reduzir HP de ${id}`);
+    assert.equal(physicalAfter.get(report.steps.physicalBefore.controlId).hp,
+      physicalBefore.get(report.steps.physicalBefore.controlId).hp, 'controle fora do arco não pode receber dano');
+    await page.screenshot({ path: path.join(dir, '07-golpe-fisico-multialvo.png'), timeout: 120000 });
+    report.steps.physicalAfter = await page.evaluate(() => {
+      const D = window.SevenSinsDebug3D;
+      D.combatStep(.7, { fps: 60, draw: true });
+      const r = D.riteState();
+      return { active: r.active, projectiles: r.projectiles, vfx: r.vfx };
+    });
+    assert.equal(report.steps.physicalAfter.active, null, 'golpe físico precisa terminar sem travar o rito');
+    assert.equal(report.steps.physicalAfter.vfx.cuts, 0, 'cortes físicos precisam dissipar');
+    assert.equal(report.steps.physicalAfter.vfx.particles, 0, 'partículas físicas precisam dissipar');
+    await page.screenshot({ path: path.join(dir, '08-golpe-fisico-dissipacao.png'), timeout: 120000 });
     await page.evaluate(() => { SevenSinsDebug3D.fly(null); });
     report.ok = true;
   } finally {
