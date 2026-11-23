@@ -247,3 +247,42 @@ test('Eclipse das Lâminas não causa dano nem impacto lateral através de pared
   assert.deepEqual(result.hits, []);
   assert.deepEqual(result.impacts, []);
 });
+function physicalBladeSideScenario({ fps = 60, wall = false } = {}) {
+  const hits = [], impacts = [];
+  const focus = { id: 'focus', x: 8, y: 1, z: -8, radius: .45, height: 1.8, alive: true };
+  const others = [
+    { id: 'left', x: -.35, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
+    { id: 'right', x: .35, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
+  ];
+  const blade = { base: { x: -1, y: 1, z: 0 }, tip: { x: 1, y: 1, z: 0 } };
+  const rites = new SwordRites({
+    pose: () => blade,
+    hit: (amount, id, kind, meta) => hits.push({ amount, id, kind, meta }),
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+    // A wall blocks only the right actor's line from the player; the blade itself is clear.
+    blocked: p => wall && p.x > .05 && p.z > .4,
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others, sword: 'aurora', grounded: true };
+  for (let i = 0; i < Math.ceil(.65 * fps); i++) rites.update(1 / fps, ctx);
+  return { hits, impacts };
+}
+
+for (const fps of [20, 30, 60, 120]) {
+  test('golpe físico multialvo mantém um impacto por alvo a ' + fps + ' FPS', () => {
+    const result = physicalBladeSideScenario({ fps });
+    assert.deepEqual(result.hits.map(h => h.id).sort(), ['left', 'right']);
+    assert.ok(result.hits.every(h => h.amount > 0 && h.kind === 'energy-side' && h.meta?.by === 'blade'));
+    assert.deepEqual(result.impacts.map(e => e.target.id).sort(), ['left', 'right']);
+    assert.ok(result.impacts.every(e => e.by === 'blade' && e.secondary === true));
+    assert.ok(result.impacts.every(e => e.hitstop === 0 && e.shake === 0));
+    assert.equal(new Set(result.hits.map(h => h.id)).size, 2, 'cada inimigo recebe no máximo um golpe por swing');
+    assert.equal(result.impacts.length, 2, 'cada contato físico gera exatamente um impacto');
+  });
+}
+
+test('golpe físico secundário respeita parede e não emite dano nem VFX atrás dela', () => {
+  const result = physicalBladeSideScenario({ fps: 60, wall: true });
+  assert.deepEqual(result.hits.map(h => h.id), ['left']);
+  assert.deepEqual(result.impacts.map(e => e.target.id), ['left']);
+}
