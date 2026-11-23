@@ -1,6 +1,8 @@
 # A Batalha Contra os 7 Pecados Capitais — Arco da Ganância
 ## Roteiro de produção — Prólogo e Ato 1: Eldória, as Raízes Esquecidas
-**Versão:** 1.0 (06/11/2026) · **Estado:** proposta narrativa para revisão; NÃO implementada no jogo.
+**Versão:** 1.0 (06/11/2026) · **Estado:** arquivo histórico de proposta; NÃO canônico e NÃO implementado como roteiro integral.
+
+> Preservado sem apagar seu conteúdo. Não usar este documento como autoridade para substituir o PDF original ou para canonizar Teren, Ilyan, Osren, Aethraziel/Vaelthar ou os guardiões novos. A proposta mestre atual está em `docs/narrativa/CANONE-MESTRE-GALAXIA-1-PROPOSTA.md` e aguarda revisão do criador.
 
 > Diretriz: fantasia sombria com emoção contida e diálogos humanos, sem frases grandiloquentes. O horror deve nascer da vida cotidiana interrompida, da desigualdade e das consequências das escolhas. A história se passa no primeiro dos sete mundos e termina com o caminho para a cidade do vulcão.
 
