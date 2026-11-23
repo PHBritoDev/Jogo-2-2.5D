@@ -208,5 +208,13 @@ export function buildMushroomDimension(THREE,group,spec,ctx) {
   });
   ctx.refs.mushrooms={items,eyes:patches.eyes,uniforms,stats:()=>({quality:currentQuality,mushrooms:items.length,eyes:patches.eyes.length,drawCalls:5,disposed}),
     dispose(){if(disposed)return;disposed=true;for(const geometry of lodGeometries)geometry.dispose();group.traverse(o=>{if(o.geometry&&!lodGeometries.has(o.geometry))o.geometry.dispose();if(o.material)o.material.dispose();if(o.isInstancedMesh)o.dispose();});}};
-  return {bg:0x010102,fog:0x010102,fogNear:65,fogFar:265,hemi:[0xb7b1af,0x110608,.48],sun:[0xffe8dc,1.0],light:[0xffefdf,3.5,110,[0,18,4]],exposure:.85};
+export function getZarkhaelLighting() {
+  return {
+    bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
+    hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
+    // Reuse the existing point light as a restrained combat-center fill.
+    // The lower mount reveals both actors; the shorter range leaves the black corridor untouched.
+    light:[0xdfe6f2,4.2,48,[0,8,4]], exposure:.85
+  };
+}
 }
