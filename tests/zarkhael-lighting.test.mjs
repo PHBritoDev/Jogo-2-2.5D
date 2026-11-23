@@ -28,7 +28,7 @@ test('the fill reuses the arena’s existing light rig and adds no scene lights 
   const source = readFileSync(new URL('../zarkhael-dimension3d.js', import.meta.url), 'utf8');
   const arenas = readFileSync(new URL('../dimension-arenas3d.js', import.meta.url), 'utf8');
   assert.match(source, /return getZarkhaelLighting\(\);/);
-  assert.doesNotMatch(source, /new\\s+(?:THREE|T)\\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\\b/);
+  assert.doesNotMatch(source, /new\s+(?:THREE|T)\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\b/);
   assert.doesNotMatch(source, /WebGLRenderTarget|EffectComposer|ShadowMap/);
-  assert.match(arenas, /mushrooms\\s*:\\s*buildMushroomDimension/);
+  assert.match(arenas, /mushrooms\s*:\s*buildMushroomDimension/);
 });
