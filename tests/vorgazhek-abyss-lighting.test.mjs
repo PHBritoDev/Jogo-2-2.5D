@@ -6,6 +6,12 @@ import { getVorgazhekLighting } from '../vorgazhek-abyss-dimension3d.js';
 const source = readFileSync(new URL('../vorgazhek-abyss-dimension3d.js', import.meta.url), 'utf8');
 const preview = readFileSync(new URL('../tools/visual-lab/vorgazhek-abyss-preview.html', import.meta.url), 'utf8');
 const runtimeQA = readFileSync(new URL('../tools/visual-lab/vorgazhek-runtime-qa.cjs', import.meta.url), 'utf8');
+const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+const updateVoidStart = world.indexOf('function updateVoid(dt,now){');
+const updateVoidEnd = world.indexOf('// ---------- Etapas ----------', updateVoidStart);
+const updateVoidSource = updateVoidStart >= 0 && updateVoidEnd > updateVoidStart
+  ? world.slice(updateVoidStart, updateVoidEnd)
+  : '';
 
 test('VORGAZHEK gets a stronger local fill while the abyss and exposure stay dark', () => {
   const env = getVorgazhekLighting(85);
@@ -35,6 +41,17 @@ test('abyss preview consumes the exact production lighting preset', () => {
   assert.doesNotMatch(preview, /new THREE\.PointLight\(0xdadce6,35,180\)/);
 });
 
+
+test('production updateVoid applies the VORGAZHEK preset to the existing shared lights', () => {
+  assert.ok(updateVoidSource, 'production updateVoid function must be present');
+  assert.match(updateVoidSource, /const e=arena\\.env/);
+  assert.match(updateVoidSource, /scene\\.background\\.setHex\\(e\\.bg\\)/);
+  assert.match(updateVoidSource, /scene\\.fog\\.color\\.setHex\\(e\\.fog\\)/);
+  assert.match(updateVoidSource, /hemiLight\\.intensity=e\\.hemi\\[2\\]/);
+  assert.match(updateVoidSource, /sunLight\\.intensity=e\\.sun\\[1\\]/);
+  assert.match(updateVoidSource, /dimLight\\.intensity=e\\.light\\[1\\][\\s\\S]*?dimLight\\.distance=e\\.light\\[2\\]/);
+  assert.match(updateVoidSource, /else dimLight\\.position\\.set\\(voidSpec\\.x\\+e\\.light\\[3\\]\\[0\\],voidSpec\\.y\\+e\\.light\\[3\\]\\[1\\],voidSpec\\.z\\+e\\.light\\[3\\]\\[2\\]\\)/);
+});
 
 test('runtime QA records landscape video at fixed size and captures portrait separately', () => {
   assert.match(runtimeQA, /browser\.newContext\(\{viewport:\{width:393,height:852\},deviceScaleFactor:1\}\)/);
