@@ -161,7 +161,7 @@ export function migrateProgress(raw) {
     childrenFreed: !!raw.childrenFreed,
     awakeningSeen: !!raw.awakeningSeen,
     actCardSeen: !!raw.actCardSeen,
-    ilyanEscortPosition: raw.ilyanEscortPosition && Number.isFinite(raw.ilyanEscortPosition.x) && Number.isFinite(raw.ilyanEscortPosition.z) && Number.isFinite(raw.ilyanEscortPosition.yaw) ? { x: raw.ilyanEscortPosition.x, z: raw.ilyanEscortPosition.z, yaw: raw.ilyanEscortPosition.yaw } : null
+    ilyanEscortPosition: Number(raw.version) >= ACT1.version && Number(raw.questStep) === 5 && raw.ilyanEscortPosition && Number.isFinite(raw.ilyanEscortPosition.x) && Number.isFinite(raw.ilyanEscortPosition.z) && Number.isFinite(raw.ilyanEscortPosition.yaw) ? { x: raw.ilyanEscortPosition.x, z: raw.ilyanEscortPosition.z, yaw: raw.ilyanEscortPosition.yaw } : null
   };
   const version = Number(raw.version);
   if (version >= ACT1.version) {
