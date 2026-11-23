@@ -1,0 +1,23 @@
+name: A3 — retry limitado de fauna
+on:
+  pull_request:
+    paths:
+      - 'fauna3d.js'
+      - 'tests/a3-fauna-stream-retry.test.mjs'
+      - '.github/workflows/a3-fauna-stream-retry.yml'
+  workflow_dispatch:
+jobs:
+  fauna-stream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe
+        run: node --check fauna3d.js && node --check tests/a3-fauna-stream-retry.test.mjs
+      - name: Testar recuperação dos GLBs
+        run: node --test tests/a3-fauna-stream-retry.test.mjs
