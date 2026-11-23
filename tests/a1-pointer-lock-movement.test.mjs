@@ -9,7 +9,7 @@ function harness() {
   doc.fullscreenElement = null;
   doc.hidden = false;
   const state = bindMovementKeys(win, doc);
-  const key = (type, code) => {
+  const key = (type, code, repeat = false) => {
     const event = new Event(type);
     Object.defineProperties(event, {
       code: { value: code },
@@ -17,16 +17,19 @@ function harness() {
       ctrlKey: { value: false },
       metaKey: { value: false },
       altKey: { value: false },
-      repeat: { value: false },
-      target: { value: null }
+      repeat: { value: repeat },
+      target: { value: null },
+      preventDefault: { value: () => { event.wasPrevented = true; } },
+      wasPrevented: { value: false, writable: true }
     });
     win.dispatchEvent(event);
+    return event;
   };
   const lock = target => {
     doc.pointerLockElement = target;
     doc.dispatchEvent(new Event('pointerlockchange'));
   };
-  return { state, key, lock, doc };
+  return { state, key, lock, doc, win };
 }
 
 test('A1: trocar diretamente o alvo do pointer lock libera WASD antigo', () => {
@@ -39,8 +42,9 @@ test('A1: trocar diretamente o alvo do pointer lock libera WASD antigo', () => {
   h.lock(canvasB);
   assert.equal(h.state.w, false, 'W antigo não pode andar no novo canvas');
   assert.equal(h.state.d, false, 'D antigo não pode andar no novo canvas');
+  h.key('keyup', 'KeyW');
   h.key('keydown', 'KeyW');
-  assert.equal(h.state.w, true, 'novo pressionamento deve responder imediatamente');
+  assert.equal(h.state.w, true, 'novo pressionamento após keyup deve responder imediatamente');
   h.lock(canvasB);
   assert.equal(h.state.w, true, 'notificação repetida do mesmo alvo não apaga tecla nova');
   h.lock(null);
@@ -63,4 +67,70 @@ test('A1: nova captura de pointer lock limpa tecla iniciada sem captura', () => 
   assert.equal(h.state.s, true);
   h.lock({});
   assert.equal(h.state.s, false);
+});
+
+
+test('A1: keydown duplicado não transfere uma tecla antiga para o novo contexto', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  // Browser may deliver a duplicate keydown before the pointerlockchange event.
+  h.doc.pointerLockElement = canvasB;
+  h.key('keydown', 'KeyW');
+  h.doc.dispatchEvent(new Event('pointerlockchange'));
+  assert.equal(h.state.w, false, 'a tecla do canvas antigo deve ser liberada');
+});
+
+
+test('A1: keydown duplicado depois de pointerlockchange fica bloqueado até keyup', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  h.lock(canvasB);
+  assert.equal(h.state.w, false);
+  h.key('keydown', 'KeyW', false);
+  assert.equal(h.state.w, false, 'duplicado tardio não pode reiniciar o movimento');
+  h.key('keyup', 'KeyW');
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'um novo pressionamento após keyup deve funcionar');
+});
+
+test('A1: keydown duplicado depois de fullscreenchange fica bloqueado até keyup', () => {
+  const h = harness();
+  h.doc.fullscreenElement = {};
+  h.key('keydown', 'KeyW');
+  h.doc.fullscreenElement = null;
+  h.doc.dispatchEvent(new Event('fullscreenchange'));
+  assert.equal(h.state.w, false);
+  h.key('keydown', 'KeyW', false);
+  assert.equal(h.state.w, false, 'duplicado tardio não pode reiniciar o movimento');
+  h.key('keyup', 'KeyW');
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'um novo pressionamento após keyup deve funcionar');
+});
+
+
+test('A1: blur limpa quarentena antiga para não perder a próxima tecla após Alt-Tab', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  h.lock(canvasB);
+  assert.equal(h.state.w, false);
+  h.win.dispatchEvent(new Event('blur'));
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'uma nova pressão após recuperar foco deve responder');
+});
+
+test('A1: repetição de seta após blur não rola a página nem reativa movimento', () => {
+  const mapping = { ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright' };
+  for (const [code, key] of Object.entries(mapping)) {
+    const h = harness();
+    h.key('keydown', code);
+    assert.equal(h.state[key], true);
+    h.win.dispatchEvent(new Event('blur'));
+    assert.equal(h.state[key], false);
+    const repeat = h.key('keydown', code, true);
+    assert.equal(repeat.wasPrevented, true, code + ' deve impedir scroll após blur');
+    assert.equal(h.state[key], false, code + ' repetido não deve reativar movimento');
+  }
 });

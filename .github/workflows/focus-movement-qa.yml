@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'mundo-3d-prototype.js'
+      - 'desktop-movement.js'
+      - 'tests/a1-pointer-lock-movement.test.mjs'
       - 'pc-input-focus.test.mjs'
       - 'tools/visual-lab/focus-movement-qa.cjs'
       - '.github/workflows/focus-movement-qa.yml'
@@ -20,6 +22,8 @@ jobs:
           node-version: '22'
       - name: Testar regressão da entrada
         run: node --test pc-input-focus.test.mjs
+      - name: Testar captura e liberação de teclas A1
+        run: node --test tests/a1-pointer-lock-movement.test.mjs
       - name: Instalar navegador WebGL
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund

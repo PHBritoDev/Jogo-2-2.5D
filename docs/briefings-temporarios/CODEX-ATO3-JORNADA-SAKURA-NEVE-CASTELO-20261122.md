@@ -117,3 +117,77 @@ Se a cota acabar, guardar no PR texto curto de checkpoint: SHA, zona concluída,
 Silêncio extremo no chat, sem resumões nem status incessante; seguir ciclo longo de trabalho útil com tokens poupados. Não precisar solicitar aprovação para cada nova pedra/árvore, mas preserva nenhuma mesclagem da PR sem validação do usuário. Sem gasto financeiro, sem force-push, sem remover modelos reais, sem atualizar main diretamente, sem sobrescrever Claude/A3/A4. Qualquer PR de execução deve **ler este arquivo da main primeiro**. Ao final, enviar somente link da PR + vídeo/capturas + bloqueio objetivo, se houver.
 
 **Esta é uma missão de mundo/arquitetura de ALTA COMPLEXIDADE, não promessa de execução integral em uma única sessão. O objetivo é aproveitar o tempo para fazer implementação de verdade e manter qualidade, sem falsificar conclusão.**
+
+
+---
+
+# ADENDO DE TRANSFERÊNCIA — NOVO CODEX / AUDITORIA DO TRABALHO ANTERIOR
+**Atualizado em 23/11/2026 · Obrigatório antes de qualquer implementação.** Este adendo complementa o briefing acima; não reduz nem substitui os requisitos originais.
+
+## 10. ESTADO REAL E REGRA DE TRANSFERÊNCIA
+A implementação anterior está na PR #665, branch `codex/ato3-jornada-sakura-castelo`, HEAD `99ccbfede7a6e76396758c7eecdd14a7cfc0f906`. A PR continua Draft e NÃO foi aprovada para merge. Use-a como material de referência, não como base confiável para publicação. **Comece uma branch nova a partir da main mais recente** e porte seletivamente o que passar na auditoria. Não faça merge da #665, não feche/apague a branch anterior e não copie cegamente seus arquivos.
+
+**Conflito de versão já identificado:** o `build-info.js` da #665 declara Mod 354 / `mod354-jornada-sakura`, mas a main atual já está no Mod 355 (`mod355-input-lighting-integration`). Não copie o `build-info.js` da #665 nem reverta o marcador. Preserve o marcador central da main; só atualize versão ao publicar uma entrega integrada e validada, pelo procedimento central do repositório. Não altere HTML/loader para contornar cache.
+
+Antes de editar, leia a main atual, `AGENTS.md`, `PROMPT_MESTRE_DO_JOGO.md`, `ARQUITETURA.md`, visão de qualidade visual, roteiro canônico, arquivos de agentes e PRs recentes. Verifique se algum arquivo foi alterado desde o HEAD da #665. Não sobrescreva correções recentes de A1/A3/A4.
+
+## 11. AUDITORIA DE CÓDIGO JÁ IDENTIFICADA — CORRIGIR, NÃO IGNORAR
+
+### 11.1 Iluminação presa ao jogador
+Em `sakura-interiors3d.js`, `lightHall(P, dojo, hall)` reposiciona a mesma PointLight usando `P.x/P.y/P.z` a cada atualização. Isso faz a luz arquitetônica acompanhar o protagonista, como uma lanterna invisível. **Eliminar esse comportamento.** Usar fontes fixas coerentes com luminárias, janelas, teto e vitrais do ambiente; ativar/blendar por zona de entrada; luz quente localizada no dojo e luz fria azul-ciano filtrada pelos vitrais no salão. O trono pode ser o foco secundário. Não iluminar a arena inteira uniformemente e não criar dezenas de luzes dinâmicas caras. Comparar a cena parada e enquanto o jogador anda: as sombras e pontos luminosos da arquitetura devem permanecer no lugar.
+
+### 11.2 Risco de aparência procedural/genérica
+A inspeção estática da #665 identificou riscos concretos que precisam ser julgados em close, plano médio e longa distância:
+- `distantPagoda()` usa quatro camadas muito simples de planos triangulares; `dojoBuilding()` repete quatro pavimentos de dimensões decrescentes. Refinar silhueta, beirais curvos, cumeeiras, cantos elevados, telhas em camadas, encaixes de madeira, conjuntos de suportes (`kumimono`), varandas, balaustradas, pilares e fundações sobre a falésia. A construção precisa parecer uma obra arquitetônica construída, não quatro caixas com telhados.
+- `castleBuilding()` e `spire()` reutilizam torres octogonais, blocos e painéis triangulares. Diferenciar torres, contrafortes, pináculos, muralhas, portais e volumes; construir leitura gótica por arcos apontados, colunas agrupadas, nervuras, arcobotantes, rosáceas, traceria e vitrais. O castelo precisa de silhueta própria e composição monumental, não repetição de cones/blocos.
+- `distantGrove()` usa planos cruzados: aceitável apenas como LOD distante. Garantir troncos, raízes, galhos e copas 3D de verdade no primeiro plano; 3–5 famílias de árvores com formas, idade, densidade e distribuição diferentes. Não deixar árvores próximas parecerem cartões planos.
+- Marcos repetidos de sino/santuário não podem ser a única recompensa das ramificações. Cada desvio precisa de identidade visual e propósito próprios.
+- Evitar piso, água, rocha, árvores e edifícios com uma única cor/filtro uniforme. Materiais precisam de variação de roughness, escala, desgaste, musgo, neve acumulada e detalhes de contato coerentes.
+
+Esses são riscos detectados no código, não uma afirmação de que todos já aparecem no render final. Faça inspeção visual real antes de decidir que um item está resolvido. **Não maquie uma forma genérica com mais partículas, bloom ou neblina: corrija primeiro a forma, escala, silhueta, material e iluminação.**
+
+### 11.3 QA atual não prova caminhada física real
+O script `tools/qa/sakura-gameplay.cjs` usa `d.fly()`, `placeAt()`, `walkMove()` e `combatStep()` para posicionar/simular trechos. Isso é útil para testes determinísticos de rota, colisão e estado, mas não pode ser apresentado como vídeo de uma caminhada normal controlada pelo jogador. Separe claramente:
+1. QA determinístico/sintético (teleporte e APIs internas, rotulado como tal);
+2. caminhada de ponta a ponta com controles normais, sem TP, sem fly e sem acelerar artificialmente;
+3. inspeção visual de screenshots/vídeos em posições fixas;
+4. teste em Android físico, somente se realmente houver aparelho disponível.
+
+A matriz atual chama `mobile` com viewport 852×393 (paisagem). Adicionar obrigatoriamente **retrato 393×852** e manter **paisagem 852×393**, além de desktop. Inspecionar UI, câmera, personagem, pagode, castelo e performance nos dois formatos. Não chamar Chromium/software-render de teste Android físico nem usar FPS de software como FPS do aparelho.
+
+## 12. DIREÇÃO DE ARTE — CORRESPONDÊNCIA ÀS REFERÊNCIAS, NÃO “FANTASIA GENÉRICA”
+Os dez arquivos originais de referência estão descritos na seção 1, mas não foram encontrados como assets versionados no repositório. Se os anexos originais estiverem acessíveis ao agente na conversa, inspecione-os diretamente e monte comparação lado a lado. Se não estiverem, declare essa limitação no relatório e siga as descrições específicas abaixo; **não alegue comparação visual que não realizou**.
+
+### Sakura e pagode — referência 1000366188 como prioridade
+- Composição: pagode de vários telhados em camadas, escuro e ornamentado, encaixado numa parede de rocha; ponte/varanda de madeira suspensa, escadaria de pedra, torii baixo, lanternas, névoa visível abaixo da falésia e sakuras em primeiro plano. Janela interna magenta é um acento, não uma camada rosa aplicada à tela inteira.
+- Árvores: copas sobrepostas com silhuetas irregulares, troncos retorcidos aparentes, ramos que atravessam o enquadramento; alternar corredores fechados, clareiras e mirantes. Não repetir o mesmo túnel de árvores.
+- Lago: azul profundo/turquesa, reflexos legíveis de copas e céu, pequenas ondulações, pétalas boiando, margem com pedras e vegetação. Não usar um círculo azul liso.
+- Luz sakura: sol baixo/difuso quente dourado-rosa, iluminação filtrada pelas copas e manchas de luz no chão, sombra suave, névoa atmosférica em camadas. A paleta rosa deve nascer das flores e do rebote, não de um filtro magenta uniforme. Lanterna e janela magenta ficam mais fortes no entardecer/noite.
+
+### Transição e reino de neve — referências 1000366191, 1000366189 e 1000366190
+- O estado principal é frio, nostálgico e nublado: céu azul-acinzentado, nuvens pesadas, neblina por distância e neve contínua em profundidades diferentes. Não deixar o dia sempre claro/ensolarado.
+- Alternar nevasca, silêncio de pinhal, vale aberto e lago glacial. O lago precisa de rachaduras irregulares, gelo com espessura, bordas, trechos de água escura e reflexos controlados. O amanhecer peach/rosa é uma variação localizada e rara, não o perfil de luz dominante.
+- A neve deve pertencer ao terreno, galhos, telhados e pedras; não parecer partículas brancas presas à câmera/HUD.
+
+### Castelo — referências 1000366182 (exterior) e 1000366192 (interior)
+- Exterior: vista frontal com escadaria monumental conduzindo a uma fortaleza gótica azul-acinzentada, muralhas em camadas, torres muito altas e distintas, telhados, contrafortes, pináculos e neve acumulada em pontos plausíveis. A silhueta deve ser reconhecível de longe.
+- Interior: nave colossal, colunas altas com capitéis, arcos apontados, abóbadas nervuradas, galerias laterais, vitrais azuis, cristais irregulares, escadarias realmente caminháveis e trono central como foco. Precisa ter profundidade e subespaços, não uma sala azul vazia.
+- Luz: exterior difuso e frio; no interior, luz azul/ciano atravessa vitrais e desenha áreas no piso/colunas, com suportes mais escuros e contraste de profundidade. O trono tem um acento luminoso próprio. Evitar azul saturado uniforme, bloom que apaga a geometria ou iluminação móvel seguindo o jogador.
+
+## 13. PESQUISA DE REFERÊNCIA — APLICAR COMO PRINCÍPIO DE DESIGN
+Use estas fontes para fundamentar formas e composição, sem copiar assets:
+- Kiyomizu-dera, fonte oficial: construção em encosta (`kake-zukuri`), pilares altos, travamentos de madeira e varanda projetada; telhado curvo e organização do salão: https://www.kiyomizudera.or.jp/en/learn/
+- Kyoto City: implantação histórica, conjunto de edifícios e estrutura sobre pilares/escoras na encosta: https://www2.city.kyoto.lg.jp/bunshi/bunkazai/isan-d-e.htm
+- New York Botanical Garden, Japanese Garden Design: composição em primeiro plano/meio/fundo, perspectiva emprestada (`shakkei`), caminhos sinuosos, troncos com silhuetas e variação de luz sob copas: https://libguides.nybg.org/japanesegarden
+- Chartres Guide, Gothic Architecture: arcos apontados, nervuras, pilares, arcobotantes e vitrais como sistema arquitetônico integrado: https://chartresguide.org/en/gothicArchitecture.html
+- Three.js InstancedMesh para controlar custo de repetição sem sacrificar a silhueta dos elementos próximos: https://threejs.org/docs/#api/en/objects/InstancedMesh
+
+## 14. ENTREGAS E CRITÉRIOS DE ACEITE DO NOVO CODEX
+1. Criar branch nova sobre a main atual; não tocar no marcador de build nem fazer merge.
+2. Auditar a #665 arquivo a arquivo; registrar o que foi aproveitado, corrigido, descartado e por quê. Corrigir o ponto de luz móvel, a matriz de QA e os riscos de formas genéricas.
+3. Fazer capturas comparáveis: bosque sakura, lago, vista distante do pagode, pagode/ponte/falésia, interior tatami, primeiro trecho de neve, lago glacial, castelo distante, fachada frontal e nave/trono. Capturar também retrato, paisagem e desktop.
+4. Mostrar comparativo com as referências originais quando acessíveis; sem elas, usar os descritores desta missão e declarar que a correspondência não foi validada contra os anexos.
+5. Executar testes automatizados, QA de colisão/continuidade/saves, caminhada com controles normais e inspeção de vídeo. Listar falhas abertas; não converter testes sintéticos em alegação de gameplay real.
+6. Medir draw calls, triângulos, memória e FPS em níveis baixo/médio/alto quando possível. Manter streaming/LOD, evitar picos de criação de milhares de objetos em um frame e verificar carregamento/descarte de chunks.
+7. Entregar PR isolada, commits pequenos, evidências anexadas e relatório curto com: correções implementadas, testes aprovados/falhos, pendências, limitações de Android físico e arquivos alterados.
+8. **Não fazer merge, não apagar a PR #665 e não declarar o Ato III finalizado** até inspeção e autorização do criador.
