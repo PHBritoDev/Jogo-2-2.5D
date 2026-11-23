@@ -38,16 +38,22 @@ async function main(){
      await sleep(1200);
     }
     if(!active)throw Error("Batalha do Bispo 3 não iniciou");
-    let launch=false;
-    for(let j=0;j<24;j++){
-     const state=await page.evaluate(()=>{
-      const d=window.SevenSinsDebug3D;d.god();d.power();
-      return {response:d.kitMove('ult'),cine:d.dimState().cinematic};
-     });
-     if(state.cine&&state.cine.phase==='aura'){launch=true;break;}
-     await sleep(800);
+    // Disparar uma única vez: retries de kitMove durante a observação podem reiniciar a cena.
+    const launch=await page.evaluate(()=>{
+     const d=window.SevenSinsDebug3D;d.god();d.skills();d.power();
+     const response=d.kitMove('ult'),cine=d.dimState().cinematic;
+     return {response,cine};
+    });
+    let launchState=launch.cine;
+    if(!launchState||launchState.phase!=='aura'){
+     const h=await page.waitForFunction(()=>{
+      const c=window.SevenSinsDebug3D.dimState().cinematic;
+      return c?.phase==='aura'?c:null;
+     },null,{timeout:45000,polling:125});
+     launchState=await h.jsonValue();
     }
-    if(!launch)throw Error("Ultimate não iniciou por kitMove(ult)");
+    if(!launchState)throw Error("Ultimate não iniciou por kitMove(ult); resposta="+String(launch.response));
+    data.launch={response:launch.response,phase:launchState.phase};
     // Storyboard real: frontal, seis tomadas separadas, pré-ruptura e
     // UMA única explosão progressiva com formação e expansão registradas.
     // Um blast só: mostrar CARGA, núcleo único, coluna subindo,
