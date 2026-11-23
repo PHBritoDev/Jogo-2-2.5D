@@ -26,6 +26,8 @@ fs.mkdirSync(dir, { recursive: true });
     });
     const page = await context.newPage();
     page.on('pageerror', e => report.errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error' && /WebGL|shader|TypeError|ReferenceError|INVALID/i.test(m.text())) report.errors.push(m.text()); });
+    page.on('response', r => { if (r.status() >= 400 && !/favicon/.test(r.url())) report.errors.push(`HTTP ${r.status()} ${r.url()}`); });
     await page.goto(base + '/mundo-3d-prototype.html?testeEnemy1=1&debug3d=1&fullCombatQA=1',
       { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready,
@@ -47,13 +49,29 @@ fs.mkdirSync(dir, { recursive: true });
     });
     assert.ok(report.steps.before.count >= 2, 'dois inimigos precisam estar no runtime');
     assert.ok(new Set(report.steps.before.ids).size >= 2, 'IDs distintos');
+    // Frame both actual enemies rather than trusting the default spawn camera.
+    report.steps.camera = await page.evaluate(() => {
+      const D = SevenSinsDebug3D;
+      const actors = D.squadState().snap.actors.filter(a => Number.isFinite(a.x) && Number.isFinite(a.z));
+      const x = actors.reduce((n, a) => n + a.x, 0) / actors.length;
+      const z = actors.reduce((n, a) => n + a.z, 0) / actors.length;
+      const heroY = D.heroState().p[1];
+      D.fly([x + 6, heroY + 3.4, z + 5], [x, heroY + 1, z]);
+      D.render();
+      return { x, z, actors: actors.length };
+    });
     await page.screenshot({ path: path.join(dir, '01-dois-alvos.png'), timeout: 120000 });
     report.steps.after = await page.evaluate(() => {
       const D = SevenSinsDebug3D;
       D.combatStep(.6, { fps: 30, draw: true });
       return { enemies: D.combat315().enemies.map(e => ({ id: e.id, hp: e.hp })) };
     });
+    assert.deepEqual(report.steps.after.enemies.map(e => e.id).sort(),
+      [...report.steps.before.ids].sort(), 'IDs devem persistir entre capturas');
+    assert.ok(report.steps.after.enemies.every(e => Number.isFinite(e.hp)), 'HP dos inimigos deve ser finito');
+    await page.evaluate(() => { SevenSinsDebug3D.render(); });
     await page.screenshot({ path: path.join(dir, '02-dois-alvos.png'), timeout: 120000 });
+    await page.evaluate(() => SevenSinsDebug3D.fly(null));
     assert.deepEqual(report.errors, [], 'nenhuma exceção de página');
     report.ok = true;
   } finally {
