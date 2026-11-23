@@ -69,8 +69,8 @@ fs.mkdirSync(dir, { recursive: true });
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
       D.squadPose(primaryId, -5, 13.7, 0, true);
-      D.squadPose(sides[0].id, -5.8, 12, 0, true);
-      D.squadPose(sides[1].id, -3.2, 12, 0, true);
+      D.squadPose(sides[0].id, -5.1, 12, 0, true);
+      D.squadPose(sides[1].id, -3.6, 12, 0, true);
       D.squadPose(sides[2].id, -8.8, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();
@@ -93,7 +93,7 @@ fs.mkdirSync(dir, { recursive: true });
     assert.ok(report.steps.before.actors.every(a => a && Number.isFinite(a.hp)));
     const initialById = new Map(report.steps.before.actors.map(a => [a.id, a]));
     assert.ok(Math.abs(initialById.get(report.steps.before.sideIds[0]).x -
-      initialById.get(report.steps.before.sideIds[1]).x)  >= 2.55,
+      initialById.get(report.steps.before.sideIds[1]).x)  >= 1.45,
       'os dois secundários precisam ficar visualmente separados e dentro da faixa comum das quatro ondas');
     assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 13.7) < .5,
       'ponte de alvo precisa acompanhar o foco reposicionado');
@@ -113,6 +113,8 @@ fs.mkdirSync(dir, { recursive: true });
     const firstSide = report.steps.firstImpact.events.filter(e => e.type === 'impact' && e.secondary);
     assert.equal(firstSide.length, 2, 'primeira onda precisa gerar dois impactos secundários');
     assert.deepEqual(firstSide.map(e => e.targetId).sort(), [...report.steps.before.sideIds].sort());
+    assert.equal(new Set(firstSide.map(e => e.waveSerial)).size, 1,
+      'os dois alvos precisam ser tocados pela mesma primeira onda');
     assert.ok(report.steps.firstImpact.vfx.cuts >= 5, 'os dois impactos laterais precisam manter cortes visíveis no frame de contato');
     await page.screenshot({ path: path.join(dir, '03-impactos-primeira-onda.png'), timeout: 120000 });
 
