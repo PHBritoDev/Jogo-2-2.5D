@@ -48,9 +48,7 @@ async function installThreeRoutes(context) {
 async function openBattle(url, stage, viewport) {
   const videoDir = path.join(out, 'videos', stage);
   fs.mkdirSync(videoDir, { recursive: true });
-  const context = await chromium.launchPersistentContext
-    ? null
-    : await chromium.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
+  const context = await chromium.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
   await installThreeRoutes(context);
   const page = await context.newPage();
   listen(page, stage.startsWith('base') ? 'baseline' : 'head');
@@ -162,7 +160,7 @@ async function finish(context, page) {
 
 async function runLandscapeThenPortrait(url, stage, assertHead) {
   const { context, page } = await openBattle(url, stage, { width: 960, height: 540 });
-  let videoPath = null;
+  let result = null;
   try {
     const landscape = await inspect(page);
     await shot(page, stage + '-paisagem');
@@ -171,26 +169,25 @@ async function runLandscapeThenPortrait(url, stage, assertHead) {
     const portrait = await inspect(page);
     await shot(page, stage + '-retrato-rotacao');
     if (assertHead) assertPortrait(portrait, stage + ' retrato após rotação');
-    return { landscape, portrait, videoPath: null };
+    result = { landscape, portrait };
   } finally {
-    videoPath = await finish(context, page);
-    if (assertHead && report.head) report.head.video = videoPath;
-    else if (report.baseline) report.baseline.video = videoPath;
+    const videoPath = await finish(context, page);
+    if (result) result.videoPath = videoPath;
   }
+  return result;
 }
 
 async function runFreshPortrait(url, stage) {
   const { context, page } = await openBattle(url, stage, { width: 393, height: 852 });
-  let videoPath = null;
+  let portrait = null, videoPath = null;
   try {
-    const portrait = await inspect(page);
+    portrait = await inspect(page);
     await shot(page, stage + '-retrato-inicial');
     assertPortrait(portrait, stage + ' retrato inicial');
-    return portrait;
   } finally {
     videoPath = await finish(context, page);
-    if (report.head) report.head.portraitVideo = videoPath;
   }
+  return { portrait, videoPath };
 }
 
 async function main() {
