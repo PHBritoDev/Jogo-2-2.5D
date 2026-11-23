@@ -38,17 +38,36 @@ test('missões abrem conforme a campanha e só contam itens quando ativas', () =
   assert.equal(turnInSide(s, 'ervas'), null, 'recompensa uma vez só');
 });
 
-test('atualizações incompletas e contagens antigas não apagam pedras já registradas', () => {
+test('contagem atual do mapa é a fonte de verdade das pedras registradas', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
   acceptSide(s, 'abrigos');
   refreshSide(s, { questStep: 2, waystones: 2 });
   refreshSide(s, { questStep: 2 });
-  assert.equal(s.abrigos.progress, 2, 'sem contagem não deve zerar progresso');
+  assert.equal(s.abrigos.progress, 2, 'sem snapshot do mapa, preserva o progresso salvo');
   refreshSide(s, { questStep: 2, waystones: 1 });
-  assert.equal(s.abrigos.progress, 2, 'contagem desatualizada não retrocede progresso');
+  assert.equal(s.abrigos.progress, 1, 'snapshot atual do mapa reconcilia o progresso');
   refreshSide(s, { questStep: 2, waystones: 3 });
   assert.equal(s.abrigos.state, 'ready');
+});
+
+test('save ready adulterado não entrega recompensa sem três abrigos no mapa', () => {
+  const ready = createSideState({ abrigos: { state: 'ready', progress: 3 } });
+  refreshSide(ready, { questStep: 2, waystones: 2 });
+  assert.equal(ready.abrigos.progress, 2);
+  assert.equal(ready.abrigos.state, 'active');
+  assert.equal(turnInSide(ready, 'abrigos'), null, 'mapa com dois registros não pode pagar missão pronta');
+
+  const active = createSideState({ abrigos: { state: 'active', progress: 3 } });
+  refreshSide(active, { questStep: 2, waystones: 2 });
+  assert.equal(active.abrigos.progress, 2);
+  assert.equal(active.abrigos.state, 'active');
+
+  refreshSide(ready, { questStep: 2, waystones: 3 });
+  assert.equal(ready.abrigos.progress, 3);
+  assert.equal(ready.abrigos.state, 'ready');
+  assert.deepEqual(turnInSide(ready, 'abrigos'), SIDE_QUESTS[2].reward);
+  assert.equal(turnInSide(ready, 'abrigos'), null);
 });
 
 test('abrigos acompanham as pedras registradas; diário mostra progresso', () => {
