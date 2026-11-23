@@ -56,7 +56,7 @@ test('abrigos acompanham as pedras registradas; diário mostra progresso', () =>
   assert.deepEqual(activeSideLines(s), ['Pedras que Lembram · 2/3']);
   refreshSide(s, { questStep: 2, waystones: 3 });
   assert.equal(s.abrigos.state, 'ready');
-  assert.equal(questForGiver(s, 'ARTESANATO').id, 'abrigos');
+  assert.equal(questForGiver(s, 'PROVISÕES')?.id, 'abrigos');
   const back = createSideState(JSON.parse(JSON.stringify(s)));
   assert.equal(back.abrigos.state, 'ready');
 });
@@ -98,7 +98,7 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
   assert.equal(s.pingente.state, 'available');
   collectSide(s, 'flor');
   assert.equal(s.ervas.state, 'ready');
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
 });
 
 
