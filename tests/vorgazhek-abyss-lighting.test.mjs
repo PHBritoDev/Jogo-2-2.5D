@@ -44,13 +44,13 @@ test('abyss preview consumes the exact production lighting preset', () => {
 
 test('production updateVoid applies the VORGAZHEK preset to the existing shared lights', () => {
   assert.ok(updateVoidSource, 'production updateVoid function must be present');
-  assert.match(updateVoidSource, /const e=arena\\.env/);
-  assert.match(updateVoidSource, /scene\\.background\\.setHex\\(e\\.bg\\)/);
-  assert.match(updateVoidSource, /scene\\.fog\\.color\\.setHex\\(e\\.fog\\)/);
-  assert.match(updateVoidSource, /hemiLight\\.intensity=e\\.hemi\\[2\\]/);
-  assert.match(updateVoidSource, /sunLight\\.intensity=e\\.sun\\[1\\]/);
-  assert.match(updateVoidSource, /dimLight\\.intensity=e\\.light\\[1\\][\\s\\S]*?dimLight\\.distance=e\\.light\\[2\\]/);
-  assert.match(updateVoidSource, /else dimLight\\.position\\.set\\(voidSpec\\.x\\+e\\.light\\[3\\]\\[0\\],voidSpec\\.y\\+e\\.light\\[3\\]\\[1\\],voidSpec\\.z\\+e\\.light\\[3\\]\\[2\\]\\)/);
+  assert.match(updateVoidSource, /const e=arena\.env/);
+  assert.match(updateVoidSource, /scene\.background\.setHex\(e\.bg\)/);
+  assert.match(updateVoidSource, /scene\.fog\.color\.setHex\(e\.fog\)/);
+  assert.match(updateVoidSource, /hemiLight\.intensity=e\.hemi\[2\]/);
+  assert.match(updateVoidSource, /sunLight\.intensity=e\.sun\[1\]/);
+  assert.match(updateVoidSource, /dimLight\.intensity=e\.light\[1\][\s\S]*?dimLight\.distance=e\.light\[2\]/);
+  assert.match(updateVoidSource, /else dimLight\.position\.set\(voidSpec\.x\+e\.light\[3\]\[0\],voidSpec\.y\+e\.light\[3\]\[1\],voidSpec\.z\+e\.light\[3\]\[2\]\)/);
 });
 
 test('runtime QA records landscape video at fixed size and captures portrait separately', () => {
