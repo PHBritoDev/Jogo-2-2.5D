@@ -8,7 +8,9 @@ on:
       - 'dimensions3d.js'
       - 'tools/visual-lab/vorgazhek-abyss-*'
       - 'tools/visual-lab/vorgazhek-runtime-qa.cjs'
+      - 'tools/visual-lab/vorgazhek-lighting-ab-qa.cjs'
       - 'tests/vorgazhek-abyss-lighting.test.mjs'
+      - 'tests/vorgazhek-lighting-ab.test.mjs'
       - '.github/workflows/bispo2-abyss-qa.yml'
   workflow_dispatch:
 permissions:
@@ -21,31 +23,54 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Checkout exact PR base for controlled A/B
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.base.sha }}
+          path: work/baseline
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Rules and source syntax
         run: |
-          node --test dimensions3d.test.mjs vorgazhek-eclipse-sword.test.mjs tests/vorgazhek-abyss-lighting.test.mjs
+          node --test dimensions3d.test.mjs vorgazhek-eclipse-sword.test.mjs tests/vorgazhek-abyss-lighting.test.mjs tests/vorgazhek-lighting-ab.test.mjs
           node --input-type=module --check < vorgazhek-abyss-dimension3d.js
           node --input-type=module --check < dimension-arenas3d.js
           node --check tools/visual-lab/vorgazhek-abyss-qa.cjs
           node --check tools/visual-lab/vorgazhek-runtime-qa.cjs
+          node --check tools/visual-lab/vorgazhek-lighting-ab-qa.cjs
       - name: Pinned browser dependencies
         run: |
           npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
           work/qa/node_modules/.bin/playwright install --with-deps chromium
       - name: Render real Three.js and record evidence
         env:
-          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
-          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+          NODE_PATH: '\${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '\${{ github.workspace }}/work/evidence'
+          VISUAL_BRANCH_SHA: '\${{ github.event.pull_request.head.sha }}'
+          VISUAL_BASE_SHA: '\${{ github.event.pull_request.base.sha }}'
         run: |
-          python3 -m http.server 4173 > /tmp/bispo2-http.log 2>&1 &
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo2-http.log 2>&1 &
+          if [ -d work/baseline ]; then
+            python3 -m http.server 4174 --directory "$GITHUB_WORKSPACE/work/baseline" > /tmp/bispo2-baseline-http.log 2>&1 &
+          fi
+          for port in 4173 4174; do
+            if [ "$port" = "4174" ] && [ ! -d work/baseline ]; then continue; fi
+            for attempt in $(seq 1 20); do
+              if curl -fsS "http://127.0.0.1:$port/" >/dev/null; then break; fi
+              sleep 1
+            done
+          done
           node tools/visual-lab/vorgazhek-abyss-qa.cjs
           node tools/visual-lab/vorgazhek-runtime-qa.cjs
+          if [ -d work/baseline ]; then
+            VISUAL_BASELINE_URL=http://127.0.0.1:4174 node tools/visual-lab/vorgazhek-lighting-ab-qa.cjs
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: bispo2-abyss-${{ github.sha }}
+          name: bispo2-abyss-\${{ github.sha }}
           path: work/evidence/
           retention-days: 14
