@@ -37,6 +37,7 @@ jobs:
         run: |
           python3 -m http.server 4176 > /tmp/combat315-http.log 2>&1 &
           node tools/visual-lab/combat315-qa.cjs
+          node tools/visual-lab/combat-multitarget-qa.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
