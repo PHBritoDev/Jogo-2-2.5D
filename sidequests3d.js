@@ -36,12 +36,12 @@ export const SIDE_QUESTS = [
     goal: { type: 'waystones', count: 3 },
     reward: { coins: 12, xp: 40 },
     offer: [
-      { who: 'Téo · Provisões', text: 'Meu avô talhou as pedras de abrigo da mata. Diziam que quem as tocasse nunca se perderia.' },
+      { who: 'Téo · Provisões', text: 'As pedras de abrigo da mata são antigas. Diziam que quem as tocasse nunca se perderia.' },
       { who: 'Téo · Provisões', text: 'Registre as três e me conte. Quero saber se ainda reconhecem um viajante honesto.' }
     ],
     progressLine: 'Registre as três pedras de abrigo',
     turnIn: [
-      { who: 'Téo · Provisões', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto — foi ele quem fez.' }
+      { who: 'Téo · Provisões', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto como agradecimento.' }
     ]
   }
 ];
