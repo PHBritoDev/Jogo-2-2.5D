@@ -68,7 +68,7 @@ fs.mkdirSync(dir, { recursive: true });
       const sides = actors.filter(a => a.id !== primaryId);
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
-      D.squadPose(primaryId, -5, 13.7, 0, true);
+      D.squadPose(primaryId, -5, 13.9, 0, true);
       D.squadPose(sides[0].id, -5.1, 12, 0, true);
       D.squadPose(sides[1].id, -3.6, 12, 0, true);
       D.squadPose(sides[2].id, -8.8, 12, 0, true);
@@ -212,12 +212,14 @@ fs.mkdirSync(dir, { recursive: true });
       D.riteEquip('aurora');
       D.view(.7, .16, 6);
       D.combatStep(.1, { fps: 30, draw: true });
+      const synced = D.squadState();
+      if (synced.focus !== primaryId) throw new Error(`Foco físico mudou para ${synced.focus}; esperado ${primaryId}`);
       D.fly([-5, 4.6, 18], [-5, 1, 14.6]);
       D.render();
       const actors = D.squadState().snap.actors, pick = id => actors.find(a => a.id === id);
       return { primaryId, sideIds: [sides[0].id, sides[1].id], controlId: sides[2].id,
         actors: [primaryId, sides[0].id, sides[1].id, sides[2].id].map(pick),
-        eventCount: (D.riteState().events || []).length };
+        focusAfterSetup: synced.focus, eventCount: (D.riteState().events || []).length };
     });
     report.steps.physicalImpact = await page.evaluate(eventStart => {
       const D = window.SevenSinsDebug3D;
