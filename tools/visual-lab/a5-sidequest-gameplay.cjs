@@ -111,8 +111,9 @@ async function waitCameraStable(page, maxMs = 9000) {
       };
     });
     const current = last.camera;
+    const cameraNearPlayer = !Number.isFinite(last.view?.camToHero) || last.view.camToHero < 30;
     if (Array.isArray(current) && current.length >= 3) {
-      if (previous && Math.hypot(current[0] - previous[0], current[1] - previous[1], current[2] - previous[2]) < 0.03) {
+      if (cameraNearPlayer && previous && Math.hypot(current[0] - previous[0], current[1] - previous[1], current[2] - previous[2]) < 0.03) {
         if (++still >= 2) return { settled: true, elapsedMs: Date.now() - started, ...last };
       } else {
         still = 0;
