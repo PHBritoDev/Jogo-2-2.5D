@@ -7,6 +7,8 @@ on:
       - 'eldoria-tropical-trees.js'
       - 'world3d-terrain.js'
       - 'tools/visual-lab/eldoria-city-sweep.cjs'
+      - 'tools/visual-lab/a3-terrain-edge-plan.cjs'
+      - '.github/workflows/eldoria-city-sweep.yml'
       - '.github/workflows/eldoria-city-sweep.yml'
   workflow_dispatch:
 permissions:
