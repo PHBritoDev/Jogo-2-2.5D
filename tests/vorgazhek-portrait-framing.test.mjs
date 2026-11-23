@@ -43,8 +43,8 @@ test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewpo
   assert.doesNotMatch(qa, /chromium\.newContext/);
   assert.match(qa, /setViewportSize\(\{\s*width:\s*393,\s*height:\s*852\s*\}\)/);
   assert.doesNotMatch(qa, /SevenSinsDebug3D\.view\(/);
-  assert.match(qa, /runLandscapeThenPortrait\(headUrl,\s*'03-head',\s*true\)/);
-  assert.match(qa, /runFreshPortrait\(headUrl,\s*'05-head'\)/);
+  assert.match(qa, /runLandscapeThenPortrait\(browser,\s*headUrl,\s*'03-head',\s*true\)/);
+  assert.match(qa, /runFreshPortrait\(browser,\s*headUrl,\s*'05-head'\)/);
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
