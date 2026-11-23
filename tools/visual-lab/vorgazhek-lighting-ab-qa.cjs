@@ -31,6 +31,8 @@ const report={
   comparison:null
 };
 
+const rectsOverlap=(a,b)=>a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;
+
 async function capture(browser,label,baseUrl){
   const context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1});
   const page=await context.newPage();
@@ -130,7 +132,6 @@ async function capture(browser,label,baseUrl){
         const y1=clamp(Math.ceil(Math.max(...pts.map(p=>p.y))+5),y0+1,canvas.height);
         return {x:x0,y:y0,width:x1-x0,height:y1-y0};
       }
-      function rectsOverlap(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
       function stats(rect){
         const d=ctx.getImageData(rect.x,rect.y,rect.width,rect.height).data;
         const values=[];
