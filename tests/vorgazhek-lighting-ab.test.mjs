@@ -11,6 +11,8 @@ test('VORGAZHEK A/B uses the current squad rig, fixed camera/time and untouched 
   assert.match(qa, /VG_FILE/);
   assert.match(qa, /VG_idle/);
   assert.match(bossSource, /NewBispo2_Otimizado\.glb/);
+  assert.match(qa, /q\.hero\.position\.set\(0,\.9,10\)/);
+  assert.match(qa, /bossRoot\.position\.set\(-\.7,0,7\.6\)/);
   assert.match(qa, /q\.frame\(2000\)/);
   assert.match(qa, /bossMeanDelta/);
   assert.match(qa, /waterMeanDelta/);
