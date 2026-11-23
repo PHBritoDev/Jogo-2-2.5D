@@ -421,6 +421,10 @@ body.no-hints #top{display:none!important}
 
 
 /* A1 A4-001 — VORGAZHEK: retrato 393×852, HUD nas bordas e corredor central livre. */
+@media (orientation:portrait) and (max-width:388px){
+ body.bishop2-battle #inventory-btn,
+ body.bishop2-battle #map-toggle-3d{display:none!important}
+}
 @media (orientation:portrait) and (max-width:600px){
  body.bishop2-battle{--u:clamp(38px,7.8vh,48px);--P:46px;--hpw:clamp(112px,28.8vw,130px);--hph:14px;--ctrl-scale:.88}
  body.bishop2-battle #quest-box,

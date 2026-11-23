@@ -111,6 +111,8 @@ async function inspect(page) {
         player: rect('#player-hud'),
         playerHp: rect('#player-hp-track'),
         cameraToggle: rect('#camera-toggle-3d'),
+        inventory: rect('#inventory-btn'),
+        map: rect('#map-toggle-3d'),
         pauseControls: {
           graphics: (() => { const e=document.querySelector('#graphics-toggle-3d'); return e ? { display:getComputedStyle(e).display, visibility:getComputedStyle(e).visibility } : null; })(),
           daynight: (() => { const e=document.querySelector('#daynight-toggle-3d'); return e ? { display:getComputedStyle(e).display, visibility:getComputedStyle(e).visibility } : null; })()
@@ -131,6 +133,12 @@ async function shot(page, name) {
 function overlaps(a, b) {
   if (!a || !b || a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0) return false;
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function assertCompactPortrait(state, label) {
+  assertPortrait(state, label);
+  assert.equal(state.hud.inventory?.display, 'none', label + ': inventário recolhido em viewport estreito');
+  assert.equal(state.hud.map?.display, 'none', label + ': mapa recolhido em viewport estreito');
 }
 
 function assertPortrait(state, label) {
@@ -178,7 +186,12 @@ async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
     const portrait = await inspect(page);
     await shot(page, stage + '-retrato-rotacao');
     if (assertHead) assertPortrait(portrait, stage + ' retrato após rotação');
-    result = { landscape, portrait };
+    await page.setViewportSize({ width: 320, height: 852 });
+    await page.waitForTimeout(900);
+    const compactPortrait = await inspect(page);
+    await shot(page, stage + '-retrato-compacto');
+    if (assertHead) assertCompactPortrait(compactPortrait, stage + ' retrato compacto 320×852');
+    result = { landscape, portrait, compactPortrait };
   } finally {
     const videoPath = await finish(context, page);
     if (result) result.videoPath = videoPath;
