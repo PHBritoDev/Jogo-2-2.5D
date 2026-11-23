@@ -5,16 +5,16 @@
  */
 export const SIDE_QUESTS = [
   {
-    id: 'ervas', giver: 'ERVAS', title: 'Flores de Vigília', minStep: 1,
+    id: 'ervas', giver: 'ALIMENTOS', title: 'Flores de Vigília', minStep: 1,
     goal: { type: 'collect', item: 'flor', count: 4 },
     reward: { coins: 10, xp: 30 },
     offer: [
-      { who: 'Mara · Ervas', text: 'Há uma flor que só abre quando o medo está acordado. Flor de Vigília. Faz chá para quem não dorme desde que as crianças sumiram.' },
-      { who: 'Mara · Ervas', text: 'Elas brilham entre as árvores, longe da trilha. Traz quatro e eu te pago com o pouco que tenho.' }
+      { who: 'Bento · Alimentos', text: 'Há uma flor que só abre quando o medo está acordado. Flor de Vigília. Faz chá para quem não dorme desde que as crianças sumiram.' },
+      { who: 'Bento · Alimentos', text: 'Elas brilham entre as árvores, longe da trilha. Traz quatro e eu te pago com o pouco que tenho.' }
     ],
     progressLine: 'Encontre Flores de Vigília (brilham entre as árvores)',
     turnIn: [
-      { who: 'Mara · Ervas', text: 'Quatro… e ainda frescas. Hoje alguém nesta vila vai fechar os olhos sem ouvir unhas na porta.' }
+      { who: 'Bento · Alimentos', text: 'Quatro… e ainda frescas. Hoje alguém nesta vila vai fechar os olhos sem ouvir unhas na porta.' }
     ]
   },
   {
@@ -32,16 +32,16 @@ export const SIDE_QUESTS = [
     ]
   },
   {
-    id: 'abrigos', giver: 'ARTESANATO', title: 'Pedras que Lembram', minStep: 1,
+    id: 'abrigos', giver: 'PROVISÕES', title: 'Pedras que Lembram', minStep: 1,
     goal: { type: 'waystones', count: 3 },
     reward: { coins: 12, xp: 40 },
     offer: [
-      { who: 'Nara · Artesanato', text: 'Meu avô talhou as pedras de abrigo da mata. Diziam que quem as tocasse nunca se perderia.' },
-      { who: 'Nara · Artesanato', text: 'Registre as três e me conte. Quero saber se ainda reconhecem um viajante honesto.' }
+      { who: 'Téo · Provisões', text: 'Meu avô talhou as pedras de abrigo da mata. Diziam que quem as tocasse nunca se perderia.' },
+      { who: 'Téo · Provisões', text: 'Registre as três e me conte. Quero saber se ainda reconhecem um viajante honesto.' }
     ],
     progressLine: 'Registre as três pedras de abrigo',
     turnIn: [
-      { who: 'Nara · Artesanato', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto — foi ele quem fez.' }
+      { who: 'Téo · Provisões', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto — foi ele quem fez.' }
     ]
   }
 ];

@@ -1,5 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+
+test('cada missão opcional está ligada a um vendedor real e usa sua identidade nas falas', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const block = runtime.match(/const villageVendors=\[([\s\S]*?)\n\];/);
+  assert.ok(block, 'lista real de vendedores da vila');
+  const vendors = [...block[1].matchAll(/\{name:'([^']+)',shortName:'([^']+)'/g)]
+    .map(([, name, shortName]) => ({ name, shortName }));
+  assert.match(runtime, /if\(trySideQuestTalk\(vendor\)\)return;/, 'a conversa da vila precisa chamar o roteador das missões');
+  const state = createSideState();
+  refreshSide(state, { questStep: 2 });
+  for (const quest of SIDE_QUESTS) {
+    const vendor = vendors.find(v => v.shortName === quest.giver);
+    assert.ok(vendor, quest.id + ' precisa de um vendedor existente');
+    assert.equal(questForGiver(state, vendor.shortName)?.id, quest.id, vendor.shortName + ' deve oferecer ' + quest.id);
+    assert.ok(quest.offer.length > 0 && quest.offer.every(line => line.who === vendor.name));
+    assert.ok(quest.turnIn.length > 0 && quest.turnIn.every(line => line.who === vendor.name));
+  }
+});
+
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
