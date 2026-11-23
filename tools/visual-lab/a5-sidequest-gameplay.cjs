@@ -303,6 +303,7 @@ async function assertNoDuplicateAfterReload(page, vendorIndex, questId, expected
   const after = await readProgress(page);
   assert.equal(after.coins, expectedCoins, questId + ' não pode pagar moedas novamente');
   assert.equal(after.xp, expectedXp, questId + ' não pode pagar XP novamente');
+  await reloadAndWait(page);
 }
 
 async function main() {
