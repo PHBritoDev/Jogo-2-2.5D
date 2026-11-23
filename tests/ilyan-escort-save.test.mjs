@@ -20,3 +20,11 @@ test('3D runtime saves and validates restored Ilyan coordinates on walkable sewe
  assert.match(source,/sewerWalkable\(saved\.x-DIMENSIONS\.esgoto\.center\.x,saved\.z-DIMENSIONS\.esgoto\.center\.z/);
  assert.match(source,/ilyanEscortPosition=\{x:h\.position\.x,z:h\.position\.z,yaw:h\.rotation\.y\}/);
 });
+
+test('Ilyan checkpoint is cleared when the player has left the escort stage',()=>{
+ const pos={x:40,z:-48,yaw:1.2};
+ for(const questStep of [0,4,6,8]) {
+  assert.equal(migrateProgress(progress({questStep,ilyanEscortPosition:pos})).ilyanEscortPosition,null);
+ }
+ assert.equal(migrateProgress({...progress({ilyanEscortPosition:pos}),version:5}).ilyanEscortPosition,null);
+});
