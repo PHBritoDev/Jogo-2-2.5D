@@ -86,12 +86,12 @@ test('mobile Eldoria mesh keeps nonzero triangles across all four fine-to-outer 
 
 test('A3 visual sweep targets the four exact mobile terrain seams', () => {
   assert.deepEqual(
-    TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.fineCell, s.edgeSpan]),
+    TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.legacyFirstOuter, s.fineCell, s.edgeSpan]),
     [
-      ['x', 204.25, -126, 203, 205.5, 2.5, 1.5],
-      ['x', -208.25, -260, -207, -209.5, 2.5, 1.5],
-      ['z', -100, 40.25, 39, 41.5, 2.5, 1.5],
-      ['z', 100, -292.25, -291, -293.5, 2.5, 1.5],
+      ['x', 204.25, -126, 203, 205.5, 206.5, 2.5, 1.5],
+      ['x', -208.25, -260, -207, -209.5, -210.5, 2.5, 1.5],
+      ['z', -100, 40.25, 39, 41.5, 42.5, 2.5, 1.5],
+      ['z', 100, -292.25, -291, -293.5, -294.5, 2.5, 1.5],
     ],
   );
   const roadPatch = {
@@ -101,13 +101,14 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
   const inside = (r, x, z) => x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1;
   for (const shot of TERRAIN_EDGE_SHOTS) {
     assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
+    assert.equal(Math.abs(shot.legacyFirstOuter - shot.fineEdge), 3.5, 'main baseline keeps the original 3.5 m first exterior cell');
     assert.equal(shot.edgeSpan, 1.5, 'visual guide must sample both ends of a 3 m seam segment');
     close(shot.axis === 'x' ? shot.x : shot.z, (shot.fineEdge + shot.firstOuter) / 2);
     assert.equal(shot.cameraOffset.length, 3);
-    assert.ok(shot.cameraOffset[1] >= 7 && shot.cameraOffset[1] <= 9, 'camera must clear the surface without becoming top-down');
+    assert.ok(shot.cameraOffset[1] >= 8 && shot.cameraOffset[1] <= 10, 'camera must clear the surface without becoming top-down');
     const horizontalOffset = Math.hypot(shot.cameraOffset[0], shot.cameraOffset[2]);
-    assert.ok(horizontalOffset >= 7 && horizontalOffset <= 9, 'camera must approach from 7–9 m inside the fine grid');
-    assert.ok(Math.abs(horizontalOffset - shot.cameraOffset[1]) <= 1.5, 'camera must keep an oblique view near 45 degrees');
+    assert.ok(horizontalOffset >= 10 && horizontalOffset <= 13, 'camera must include more terrain context while remaining near the seam');
+    assert.ok(Math.abs(horizontalOffset - shot.cameraOffset[1]) <= 4, 'camera must keep an oblique view rather than a top-down or grazing angle');
     if (shot.axis === 'x') assert.equal(shot.cameraOffset[2], 0);
     else assert.equal(shot.cameraOffset[0], 0);
     assert.equal(shot.targetOffset.length, 3);

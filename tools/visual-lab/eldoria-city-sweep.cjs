@@ -21,6 +21,86 @@ const spots = [
 ];
 const report = {status:"incomplete",cases:[],errors:[],consoleErrors:[],browser:"Chromium WebGL (SwiftShader); NOT physical Android"};
 const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
+
+async function captureMainBaseline(browser,base,output,report){
+ const file=process.env.A3_BASELINE_TERRAIN_FILE;
+ if(!file||!fs.existsSync(file))throw Error("Main baseline source missing: "+file);
+ const source=fs.readFileSync(file,"utf8");
+ const baseline={sha:process.env.A3_BASELINE_SHA||"unknown",viewport:{width:852,height:480,coarsePointer:true},moduleRouteHits:[],cases:[]};
+ const dir=path.join(output,"baseline-main");fs.mkdirSync(dir,{recursive:true});
+ const context=await browser.newContext({viewport:{width:852,height:480},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+ const page=await context.newPage();
+ page.on("pageerror",e=>report.errors.push("baseline: "+e.message.slice(0,350)));
+ page.on("console",m=>{if(m.type()==="error")report.consoleErrors.push("baseline: "+m.text().slice(0,350));});
+ await page.route(/world3d-terrain\.js(?:\?|$)/,async route=>{baseline.moduleRouteHits.push(route.request().url());await route.fulfill({status:200,contentType:"text/javascript; charset=utf-8",body:source});});
+ try{
+  await page.goto(base+"/mundo-3d-prototype.html?debug3d=1&qaEldoria=1",{waitUntil:"domcontentloaded",timeout:35000});
+  const ready=await page.waitForFunction(()=>{const x=document.getElementById("loading")?.textContent||"";if(x.includes("Falha ao montar o mundo 3D"))return "failed";return window.SevenSinsDebug3D?.fly&&window.EldoriaLiveCityQA?"ready":false;},null,{timeout:120000}).then(h=>h.jsonValue());
+  if(ready!=="ready")throw Error("Main baseline world did not load: "+ready);
+  const device=await page.evaluate(()=>{const api=window.SevenSinsDebug3D;api.seamMode(true);return{coarsePointer:matchMedia("(pointer: coarse)").matches,innerWidth,innerHeight};});
+  baseline.viewport=device;
+  if(!(device.coarsePointer||device.innerWidth<700))throw Error("Main baseline did not activate the mobile terrain preset");
+  for(const edge of TERRAIN_EDGE_SHOTS){
+   const data=await page.evaluate(edge=>{
+    const api=window.SevenSinsDebug3D;api.teleport(edge.x,edge.z,0);
+    const p=api.cineState().player,target={x:p[0],y:p[1],z:p[2]};
+    const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
+    api.teleport(cameraX,cameraZ,0);const cp=api.cineState().player,cameraGround={x:cameraX,y:cp[1],z:cameraZ};
+    const from=[cameraX,Math.max(target.y,cameraGround.y)+edge.cameraOffset[1],cameraZ];
+    const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
+    api.teleport(-12.2,-44.5,0);const restored=api.state();api.fly(from,to);
+    return{target,cameraGround,from,to,playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1};
+   },edge);
+   await page.waitForTimeout(2600);
+   const verified=await page.evaluate(to=>{const api=window.SevenSinsDebug3D;return{camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};},data.to);
+   const visualGuide=await page.evaluate(edge=>{
+    const api=window.SevenSinsDebug3D;
+    const sampleLine=boundary=>[-edge.edgeSpan,edge.edgeSpan].map(offset=>{
+     const x=edge.axis==="x"?boundary:edge.x+offset,z=edge.axis==="x"?edge.z+offset:boundary;
+     const hit=(api.rayDown(x,z)||[]).find(h=>String(h.n).includes("terrain-mod186"))||null;
+     if(!hit)return{world:[x,null,z],mesh:null,ndc:null,onScreen:false};
+     const view=api.camView([x,hit.y+.04,z]);return{world:[x,+hit.y.toFixed(3),z],mesh:hit.n,ndc:view.ndc,onScreen:view.onScreen,blocked:view.blocked};
+    });
+    const fine=sampleLine(edge.fineEdge),outer=sampleLine(edge.legacyFirstOuter);
+    const screen=p=>p.ndc?[(p.ndc[0]+1)*innerWidth/2,(1-p.ndc[1])*innerHeight/2]:null;
+    const mid=pts=>pts.every(p=>p.ndc)?[(screen(pts[0])[0]+screen(pts[1])[0])/2,(screen(pts[0])[1]+screen(pts[1])[1])/2]:null;
+    const fm=mid(fine),om=mid(outer),pixelGap=fm&&om?Math.hypot(fm[0]-om[0],fm[1]-om[1]):0;
+    const allTerrainHits=[...fine,...outer].every(p=>p.mesh==="terrain-mod186"),allOnScreen=[...fine,...outer].every(p=>p.onScreen);
+    const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
+    svg.id="a3-terrain-edge-overlay";svg.setAttribute("viewBox","0 0 "+innerWidth+" "+innerHeight);svg.setAttribute("width",String(innerWidth));svg.setAttribute("height",String(innerHeight));
+    svg.style.cssText="position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:999999";
+    const draw=(pts,color)=>{if(!pts.every(p=>p.ndc))return;const a=screen(pts[0]),b=screen(pts[1]),line=document.createElementNS(ns,"line");line.setAttribute("x1",a[0]);line.setAttribute("y1",a[1]);line.setAttribute("x2",b[0]);line.setAttribute("y2",b[1]);line.setAttribute("stroke",color);line.setAttribute("stroke-width","4");line.setAttribute("stroke-linecap","round");svg.appendChild(line);for(const p of [a,b]){const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p[0]);dot.setAttribute("cy",p[1]);dot.setAttribute("r","4");dot.setAttribute("fill",color);dot.setAttribute("stroke","#101820");dot.setAttribute("stroke-width","1.5");svg.appendChild(dot);}};
+    draw(fine,"#00e5ff");draw(outer,"#ff9f1c");
+    const box=document.createElementNS(ns,"rect");box.setAttribute("x",innerWidth/2-142);box.setAttribute("y","148");box.setAttribute("width","284");box.setAttribute("height","42");box.setAttribute("rx","7");box.setAttribute("fill","rgba(8,12,18,.88)");box.setAttribute("stroke","#b8a37a");svg.appendChild(box);
+    const label=document.createElementNS(ns,"text");label.setAttribute("x",innerWidth/2);label.setAttribute("y","165");label.setAttribute("text-anchor","middle");label.setAttribute("font-size","11");label.setAttribute("font-family","Arial,sans-serif");label.setAttribute("fill","#ffffff");label.textContent="MAIN BASELINE: limite fino • 1ª célula externa 3,5 m";svg.appendChild(label);
+    const sub=document.createElementNS(ns,"text");sub.setAttribute("x",innerWidth/2);sub.setAttribute("y","181");sub.setAttribute("text-anchor","middle");sub.setAttribute("font-size","10");sub.setAttribute("font-family","Arial,sans-serif");sub.setAttribute("fill","#f5d8a4");sub.textContent="mesma câmera e viewport da PR";svg.appendChild(sub);
+    const cross=document.createElementNS(ns,"circle");cross.setAttribute("cx",innerWidth/2);cross.setAttribute("cy",innerHeight/2);cross.setAttribute("r","7");cross.setAttribute("fill","none");cross.setAttribute("stroke","#ffffff");cross.setAttribute("stroke-width","2");svg.appendChild(cross);document.body.appendChild(svg);
+    return{fine,outer,pixelGap,allTerrainHits,allOnScreen,overlay:true};
+   },edge);
+   const pick=verified.centerPick?.[0]||null,terrainHit=!!pick&&/terrain-mod186/.test(pick[0]||"");
+   const horizontalMiss=pick?Math.hypot(pick[2]-data.to[0],pick[4]-data.to[2]):null;
+   const targetVisible=!!verified.viewCheck?.onScreen&&!verified.viewCheck?.blocked;
+   const cameraPinned=Array.isArray(verified.camera)&&verified.camera.length===3&&verified.camera.every((v,i)=>Math.abs(v-data.from[i])<.5);
+   const visualGuideOk=visualGuide.allTerrainHits&&visualGuide.allOnScreen&&visualGuide.pixelGap>=8;
+   const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&cameraPinned&&data.playerRestored&&terrainHit&&horizontalMiss!==null&&horizontalMiss<1.5&&targetVisible&&visualGuideOk;
+   if(!positioned)report.errors.push("Main baseline seam framing failed at "+edge.name+": "+JSON.stringify({cameraPinned,playerRestored:data.playerRestored,terrainHit,horizontalMiss,targetVisible,visualGuide}));
+   const filename=path.join(dir,safe(edge.name)+".png");await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
+   await page.evaluate(()=>document.getElementById("a3-terrain-edge-overlay")?.remove());
+   baseline.cases.push({name:edge.name,image:path.relative(output,filename),positioned,terrainEdge:{fineEdge:edge.fineEdge,firstOuter:edge.legacyFirstOuter,expectedWidth:Math.abs(edge.legacyFirstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,from:data.from,to:data.to,cameraAfter:verified.camera,centerPick:verified.centerPick,viewCheck:verified.viewCheck,horizontalMiss,terrainHit,targetVisible,playerRestored:data.playerRestored,visualGuide}});
+  }
+ }finally{await context.close();}
+ if(!baseline.moduleRouteHits.length)throw Error("Playwright did not intercept world3d-terrain.js; main baseline is invalid");
+ report.baselineMain=baseline;
+ const prCases=report.cases.filter(c=>c.preset==="android-landscape"&&c.terrainEdge);
+ report.abComparisons=baseline.cases.map(mainCase=>{
+  const prCase=prCases.find(c=>c.name===mainCase.name),a=mainCase.terrainEdge,b=prCase?.terrainEdge;
+  const va=[...(a?.from||[]),...(a?.to||[])],vb=[...(b?.from||[]),...(b?.to||[])];
+  const cameraDelta=va.length===vb.length&&va.length?Math.max(...va.map((v,i)=>Math.abs(v-vb[i]))):Infinity;
+  const cameraMatch=cameraDelta<=.05;if(!cameraMatch)report.errors.push("A/B camera mismatch at "+mainCase.name+": "+cameraDelta);
+  return{name:mainCase.name,mainCellM:a?.expectedWidth,prCellM:b?.expectedWidth,cameraDelta,cameraMatch,mainImage:mainCase.image,prImage:prCase?.image||null};
+ });
+}
+
 (async()=>{
  let browser,context;
  try {
@@ -129,8 +209,8 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          };
          draw(fine,"#00e5ff");draw(outer,"#ff9f1c");
          const box=document.createElementNS(ns,"rect");box.setAttribute("x",innerWidth/2-142);box.setAttribute("y","148");box.setAttribute("width","284");box.setAttribute("height","42");box.setAttribute("rx","7");box.setAttribute("fill","rgba(8,12,18,.88)");box.setAttribute("stroke","#b8a37a");svg.appendChild(box);
-         const label=document.createElementNS(ns,"text");label.setAttribute("x",innerWidth/2);label.setAttribute("y","165");label.setAttribute("text-anchor","middle");label.setAttribute("font-size","11");label.setAttribute("font-family","Arial,sans-serif");label.setAttribute("fill","#ffffff");label.textContent="CIANO: limite fino  •  LARANJA: 1ª célula externa";svg.appendChild(label);
-         const sub=document.createElementNS(ns,"text");sub.setAttribute("x",innerWidth/2);sub.setAttribute("y","181");sub.setAttribute("text-anchor","middle");sub.setAttribute("font-size","10");sub.setAttribute("font-family","Arial,sans-serif");sub.setAttribute("fill","#f5d8a4");sub.textContent="largura nominal entre linhas: 2,5 m";svg.appendChild(sub);
+         const label=document.createElementNS(ns,"text");label.setAttribute("x",innerWidth/2);label.setAttribute("y","165");label.setAttribute("text-anchor","middle");label.setAttribute("font-size","11");label.setAttribute("font-family","Arial,sans-serif");label.setAttribute("fill","#ffffff");label.textContent="PR: limite fino  •  1ª célula externa 2,5 m";svg.appendChild(label);
+         const sub=document.createElementNS(ns,"text");sub.setAttribute("x",innerWidth/2);sub.setAttribute("y","181");sub.setAttribute("text-anchor","middle");sub.setAttribute("font-size","10");sub.setAttribute("font-family","Arial,sans-serif");sub.setAttribute("fill","#f5d8a4");sub.textContent="mesma câmera e viewport do baseline main";svg.appendChild(sub);
          const cross=document.createElementNS(ns,"circle");cross.setAttribute("cx",innerWidth/2);cross.setAttribute("cy",innerHeight/2);cross.setAttribute("r","7");cross.setAttribute("fill","none");cross.setAttribute("stroke","#ffffff");cross.setAttribute("stroke-width","2");svg.appendChild(cross);
          document.body.appendChild(svg);
          return {fine,outer,pixelGap,allTerrainHits,allOnScreen,overlay:true};
@@ -189,6 +269,7 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
    report.cases.push({preset:preset.name,name:"subida-escada",before:climb.prior,after,screen:path.relative(output,snap),expected,moved,ascent,completed,pass,reason});
    if(!pass){report.errors.push("Auditoria de escada inconclusiva ou falhou ("+preset.name+"): "+reason);process.exitCode=1;}
    await page.close(); await context.close();context=null;
+   if(preset.mobile)await captureMainBaseline(browser,base,output,report);
   }
   report.status=report.errors.length?"needs-review":"captured";
   if(report.errors.length)process.exitCode=1;

@@ -9,7 +9,6 @@ on:
       - 'tools/visual-lab/eldoria-city-sweep.cjs'
       - 'tools/visual-lab/a3-terrain-edge-plan.cjs'
       - '.github/workflows/eldoria-city-sweep.yml'
-      - '.github/workflows/eldoria-city-sweep.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,6 +18,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Preparar baseline da main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          git show FETCH_HEAD:world3d-terrain.js > /tmp/a3-world3d-terrain-main.js
+          test -s /tmp/a3-world3d-terrain-main.js
+          echo "A3_BASELINE_TERRAIN_FILE=/tmp/a3-world3d-terrain-main.js" >> "$GITHUB_ENV"
+          echo "A3_BASELINE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
