@@ -10,7 +10,6 @@ on:
       - 'tools/visual-lab/vorgazhek-runtime-qa.cjs'
       - 'tools/visual-lab/vorgazhek-lighting-ab-qa.cjs'
       - 'tests/vorgazhek-abyss-lighting.test.mjs'
-      - 'tests/vorgazhek-lighting-ab.test.mjs'
       - '.github/workflows/bispo2-abyss-qa.yml'
   workflow_dispatch:
 permissions:
@@ -30,6 +29,29 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: work/baseline
           persist-credentials: false
+      - name: Classify changed paths
+        id: paths
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$GITHUB_SHA" > /tmp/a4-changed-paths.txt
+          if grep -Eq '^(vorgazhek-abyss-dimension3d.js|dimension-arenas3d.js|dimensions3d.js|tools/visual-lab/vorgazhek-abyss-preview.html|tools/visual-lab/vorgazhek-abyss-qa.cjs|tests/vorgazhek-abyss-lighting.test.mjs)$' /tmp/a4-changed-paths.txt; then
+            echo "arena=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "arena=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -Eq '^(vorgazhek-abyss-dimension3d.js|dimension-arenas3d.js|dimensions3d.js|tools/visual-lab/vorgazhek-runtime-qa.cjs)$' /tmp/a4-changed-paths.txt; then
+            echo "runtime=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "runtime=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -Eq '^(vorgazhek-abyss-dimension3d.js|dimension-arenas3d.js|tools/visual-lab/vorgazhek-lighting-ab-qa.cjs|\.github/workflows/bispo2-abyss-qa.yml)$' /tmp/a4-changed-paths.txt; then
+            echo "ab=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ab=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -51,6 +73,9 @@ jobs:
           VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
           VISUAL_BRANCH_SHA: '${{ github.event.pull_request.head.sha }}'
           VISUAL_BASE_SHA: '${{ github.event.pull_request.base.sha }}'
+          RUN_ARENA: '${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.arena == 'true' }}'
+          RUN_RUNTIME: '${{ github.event_name == 'workflow_dispatch' || steps.paths.outputs.runtime == 'true' }}'
+          RUN_AB: '${{ github.event_name == 'pull_request' && steps.paths.outputs.ab == 'true' }}'
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo2-http.log 2>&1 &
           if [ -d work/baseline ]; then
@@ -63,9 +88,9 @@ jobs:
               sleep 1
             done
           done
-          node tools/visual-lab/vorgazhek-abyss-qa.cjs
-          node tools/visual-lab/vorgazhek-runtime-qa.cjs
-          if [ -d work/baseline ]; then
+          if [ "$RUN_ARENA" = "true" ]; then node tools/visual-lab/vorgazhek-abyss-qa.cjs; fi
+          if [ "$RUN_RUNTIME" = "true" ]; then node tools/visual-lab/vorgazhek-runtime-qa.cjs; fi
+          if [ "$RUN_AB" = "true" ] && [ -d work/baseline ]; then
             VISUAL_BASELINE_URL=http://127.0.0.1:4174 node tools/visual-lab/vorgazhek-lighting-ab-qa.cjs
           fi
       - uses: actions/upload-artifact@v4
