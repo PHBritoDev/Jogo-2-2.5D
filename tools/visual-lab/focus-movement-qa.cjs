@@ -2,15 +2,15 @@
 const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path');
 (async()=>{
  const dir=path.resolve('visual-lab-results/focus-movement');fs.mkdirSync(dir,{recursive:true});
- const report={pass:false,phase:'launch',screenshots:{},errors:[]};
- let browser,page,held=false,failed;
+ const report={pass:false,phase:'launch',screenshots:{},warnings:[],errors:[]};
+ let browser,page,video,held=false,failed;
  const capture=async(name)=>{
   const target=path.join(dir,name+'.png');
   try{
    await page.screenshot({path:target,timeout:10000});
    report.screenshots[name]='playwright';
   }catch(e){
-   report.errors.push('playwright screenshot '+name+': '+e.message);
+   report.warnings.push('playwright screenshot '+name+' timed out; using CDP fallback: '+e.message);
    // Chromium CDP bypasses Playwright's screenshot preparation (including font waits).
    // It still captures actual browser pixels; never substitute a synthetic image.
    let session;
@@ -34,7 +34,9 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
  },{p:state.p});
  try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
-  page=await browser.newPage({viewport:{width:1280,height:720}});
+  const videoDir=path.join(dir,'video');fs.mkdirSync(videoDir,{recursive:true});
+  page=await browser.newPage({viewport:{width:1280,height:720},recordVideo:{dir:videoDir,size:{width:1280,height:720}}});
+  video=page.video();
   page.on('pageerror',e=>report.errors.push('pageerror: '+e.message));
   report.phase='loading';
   await page.goto('http://127.0.0.1:4173/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
@@ -103,6 +105,15 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
  }finally{
   if(held&&page){try{await page.keyboard.up('w')}catch(e){report.errors.push('key release: '+e.message)}}
   if(browser){try{await browser.close()}catch(e){report.errors.push('browser close: '+e.message)}}
+  if(video){
+   try{
+    const videoPath=await video.path(),stat=fs.statSync(videoPath);
+    report.video=path.relative(process.cwd(),videoPath);
+    report.videoBytes=stat.size;
+    report.videoPass=stat.size>1024;
+   }catch(e){report.videoPass=false;report.errors.push('video finalize: '+e.message)}
+  }else report.videoPass=false;
+  if(!report.videoPass){report.pass=false;if(!failed)failed=new Error('QA video missing or empty')}
   fs.writeFileSync(path.join(dir,'report.json'),JSON.stringify(report,null,2));
  }
  if(failed)throw failed;
