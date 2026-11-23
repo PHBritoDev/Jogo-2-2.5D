@@ -284,5 +284,4 @@ for (const fps of [20, 30, 60, 120]) {
 test('golpe físico secundário respeita parede e não emite dano nem VFX atrás dela', () => {
   const result = physicalBladeSideScenario({ fps: 60, wall: true });
   assert.deepEqual(result.hits.map(h => h.id), ['left']);
-  assert.deepEqual(result.impacts.map(e => e.target.id), ['left']);
-}
+  assert.deepEqual(result.impacts.map(e => e.target.id), ['left']);});
