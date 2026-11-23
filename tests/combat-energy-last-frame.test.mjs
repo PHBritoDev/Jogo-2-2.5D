@@ -20,7 +20,7 @@ test('auditoria WebGL traduz o foco da esquadra e identifica impactos secundári
   assert.ok(worldSource.includes('secondary:!!e.secondary'));
 });
 
-test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX do adaptador', () => {
+test('energia e lâmina laterais delegam o contato sem duplicar áudio/VFX do adaptador', () => {
   const start = worldSource.indexOf('function protaSideHit(');
   const end = worldSource.indexOf('\nfunction riteReady()', start);
   assert.ok(start >= 0 && end > start, 'adaptador de dano lateral precisa existir');
@@ -28,6 +28,9 @@ test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX d
     'function protaSideHit',
     'globalThis.protaSideHit = function protaSideHit'
   );
+  assert.ok(worldSource.includes("else if(type==='impact'||type==='judgment'){") &&
+    worldSource.includes('worldAudio.hit();enemyHitFlash=.07;'),
+    'o evento impact precisa continuar emitindo o áudio de contato');
   const calls = { damage: 0, audio: 0, slash: 0, flash: 0 };
   const actor = { id: 'e1', alive: true };
   const sandbox = {
@@ -41,10 +44,13 @@ test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX d
   runInNewContext(adapter, sandbox);
   sandbox.protaSideHit(20, 'e1', { target: { x: 1, y: 1, z: 2 }, wave: {} });
   assert.deepEqual(calls, { damage: 1, audio: 0, slash: 0, flash: 1 },
-    'wave/energy já emitem VFX e áudio pelo evento impact');
+    'ondas de energia delegam VFX/áudio ao evento impact');
+  sandbox.protaSideHit(20, 'e1', { target: { x: 1, y: 1, z: 2 }, by: 'blade' });
+  assert.deepEqual(calls, { damage: 2, audio: 0, slash: 0, flash: 2 },
+    'a lâmina secundária também delega VFX/áudio ao evento impact');
   sandbox.protaSideHit(20, 'e1', { target: { x: 1, y: 1, z: 2 } });
-  assert.deepEqual(calls, { damage: 2, audio: 1, slash: 1, flash: 2 },
-    'contatos sem evento de energia preservam o fallback');
+  assert.deepEqual(calls, { damage: 3, audio: 1, slash: 1, flash: 3 },
+    'contatos legados sem evento próprio preservam o fallback');
 });
 
 function sideTargetNearEnd({ wall = false, fps = 120 } = {}) {
