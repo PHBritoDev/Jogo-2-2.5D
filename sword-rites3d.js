@@ -27,14 +27,14 @@ function closestOnSegment(p,a,b){
  const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;
  return{x:a.x+x*t,y:a.y+y*t,z:a.z+z*t};
 }
-/** Returns the point on the swept blade nearest to this target, so each side-hit VFX lands on its own contact. */
+/** Returns the target-capsule point nearest to the swept blade, keeping each side-hit VFX on its own actor. */
 function bladeContactPoint(a,b,c,d,target,radius=.48){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06));
- let best=null,bestDistance=Infinity;
+ let bestTarget=null,bestDistance=Infinity;
  for(let i=0;i<=n;i++){const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
-  for(let j=0;j<=4;j++){const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},q=closestOnSegment(p,base,tip),distance=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z);if(distance<bestDistance){bestDistance=distance;best=q;}}
+  for(let j=0;j<=4;j++){const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},q=closestOnSegment(p,base,tip),distance=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z);if(distance<bestDistance){bestDistance=distance;bestTarget=p;}}
  }
- return bestDistance<=radius?best:null;
+ return bestDistance<=radius?bestTarget:null;
 }
 /** Horizontal aim only. Assist is bounded by range, cone, floor and line of sight. */
 export function swordAim(from,yaw,target,blocked=()=>false,{assist=true,range=18,cone=.55}={}){

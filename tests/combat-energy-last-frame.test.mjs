@@ -278,10 +278,13 @@ for (const fps of [20, 30, 60, 120]) {
     assert.ok(result.impacts.every(e => e.hitstop === 0 && e.shake === 0));
     for (const impact of result.impacts) {
       assert.ok(Math.abs(impact.p.x - impact.target.x) < .05,
-        `VFX de ${impact.target.id} precisa nascer no contato da própria lâmina, não no meio do arco`);
+        `VFX de ${impact.target.id} precisa ficar no ponto próprio da cápsula atingida, não em um ponto compartilhado do arco`);
       assert.ok(Math.abs(impact.p.z - impact.target.z) < .05,
         `VFX de ${impact.target.id} precisa acompanhar a profundidade do contato`);
     }
+    const impactXs = result.impacts.map(e => e.p.x).sort((a, b) => a - b);
+    assert.ok(impactXs[1] - impactXs[0] >= .65,
+      'os dois impactos precisam ficar visualmente separados nos corpos dos dois alvos');
     assert.equal(new Set(result.impacts.map(e => Math.round(e.p.x * 100))).size, 2,
       'dois inimigos em pontos diferentes da lâmina não podem compartilhar a mesma origem de VFX');
     assert.equal(new Set(result.hits.map(h => h.id)).size, 2, 'cada inimigo recebe no máximo um golpe por swing');
