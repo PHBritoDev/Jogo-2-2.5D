@@ -1,4 +1,4 @@
-import {ROUTE,DETOURS,CITY_ROAD,DOJO,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
+import {ROUTE,DETOURS,CITY_ROAD,SHELTERS,DOJO,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
 import {batch,lantern,torii,dojoBuilding,castleBuilding,distantCastle,distantPagoda,glacierHouse,spire,arch} from './sakura-masonry3d.js';
 import {treeLibrary,seeded,distantGrove} from './sakura-grove3d.js';
 import {surfaceFinish,hallDetails} from './sakura-interiors3d.js';
@@ -15,7 +15,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  const focus={value:new T.Vector2(1e5,1e5)},middleRadius=low?62:91,farGrove=distantGrove(T,focus,middleRadius);
  const dummy=new T.Object3D(),c=new T.Color(),tone=new T.Color(),shadow=new T.Color(0x667e88);
  const tileCache=new Map(),buildings=[],landmarks=[],landmarkSolids=[],groveSolids=new Map();
- const summer=new T.Color(0xe0bfc2),winter=new T.Color(0xa8bccd),night=new T.Color(0x424c67),air=new T.Color();
+ const summer=new T.Color(0xdebdcb),winter=new T.Color(0x829bb3),night=new T.Color(0x424c67),air=new T.Color();
  function feature(name,p,fn,reach=300,mat=solid){
   const m=batch(T);fn(m);const o=new T.Mesh(m.geometry(),mat);o.name=name;o.position.set(p.x,p.y??ground(p.x,p.z),p.z);
   root.add(o);landmarks.push({o,reach});return o;
@@ -82,7 +82,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  const water=lakes(T),snow=weather(T,low),sky=skyVeil(T);root.add(water.group,snow.mesh,sky.mesh);
  const relative=(x,z)=>[x-CASTLE.x,z-CASTLE.z];
  function reserve(x,z){const [dx,dz]=relative(x,z);
-  return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
+  return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(dx)<25&&dz>=-190&&dz<-110||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||SHELTERS.some(s=>near(x,z,s,6))||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
  function physical(x,z,p){if(p.i>=2.5&&(p.kind!=='town'||x>265))return landscape(x,z,p);
   const w=regionWeight(x,z,p);if(w>=.999)return landscape(x,z,p);
   return ground(x,z)-(routeGround(x,z,p)-landscape(x,z,p))*w;}
@@ -95,7 +95,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
    c.set(springColors[k]).lerp(tone.set(snowColors[k]),cold).lerp(shadow,slope*(.15+.27*ns));
    if(p){c.lerp(tone.set(0x61514e),(1-smooth(1,5,p.i))*.6);c.lerp(tone.set(cold>.55?0xb0becc:0xa99488),road*.7);}
    const flower=bloomAt(p?.i??0);
-   c.lerp(tone.set(0xd1b5b4),flower*(.30+.24*ns)).lerp(tone.set(0xe3dedc),cold*.31);
+   c.lerp(tone.set(0xd7b7c2),flower*(.50+.23*ns)).lerp(tone.set(0xe3dedc),cold*.31);
    mix.push(flower*(.50+.5*ns),cold,road);c.multiplyScalar(.91+.23*n2);h.push(x,y-.12,z);colors.push(c.r,c.g,c.b);uv.push(x*.15,z*.15);
    if(i&&j){const a=j*n+i-n-1,b=a+1,d=a+n,e=d+1;
     const cx=x-TILE/(2*steps),cz=z-TILE/(2*steps),q=sampleRoad(cx,cz);
@@ -132,13 +132,27 @@ export function createSakuraWorld(T,scene,{ground,low}){
    }
   }
   for(let j=0;j<(low?60:80);j++){const x=px+r()*TILE,z=pz+r()*TILE,p=sampleRoad(x,z);
-   if(!p||p.d<4.3||regionWeight(x,z,p)<.05||reserve(x,z)||ellipse(x,z,ICE_LAKE)<1.03||ellipse(x,z,SPRING_LAKE)<1.035||lakeDepth(x,z)>0)continue;
+   if(!p||p.d<(p.i<26?6.8:p.i>32?6.1:5.2)||regionWeight(x,z,p)<.05||reserve(x,z)||ellipse(x,z,ICE_LAKE)<1.03||ellipse(x,z,SPRING_LAKE)<1.035||lakeDepth(x,z)>0)continue;
    const bloom=bloomAt(p.i),cold=snowAt(p.i);if(p.i>37&&p.i<56&&r()<.60||p.i<3&&r()<.7)continue;
    const type=bloom>r()&&p.i<33?Math.floor(r()*4):(cold<.42?7:4+Math.floor(r()*3));
    const size=(.60+r()*.70)*(p.i<5?.70:1)*(p.d<17?1.08:1),y=physical(x,z,p)-.12;
    if(!clusters.has(type))clusters.set(type,[]);clusters.get(type).push([x,y,z,size,r()*6.283]);
    obstacles.push({x,z,r:type<4?.54*size:.39*size});
    if(j%4===0){const h=.42+r()*.56;trace.tube([x+2,y-.18,z+1],[x+2.4,y+h,z+1],h*1.4,.22,h>.68?0x7b8490:0x8f8b8b,7);drawn=true;}
+  }
+  // Ground cover shares the pebble batch. Patches gather along damp banks and
+  // under the outer canopy, leaving the walked centre and architectural floors clear.
+  for(let j=0;j<(low?48:78);j++){const x=px+r()*TILE,z=pz+r()*TILE,q=sampleRoad(x,z);
+   if(!q||q.d<3.5||q.d>58||!bloomAt(q.i)||reserve(x,z)||regionWeight(x,z,q)<.3)continue;
+   const edge=ellipse(x,z,SPRING_LAKE);if(edge<1.003||snowAt(q.i)>.5)continue;
+   const damp=edge<1.13,shade=noise(x*.065,z*.065);if(!damp&&shade<.39)continue;
+   const base=physical(x,z,q)-.06;
+   for(let k=0;k<(damp?9:5);k++){const a=r()*Math.PI*2,co=Math.cos(a),si=Math.sin(a);
+    const h=(damp?.84:.32)*(.62+r()),w=.08+r()*.07;const xx=x+co*r()*.7,zz=z+si*r()*.7;
+    const foot=[xx,base,zz],left=[xx-si*w+co*.14,base+h*.46,zz+co*w+si*.14],right=[xx+si*w+co*.14,base+h*.46,zz-co*w+si*.14];
+    const tip=[xx+co*(damp?.38:.53),base+h,zz+si*(damp?.38:.53)];
+    trace.quad(foot,left,tip,right,damp?0x84957c:k%3?0x6e7866:0x8c9271);
+   }drawn=true;
   }
   if(drawn){group.add(new T.Mesh(pebbles.geometry(),solid),new T.Mesh(trace.geometry(),solid));}
   const draws=[];if(clusters.size)group.add(farGrove(clusters));
@@ -186,13 +200,23 @@ export function createSakuraWorld(T,scene,{ground,low}){
    vegetationLOD(part);
   }
   for(const [k,part] of tileCache){if(!seen.has(k)){part.group.visible=false;clearCell(k,part);}}
-  for(const [k,o] of coarse)if(o&&!o.visible&&!seen.has(k)){root.remove(o);o.geometry.dispose();coarse.delete(k);}
+  for(const [k,o] of coarse)if(!seen.has(k)&&(!o||!o.visible)){
+   if(o){root.remove(o);o.geometry.dispose();}coarse.delete(k);}
   pending.sort((a,b)=>a.dist-b.dist);
  }
  function update(dt,now,P,camera,fog,nightK,hidden){
   const p=hidden?null:sampleRoad(P.x,P.z),w=p?regionWeight(P.x,P.z,p):0;
+  const wasActive=active;
   active=!!p&&!hidden&&(w>.002||p.i<3&&p.d<80&&P.z<-250||p.kind==='town'&&P.x>199&&p.d<35);
-  root.visible=active;if(!active)return;
+  root.visible=active;
+  if(!active){
+   if(wasActive){
+    for(const [k,cell] of tileCache)clearCell(k,cell);
+    for(const o of coarse.values())if(o){root.remove(o);o.geometry.dispose();}
+    coarse.clear();pending=[];seen.clear();cellX=cellZ=Infinity;
+    for(const b of buildings)if(b.rich){root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}
+   }return;
+  }
   const ix=Math.floor(P.x/TILE),iz=Math.floor(P.z/TILE);
   if(Math.hypot(P.x-focus.value.x,P.z-focus.value.y)>10){focus.value.set(P.x,P.z);for(const cell of tileCache.values())vegetationLOD(cell);}
   if(ix!==cellX||iz!==cellZ)layout(ix,iz);
@@ -205,8 +229,8 @@ export function createSakuraWorld(T,scene,{ground,low}){
   if(fog&&w>.01){fog.color.lerp(air,w*.82);fog.near+=(34+22*cold-fog.near)*w;fog.far+=(625-cold*80-fog.far)*w;}
   sky.update(camera,now*.001,cold,blossom,nightK,w,air);
   for(const b of buildings){const d=Math.hypot(b.p.x-P.x,b.p.z-P.z),within=d<(b.wood?200:310);
-   if(within&&!b.rich){const m=batch(T);b.richModel(m);b.rich=new T.Mesh(m.geometry(),surfaceFinish(T,b.wood));b.rich.position.copy(b.far.position);b.rich.name=b.name;root.add(b.rich);}
-   if(b.rich){b.rich.visible=within;if(d>(b.wood?410:610)){root.remove(b.rich);b.rich.geometry.dispose();b.rich.material.dispose();b.rich=null;}}
+   if(within&&!b.rich){const m=batch(T);b.richModel(m);b.surface??=surfaceFinish(T,b.wood);b.rich=new T.Mesh(m.geometry(),b.surface);b.rich.position.copy(b.far.position);b.rich.name=b.name;root.add(b.rich);}
+   if(b.rich){b.rich.visible=within;if(d>(b.wood?410:610)){root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}}
    b.far.visible=!within&&d<(b.wood?1100:2250);b.haze.value.copy(air);b.mix.value=.34+.58*smooth(250,1960,d);
   }
   water.update(now*.001,fog?.color||air,640);for(let i=0;i<2;i++)water.group.children[i].visible=near(P.x,P.z,i?ICE_LAKE:SPRING_LAKE,i?520:425);

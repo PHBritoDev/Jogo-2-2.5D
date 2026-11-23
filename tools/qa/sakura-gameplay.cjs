@@ -6,7 +6,7 @@ try{
  const mobile=mode!=='desktop',width=mobile?852:1200,height=mobile?393:675;
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
  const page=await ctx.newPage(),root=path.resolve(path.dirname(require.resolve('three')),'..');
- page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.message);});
+ page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.stack||e.message);});
  page.on('console',m=>{if(/WebGLProgram: Shader Error|THREE.WebGLShader: Shader couldn't compile/.test(m.text()))errors.push(m.text().slice(0,600));});
  await page.route('https://cdn.jsdelivr.net/npm/three@*/**',r=>r.fulfill({path:path.join(root,r.request().url().split(/three@[^/]+\//)[1].split('?')[0]),contentType:'text/javascript'}));
  await page.addInitScript(()=>{
@@ -37,6 +37,18 @@ try{
    return issues;
   });fs.writeFileSync(path.join(out,'collision.json'),JSON.stringify(issues,null,1));console.log('SAMPLES',JSON.stringify(issues));if(issues.length)throw Error('Piso ou colisão fora do limite');
   const at=async(x,z)=>{await page.evaluate(({x,z})=>{const d=SevenSinsDebug3D;d.placeAt(x,d.groundAt(x,z),z);},{x,z});};
+  const stream=await page.evaluate(async()=>{
+   const d=SevenSinsDebug3D, samples=[];
+   for(let lap=0;lap<2;lap++)for(const [x,z] of [[-1483,-1235],[-1368,-1461],[-1040,-1618],[564,-283]]){
+    d.placeAt(x,d.groundAt(x,z),z);
+    for(let n=0;n<35;n++){await new Promise(requestAnimationFrame);if(n>12&&d.sakuraProbe(x,z).stream?.waiting===0)break;}
+    const state=d.sakuraProbe(x,z).stream,render=d.squadRender();
+    if(!state?.active||state.nearTiles>26||state.waiting!==0)throw Error('Setores não estabilizaram '+JSON.stringify(state));
+    samples.push({lap,x,z,...state,geometries:render.geos,textures:render.tex,heap:performance.memory?.usedJSHeapSize});
+   }
+   return samples;
+  });
+  fs.writeFileSync(path.join(out,'streaming.json'),JSON.stringify(stream,null,1));
   const button=page.locator('#dialog-continue');
   await at(-1038.2,-1608.6);await page.waitForFunction(()=>SevenSinsDebug3D.storyState().label==='FALAR COM A MESTRA');
   await page.evaluate(()=>SevenSinsDebug3D.interact());await button.waitFor({state:'visible'});
@@ -45,11 +57,13 @@ try{
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.storyState().sub===1&&Math.abs(SevenSinsDebug3D.walkState().x+1040)<4,null,{timeout:240000});
+  await at(583,-236);const gallery=await page.evaluate(()=>SevenSinsDebug3D.walkState());
+  if(Math.abs(gallery.y-88)>.65)throw Error('Galeria sem apoio físico '+gallery.y);
   await at(564,-194);for(let i=0;i<9;i++){if(await button.isVisible())await button.click();if(await page.evaluate(()=>SevenSinsDebug3D.storyState().sub===2))break;await page.waitForTimeout(450);}
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===2);await at(150,-40);
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().scene==='cidade-neve');await page.evaluate(()=>SevenSinsDebug3D.skipStory());
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q===16);
-  fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,subAfterThrone:2,cityStep:16}));
+  fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,galleryFloor:gallery.y,subAfterThrone:2,cityStep:16}));
  }else if(mode==='walk'||mode==='replay'){
   await page.evaluate(async({fast})=>{
    const d=SevenSinsDebug3D,{ROUTE,CITY_ROAD,FROM_CITY,MASTER}=await import('/sakura-route3d.js');
@@ -95,8 +109,8 @@ try{
    ['01-cinzas',-1568,-545,-1690,-660],['02-torii',-1732,-812,-1740,-833],['03-bosque',-1480,-1219,-1484,-1244],
    ['04-lago',-1368,-1461,-1223,-1464],['05-templo',-1040,-1662,-1040,-1605],
    ['06-dojo',-1040,-1618,-1039,-1604],['07-geada',-607,-1684,-542,-1700],
-   ['08-pinhal',-72,-2090,0,-1980],['09-vale',200,-1669,290,-1710],['10-espelho',753,-1847,931,-1730],
-   ['11-cidadela',564,-409,564,-245],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
+   ['08-pinhal',-72,-2090,0,-1980],['09-vale',51,-1644,255,-1690],['10-espelho',753,-1847,931,-1730],
+   ['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
    ['14-bairro',145,-37,162,-34]
   ];
   await page.addStyleTag({content:'body > :not(canvas):not(#loading) { visibility:hidden !important } canvas {visibility:visible !important}'}); // clean eye-level comparison frames

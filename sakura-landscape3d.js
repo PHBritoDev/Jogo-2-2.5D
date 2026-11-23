@@ -1,6 +1,6 @@
 // Named scenes with geological silhouettes and small-scale landmarks. Coordinates
 // are local to the same basins used by the player's floor and the streamed tiles.
-import {ROUTE,DETOURS,DOJO,CASTLE,SPRING_LAKE,GLACIER_BRIDGE} from './sakura-route3d.js';
+import {ROUTE,DETOURS,DOJO,CASTLE,SPRING_LAKE,GLACIER_BRIDGE,INLET_BRIDGE} from './sakura-route3d.js';
 import {lantern,arch} from './sakura-masonry3d.js';
 import {seeded} from './sakura-grove3d.js';
 export function dressBasins(T,{feature,ground,lib,root,landmarks,register}){
@@ -23,6 +23,23 @@ export function dressBasins(T,{feature,ground,lib,root,landmarks,register}){
   const o=new T.Mesh(g,mat);o.position.set(x,y+h*.5,z+1.1);root.add(o);landmarks.push({o,reach:200});falls.push(mat);
  }
  cascade(-1684,-846,3.5,7);cascade(SPRING_LAKE.x+25,SPRING_LAKE.z-63,6,12);
+ // Shallow watercourses and paired banks come down from the springs. A low
+ // timber footbridge at the outlet leaves the original lake collision intact.
+ for(const [x,z,len,dx] of [[-1574,-551,50,-.36],[-1684,-845,33,.50],[SPRING_LAKE.x+25,SPRING_LAKE.z-62,24,-.25]]){
+  const base=ground(x,z);feature('Veio de nascente',{x,z,y:base},m=>{
+   const bank=(i,s)=>{const f=i/16,cz=f*len,cx=dx*cz+2.8*Math.sin(f*5.8),off=s*(.62+.28*Math.sin(f*3.14));
+    return [cx+off,ground(x+cx+off,z+cz)-base+.08,cz];};
+   for(let i=0;i<16;i++){const l=bank(i,-1),r=bank(i,1),nl=bank(i+1,-1),nr=bank(i+1,1);
+    m.quad(l,r,nr,nl,i%5?0x59878a:0x789d9c);
+    if(i%3===0){const [bx,by,bz]=i%2?l:r;m.tube([bx,by-.24,bz],[bx+.18,by+.17,bz],.72,.41,0x677575,7);}
+   }
+  },210);
+ }
+ feature('Passarela da nascente',INLET_BRIDGE,m=>{
+  for(let i=0;i<12;i++){const u=i/11-0.5,h=-.07+.34*(1-4*u*u);
+   m.box(u*6.6,h,0,.52,.14,1.6,i%4?0x78625b:0x907569);
+   if(i===2||i===9)for(const side of [-1,1])m.tube([u*6.6,-.3,side*.72],[u*6.6,h+.78,side*.72],.08,.06,0x66504f,6);}
+ },200);
  feature('Falésia estratificada do dojo',DOJO,m=>{
   for(const side of [-1,1])for(let i=0;i<8;i++){
    const x=side*(15+i*3.5);crag(m,x,-53,7+i*1.3,8,13,52+i*1.3+4*Math.sin(i),i);

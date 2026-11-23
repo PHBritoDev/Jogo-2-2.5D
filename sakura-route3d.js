@@ -10,6 +10,7 @@ export const MASTER = {x:DOJO.x+1.8,z:DOJO.z+3.2};
 export const CASTLE = {x:564,z:-254,y:81};
 export const THRONE = {x:CASTLE.x,z:CASTLE.z+60};
 export const SPRING_LAKE = {x:-1260,z:-1450,rx:95,rz:68,y:39};
+export const INLET_BRIDGE = {x:SPRING_LAKE.x+25,z:SPRING_LAKE.z-64,y:SPRING_LAKE.y+.28};
 export const ICE_LAKE = {x:785,z:-1765,rx:211,rz:119,y:60};
 export const COAT_STALL = {x:-321,z:-1870};
 const gate=GATE2.out;
@@ -53,7 +54,12 @@ export const POIS = [
  [28,'ultima-flor','Despedida da Primavera'],[33,'pinhal','Pinhal da Alvorada'],[41,'espelho-glacial','Espelho Glacial'],
  [47,'ponte-vigia','Ponte da Vigia'],[55,'muralhas-neve','Muralhas de Invernália'],[62,'trono-gelo','Trono do Inverno']
 ].map(([i,id,name])=>({id,name,...ROUTE[i],index:i,kind:'village',revealRadius:27}));
-export const SHELTERS = [5,13,22,34,43,56].map((i,k)=>({id:'abrigo-ato3-'+i,name:['Abrigo das Lanternas','Abrigo do Lago','Abrigo do Dojo','Abrigo da Alvorada','Abrigo Glacial','Abrigo da Muralha'][k],x:ROUTE[i].x+3,z:ROUTE[i].z-2}));
+// Pilgrim platforms clear the road and the dojo's suspended span. Their IDs
+// stay stable in map saves even when the orientation of the road changes.
+export const SHELTERS = [
+ [5,'Abrigo das Lanternas',-1751,-828],[13,'Abrigo do Lago',-1397,-1544],[22,'Abrigo do Dojo',-1024,-1608],
+ [34,'Abrigo da Alvorada',-46,-1804],[43,'Abrigo Glacial',983,-1677],[56,'Abrigo da Muralha',619,-374]
+].map(([i,name,x,z])=>({id:'abrigo-ato3-'+i,name,x,z}));
 const cells=new Map(), grid=128;
 export const LENGTHS=[0];
 for(let i=1;i<ROUTE.length;i++) LENGTHS.push(LENGTHS[i-1]+Math.hypot(ROUTE[i].x-ROUTE[i-1].x,ROUTE[i].z-ROUTE[i-1].z));
@@ -95,7 +101,12 @@ export function regionWeight(x,z,p=sampleRoad(x,z)){
 // The old basalt ring ends a few metres behind the cave. Its original boundary
 // must open down this particular outward-facing trail before the ground blend starts.
 export function leavesVolcano(z,p){return !!p && p.kind==='main' && p.i<2.1 && z<gate.z-.4 && p.d<8.8;}
+function inletFloor(x,z){
+ const u=(x-INLET_BRIDGE.x)/3.55;
+ return Math.abs(u)<=1&&Math.abs(z-INLET_BRIDGE.z)<.89?INLET_BRIDGE.y+.34*(1-u*u):null;
+}
 export function lakeDepth(x,z){
+ if(inletFloor(x,z)!==null)return -1;
  const a=ellipse(x,z,SPRING_LAKE);if(a<1)return (1-a)*17;
  for(const [cx,cz,r] of [[825,-1702,23],[726,-1790,15],[900,-1820,12]]){
   const d=Math.hypot((x-cx)*.77,z-cz);if(d<r)return (r-d)*.52;
@@ -140,6 +151,7 @@ export function landscape(x,z,p=sampleRoad(x,z)){
  return y;
 }
 export function routeGround(x,z,p=sampleRoad(x,z)){
+ const deck=inletFloor(x,z);if(deck!==null)return deck;
  if(p&&p.i>45&&p.i<49){const g=ravine(x,z);if(g.t>=0&&g.t<=1&&Math.abs(g.side)<3.55)return GLACIER_BRIDGE.y+g.t*GLACIER_BRIDGE.rise;}
  if(Math.abs(x-DOJO.x)<3&&z>=-1682&&z<=-1624)return p.y;
  return landscape(x,z,p);

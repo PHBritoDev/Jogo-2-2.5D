@@ -13,7 +13,12 @@ export function skyVeil(T){
  void main(){vec3 d=normalize(ray);float up=max(.0,d.y);vec2 p=d.xz/(.19+up)*1.45+vec2(clock*.0015,clock*.0008);
  float v=clouds(p),light=clouds(p+vec2(.34,.18));vec3 zen=mix(vec3(.30,.45,.63),vec3(.12,.21,.33),snow);
  vec3 sky=mix(haze,zen,pow(up,.38));vec3 cloud=mix(vec3(.93,.73,.71),vec3(.53,.61,.70),snow);cloud*=.72+.4*light;
- sky=mix(sky,cloud,smoothstep(.34,.68,v)*(.53+.46*snow));vec3 moon=normalize(vec3(42.,72.,95.));
+ sky=mix(sky,cloud,smoothstep(.34,.68,v)*(.53+.46*snow));
+ vec3 sunward=normalize(vec3(-.54,.19,-.78));
+ float rim=max(dot(d,sunward),0.);
+ sky+=vec3(.32,.13,.072)*pow(rim,9.)*(.32+.64*bloom)*(1.-night)*(1.-smoothstep(.49,.72,v));
+ sky*=1.-snow*.19*smoothstep(.36,.67,v);
+ vec3 moon=normalize(vec3(42.,72.,95.));
  float disc=length(d-moon);sky+=vec3(.33,.15,.15)*exp(-disc*8.)*bloom*night;
  sky=mix(sky,vec3(1.,.84,.80)*(.83+.17*clouds(d.xz*85.)),(1.-smoothstep(.076,.081,disc))*bloom*night*(1.-smoothstep(.52,.7,v)));
  sky*=1.-night*.57;gl_FragColor=vec4(sky,opacity);
@@ -24,13 +29,13 @@ export function skyVeil(T){
   u.clock.value=time;u.snow.value=snow;u.bloom.value=bloom;u.night.value=night;u.opacity.value=w;u.haze.value.copy(haze);}};
 }
 export function underfoot(T){
- const make=(mode)=>{const t=atlas(T,256,(ctx,n)=>{const rand=seeded(447+mode),b=mode===0?'#a8a2a0':mode===1?'#d0bec2':'#d1dbe3';
+ const make=(mode)=>{const t=atlas(T,256,(ctx,n)=>{const rand=seeded(447+mode),b=mode===0?'#a8a2a0':mode===1?'#dfc6c9':'#d1dbe3';
  ctx.fillStyle=b;ctx.fillRect(0,0,n,n);
  for(let i=0;i<170;i++){const x=rand()*n,y=rand()*n,r=6+rand()*28,g=ctx.createRadialGradient(x,y,1,x,y,r);
  const a=mode===0?'64,60,61':mode===1?(i%3?'108,91,97':'93,111,82'):'111,138,157';g.addColorStop(0,'rgba('+a+',.39)');g.addColorStop(1,'rgba('+a+',0)');
  ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r);}
  for(let i=0;i<2600;i++){const x=rand()*n,y=rand()*n,s=rand(),a=rand()*6;ctx.save();ctx.translate(x,y);ctx.rotate(a);
-  if(mode===1&&s>.46){ctx.fillStyle=['#f9c9d2','#e5a6bf','#c28ca6','#ffe1d7','#e5b7be'][i%5];ctx.beginPath();ctx.ellipse(0,0,1+rand()*2.35,.45+rand(),0,0,6.29);ctx.fill();}
+  if(mode===1&&s>.30){ctx.fillStyle=['#f9c9d2','#e5a6bf','#c28ca6','#ffe1d7','#e5b7be'][i%5];ctx.beginPath();ctx.ellipse(0,0,1+rand()*2.35,.45+rand(),0,0,6.29);ctx.fill();}
   else if(mode===2){ctx.fillStyle=s>.56?'rgba(255,255,255,.59)':'rgba(84,116,145,.26)';ctx.fillRect(0,0,.45+rand()*2.9,.65);}
   else{ctx.fillStyle=s>.61?'rgba(232,212,207,.48)':'rgba(64,64,57,.44)';ctx.fillRect(0,0,1+rand()*2.3,.6+rand()*1.4);}
   ctx.restore();}
@@ -43,7 +48,9 @@ export function underfoot(T){
   vec4 base=texture2D(map,vMapUv);vec4 petals=texture2D(petalFloor,vMapUv*.59);vec4 snow=texture2D(snowFloor,vMapUv*.36);
   diffuseColor*=mix(mix(base,petals,vMix.x),snow,vMix.y);
   float shade=sin(vMapUv.x*.91+sin(vMapUv.y*2.3))*cos(vMapUv.y*.84+sin(vMapUv.x*1.6));
-  diffuseColor.rgb*=1.-vMix.x*.17*smoothstep(-.4,.84,shade);diffuseColor.rgb+=vec3(.015,.012,.016)*vMix.z;`);
+  float dapples=smoothstep(.32,.73,shade+.21*sin(vMapUv.x*4.3-vMapUv.y*2.7));
+  diffuseColor.rgb*=1.-vMix.x*.25*smoothstep(-.4,.84,shade);
+  diffuseColor.rgb+=vec3(.064,.030,.041)*dapples*vMix.x;diffuseColor.rgb+=vec3(.015,.012,.016)*vMix.z;`);
  };
  return m;
 }

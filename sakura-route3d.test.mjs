@@ -1,7 +1,7 @@
 import test from 'node:test';
 import {createSakuraWorld} from './sakura-world3d.js';
 import assert from 'node:assert/strict';
-import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
+import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
 import {CITY2,GATE2} from './jornada3d.js';
 import {DISTRICT_SPOTS} from './act2-flow.js';
 import {migrateProgress} from './act1-flow.js';
@@ -10,6 +10,9 @@ import {MAP_BOUNDS,V4_MAP_BOUNDS,migrateLegacyFog,createMapState,isRevealed} fro
 test('a saída canônica do bilhete fica fora da cratera e encontra a passagem do anel de basalto',()=>{
  assert.ok(Math.hypot(FROM_CITY[0].x-CITY2.x,FROM_CITY[0].z-CITY2.z)>22.5);
  assert.equal(FROM_CITY[0].x,DISTRICT_SPOTS.note.x+1.2);
+ for(const w of SHELTERS)assert.ok(sampleRoad(w.x,w.z).d>8,w.id+' atravessa o caminho');
+ assert.ok(routeGround(INLET_BRIDGE.x,INLET_BRIDGE.z)>SPRING_LAKE.y+.45);
+ assert.ok(!roadBlocked(INLET_BRIDGE.x,INLET_BRIDGE.z));
  assert.deepEqual([FROM_CITY.at(-1).x,FROM_CITY.at(-1).z],[GATE2.out.x,GATE2.out.z]);
  assert.ok(leavesVolcano(-275,sampleRoad(-1606,-275)));
  assert.equal(leavesVolcano(GATE2.z,sampleRoad(GATE2.x,GATE2.z)),false);

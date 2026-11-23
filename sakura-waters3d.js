@@ -11,10 +11,23 @@ export function lakes(T){
    float seam(vec2 p){vec2 i=floor(p),f=fract(p);float a=9.,b=9.;for(int j=-1;j<=1;j++){for(int k=-1;k<=1;k++){vec2 n=vec2(float(k),float(j));float d=length(n+hash2(i+n)*.78+.11-f);if(d<a){b=a;a=d;}else b=min(b,d);}}return b-a;}
    void main(){vec2 P=W.xz-origin,q=P/axes;float shore=length(q);vec3 v=normalize(cameraPosition-W);
    float f=pow(1.-abs(v.y),3.);float wave=sin(P.x*.58+P.y*.34+clock*.73)*.52+sin(P.y*1.04-P.x*.16-clock*.57)*.29+sin(P.y*2.52+clock*.41)*.19;
-   vec3 color;if(frozen<.5){float az=atan(q.x,q.y);float crowns=.70+.08*sin(az*9.)+.05*sin(az*21.)+.026*wave;
-   float refl=smoothstep(crowns-.10,crowns+.055,shore);color=mix(vec3(.025,.17,.24),vec3(.23,.49,.63),f*.66+wave*.055+.12);
-   color=mix(color,vec3(.69,.38,.54)*(1.+wave*.2),.65*refl);color+=vec3(.33,.30,.23)*pow(max(0.,wave),14.)*(.35+.65*f);
-   vec2 pet=floor(P*1.6);float seed=hash2(pet).y;vec2 delta=fract((P+vec2(sin(clock*.19+seed),cos(clock*.21+seed))*.035)*1.6)-.5;
+   vec3 color;if(frozen<.5){
+   // Intersect the reflected ray with the actual elliptical bank. Trunks, crowns
+   // and sky stay on that bank as the camera moves, even at grazing angles.
+   vec3 N=normalize(vec3(.035*cos(P.x*.5+P.y*.31+clock*.73)+.019*cos(P.y*.8-clock*.6),1.,.029*sin(P.y*.44-P.x*.28-clock*.57)));
+   vec3 R=reflect(-v,N);vec2 V=R.xz/axes;float A=max(dot(V,V),1e-6),B=dot(q,V);
+   float t=max(0.,(-B+sqrt(max(0.,B*B+A*(1.-dot(q,q)))))/A);
+   vec2 bank=q+V*t;float arc=atan(bank.y,bank.x)*8.276;float h=R.y*t+.65;
+   float crown=9.+2.8*sin(arc*1.3)+2.3*cos(arc*2.)+1.3*cos(arc*4.1);
+   float canopy=(1.-smoothstep(crown-1.,crown+1.8,h))*smoothstep(1.5,5.5,h);
+   float twig=1.-smoothstep(.025,.085,abs(fract(arc+.18*sin(h*.28))-.5));
+   vec3 mirror=mix(vec3(.18,.40,.57),vec3(.45,.60,.73),max(R.y,0.));
+   mirror=mix(mirror,vec3(.063,.069,.095),twig*(1.-smoothstep(5.,8.,h))*.86);
+   mirror=mix(mirror,mix(vec3(.24,.087,.17),vec3(.69,.32,.45),.55+.45*sin(arc*7.2+wave)),canopy*.9);
+   float fresnel=.16+.72*pow(1.-max(v.y,0.),3.4);
+   color=mix(mix(vec3(.009,.069,.113),vec3(.019,.17,.21),smoothstep(.63,1.,shore)),mirror,fresnel);
+   color+=vec3(.22,.18,.14)*pow(max(0.,wave),16.)*(.15+.55*f);
+      vec2 pet=floor(P*1.6);float seed=hash2(pet).y;vec2 delta=fract((P+vec2(sin(clock*.19+seed),cos(clock*.21+seed))*.035)*1.6)-.5;
    color=mix(color,vec3(.93,.65,.73),step(.90,seed)*(1.-smoothstep(.045,.18,length(delta*vec2(.8,1.6)))));}
    else{float d=seam(P*.098+vec2(.12*sin(P.y*.33),.1*sin(P.x*.48)));float s=seam(P*.39);color=mix(vec3(.067,.22,.32),vec3(.50,.67,.74),f*.6+.23+.12*sin(P.y*.12+P.x*.032));
    color+=vec3(.24,.36,.38)*(1.-smoothstep(.006,.053,d)) + vec3(.09,.13,.13)*(1.-smoothstep(.008,.038,s))*smoothstep(.18,.61,sin(P.x*.14));

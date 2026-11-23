@@ -28,6 +28,12 @@ export function hallDetails(T,{root,feature,landmarks}){
   for(const sx of [-1,1])for(let j=0;j<7;j++){const x=256+sx*(110+r()*30),y=j*81;
    const g=c.createRadialGradient(x,y,1,x,y,62);g.addColorStop(0,'rgba(179,219,240,.38)');g.addColorStop(.6,'rgba(109,173,204,.16)');g.addColorStop(1,'rgba(123,186,205,0)');
    c.fillStyle=g;c.fillRect(x-62,y-62,124,124);}
+  // Oblique bands cross the nave from clerestory to opposite aisle.
+  c.save();c.globalCompositeOperation='screen';
+  for(let j=-1;j<8;j++){const y=j*82;const g=c.createLinearGradient(0,y,0,y+28);
+   g.addColorStop(0,'rgba(86,144,189,0)');g.addColorStop(.3,'rgba(123,182,217,.27)');g.addColorStop(1,'rgba(125,180,215,0)');
+   c.save();c.transform(1,-.22,0,1,0,42);c.fillStyle=g;c.fillRect(0,y,n,28);c.restore();}
+  c.restore();
   for(let i=0;i<45;i++){let x=r()*n,y=r()*n,dx=(r()-.5)*8;
    c.lineWidth=.7;c.strokeStyle='rgba(211,233,241,.40)';c.beginPath();c.moveTo(x,y);for(let j=0;j<7;j++){x+=dx+(r()-.5)*6;y+=r()*7;c.lineTo(x,y);}c.stroke();}
  });
@@ -60,6 +66,28 @@ export function hallDetails(T,{root,feature,landmarks}){
   }
   for(let j=0;j<3;j++)arch(m,0,0,-43.3-j*.38,5.3+j*.95,17+j*1.28,'x',.32,0x91a8b9);
  },780);
+ // Six quadripartite vaults are built bay by bay. Snow light catches the
+ // keystones and the fluting above the dark piers, even without screen-space effects.
+ feature('Abóbadas e relicários da nave',CASTLE,m=>{
+  for(let j=0;j<6;j++){
+   const z=-30+j*16;
+   for(const side of [-1,1]){
+    const roof=(u,v)=>[side*(15.05*u),31.06-12.7*u*u-1.95*Math.abs(v)*Math.sin(u*Math.PI),z+v*7.96];
+    for(let a=0;a<5;a++)for(let b=0;b<4;b++){const u=a/5,v=-1+b*.5;m.quad(roof(u,v),roof((a+1)/5,v),roof((a+1)/5,v+.5),roof(u,v+.5),(a+b+j)%4?0x40576d:0x536a7c);}
+    for(const dz of [-.64,.64]){
+     const x=side*14.65;m.tube([x,1.05,z+dz],[x,14.4,z+dz],.40,.32,0x688397,7);
+     m.tube([x,14.35,z+dz],[x,15.2,z+dz],.32,.65,0x93abba,7);}
+    const xx=side*14.85;
+    m.tube([xx,.05,z],[xx,1.15,z],1.94,1.37,0x63798b,8);
+    m.tube([xx,15.1,z],[xx,16.9,z],1.05,1.94,0x809aa9,8);
+    if(j%2===0){const x=side*22.5;
+     m.tube([x,7.05,z+5],[x,8.2,z+5],.66,.23,0x637786,7);
+     m.tube([x,8.2,z+5],[x,8.48,z+5],.26,.58,0xa1b5bd,7);
+     m.tube([x,8.5,z+5],[x+.12,9.16,z+5],.26,.02,0xb3ecfb,6);}
+   }
+   m.tube([0,30.45,z],[0,31.42,z],.88,.53,0xa5bcc7,8);
+  }
+ },177);
  const light=new T.PointLight(0xffc6b3,0,32,2);root.add(light);
  return (P,dojo,hall)=>{
   light.visible=dojo||hall;if(!light.visible)return;

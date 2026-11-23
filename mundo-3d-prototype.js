@@ -334,6 +334,22 @@ const terrainMesh=(()=>{
  window.SevenSinsTerrainReport={vertices:built.positions.length/3+patch.positions.length/3,triangles:built.indices.length/3+patch.indices.length/3,patchTriangles:patch.indices.length/3,extent:[built.ax[0],built.ax[built.ax.length-1]]};
  return mesh;
 })();
+// The old coarse apron reaches Invernália. Its interpolated triangles can
+// rise above the nave and stairs even when the shared floor samples are correct.
+const originalTerrainIndices=terrainMesh.geometry.index;
+let valleyTerrainIndices=null;
+function useJourneyTerrain(active){
+ if(!active){if(terrainMesh.geometry.index!==originalTerrainIndices)terrainMesh.geometry.setIndex(originalTerrainIndices);return;}
+ if(!valleyTerrainIndices){
+  const g=terrainMesh.geometry,verts=g.attributes.position,core=new Uint8Array(verts.count);
+  for(let i=0;i<verts.count;i++){const x=verts.getX(i),z=verts.getZ(i);if(z>-85&&x<200)continue;
+   const path=sampleRoad(x,z);if(path&&regionWeight(x,z,path)>.65)core[i]=1;}
+  const src=originalTerrainIndices.array,kept=[];
+  for(let i=0;i<src.length;i+=3){const a=src[i],b=src[i+1],c=src[i+2];if(!core[a]||!core[b]||!core[c])kept.push(a,b,c);}
+  valleyTerrainIndices=new THREE.BufferAttribute(new src.constructor(kept),1);
+ }
+ if(terrainMesh.geometry.index!==valleyTerrainIndices)terrainMesh.geometry.setIndex(valleyTerrainIndices);
+}
 const pondWater=(()=>{const geo=new THREE.CircleGeometry(FOREST_POND.r*1.34,56);geo.rotateX(-Math.PI/2);
  const material=new THREE.MeshStandardMaterial({color:0x1b3a43,roughness:.06,metalness:.25,transparent:true,opacity:.86,depthWrite:false});
  const uniform={value:0};forestWindUniforms.push(uniform);
@@ -4233,11 +4249,20 @@ function updateJourney(dt,now){
  // MOD 323 — ar da jornada: vista longa (serras, ponte e o vulcão a ~1 km), névoa recuada e plano de corte distante
  const jw=voidMode?0:Math.min(1,Math.max(0,(-112-P.x)/80));journeySkyK=jw;
  if(jw>0&&scene.fog){scene.fog.near+=(Math.max(scene.fog.near,70)-scene.fog.near)*jw;scene.fog.far+=(Math.max(scene.fog.far,640)-scene.fog.far)*jw;}
- {const polar=voidMode?null:sampleRoad(P.x,P.z),wantFar=polar&&polar.i>34&&regionWeight(P.x,P.z,polar)>.2?2350:jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
- journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode||((P.z < -775 || P.x > 318)&&regionWeight(P.x,P.z)>.25),eruption:typeof eruption==='number'?eruption:0});
+ const polar=voidMode?null:sampleRoad(P.x,P.z),travelWeight=polar?regionWeight(P.x,P.z,polar):0;
+ let wantFar=jw>.5?1500:760;
+ if(travelWeight>.25&&polar.i>3){
+  // The pagoda is visible from the lake at 300 m. Only the long winter
+  // vista needs a deeper frustum to include the distant glacial spires.
+  wantFar=polar.i>34?Math.max(760,Math.min(2350,Math.hypot(P.x-CASTLE.x,P.z-CASTLE.z)+175)):760;
+  wantFar=Math.ceil(wantFar/96)*96;
+ }
+ if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}
+ journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode||((P.z < -775 || P.x > 318)&&travelWeight>.25),eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
- if(!sakuraWorld&&!voidMode&&sampleRoad(P.x,P.z)&&regionWeight(P.x,P.z)>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
+ if(!sakuraWorld&&travelWeight>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
  if(sakuraWorld)sakuraWorld.update(dt,now,P,camera,scene.fog,dayNightState.t,voidMode);
+ useJourneyTerrain(!!sakuraWorld?.root.visible);
  if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
  if(voidMode)return;
