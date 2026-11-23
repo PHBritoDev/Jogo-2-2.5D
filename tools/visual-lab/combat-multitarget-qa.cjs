@@ -48,8 +48,8 @@ fs.mkdirSync(dir, { recursive: true });
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
       D.squadPose(primaryId, -5, 12.2, 0, true);
-      D.squadPose(sides[0].id, -5.35, 12, 0, true);
-      D.squadPose(sides[1].id, -4.65, 12, 0, true);
+      D.squadPose(sides[0].id, -6, 12, 0, true);
+      D.squadPose(sides[1].id, -4, 12, 0, true);
       D.squadPose(sides[2].id, -11, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();
@@ -70,6 +70,10 @@ fs.mkdirSync(dir, { recursive: true });
     assert.equal(report.steps.before.sword, 'aurora', 'Lâmina da Aurora precisa estar equipada');
     assert.equal(report.steps.before.focus, report.steps.before.primaryId);
     assert.ok(report.steps.before.actors.every(a => a && Number.isFinite(a.hp)));
+    const initialById = new Map(report.steps.before.actors.map(a => [a.id, a]));
+    assert.ok(Math.abs(initialById.get(report.steps.before.sideIds[0]).x -
+      initialById.get(report.steps.before.sideIds[1]).x) >= 1.9,
+      'os dois secundários precisam estar visualmente separados, não sobrepostos');
     assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 12.2) < .5,
       'ponte de alvo precisa acompanhar o foco reposicionado');
     await page.screenshot({ path: path.join(dir, '01-antes-do-rito.png'), timeout: 120000 });
@@ -117,13 +121,20 @@ fs.mkdirSync(dir, { recursive: true });
       return [id, impactEvents.filter(e => Math.abs(e.position.x - a.x) < .12 &&
         Math.abs(e.position.z - a.z) < .8).length];
     }));
+    report.steps.after.hpDeltaById = Object.fromEntries([...before.keys()].map(id =>
+      [id, before.get(id).hp - after.get(id).hp]));
+    report.steps.after.impactPositionsByTarget = Object.fromEntries(report.steps.before.sideIds.map(id => {
+      const a = before.get(id);
+      return [id, impactEvents.filter(e => Math.abs(e.position.x - a.x) < .12 &&
+        Math.abs(e.position.z - a.z) < .8).map(e => e.position)];
+    }));
     report.steps.after.controlImpacts = impactEvents.filter(e => {
       const a = before.get(report.steps.before.controlId);
       return Math.abs(e.position.x - a.x) < .2 && Math.abs(e.position.z - a.z) < .8;
     }).length;
     for (const id of report.steps.before.sideIds) {
       assert.ok(after.get(id)?.hp < before.get(id).hp, `HP de ${id} precisa cair pela onda real`);
-      assert.ok(report.steps.after.mappedImpacts[id] > 0, `impacto visual de ${id} precisa ter posição própria`);
+      assert.equal(report.steps.after.mappedImpacts[id], 4, `as quatro ondas precisam emitir exatamente um impacto separado em ${id}`);
     }
     assert.equal(after.get(report.steps.before.controlId)?.hp, before.get(report.steps.before.controlId).hp,
       'alvo fora da largura da onda deve permanecer sem dano');
