@@ -1,3 +1,17 @@
+/** Local abyss lighting: stronger actor fill, unchanged black horizon and light count. */
+export function getVorgazhekLighting(radius = 85) {
+ const R = Number.isFinite(radius) && radius > 0 ? radius : 85;
+ return {
+  bg: 0x000000, fog: 0x010102, fogNear: R * .7, fogFar: R * 2.7,
+  // Cool sky fill and a restrained rim keep armor readable without lifting the abyss.
+  hemi: [0xa3abb1, 0x030304, 1.05],
+  sun: [0xc1cad1, .46],
+  // The same single local point light; intensity only, no new light or shadow pass.
+  light: [0xe7e7ec, 8, Math.max(150, R * 2), [0, 11, 0]],
+  exposure: 1.12
+ };
+}
+
 /** VORGAZHEK: midnight water and authored abyssal witnesses. Owns and disposes its resources. */
 export function buildVorgazhekAbyss(T,g,spec,ctx){
  const R=spec.radius,geo=[],mat=[],tex=[],watchers=[];
@@ -155,5 +169,5 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
   }
  });
  ctx.refs.vorgazhekAbyss={watchers:watchers.length,dispose(){geo.forEach(o=>o.dispose());mat.forEach(o=>o.dispose());tex.forEach(o=>o.dispose());}};
- return {bg:0x000000,fog:0x010102,fogNear:R*.7,fogFar:R*2.7,hemi:[0xa3abb1,0x030304,.8],sun:[0xc1cad1,.38],light:[0xe7e7ec,1.2,Math.max(150,R*2),[0,11,0]],exposure:1.12};
+ return getVorgazhekLighting(R);
 }
