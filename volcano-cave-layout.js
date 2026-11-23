@@ -1,23 +1,25 @@
 // Local metres in the existing Act II arena. A deck polygon is used by both the
 // mesh builder and the support query. Campaign rooms stay at datum zero.
-export const caveHeight = z => Math.max(0, Math.min(21, (z - 79) * .23));
+export const caveHeight = z => Math.max(0, Math.min(21, (z - 79) * .23) + Math.max(0, z - 172) * .16);
 export const nodes = {
-  entrance:[0,172], overlook:[-7,154], stair:[-15,137], falls:[0,112], arcade:[9,96], pass:[0,81],
+  entrance:[8,263], choir:[-16,245], aqueduct:[-22,219], lantern:[9,202], vestibule:[0,172], overlook:[-7,154], stair:[-15,137], falls:[0,112], arcade:[9,96], pass:[0,81],
   fork:[-3,68], cells:[0,50], grove:[0,40], ford:[-4,26], roots:[-6,14], lab:[0,0],
-  willow:[-24,54], kiln:[-21,33], arch:[17,60], cinder:[22,42], hollow:[-27,19],
+  charcoal:[-33,41], cistern:[-29,30], willow:[-24,54], kiln:[-21,33], arch:[17,60], cinder:[22,42], hollow:[-27,19],
   door:[-22.4,0], gold:[-31,0], lip:[0,-15], spine:[-3,-29], hall:[0,-46],
-  span:[3,-60], gate:[0,-68], throne:[0,-82], portal:[0,-90]
+  reliquary:[13,-38], gallery:[14,-49], span:[3,-60], gate:[0,-68], throne:[0,-82], portal:[0,-90]
 };
 export const safePathGraph=[
- ['entrance','overlook',4.6],['overlook','stair',4],['stair','falls',4.7],['falls','arcade',5],
+ ['entrance','choir',4.4],['choir','aqueduct',4.2],['aqueduct','lantern',4],['lantern','vestibule',4.5],['vestibule','overlook',4.6],['overlook','stair',4],['stair','falls',4.7],['falls','arcade',5],
  ['arcade','pass',4.3],['pass','fork',4.8],['fork','cells',4.6],['cells','grove',5],['grove','ford',4.8],
  ['ford','roots',4.3],['roots','lab',5],['fork','willow',3.8],['willow','kiln',4],['kiln','ford',4],
  ['cells','arch',4.1],['arch','cinder',3.8],['cinder','grove',4.2],['kiln','hollow',3.7],['hollow','roots',4],
+ ['willow','charcoal',3.2],['charcoal','cistern',3.1],['cistern','hollow',3.2],
+ ['spine','reliquary',3.1],['reliquary','gallery',3.4],['gallery','span',3.2],
  ['lab','door',3],['door','gold',3],['lab','lip',5.4],['lip','spine',4.3],['spine','hall',4.3],
  ['hall','span',4.5],['span','gate',4.1],['gate','throne',5.3],['throne','portal',5.5]
 ];
-const pads={entrance:6,overlook:8,stair:5,falls:8,arcade:6,pass:6,fork:8,cells:10,grove:6,ford:8,roots:7,lab:12,
- willow:6,kiln:7,arch:7,cinder:6,hollow:6,door:3.2,gold:8,lip:8,spine:6,hall:13,span:5,gate:6,throne:17,portal:6};
+const pads={entrance:6,choir:7,aqueduct:6,lantern:7,vestibule:6,overlook:8,stair:5,falls:8,arcade:6,pass:6,fork:8,cells:10,grove:6,ford:8,roots:7,lab:12,
+ charcoal:4,cistern:4,reliquary:4,gallery:4,willow:6,kiln:7,arch:7,cinder:6,hollow:6,door:3.2,gold:8,lip:8,spine:6,hall:13,span:5,gate:6,throne:17,portal:6};
 export const plates=[];
 function plate(poly,key){plates.push({poly,key,minX:Math.min(...poly.map(p=>p[0])),maxX:Math.max(...poly.map(p=>p[0])),minZ:Math.min(...poly.map(p=>p[1])),maxZ:Math.max(...poly.map(p=>p[1]))});}
 for(const [a,b,width] of safePathGraph){
@@ -41,14 +43,22 @@ export function inBasin(x,z){
   const [a,b]=basin[i],[c,d]=basin[j];if((b>z)!==(d>z)&&x<(c-a)*(z-b)/(d-b)+a)inside=!inside;
  }return inside;
 }
-export function caveFloor(x,z){return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
+// Horizontal nosings occupy the middle flight between the two landings.
+export const choirStairs=Array.from({length:18},(_,i)=>{
+ const z=222+i,center=v=>nodes.aqueduct[0]+(v-nodes.aqueduct[1])*(nodes.choir[0]-nodes.aqueduct[0])/(nodes.choir[1]-nodes.aqueduct[1]);
+ return {z,x0:center(z),x1:center(z+1),half:4.12,y:caveHeight(z+1)+.09};
+});
+export function caveFloor(x,z){
+ const step=choirStairs[Math.floor(z)-222];
+ if(step && Math.abs(x-step.x0-(z-step.z)*(step.x1-step.x0))<=step.half)return step.y;
+ return inBasin(x,z)&&!supported(x,z)?-.19:caveHeight(z);}
 export const fixedRocks=[{x:15,z:20,base:-.2,r:2.4,h:3.3}];
 export const solids=[...fixedRocks];
 export const structures=[];
 const bins=new Map(),cell=5;
 export function resetStructures(){structures.length=0;bins.clear();}
 export function addStructure(x,y,z,w,h,d,angle=0){
- if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>185||y>95||y+h<-.25)return;
+ if(x+w+d< -49||x-w-d>48||z+w+d< -107||z-w-d>275||y>95||y+h<-.25)return;
  const cs=Math.cos(angle),sn=Math.sin(angle),radX=(Math.abs(cs)*w+Math.abs(sn)*d)/2+.3,radZ=(Math.abs(sn)*w+Math.abs(cs)*d)/2+.3;
  const o={x,y,z,w:w/2,h,d:d/2,cs,sn};structures.push(o);
  indexBounds(o,x-radX,x+radX,z-radZ,z+radZ);
@@ -88,17 +98,26 @@ export function caveBlocked(x,z,doorOpen){const y=caveFloor(x,z)+.8;return inStr
 export function caveWall(x,y,z){return y>94||inStructure(x,y,z,.12)||solids.some(o=>y>o.base-.2&&y<o.base+o.h&&Math.hypot(x-o.x,z-o.z)<o.r);}
 export const heatPools=[{x:3,z:110.3,r:1.15},{x:-2.9,z:114.2,r:.95},{x:1,z:26,r:1.65},{x:25.5,z:40,r:1.35}];
 export const creek=[[-35,83,1.7],[-20,68,2],[-12,49,2.2],[9,33,1.7],[3,15,2.3],[-16,1,1.6]];
+// The narrow eastern tributary follows the player's descent and rejoins
+// the main flow at the ford. Geometry and contact use these same banks.
+export const tributary=[[4,77,1.1],[5.4,70,1.35],[3.8,65,1.65],[6.8,59,1.28],[7.2,53,1.35],[6.1,47,1.5],[8.4,41,1.23],[7.8,36,1.45],[9,33,1.7]];
+export const channels=[creek,tributary];
+export function bankDistance(x,z){
+ let distance=Infinity;
+ for(const path of channels)for(let i=1;i<path.length;i++){
+  const [ax,az,ar]=path[i-1],[bx,bz,br]=path[i];
+  if(z>az||z<bz)continue;
+  const t=(az-z)/(az-bz);
+  distance=Math.min(distance,Math.abs(x-ax-(bx-ax)*t)-(ar+(br-ar)*t));
+ }
+ return distance;
+}
 export function caveHeat(x,z){
  if(heatPools.some(o=>(x-o.x)**2+(z-o.z)**2<o.r**2))return 1;
- if(z<=83&&z>=1&&!supported(x,z)&&inBasin(x,z)){
-  for(let i=1;i<creek.length;i++){const [ax,az,ar]=creek[i-1],[bx,bz,br]=creek[i];
-   if(z>az||z<bz)continue;const t=(az-z)/(az-bz);
-   return Math.abs(x-ax-(bx-ax)*t)<ar+(br-ar)*t?1:0;
-  }
- }return 0;
+ return z<=83&&z>=1&&!supported(x,z)&&inBasin(x,z)&&bankDistance(x,z)<0?1:0;
 }
 export function nearestRest(x,z){
- for(const name of ['overlook','falls','fork','grove','lab','lip','hall','gate']){
+ for(const name of ['entrance','choir','aqueduct','lantern','vestibule','overlook','falls','fork','grove','lab','lip','hall','gate']){
   const [u,v]=nodes[name];if(Math.abs(x-u)<2&&Math.abs(z-v)<2)return nodes[name];
  }return null;
 }

@@ -71,3 +71,26 @@ Chromium com SwiftShader em CPU compartilhada. O ensaio selecionou o perfil grá
 As pausas incluíram carregamento de recursos e disputa de CPU com a captura. Esses valores caracterizam o executor por software. O desempenho em Android físico e a meta de 40–60 FPS no Galaxy A55 continuam sem medição.
 
 Os 27 registros de cada perfil incluem contadores WebGL, heap, intervalos individuais e número de inimigos ativos. O valor de FPS é 1.000 dividido pelo intervalo mediano em milissegundos. A carga de combate manteve dois atores vivos nas amostras previstas. [Medições por execução](evidencias-vulcao/perfil-webgl.json)
+
+## Revisão da profundidade dos três biomas em 22/11/2026
+
+O Santuário da versão anterior terminava visualmente na primeira arcada. O Bosque deixava ver o fundo entre troncos parecidos. No Abismo, o portal dominava o quadro antes que o jogador percebesse o desnível. As capturas abaixo usam a câmera do jogo com HUD, em três posições correspondentes por região. A casca local do jogo usada nas fotos é a Mod 344. A gravação do CI identifica o commit de cada versão em `sha.txt`. [Antes e depois](evidencias-vulcao/revisao/comparacao.jpg) · [Medições brutas](evidencias-vulcao/revisao/medicoes.json)
+
+| Região | Escala /25 | Ícones /25 | Luz /20 | Materiais /15 | Composição /10 | Leitura móvel /5 | Total |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Santuário das Cataratas de Fogo | 22 | 22 | 16 | 10 | 8 | 4 | 82 |
+| Bosque das Veias Ardentes | 21 | 21 | 16 | 11 | 8 | 4 | 81 |
+| Abismo das Coroas Mortas | 22 | 22 | 16 | 10 | 8 | 4 | 82 |
+
+Avaliação artística do autor da revisão, por comparação com as três imagens fornecidas pelo criador. No Santuário, o coro elevado e as pontes recortam a caldeira atrás do altar. As estátuas enlutadas e os vertedouros dão escala à descida. A rocha tem menos detalhe fino que a referência. No Bosque, seis famílias de troncos colocam veios incandescentes no primeiro plano e costelas de basalto contra a fenda fria ao fundo. A névoa é mais simples que na pintura. No Abismo, contrafortes espinhosos cruzam o vazio em profundidades diferentes, as placas quebradas mostram sua face inferior e as torres afunilam ao fundo. O portal e o HUD ocupam mais espaço no enquadramento da chegada.
+
+A rota principal passou de 278,1 a 401,5 m. As 38 ligações da revisão incluem o coro, o braço da cisterna e o desvio pelo relicário. A locomoção usa os mesmos apoios de ponte e degrau que o teste de física. O primeiro save importado manteve a etapa 12, subetapa 3 e 173 moedas. O botão de TP ADM levou à nova entrada. Cinco quedas levaram ao checkpoint do abismo, as 24 poses de câmera ficaram fora da rocha e o deslocamento variou menos de 3 cm entre simulações a 30, 45 e 60 passos por segundo em primeira e terceira pessoa.
+
+Os lotes de árvores, cristais e tochas são selecionados pela câmera final de renderização, inclusive após giros cinematográficos com o personagem parado. As silhuetas de fundo têm geometria e iluminação calculada nos vértices. O ensaio da arena fez 2.090 sondagens por ciclo. Ao fechar, 53 geometrias e oito texturas retornaram a zero em cada uma das seis repetições. As três tomadas do teste usaram 11, 39 e seis chamadas da arena. [InstancedMesh](https://threejs.org/docs/pages/InstancedMesh.html) · [BufferGeometry](https://threejs.org/docs/pages/BufferGeometry.html) · [WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer.html)
+
+As medidas de tempo foram coletadas em Chromium no Linux com SwiftShader. O perfil isolado sincroniza a GPU via leitura de um pixel em 480 × 270. O perfil de jogo usa 720 × 405 com HUD, gravação e amostras de heap. As medições em Android físico e a confirmação de FPS no Galaxy A55 permanecem pendentes.
+
+
+Na rota direta, a física do jogo em passos de 1/60 s mediu 99,0 → 142,8 s caminhando e 40,95 → 59,25 s correndo. Na campanha gravada, incluindo desvios e encontros com assistência de dano, a base percorreu 313,2 m em 469,9 s e a revisão percorreu 509,8 m em 692,4 s. Ambas abriram o portal de VORGAZHEK com zero exceções JavaScript. A passagem pelo portão às 8 h e às 20 h manteve a cor e o alcance da névoa próprios de cada bioma. [Vídeos e telemetria da campanha](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45059626989)
+
+No ensaio isolado por software, o p95 da revisão foi 402 ms no Santuário, 446 ms no Bosque e 272 ms no Abismo. No Abismo, a mediana subiu de 191 para 229 ms, mesmo com a redução de 102 mil para 71 mil triângulos. A variação entre execuções limita a extrapolação desses tempos para aparelhos.

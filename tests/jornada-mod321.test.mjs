@@ -78,7 +78,10 @@ test('integração no mundo: relevo/limites/água da jornada, recorte da malha a
   assert.ok(src.includes('terrain3D.height=(x,z)=>{if(!inJourney(x,z))return h0(x,z);'));
   assert.ok(src.includes('if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;'));
   assert.ok(/journeyFall\.on&&playerHP>0&&P\.y<JBRIDGE\.y-38\)\{playerHP=0;playerRespawnAt=/.test(src), 'queda no abismo mata e volta ao checkpoint');
-  assert.ok(src.includes("get('adm')==='1'") && src.includes("'TP Cidade 1 — Eldória'") && /tpCity\(n\)\{return journeyTeleport\(n===1\|\|n==='eldoria'\?'eldoria':'cinzaria'\)/.test(src), 'painel ADM com TP (Mod 322 trocou o 2º botão pelo início do Vale; Cinzária segue pelo debug)');
+  const panel = fs.readFileSync(new URL('../adm-panel3d.js', import.meta.url), 'utf8');
+  assert.ok(src.includes("get('adm')==='1'") && src.includes('onTeleport:key=>journeyTeleport(key)'), 'painel ADM ligado ao teleporte da jornada');
+  for (const city of ['eldoria', 'vale', 'cinzaria']) assert.ok(panel.includes("onTeleport('" + city + "')"), city);
+  assert.ok(/tpCity\(n\)\{return journeyTeleport\(n===1\|\|n==='eldoria'\?'eldoria':'cinzaria'\)/.test(src), 'atalho de debug para as duas cidades');
   assert.ok(/function journeyTeleport\(key\)\{[\s\S]{0,400}journeyWorld\.prefetch\(S\.x,S\.z\)/.test(src), 'carrega o terreno antes de posicionar');
   assert.ok(!/cityLayout\(\)|DISTRICT_CANAL|inAlley/.test(src), 'cidade antiga removida do mundo');
 });

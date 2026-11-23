@@ -8,7 +8,7 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  #adm-panel button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
  #adm-panel button:focus-visible{outline:2px solid #ffd08d;outline-offset:2px}
  #adm-toggle{pointer-events:auto;min-height:39px;padding:7px 12px;border:1px solid #dab16e;border-radius:12px;background:linear-gradient(145deg,#342116,#140f16);color:#ffe5ad!important;font-weight:800!important;box-shadow:0 4px 20px #0009}
- #adm-content{pointer-events:auto;display:flex;flex-direction:column;width:min(350px,calc(100vw - 20px));max-height:min(70dvh,520px);overflow:hidden;border:1px solid #a97b52;border-radius:14px;background:linear-gradient(160deg,#20151e,#100f18 70%);box-shadow:0 14px 48px #000b;color:#f7eaf2}
+ #adm-content{box-sizing:border-box;pointer-events:auto;display:flex;flex-direction:column;width:min(350px,calc(100vw - 20px));max-height:min(70dvh,520px);overflow:hidden;border:1px solid #a97b52;border-radius:14px;background:linear-gradient(160deg,#20151e,#100f18 70%);box-shadow:0 14px 48px #000b;color:#f7eaf2}
  #adm-content[hidden]{display:none!important}
  .adm-heading{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;gap:10px}
  .adm-heading strong{font-size:15px;color:#ffda99;letter-spacing:.02em}
@@ -28,7 +28,7 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  .adm-status{border-top:1px solid #493541;padding:9px 12px 11px;color:#f0d3bd;min-height:36px;font-size:11px;line-height:1.4}
  #adm-panel [data-adm-hidden="true"]{display:none}
  @media(max-width:680px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px);right:7px}#adm-content{width:min(390px,calc(100vw - 14px));max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px)}.adm-action{min-height:43px}}
- @media(max-height:510px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px)}#adm-content{width:min(390px,calc(100vw - 20px));max-height:calc(100dvh - env(safe-area-inset-top) - 105px)}.adm-scroll{padding-bottom:8px}}
+ @media(max-height:510px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px)}#adm-content{width:min(390px,calc(100vw - 20px));max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 144px)}.adm-scroll{padding-bottom:8px}}
  @media(max-width:355px){.adm-grid{grid-template-columns:1fr}.adm-action.wide{grid-column:auto}.adm-heading strong{font-size:13px}}
  `;document.head.append(style);
  const panel=document.createElement('div');panel.id='adm-panel';panel.setAttribute('aria-label','Ferramentas ADM de teste');
