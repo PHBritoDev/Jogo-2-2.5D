@@ -20,7 +20,7 @@ for(const fps of [30,60,120])for(const mode of ['exposto','abrigo','dash','guard
 });
 test('interrupção em cada fase libera câmera e devolve a mesma arma uma vez',()=>{
  const arena=measureRefuge(30,(x,z)=>Math.hypot(x,z)<=30);
- for(const phase of ['announce','throw','charge','escape','detonate','aftermath','recover']){
+ for(const phase of ['announce','bladeCombo','throw','charge','escape','collapse','detonate','aftermath','recover']){
  let loose=false,focus=false;
  const u=createGreedUltimate({arena,speed:6,damage(){},camera:{focus(){focus=true},release(){focus=false}},
  weapon:{release(){assert.equal(loose,false);loose=true},restore(){assert.equal(loose,true);loose=false}}});
@@ -42,10 +42,10 @@ test('o diretor aguarda a recuperação, interrompe no teleporte e só rearma em
 test('a janela começa ao devolver a câmera e cobre a caminhada desde o extremo oposto',()=>{
  const r=30,a=measureRefuge(r,(x,z)=>Math.hypot(x,z)<=r);let releases=0;
  const u=createGreedUltimate({arena:a,speed:2.8,damage(){throw Error('atingiu refúgio')},camera:{focus(){},release(){releases++}},weapon:{release(){},restore(){}}});
- const hero={x:0,z:-29.9};u.start({phase:3,grounded:true});u.update(4.92,hero);
+ const hero={x:0,z:-29.9};u.start({phase:3,grounded:true});while(u.getState().phase!=='escape')u.update(1/60,hero);
  assert.equal(u.getState().phase,'escape');assert.equal(releases,1);
  const window=u.getState().escape;assert.ok(window>(a.edge-hero.z)/2.8);
- for(let t=0;t<window+5;t+=1/60){if(hero.z<a.edge+1)hero.z+=2.8/60;u.update(1/60,hero);}
+ for(let t=0;t<window+6;t+=1/60){if(hero.z<a.edge+1)hero.z+=2.8/60;u.update(1/60,hero);}
  assert.equal(releases,1);assert.equal(u.getState().phase,'idle');
 });
 
@@ -57,5 +57,37 @@ test('travessia rápida entre dois pontos exteriores cruza a frente em movimento
  while(ritual.getState().phase!=='detonate')ritual.update(.01,hero);
  ritual.update(.12,hero);
  hero.x=12;ritual.update(.1,hero);
+ assert.equal(hits.length,1);
+});
+for(const [x,z] of [[0,0],[28,0],[-28,0],[0,28],[0,-28],[14,-8],[-11,16]]){
+ test('máscara e frente congeladas no disparo em '+[x,z],()=>{
+  const arena=measureRefuge(30,(x,z)=>Math.hypot(x,z)<=30,192,{x,z});
+  assert.ok(Math.abs(arena.fraction-.8)<.03);
+  const hero={x,z};let count=0;
+  const r=createGreedUltimate({arena,speed:2.8,camera:{focus(){},release(){}},weapon:{release(){},restore(){}},damage(){count++}});
+  for(let i=0;i<5;i++){
+   r.start({phase:3,grounded:true});while(r.getState().phase!=='detonate')r.update(.01,hero);
+   assert.equal(count,i+1,'o primeiro contato ocorre na origem real');
+   r.update(6,hero);assert.equal(r.getState().phase,'idle');
+  }
+  const safe={x:arena.normal.x*25,z:arena.normal.z*25};
+  assert.ok(arena.safe(safe.x,safe.z));assert.equal(arena.escapeDistance(safe.x,safe.z),0);
+  r.start({phase:3,grounded:true});r.update(50,safe);assert.equal(count,5);
+ });
+}
+
+test('impacto deslocado percorre oito metros antes de atingir o herói',()=>{
+ const arena=measureRefuge(30,(x,z)=>Math.hypot(x,z)<=30,192,{x:17,z:4});
+ const hero={x:9,z:4};
+ const hits=[];
+ const ritual=createGreedUltimate({arena,speed:2.8,camera:{focus(){},release(){}},
+  weapon:{release(){},restore(){}},damage:hit=>hits.push(hit)});
+ ritual.start({phase:3,grounded:true});
+ while(ritual.getState().phase!=='detonate')ritual.update(.005,hero);
+ while(ritual.getState().front<7.7)ritual.update(.005,hero);
+ assert.equal(hits.length,0);
+ while(ritual.getState().front<8.2)ritual.update(.005,hero);
+ assert.equal(hits.length,1);
+ ritual.update(10,hero);
  assert.equal(hits.length,1);
 });

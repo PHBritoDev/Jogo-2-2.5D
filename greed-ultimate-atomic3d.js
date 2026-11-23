@@ -1,36 +1,53 @@
-// Arena coordinates are local to the dimension. The refuge is a connected cap
-// of the combat disk, cut at the measured 80th percentile of walkable area.
-export function measureRefuge(radius, walkable, resolution = 192) {
-  const rows = [];
-  let count = 0;
-  const step = 2 * radius / resolution;
-  for (let j = 0; j < resolution; j++) {
-    let n = 0;
-    const z = -radius + (j + .5) * step;
-    for (let i = 0; i < resolution; i++)
-      if (walkable(-radius + (i + .5) * step, z)) n++;
-    rows.push(n);
-    count += n;
+// All coordinates here are relative to the arena, including the frozen point
+// directly beneath the blade at release. The refuge faces away from that point.
+export function measureRefuge(radius, walkable, resolution = 192, origin = {x:0,z:0}) {
+  const step=2*radius/resolution, n=resolution, cells=n*n;
+  const length=Math.hypot(origin.x,origin.z);
+  const normal=length>.05?{x:-origin.x/length,z:-origin.z/length}:{x:0,z:1};
+  const projection=(x,z)=>x*normal.x+z*normal.z;
+  const distances=new Int16Array(cells).fill(-1), queue=new Int32Array(cells), cuts=[];
+  const coord=i=>(i+.5)*step-radius;
+  for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+    const x=coord(i),z=coord(j);
+    if(walkable(x,z)){cuts.push(projection(x,z));distances[j*n+i]=-2;}
   }
-  if (!count) throw Error('Arena sem piso');
-  let danger = 0, j = 0;
-  while (j < rows.length && Math.abs(danger + rows[j] - count*.8) <= Math.abs(danger-count*.8))
-    danger += rows[j++];
-  const edge = -radius + j * step;
-  return {edge, radius, fraction:danger/count, walkable,
-    safe:(x,z)=>walkable(x,z) && z>=edge};
+  if(!cuts.length)throw Error('Arena sem piso');
+  cuts.sort((a,b)=>a-b);
+  const edge=cuts[Math.floor(cuts.length*.8)],safe=(x,z)=>walkable(x,z)&&projection(x,z)>=edge;
+  let head=0,tail=0;
+  for(let id=0;id<cells;id++){
+    if(distances[id]===-2 && projection(coord(id%n),coord(Math.floor(id/n)))>=edge+.6){
+      distances[id]=0;queue[tail++]=id;
+    }
+  }
+  function visit(next,current){
+    if(distances[next]!==-2)return;
+    distances[next]=distances[current]+1;queue[tail++]=next;
+  }
+  while(head<tail){
+    const id=queue[head++],i=id%n;
+    if(i>0)visit(id-1,id);if(i<n-1)visit(id+1,id);
+    if(id>=n)visit(id-n,id);if(id<cells-n)visit(id+n,id);
+  }
+  const index=v=>Math.max(0,Math.min(n-1,Math.floor((v+radius)/step)));
+  function escapeDistance(x,z){
+    if(safe(x,z))return 0;
+    const d=distances[index(z)*n+index(x)];
+    return d>=0?(d+2)*step:2*radius;
+  }
+  return {origin:{...origin},normal,edge,radius,walkable,safe,escapeDistance,
+    reach:radius+length,fraction:cuts.filter(v=>v<edge).length/cuts.length};
 }
-
 export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=()=>{}}) {
   if (!(speed>0 && Number.isFinite(speed))) throw Error("Velocidade inválida");
   let escape = (arena.radius + arena.edge + 1) / speed + 1.1;
-  const phases = [['announce',1.15],['throw',1.12],['charge',2.65],['escape',escape],
-    ['detonate',1.2],['aftermath',1.65],['recover',.65]];
+  const phases = [['announce',1.35],['bladeCombo',2.1],['throw',1.12],['charge',2.65],['escape',escape],['collapse',.48],
+    ['detonate',1.45],['aftermath',2.15],['recover',.95]];
   let previous=null, ownsCamera=false;
   function releaseCamera(){if(ownsCamera){ownsCamera=false;camera.release();}}
   let index=-1, time=0, cast=0, consumed=false, disposed=false, detached=false;
   const state=()=>({phase:phases[index]?.[0] || 'idle', progress:index<0?0:time/phases[index][1], cast,
-    front:index===4?arena.radius*time/phases[4][1]:0, escape});
+    front:phases[index]?.[0]==='detonate'?arena.reach*time/phases[index][1]:0, escape});
   function end(){
     if(index<0)return;
     if(detached) weapon.restore();
@@ -53,7 +70,8 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
         if(phase==='throw' && !detached && time>=.42){weapon.release();detached=true;}
         if(phase==='detonate' && !consumed && hero){
           const from=point(1-(dt+slice)/elapsed), to=point(1-dt/elapsed);
-          const rate=arena.radius/length;
+          from.x-=arena.origin.x;from.z-=arena.origin.z;to.x-=arena.origin.x;to.z-=arena.origin.z;
+          const rate=arena.reach/length;
           // Solve |from + u * delta|² = (initialRadius + u * growth)².
           // A fast dash can intersect the front twice between two samples.
           const dx=to.x-from.x, dz=to.z-from.z, r=before*rate, growth=slice*rate;
@@ -71,7 +89,7 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
           }
           for(const u of roots.sort((left,right)=>left-right)){
             if(consumed || u<0 || u>1)continue;
-            const x=from.x+dx*u,z=from.z+dz*u;
+            const x=arena.origin.x+from.x+dx*u,z=arena.origin.z+from.z+dz*u;
             if(arena.walkable(x,z) && !arena.safe(x,z)){
               consumed=true;if(!hero.evading)damage({token:'usura-'+cast,blocked:!!hero.blocking});
             }
@@ -80,12 +98,10 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
         if(time>=length-1e-9){
           if(index===phases.length-1){end();break;}
           index++;time=0;
-          if(index===3){
-            const z=arena.edge+.8;
-            const span=Math.sqrt(Math.max(0,arena.radius**2-z*z))-.3;
-            const distance=hero ? Math.hypot(Math.max(0,Math.abs(hero.x)-span),Math.max(0,z-hero.z)) : arena.radius+z;
+          if(phases[index][0]==='escape'){
+            const distance=hero?arena.escapeDistance(hero.x,hero.z):2*arena.radius;
             escape=distance/speed+2;
-            phases[3][1]=escape;releaseCamera();
+            phases[index][1]=escape;releaseCamera();
           }
           beat(phases[index][0]);
         }
