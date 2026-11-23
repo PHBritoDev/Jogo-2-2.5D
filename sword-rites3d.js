@@ -140,7 +140,7 @@ export class SwordRites {
        a.bladeSideHits.add(other.id);
        // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
        this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
-       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
+       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
       }
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
@@ -178,7 +178,7 @@ export class SwordRites {
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),radius=o.radius||.5;
     const dx=o.x-e.x,dz=o.z-e.z,radial=Math.hypot(dx,dz)||1;
     const contact=e.kind==='sector'?{x:o.x-dx/radial*radius,y:o.y,z:o.z-dz/radial*radius}:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius};
-    this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:contact,hitstop:0,shake:0});}}}
+    this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',secondary:true,energy:e,p:contact,hitstop:0,shake:0});}}}
    if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
@@ -199,7 +199,7 @@ export class SwordRites {
     if(ctx.others?.length)for(const o of ctx.others){
      if(!o?.alive||o.id==null||o.id===target?.id||w.hits.has(o.id)||!auroraWaveTouches(w,o)||segmentBlocked(w.origin,o,this.api.blocked))continue;
      w.hits.add(o.id);this.api.hit(Math.round(w.damage*.8),o.id,'energy-side',{target:o,wave:w});
-     this.api.event('impact',{target:o,sword:'aurora',final:false,by:'energy',energy:w,p:auroraWaveImpactPoint(w,o),hitstop:0,shake:0});
+     this.api.event('impact',{target:o,sword:'aurora',final:false,by:'energy',secondary:true,energy:w,p:auroraWaveImpactPoint(w,o),hitstop:0,shake:0});
     }
    }
    if(gone||w.travel>=w.range){this.api.event('waveEnd',w);this.waves.splice(i,1);}

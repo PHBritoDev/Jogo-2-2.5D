@@ -4,8 +4,21 @@ import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { SwordRites } from '../sword-rites3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
+import { swordImpactCue } from '../sword-rites-vfx3d.js';
 
 const worldSource = await readFile(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+
+test('impacto secundário do Eclipse tem assinatura VFX mais legível sem alterar o primário', () => {
+  assert.deepEqual(swordImpactCue({ secondary: true }), { burst: 24, scale: .82, life: .28, secondScale: .48, secondLife: .22 });
+  assert.deepEqual(swordImpactCue({ final: false }), { burst: 15, scale: .52, life: .19 });
+  assert.deepEqual(swordImpactCue({ final: true }), { burst: 32, scale: .9, life: .19 });
+});
+
+test('auditoria WebGL traduz o foco da esquadra e identifica impactos secundários', () => {
+  assert.ok(worldSource.includes('const rawTargetId=e.target?.id??null;'));
+  assert.ok(worldSource.includes('rawTargetId===siegeEpoch?squadFocus.id:rawTargetId'));
+  assert.ok(worldSource.includes('secondary:!!e.secondary'));
+});
 
 test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX do adaptador', () => {
   const start = worldSource.indexOf('function protaSideHit(');
@@ -66,6 +79,7 @@ for (const fps of [20, 30, 60, 120]) {
     assert.equal(impacts.length, 1, 'contato lateral precisa emitir impacto visual uma única vez');
     assert.equal(impacts[0].data.target.id, 'side');
     assert.equal(impacts[0].data.by, 'energy');
+    assert.equal(impacts[0].data.secondary, true, 'impacto lateral precisa ser marcado para o VFX');
     assert.equal(impacts[0].data.hitstop, 0, 'contatos laterais não acumulam hitstop');
   });
 }
@@ -97,6 +111,7 @@ for (const fps of [20, 30, 60, 120]) {
     assert.ok(hits.every(h => h.amount > 0 && h.kind === 'energy-side'));
     assert.deepEqual(impacts.map(i => i.target.id).sort(), ['left', 'right']);
     assert.ok(impacts.every(i => i.by === 'energy' && i.hitstop === 0 && i.shake === 0));
+    assert.ok(impacts.every(i => i.secondary === true));
     rites.update(1 / fps, { from: { x: 0, y: 0, z: 0 }, target: null, others });
     assert.equal(hits.length, 2, 'nenhum alvo pode sofrer dano duplicado');
     assert.equal(impacts.length, 2, 'nenhum impacto pode ser duplicado');
@@ -145,9 +160,9 @@ function auroraWaveScenario({ fps = 60, wall = false } = {}) {
   const hits = [], impacts = [];
   const targets = [
     { id: 'primary', x: 0, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
-    { id: 'left', x: -.25, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
-    { id: 'right', x: .25, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
-    { id: 'control', x: 6, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
+    { id: 'left', x: -1.3, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
+    { id: 'right', x: 1.3, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
+    { id: 'control', x: -5, y: 1.1, z: 3, radius: .45, height: 1.8, alive: true },
   ];
   const from = { x: 0, y: 0, z: 0 };
   const rites = new SwordRites({
@@ -170,6 +185,9 @@ for (const fps of [20, 30, 60, 120]) {
     assert.equal(result.cast.ok, true, 'o rito aurora precisa iniciar');
     const hp = new Map(result.hp);
     assert.ok(hp.get('primary') < 1000);
+    assert.equal(result.impacts.filter(e => e.target?.id === 'primary').length, 4);
+    assert.ok(result.impacts.filter(e => e.target?.id === 'primary').every(e => e.secondary !== true));
+    assert.ok(Math.abs(result.impacts.find(e => e.target?.id === 'left').target.x - result.impacts.find(e => e.target?.id === 'right').target.x) >= 2.5);
     for (const id of ['left', 'right']) {
       assert.ok(hp.get(id) < 1000, `${id} precisa receber dano real da onda`);
       const hits = result.hits.filter(h => h.id === id);
@@ -180,6 +198,7 @@ for (const fps of [20, 30, 60, 120]) {
       assert.equal(new Set(impacts.map(e => e.energy?.serial)).size, 4,
         'um mesmo alvo não pode receber dano duplicado pela mesma onda');
       assert.ok(impacts.every(e => e.by === 'energy' && e.hitstop === 0 && e.shake === 0));
+      assert.ok(impacts.every(e => e.secondary === true));
       const target = result.impacts.find(e => e.target?.id === id).target;
       for (const impact of impacts) {
         assert.ok(Math.abs(impact.p.x - target.x) < .001);
@@ -188,6 +207,7 @@ for (const fps of [20, 30, 60, 120]) {
       }
     }
     assert.equal(hp.get('control'), 1000, 'alvo fora da largura da onda não pode receber dano');
+    assert.equal(result.impacts.filter(e => e.target?.id === 'control').length, 0);
   });
 }
 

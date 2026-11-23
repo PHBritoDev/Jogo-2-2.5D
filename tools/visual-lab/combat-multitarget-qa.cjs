@@ -48,9 +48,9 @@ fs.mkdirSync(dir, { recursive: true });
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
       D.squadPose(primaryId, -5, 13.7, 0, true);
-      D.squadPose(sides[0].id, -5.15, 12, 0, true);
-      D.squadPose(sides[1].id, -3.75, 12, 0, true);
-      D.squadPose(sides[2].id, -7.8, 12, 0, true);
+      D.squadPose(sides[0].id, -5.8, 12, 0, true);
+      D.squadPose(sides[1].id, -3.2, 12, 0, true);
+      D.squadPose(sides[2].id, -8.8, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();
       if (synced.focus !== primaryId) throw new Error('Foco do combate mudou durante a preparação.');
@@ -72,7 +72,7 @@ fs.mkdirSync(dir, { recursive: true });
     assert.ok(report.steps.before.actors.every(a => a && Number.isFinite(a.hp)));
     const initialById = new Map(report.steps.before.actors.map(a => [a.id, a]));
     assert.ok(Math.abs(initialById.get(report.steps.before.sideIds[0]).x -
-      initialById.get(report.steps.before.sideIds[1]).x)  >= 1.35,
+      initialById.get(report.steps.before.sideIds[1]).x)  >= 2.55,
       'os dois secundários precisam ficar visualmente separados e dentro da faixa comum das quatro ondas');
     assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 13.7) < .5,
       'ponte de alvo precisa acompanhar o foco reposicionado');
@@ -87,27 +87,43 @@ fs.mkdirSync(dir, { recursive: true });
     await page.evaluate(() => { SevenSinsDebug3D.combatStep(.25, { fps: 30, draw: true }); });
     await page.screenshot({ path: path.join(dir, '02-conjuracao.png'), timeout: 120000 });
 
+    report.steps.firstImpact = await page.evaluate(() => {
+      const D = window.SevenSinsDebug3D;
+      D.combatStep(.40, { fps: 30, draw: true });
+      const r = D.riteState();
+      return { waves: r.waves, projectiles: r.projectiles, events: r.events, vfx: r.vfx };
+    });
+    const firstSide = report.steps.firstImpact.events.filter(e => e.type === 'impact' && e.secondary);
+    assert.equal(firstSide.length, 2, 'primeira onda precisa gerar dois impactos secundários');
+    assert.deepEqual(firstSide.map(e => e.targetId).sort(), [...report.steps.before.sideIds].sort());
+    assert.ok(report.steps.firstImpact.vfx.cuts >= 5, 'os dois impactos laterais precisam manter cortes visíveis no frame de contato');
+    await page.screenshot({ path: path.join(dir, '03-impactos-primeira-onda.png'), timeout: 120000 });
+
     report.steps.mid = await page.evaluate(() => {
       const D = window.SevenSinsDebug3D;
-      D.combatStep(.75, { fps: 30, draw: true });
+      D.combatStep(.40, { fps: 30, draw: true });
       const r = D.riteState();
       return { waves: r.waves, projectiles: r.projectiles, events: r.events };
     });
     assert.ok(report.steps.mid.projectiles.length > 0, 'ondas precisam existir em voo');
     assert.ok(report.steps.mid.projectiles.some(w => w.direction.z < -.9), 'ondas devem viajar à frente do protagonista');
-    await page.screenshot({ path: path.join(dir, '03-primeiro-impacto.png'), timeout: 120000 });
+    assert.equal(report.steps.mid.events.filter(e => e.type === 'impact' && e.secondary).length, 4,
+      'a segunda onda precisa repetir os dois impactos individuais');
+    await page.screenshot({ path: path.join(dir, '04-impactos-segunda-onda.png'), timeout: 120000 });
 
     report.steps.late = await page.evaluate(() => {
       const D = window.SevenSinsDebug3D;
-      D.combatStep(.8, { fps: 30, draw: true });
+      D.combatStep(.90, { fps: 30, draw: true });
       const r = D.riteState();
       return { waves: r.waves, projectiles: r.projectiles, events: r.events };
     });
-    await page.screenshot({ path: path.join(dir, '04-ondas-multialvo.png'), timeout: 120000 });
+    assert.equal(report.steps.late.events.filter(e => e.type === 'impact' && e.secondary).length, 8,
+      'as quatro ondas precisam atingir os dois secundários');
+    await page.screenshot({ path: path.join(dir, '05-impactos-ultimas-ondas.png'), timeout: 120000 });
 
     report.steps.after = await page.evaluate(() => {
       const D = window.SevenSinsDebug3D;
-      D.combatStep(.75, { fps: 30, draw: true });
+      D.combatStep(.65, { fps: 30, draw: true });
       const s = D.squadState();
       const r = D.riteState();
       return { actors: s.snap.actors, events: r.events, projectiles: r.projectiles,
@@ -117,7 +133,8 @@ fs.mkdirSync(dir, { recursive: true });
     const after = new Map(report.steps.after.actors.map(a => [a.id, a]));
     const trackedIds = [report.steps.before.primaryId, ...report.steps.before.sideIds];
     const impactEvents = report.steps.after.events.filter(e => e.type === 'impact' && e.position);
-    report.steps.after.impactEventsByTargetId = Object.fromEntries(trackedIds.map(id => [id, impactEvents.filter(e => e.targetId === id).map(e => ({ waveSerial: e.waveSerial, at: e.at, by: e.by, position: e.position }))]));
+    report.steps.after.impactEventsByTargetId = Object.fromEntries(trackedIds.map(id => [id, impactEvents.filter(e => e.targetId === id).map(e => ({ waveSerial: e.waveSerial, at: e.at, by: e.by, secondary: e.secondary, position: e.position }))]));
+    report.steps.after.secondaryImpactsById = Object.fromEntries(trackedIds.map(id => [id, impactEvents.filter(e => e.targetId === id && e.secondary).length]));
     const belongsTo = (e, a) => Math.abs(e.position.x - a.x) < .12 &&
       Math.abs(e.position.z - a.z) < .8;
     report.steps.after.mappedImpactsById = Object.fromEntries(trackedIds.map(id => {
@@ -149,6 +166,9 @@ fs.mkdirSync(dir, { recursive: true });
       assert.equal(new Set(direct.map(e => e.waveSerial)).size, 4,
         `cada evento de ${id} precisa pertencer a uma onda distinta`);
       assert.ok(direct.every(e => e.by === 'energy'), `impactos de ${id} precisam vir da energia real`);
+      assert.ok(direct.every(e => e.secondary === (id !== report.steps.before.primaryId)),
+        `marca secundária de ${id} precisa corresponder ao papel no combate`);
+      assert.equal(report.steps.after.secondaryImpactsById[id], id === report.steps.before.primaryId ? 0 : 4);
     }
     assert.equal(after.get(report.steps.before.controlId)?.hp, before.get(report.steps.before.controlId).hp,
       'alvo fora da largura da onda deve permanecer sem dano');
@@ -156,8 +176,9 @@ fs.mkdirSync(dir, { recursive: true });
     assert.equal(impactEvents.filter(e => e.targetId === report.steps.before.controlId).length, 0,
       'controle fora da onda não pode receber evento de impacto por ID');
     assert.equal(report.steps.after.projectiles.length, 0, 'as quatro ondas precisam dissipar antes do fim do QA');
+    assert.equal(report.steps.after.active, null, 'o rito precisa liberar a ação ao terminar');
     assert.deepEqual(report.errors, [], 'sem exceções WebGL/JS ou respostas HTTP falhas');
-    await page.screenshot({ path: path.join(dir, '05-dissipacao.png'), timeout: 120000 });
+    await page.screenshot({ path: path.join(dir, '06-dissipacao.png), timeout: 120000 });
     await page.evaluate(() => { SevenSinsDebug3D.fly(null); });
     report.ok = true;
   } finally {
