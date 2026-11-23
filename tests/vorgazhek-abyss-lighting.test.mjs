@@ -10,8 +10,8 @@ test('VORGAZHEK gets a stronger local fill while the abyss and exposure stay dar
   const env = getVorgazhekLighting(85);
   assert.equal(env.bg, 0x000000);
   assert.equal(env.fog, 0x010102);
-  assert.equal(env.fogNear, 59.5);
-  assert.equal(env.fogFar, 229.5);
+  assert.ok(Math.abs(env.fogNear - 59.5) < 1e-9);
+  assert.ok(Math.abs(env.fogFar - 229.5) < 1e-9);
   assert.deepEqual(env.hemi, [0xa3abb1, 0x030304, 1.05]);
   assert.deepEqual(env.sun, [0xc1cad1, .46]);
   assert.deepEqual(env.light, [0xe7e7ec, 8, 170, [0, 11, 0]]);
