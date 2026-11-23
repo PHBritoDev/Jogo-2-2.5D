@@ -1,3 +1,4 @@
+import {createUsuraScore} from './greed-ultimate-audio3d.js';
 /**
  * MOD 186 — Áudio procedural do mundo 3D (Web Audio, sem arquivos novos).
  * Ambiente (vento, folhas, grilos/pássaros, água, portal) e efeitos (passos por superfície,
@@ -9,7 +10,7 @@ const STORE_KEY = 'seven-sins-3d-audio';
 
 export function createWorldAudio() {
   let ctx = null, master = null, ambBus = null, sfxBus = null, musicBus = null, music = null, noiseBuf = null, ready = false;
-  let cinematicGain=1;
+  let cinematicGain=1,usuraScore=null;
   let pausedByGame=false;
   const settings = { ambient: .7, sfx: .8, music: .55, muted: false };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (_) {}
@@ -169,6 +170,7 @@ export function createWorldAudio() {
 
   return {
     unlock,
+    usura(phase){if(ready){usuraScore??=createUsuraScore(ctx,sfxBus);usuraScore.beat(phase);}},
     setCinematicGain(value){cinematicGain=Math.max(0,Math.min(1,value));applyVolumes();},
     get settings() { return { ...settings }; },
     get state() { return ctx ? ctx.state : 'locked'; },

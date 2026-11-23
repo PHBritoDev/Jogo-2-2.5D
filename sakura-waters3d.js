@@ -15,7 +15,7 @@ export function lakes(T){
    float refl=smoothstep(crowns-.10,crowns+.055,shore);color=mix(vec3(.025,.17,.24),vec3(.23,.49,.63),f*.66+wave*.055+.12);
    color=mix(color,vec3(.69,.38,.54)*(1.+wave*.2),.65*refl);color+=vec3(.33,.30,.23)*pow(max(0.,wave),14.)*(.35+.65*f);
    vec2 pet=floor(P*1.6);float seed=hash2(pet).y;vec2 delta=fract((P+vec2(sin(clock*.19+seed),cos(clock*.21+seed))*.035)*1.6)-.5;
-   color=mix(color,vec3(.93,.65,.73),step(.90,seed)*smoothstep(.18,.045,length(delta*vec2(.8,1.6))));}
+   color=mix(color,vec3(.93,.65,.73),step(.90,seed)*(1.-smoothstep(.045,.18,length(delta*vec2(.8,1.6)))));}
    else{float d=seam(P*.098+vec2(.12*sin(P.y*.33),.1*sin(P.x*.48)));float s=seam(P*.39);color=mix(vec3(.067,.22,.32),vec3(.50,.67,.74),f*.6+.23+.12*sin(P.y*.12+P.x*.032));
    color+=vec3(.24,.36,.38)*(1.-smoothstep(.006,.053,d)) + vec3(.09,.13,.13)*(1.-smoothstep(.008,.038,s))*smoothstep(.18,.61,sin(P.x*.14));
    float hole=min(length((W.xz-vec2(825.,-1702.))*vec2(.77,1.))-23.,min(length((W.xz-vec2(726.,-1790.))*vec2(.77,1.))-15.,length((W.xz-vec2(900.,-1820.))*vec2(.77,1.))-12.));

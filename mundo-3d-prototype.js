@@ -2419,7 +2419,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -3008,12 +3008,16 @@ function updateAmbientLife(dt,now){
  fallingLeaves.pts.geometry.attributes.position.needsUpdate=true;fallingLeaves.pts.visible=grassGroup.visible;
 }
 /* MOD 186 — estado do mundo para o áudio: superfície sob os pés, distância do lago/portal, altitude. */
+function waterfallAudioAt(x,z){
+ if(sakuraWorld?.root.visible)return {fallsDistance:Math.min(Math.hypot(x+1684,z+846),Math.hypot(x+1235,z+1513))};
+ return {fallsDistance:eldoriaFalls.distanceTo(x,z)};
+}
 function updateWorldAudio(dt){
  updateMapDiscovery(performance.now());
  const x=player.position.x,z=player.position.z;
  const route=voidMode?null:sampleRoad(x,z),onPath=route&&regionWeight(x,z,route)>.2&&route.d<4||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:Math.min(eldoriaFalls.distanceTo(x,z),Math.hypot(x+1684,z+846),Math.hypot(x+1235,z+1513)),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
+ worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),...waterfallAudioAt(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
@@ -4529,7 +4533,7 @@ function greedAdmCastUltimate(){
  const a=squadSq()?.actors.find(x=>x.alive&&x.kind==='greedB');
  if(!dimBattle?.active||dimBattle.key!=='greed')return 'Entre no teste da Dimensão V — Ganância.';
  if(!a||a.gk?.phase!==3)return 'A ultimate só pode ser ativada na fase III. Use “Próxima fase”.';
- if(cineActive||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
+ if(cineActive||greedCineLock>combatClock||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
  if(greedAtomic.active)return 'O Juízo da Usura já está em execução.';
  if(!greedAtomic.force())return 'Aguarde o chefe ficar pronto e tente novamente.';
  showCombatCallout('ADM · JUÍZO DA USURA');
@@ -4553,27 +4557,28 @@ function greedAtomicEnd(){if(greedAtomic){greedAtomic.dispose();greedAtomic=null
 function greedAtomicTick(dt,paused=false){
  if(!dimBattle?.active||dimBattle.key!=='greed'||!squadOn||!squadRT){greedAtomicEnd();return;}
  const sq=squadSq(),a=sq?.actors.find(x=>x.alive&&x.kind==='greedB'),b=a&&squadRT.body(a.id);
- if(!a||!b||a.gk?.phase!==3){greedAtomicEnd();return;}
+ if(!a||!b||a.gk?.phase!==3||playerHP<=0){greedAtomicEnd();return;}
  if(!greedAtomic){
   const spec=arenaSpec('greed');
   greedAtomic=createGreedCampaignUltimate(THREE,scene,{
-   center:{x:voidSpec.x,y:voidSpec.y,z:voidSpec.z},radius:spec.radius||30,
-   quality:graphics3DIsLow()?'low':'medium',
-   camera:(focus,phase,actor)=>{
-    if(!focus){ultCam.want=0;ultCam.until=0;return;}
-    if(!actor)return;
-    const x=actor.x,z=actor.z,y=actor.y,fx=Math.sin(actor.yaw),fz=Math.cos(actor.yaw);
-    const height=phase==='announce'?3.5:phase==='throw'?5.5:9,back=phase==='announce'?5.5:phase==='throw'?9:16;
-    const side=phase==='announce'?2.4:4.8;
-    ultCam.at=(ultCam.at||new THREE.Vector3()).set(x-fx*back+fz*side,y+height,z-fz*back-fx*side);
-    ultCam.look.set(x,y+(phase==='charge'?7:2.6),z);ultCam.want=.95;ultCam.until=combatClock+1.5;
+   arenaCenterWorld:{x:voidSpec.x,y:voidSpec.y,z:voidSpec.z},radius:spec.radius||30,walkable:voidSpec.walk,
+   quality:graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium',
+   camera:shot=>{
+    if(!shot){
+     if(ultCam.usuraFov==null)return;
+     ultCam.want=0;ultCam.until=0;ultCam.usuraFov=null;
+     document.body.classList.remove('usura-cine');return;
+    }
+    document.body.classList.add('usura-cine');
+    if(!ultCam.at)ultCam.at=new THREE.Vector3();
+    ultCam.at.copy(shot.at);ultCam.look.copy(shot.look);ultCam.want=shot.weight;
+    ultCam.usuraFov=shot.fov;ultCam.until=combatClock+1.5;
    },
-   beat:(phase,actor)=>{
-    if(phase==='announce'){showCombatCallout('JUÍZO DA USURA');worldAudio.roar?.();}
-    else if(phase==='throw')worldAudio.whoosh?.();
-    else if(phase==='charge')worldAudio.dark?.('lock');
+   beat:phase=>{
+    worldAudio.usura(phase);
+    if(phase==='announce')showCombatCallout('JUÍZO DA USURA');
     else if(phase==='escape')showCombatCallout('BUSQUE REFÚGIO ALÉM DA CORRENTE!');
-    else if(phase==='detonate'){worldAudio.dark?.('blast');if(!userSettings.reduceShake)cameraShake(.46);}
+    else if(phase==='detonate'&&!userSettings.reduceShake)cameraShake(.46);
     else if(phase==='recover')showCombatCallout('A COROA SE DISSIPA');
    },
    damage:({actor})=>{
@@ -7503,6 +7508,7 @@ function autoRecenterCamera(dt,now){
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
 }
 function updateFovKick(dt){
+ if(ultCam.usuraFov!=null && ultCam.want>.01)return;
  const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?FP_FOV:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
  prota302.punch*=Math.exp(-7*dt);const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd+prota302.punch);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
@@ -7574,6 +7580,7 @@ function updateBlackHole(dt,now){
 let slowMoUntil=0,slowMoK=1;function slowMo(ms,k){slowMoUntil=performance.now()+ms;slowMoK=k;}
 const ultCam={w:0,want:0,height:5,dist:13,look:new THREE.Vector3()};
 function applyUltCam(dt,target){
+ if(ultCam.usuraFov!=null && ultCam.want>.01){camera.fov+=(ultCam.usuraFov-camera.fov)*Math.min(1,dt*6);camera.updateProjectionMatrix();}
  if(ultCam.until&&combatClock>ultCam.until){ultCam.until=0;ultCam.want=0;} /* 22/11: nenhuma câmera autoral fica presa (saída da dimensão, morte, aborto) */
  ultCam.w+=(ultCam.want-ultCam.w)*Math.min(1,dt*(ultCam.want>ultCam.w?3:1.5));if(ultCam.w<.003)return;
  const p=ultCam.at?ultCam.at:new THREE.Vector3(player.position.x+Math.sin(cameraYaw)*ultCam.dist,player.position.y+ultCam.height,player.position.z+Math.cos(cameraYaw)*ultCam.dist); /* 22/11: ultCam.at = posição autoral (diretor da Ganância) */
@@ -8818,7 +8825,9 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
 vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou 'up' */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='veraxion'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;if(n==='throw')vxStartThrow(s,a,t);else vxStartUpslash(s,a,t);return true;},
- atomicState(){return greedAtomic?greedAtomic.getState():null;},
+ atomicInput(x,z){joyX=x*Math.cos(cameraYaw)-z*Math.sin(cameraYaw);joyY=x*Math.sin(cameraYaw)+z*Math.cos(cameraYaw);},
+ atomicPose(x,z){const a=squadSq()?.actors.find(v=>v.alive&&v.kind==='greedB');if(!a||greedAtomic?.active||Math.hypot(x,z)>voidSpec.radius-1)return false;a.x=voidSpec.x+x;a.z=voidSpec.z+z;a.y=fxGy(a.x,a.z);return true;},
+ atomicState(){return greedAtomic?{...greedAtomic.getState(),draws:renderer.info.render.calls,triangles:renderer.info.render.triangles,camera:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,hero:player.position.toArray(),safe:greedAtomic.arena.safe(player.position.x-voidSpec.x,player.position.z-voidSpec.z),hp:playerHP}:null;},
  gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='usura'){/* QA: forca ultimate real depois da transformacao, sem tocar no script do boss */if(a.gk?.phase!==3)return false;a.hp=Math.max(1,Math.floor(a.maxHp*.44));a.act=null;a.alert=0;a.airY=0;return{phase:3,hp:a.hp};}if(cmd==='hold'){/* QA: chefe parado (retrato da silhueta) */a.alert=a.alert>1e5?0:1e9;a.act=null;return a.alert;}if(cmd==='ceilscan'){/* QA: superfícies reais alcançáveis (teto/arcada) a 7–22 m do chão */const o=[];for(let x=-48;x<=48;x+=2)for(let z=-56;z<=48;z+=2){const c=greedCeilingAt(voidSpec.x+x,voidSpec.z+z);if(c==null)continue;const h=c-fxGy(voidSpec.x+x,voidSpec.z+z);if(h>=7&&h<=22)o.push([x,z,+h.toFixed(1),+Math.hypot(x,z).toFixed(1)]);}o.sort((p,q)=>p[3]-q[3]);return{n:o.length,R:voidSpec.radius,anc:greedAbyssAnchor()&&[+(greedAbyssAnchor().x-voidSpec.x).toFixed(1),+(greedAbyssAnchor().y-voidSpec.y).toFixed(1),+(greedAbyssAnchor().z-voidSpec.z).toFixed(1)],o:o.slice(0,60)};}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats(),body:squadRT?.bodyInfo?.(a.id)};},
  zkBeast(){/* QA (21/11): estado público da Fera e do debuff */const s=squadSq(),L=s&&zkBeastOf(s);return{beast:L?{phase:L.b.phase,x:+L.b.x.toFixed(2),z:+L.b.z.toFixed(2),jaw:+L.b.jaw.toFixed(2),result:L.b.result}:null,debuff:s?+zkHeroDebuffLeft(s).toFixed(1):0,stats:s?.actors.find(a=>a.kind==='zarkhael')?.zkStats||null,aim:!!zkBeastAim()};},
  zkSpiral(){/* QA (teste isolado, não conta como luta orgânica): força a Espiral do Carrasco */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='zarkhael'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;zkStartSpiral(s,a,t);return true;},

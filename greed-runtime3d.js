@@ -69,6 +69,7 @@ export function createGreedRuntime(T, scene, ctx = {}) {
         const L = 1.2, ax = _v.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .1 - root.position.y; if (ax.y < floor) { const want = Math.asin(clamp(floor / L, -1, 1)), cur = Math.asin(clamp(ax.y / L, -1, 1)); _v2.set(-ax.z, 0, ax.x); if (_v2.lengthSq() < 1e-4) _v2.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); _q.setFromAxisAngle(_v2.normalize(), want - cur); root.quaternion.premultiply(_q); } };
       const ents = g ? g.ents : [], held = { [g?.hands?.R]: 'R', [g?.hands?.L]: 'L' };
       for (const k of 'ABCD') { const r = G.roots[k], w = G.W[k]; let on = false, trail = false, tkey = null;
+        if(G.ritualBlade===k){w.userData.updateFx(time,.85,low);continue;}
         if (a.alive && held[k] && !(a.act && a.act.type === 'gkPhase')) { placeHand(r, held[k] === 'R' ? b.hand : b.lhand); on = true; trail = !!(a.act && a.act.move) || (a.act && a.act.type === 'gkFly' && a.act.stage === 'dive'); }
         else { const e = ents.find(x => x.key === k && x.mode !== 'gone'); const sp = k === 'C' && g?.spear && (g.spear.alive || g.spear.dead < .5) ? g.spear : null;
           if (sp) { r.position.set(sp.x, sp.y, sp.z); _y.set(sp.dx, sp.dy, sp.dz).normalize(); _z.set(0, 1, 0).cross(_y).normalize(); if (_z.lengthSq() < .01) _z.set(1, 0, 0); _x.crossVectors(_y, _z); _m.makeBasis(_x, _y, _z); r.quaternion.setFromRotationMatrix(_m); r.position.addScaledVector(_y, -.6); on = sp.alive; trail = sp.alive; }

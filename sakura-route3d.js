@@ -30,7 +30,9 @@ const authored = [
 ];
 export const ROUTE = authored.map(p=>node(...p));
 export const DEPARTURE_NOTE = {x:CITY2.x+25,z:CITY2.z-10};
-export const FROM_CITY = [{x:DEPARTURE_NOTE.x+1.2,z:DEPARTURE_NOTE.z+1},{x:-1246,z:-92},{x:-1265,z:-101},{x:-1288,z:-106},...TRAIL2.slice(0,-1).map(([x,z])=>({x,z}))];
+// Follow the surveyed alleys around Cinzária's furnaces and occupied buildings.
+const alleys=[[-1255,-92],[-1271,-103],[-1278,-106],[-1281,-109],[-1281,-110],[-1284,-113]];
+export const FROM_CITY = [{x:DEPARTURE_NOTE.x+1.2,z:DEPARTURE_NOTE.z+1},...[...alleys,...TRAIL2.slice(0,-1)].map(([x,z])=>({x,z}))];
 export const CITY_ROAD = [[564,-194,84],[564,-224,81],[564,-267,81],[564,-304,79],[564,-355,69],[534,-361,68],[492,-337,70],[485,-295,74],[448,-261,66],
  [426,-176,52],[348,-117,34],[287,-55,19],[244,-39,11],[218,-38,7],[202,-37,5],[186,-35,4],[165,-36,4],[148,-40,4]].map(p=>node(...p));
 const paths=[

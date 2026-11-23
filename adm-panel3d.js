@@ -4,6 +4,7 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  if(document.getElementById('adm-panel'))return null;
  const style=document.createElement('style');style.id='adm-panel-styles';style.textContent=`
  #adm-panel{position:fixed;right:max(8px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 105px);z-index:82;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:calc(100vw - 16px);font:500 12px/1.4 system-ui,sans-serif;pointer-events:none}
+ body.usura-cine #adm-panel{visibility:hidden}
  #adm-panel *{box-sizing:border-box}
  #adm-panel button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
  #adm-panel button:focus-visible{outline:2px solid #ffd08d;outline-offset:2px}

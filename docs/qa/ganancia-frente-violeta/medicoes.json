@@ -1,0 +1,145 @@
+{
+  "viewport": [
+    852,
+    393
+  ],
+  "fps_da_captura": 12,
+  "ambiente": "Chromium WebGL / SwiftShader em passo fixo; áudio do jogo renderizado no relógio das fases",
+  "quadros_por_inicio_de_fase": {
+    "announce": 0,
+    "bladeCombo": 16,
+    "throw": 41,
+    "charge": 54,
+    "escape": 86,
+    "collapse": 165,
+    "detonate": 171,
+    "aftermath": 188,
+    "recover": 267,
+    "idle": 279
+  },
+  "perigo_fracao": 0.7999861916597625,
+  "refugio_no_impacto": true,
+  "vida_inicio_fim": [
+    500,
+    500
+  ],
+  "origem": [
+    13.628457367634422,
+    -2000,
+    -8.28265348760051
+  ],
+  "boss": [
+    13.885595737321582,
+    -2000,
+    -7.852908805127747
+  ],
+  "pico_draw_calls": 163,
+  "quadros_comparados": [
+    {
+      "marco": "Raios no piso",
+      "referencia_s": 5,
+      "campanha_s": 13.75,
+      "referencia": {
+        "amostra_violeta_percentual": 11.9,
+        "rgb_medio": [
+          71,
+          114,
+          117
+        ]
+      },
+      "campanha": {
+        "amostra_violeta_percentual": 0.6,
+        "rgb_medio": [
+          23,
+          18,
+          25
+        ]
+      }
+    },
+    {
+      "marco": "Ignição lilás",
+      "referencia_s": 5.65,
+      "campanha_s": 14.42,
+      "referencia": {
+        "amostra_violeta_percentual": 6.7,
+        "rgb_medio": [
+          96,
+          124,
+          138
+        ]
+      },
+      "campanha": {
+        "amostra_violeta_percentual": 29.5,
+        "rgb_medio": [
+          121,
+          91,
+          134
+        ]
+      }
+    },
+    {
+      "marco": "Frente em expansão",
+      "referencia_s": 6.8,
+      "campanha_s": 15.08,
+      "referencia": {
+        "amostra_violeta_percentual": 70.8,
+        "rgb_medio": [
+          73,
+          53,
+          115
+        ]
+      },
+      "campanha": {
+        "amostra_violeta_percentual": 100.0,
+        "rgb_medio": [
+          78,
+          29,
+          222
+        ]
+      }
+    },
+    {
+      "marco": "Coluna violeta",
+      "referencia_s": 8.4,
+      "campanha_s": 16.75,
+      "referencia": {
+        "amostra_violeta_percentual": 80.0,
+        "rgb_medio": [
+          52,
+          6,
+          150
+        ]
+      },
+      "campanha": {
+        "amostra_violeta_percentual": 100.0,
+        "rgb_medio": [
+          46,
+          3,
+          198
+        ]
+      }
+    },
+    {
+      "marco": "Resíduos no cenário",
+      "referencia_s": 12.4,
+      "campanha_s": 19.83,
+      "referencia": {
+        "amostra_violeta_percentual": 97.5,
+        "rgb_medio": [
+          53,
+          5,
+          188
+        ]
+      },
+      "campanha": {
+        "amostra_violeta_percentual": 100.0,
+        "rgb_medio": [
+          47,
+          3,
+          201
+        ]
+      }
+    }
+  ],
+  "contagem_de_cor": "Proporção de pixels com B > 1,4G + 9, B > 1,08R e B > 50 em miniatura 112×56. Descreve a paleta e não mede fidelidade artística."
+}

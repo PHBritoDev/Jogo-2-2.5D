@@ -4,6 +4,7 @@ import {arch} from './sakura-masonry3d.js';
 
 export function surfaceFinish(T,wood){
  const m=new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:wood?.77:.67,metalness:wood?.035:.11});
+ m.customProgramCacheKey=()=>wood?'sakura-wood':'sakura-ice-stone';
  m.onBeforeCompile=sh=>{
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 localStone;').replace('#include <begin_vertex>','#include <begin_vertex>\nlocalStone=position;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 localStone;').replace('#include <color_fragment>',`#include <color_fragment>

@@ -62,6 +62,7 @@ function baseProgress() {
     act1Rev: ACT1.rev,
     questStep: 0,
     act1Sub: 0,
+    sakuraRest: -1,
     coins: 0,
     journeyEnemyIndex: 0,
     mountainIndex: 0,

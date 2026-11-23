@@ -55,21 +55,23 @@ try{
    const d=SevenSinsDebug3D,{ROUTE,CITY_ROAD,FROM_CITY,MASTER}=await import('/sakura-route3d.js');
    const next=()=>new Promise(requestAnimationFrame),start=performance.now();let lastInput=0;
    async function step(x,z,name){
-    let minimum=Infinity,progress=performance.now(),previous=d.walkState(),metres=0,range=0,elapsed=performance.now(),nudge=0,lastFrame=elapsed;
+    let minimum=Infinity,progress=performance.now(),previous=d.walkState(),metres=0,range=0,elapsed=performance.now(),nudge=0,lastFrame=elapsed,lastYaw=NaN;
     while(true){
      const t=performance.now(),s=d.walkState(),st=d.storyState(),dx=x-s.x,dz=z-s.z,r=Math.hypot(dx,dz);
      metres+=Math.hypot(s.x-previous.x,s.z-previous.z);previous=s;range=r;
      if(!document.querySelector('#dialog-panel').classList.contains('hidden')){if(t-lastInput>800){document.querySelector('#dialog-continue').click();lastInput=t;}progress=t;await next();continue;}
      if(st.scene){if(st.waitingTap)d.tapStory();const choice=document.querySelector('#choice-card');if(choice&&!choice.hidden)document.querySelector('#choice-no').click();progress=t;await next();continue;}
-     if(r<1.35)break;
+     if(r<(name.startsWith('cinzaria-')?1.5:1.35))break;
      if(r<minimum-.15){minimum=r;progress=t;nudge=0;}
      const stalled=t-progress;if(stalled>50000)throw Error('Passagem bloqueada '+JSON.stringify({name,x,z,s,st:st.label,r}));
      if(stalled>4500)nudge=(stalled<11500?1:stalled<22000?-1:stalled<32000?1:-1)*(Math.PI*.39);
-     const a=Math.atan2(dx,dz)+nudge;d.viewQA(false,Math.atan2(-dx,-dz),.13);const wall=Math.min(1.2,(t-lastFrame)/1000),catchUp=fast?Math.min(4,r/6.8):Math.max(0,wall-.04);
+     const a=Math.atan2(dx,dz)+nudge,yaw=Math.atan2(-dx,-dz);
+     if(!Number.isFinite(lastYaw)||Math.abs(Math.atan2(Math.sin(yaw-lastYaw),Math.cos(yaw-lastYaw)))>.32){d.viewQA(false,yaw,.13);lastYaw=yaw;}
+     const wall=Math.min(6,(t-lastFrame)/1000),catchUp=fast?Math.min(4,r/7):Math.max(0,wall-.04);
      // Chromium software may present fewer than 25 frames/s. The shipped game caps a
      // frame at 40 ms. Replay the elapsed movement in its own 30 Hz QA stepper,
      // bounded by real elapsed time and distance, with rendering on normal frames.
-     d.walkMove(Math.sin(a),Math.cos(a),Math.min(fast?4.1:1.3,r/6.8));
+     d.walkMove(Math.sin(a),Math.cos(a),Math.min(catchUp+.06,r/6.8));
      if(catchUp>.034)d.combatStep(Math.min(catchUp,r/6.8),{fps:30,draw:false});
      lastFrame=t;await next();
     }

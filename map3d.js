@@ -41,14 +41,14 @@ export const MAP_POIS = [
    da Mata Funda (redundante): saves que o tinham registrado ganham o da Mata (WAYSTONE_ALIASES), sem perder progresso.
    Abrigos são viagem rápida/retorno; checkpoints de história e de chefe continuam separados. */
 export const WAYSTONES = [
-  ...SHELTERS,
   { id: 'abrigo-vila', name: 'Abrigo da Vila', x: -4.6, z: -36.5 },
   { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 6.5, z: -79 },
   { id: 'abrigo-caverna', name: 'Abrigo da Fronteira', x: -40, z: -219 },
   // Mod 321 — abrigos da jornada: vale, antes da ponte e na nova cidade
   { id: 'abrigo-vale', name: 'Abrigo do Vale', x: -236, z: -46 },
   { id: 'abrigo-serra', name: 'Abrigo da Serra', x: -790, z: -54 },
-  { id: 'abrigo-cinzaria', name: 'Abrigo de Cinzária', x: -1228, z: -74 }
+  { id: 'abrigo-cinzaria', name: 'Abrigo de Cinzária', x: -1228, z: -74 },
+  ...SHELTERS
 ];
 export const WAYSTONE_ALIASES = Object.freeze({ 'abrigo-sope': 'abrigo-mata' });
 /** Mod 321 — POIs da Cidade 2 antiga: quem já tinha o Distrito descoberto ganha Cinzária; Mina/Canal deixam de existir. */
