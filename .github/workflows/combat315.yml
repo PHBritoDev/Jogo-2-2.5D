@@ -37,7 +37,14 @@ jobs:
         run: |
           python3 -m http.server 4176 > /tmp/combat315-http.log 2>&1 &
           node tools/visual-lab/combat315-qa.cjs
-          node tools/visual-lab/combat-multitarget-qa.cjs
+      - name: Smoke WebGL independente com dois inimigos
+        if: always()
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+        run: |
+          python3 -m http.server 4177 > /tmp/combat-multitarget-http.log 2>&1 &
+          VISUAL_BASE_URL=http://127.0.0.1:4177 node tools/visual-lab/combat-multitarget-qa.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
