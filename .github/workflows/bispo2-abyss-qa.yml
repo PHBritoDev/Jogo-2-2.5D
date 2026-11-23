@@ -27,7 +27,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha }}
           path: work/baseline
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -47,10 +47,10 @@ jobs:
           work/qa/node_modules/.bin/playwright install --with-deps chromium
       - name: Render real Three.js and record evidence
         env:
-          NODE_PATH: '\${{ github.workspace }}/work/qa/node_modules'
-          VISUAL_OUTPUT: '\${{ github.workspace }}/work/evidence'
-          VISUAL_BRANCH_SHA: '\${{ github.event.pull_request.head.sha }}'
-          VISUAL_BASE_SHA: '\${{ github.event.pull_request.base.sha }}'
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+          VISUAL_BRANCH_SHA: '${{ github.event.pull_request.head.sha }}'
+          VISUAL_BASE_SHA: '${{ github.event.pull_request.base.sha }}'
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo2-http.log 2>&1 &
           if [ -d work/baseline ]; then
@@ -71,6 +71,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: bispo2-abyss-\${{ github.sha }}
+          name: bispo2-abyss-${{ github.sha }}
           path: work/evidence/
           retention-days: 14
