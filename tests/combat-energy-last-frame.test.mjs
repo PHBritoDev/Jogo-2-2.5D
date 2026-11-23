@@ -53,6 +53,31 @@ test('energia e lâmina laterais delegam o contato sem duplicar áudio/VFX do ad
     'contatos legados sem evento próprio preservam o fallback');
 });
 
+
+test('golpe físico acerta alvo secundário uma vez e marca o evento como lâmina', () => {
+  const hits = [], impacts = [];
+  const focus = { id: 'focus', x: 8, y: 1, z: -8, radius: .45, height: 1.8, alive: true };
+  const side = { id: 'side', x: 0, y: 1, z: 0, radius: .45, height: 1.8, alive: true };
+  const blade = { base: { x: -1, y: 1, z: 0 }, tip: { x: 1, y: 1, z: 0 } };
+  const rites = new SwordRites({
+    pose: () => blade,
+    hit: (amount, id, kind, meta) => hits.push({ amount, id, kind, meta }),
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others: [side], sword: 'aurora', grounded: true };
+  rites.update(.35, ctx);
+  rites.update(1 / 60, ctx);
+  assert.equal(hits.length, 1, 'o mesmo inimigo não pode receber dano repetido no mesmo golpe');
+  assert.equal(hits[0].id, 'side');
+  assert.equal(hits[0].kind, 'energy-side');
+  assert.equal(hits[0].meta.by, 'blade');
+  assert.equal(impacts.length, 1, 'o contato físico secundário deve emitir um único evento');
+  assert.equal(impacts[0].target.id, 'side');
+  assert.equal(impacts[0].secondary, true);
+  assert.equal(impacts[0].by, 'blade');
+});
+
 function sideTargetNearEnd({ wall = false, fps = 120 } = {}) {
   const hits = [], events = [];
   const r = new SwordRites({
