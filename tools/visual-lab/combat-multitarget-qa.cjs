@@ -201,9 +201,12 @@ fs.mkdirSync(dir, { recursive: true });
       const sides = state.snap.actors.filter(a => a.id !== primaryId);
       if (!primaryId || sides.length < 3) throw new Error('Esquadra física não forneceu foco + três secundários.');
       D.teleport(-5, 16, Math.PI);
-      D.squadPose(primaryId, -5, 14.9, 0, true);
-      D.squadPose(sides[0].id, -5.45, 14.9, 0, true);
-      D.squadPose(sides[1].id, -4.55, 14.9, 0, true);
+      // Measured contact on the real first combo sweep is near (-4.82, 1.07, 14.84).
+      // Put both secondary capsules on that same swept arc, separated by 1 m; keep focus ahead
+      // so the actors do not overlap and the test proves two genuine side contacts.
+      D.squadPose(primaryId, -5, 13.7, 0, true);
+      D.squadPose(sides[0].id, -5.32, 14.84, 0, true);
+      D.squadPose(sides[1].id, -4.32, 14.84, 0, true);
       D.squadPose(sides[2].id, -8.8, 14.9, 0, true);
       D.squadPause(true);
       D.riteEquip('aurora');
@@ -227,12 +230,24 @@ fs.mkdirSync(dir, { recursive: true });
     }, report.steps.physicalBefore.eventCount);
     const physicalBefore = new Map(report.steps.physicalBefore.actors.map(a => [a.id, a]));
     const physicalAfter = new Map(report.steps.physicalImpact.actors.map(a => [a.id, a]));
+    const physicalSidePositions = report.steps.physicalBefore.sideIds.map(id => physicalBefore.get(id));
+    assert.ok(Math.hypot(physicalSidePositions[0].x - physicalSidePositions[1].x, physicalSidePositions[0].z - physicalSidePositions[1].z) >= .95,
+      'os secundários físicos precisam permanecer separados, sem cápsulas sobrepostas');
+    assert.ok(physicalSidePositions.every(a => Math.hypot(a.x - physicalBefore.get(report.steps.physicalBefore.primaryId).x, a.z - physicalBefore.get(report.steps.physicalBefore.primaryId).z) >= .9),
+      'secundários físicos não podem sobrepor o foco');
     const physicalSideEvents = report.steps.physicalImpact.events.filter(e => e.by === 'blade' && e.secondary);
     assert.equal(physicalSideEvents.length, 2, 'golpe físico real precisa atingir os dois secundários');
     assert.deepEqual(physicalSideEvents.map(e => e.targetId).sort(), [...report.steps.physicalBefore.sideIds].sort());
     assert.ok(physicalSideEvents.every(e => e.position && Number.isFinite(e.position.x)), 'cada VFX físico precisa ter posição');
+    for (const e of physicalSideEvents) {
+      const actor = physicalBefore.get(e.targetId);
+      assert.ok(Math.hypot(e.position.x - actor.x, e.position.z - actor.z) <= .58,
+        `VFX físico de ${e.targetId} precisa ficar no contato real da própria cápsula`);
+    }
     assert.ok(Math.abs(physicalSideEvents[0].position.x - physicalSideEvents[1].position.x) > .35,
       'cada inimigo secundário precisa receber o VFX no próprio ponto da lâmina');
+    assert.ok(report.steps.physicalImpact.vfx.cuts >= 4,
+      'os dois impactos físicos secundários precisam deixar os dois cortes visíveis por contato');
     for (const id of report.steps.physicalBefore.sideIds)
       assert.ok(physicalAfter.get(id).hp < physicalBefore.get(id).hp, `golpe físico precisa reduzir HP de ${id}`);
     assert.equal(physicalAfter.get(report.steps.physicalBefore.controlId).hp,
