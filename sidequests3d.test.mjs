@@ -282,9 +282,35 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
   const end = runtime.indexOf('\nsideReady=true;', start);
   assert.ok(start >= 0 && end > start, 'extrair o roteador de conversa usado pelo jogo');
   const talkSource = runtime.slice(start, end).trim();
+  const storeKey = runtime.match(/const SIDE_STORE='([^']+)';/)?.[1];
+  const saveStart = runtime.indexOf('function saveSide(){');
+  const saveEnd = runtime.indexOf('\n', saveStart);
+  const loadStart = runtime.indexOf('const sideState=(()=>{');
+  const loadEnd = runtime.indexOf('})();', loadStart) + 4;
+  assert.ok(storeKey && saveStart >= 0 && saveEnd > saveStart && loadEnd > loadStart, 'extrair persistência real das missões');
+  const saveSource = runtime.slice(saveStart, saveEnd);
+  const loadSource = runtime.slice(loadStart, loadEnd);
 
-  function harness(state, ctx) {
+  function makeStore() {
+    const values = new Map();
+    return {
+      getItem(key) { return values.has(key) ? values.get(key) : null; },
+      setItem(key, value) { values.set(key, String(value)); }
+    };
+  }
+  function saveSideFunction(state, storage) {
+    const context = vm.createContext({ SIDE_STORE: storeKey, sideState: state, localStorage: storage });
+    return vm.runInContext('(' + saveSource + ')', context, { timeout: 1000 });
+  }
+  function loadSideFromStorage(storage) {
+    const context = vm.createContext({ SIDE_STORE: storeKey, localStorage: storage, createSideState });
+    vm.runInContext(loadSource, context, { timeout: 1000 });
+    return vm.runInContext('sideState', context, { timeout: 1000 });
+  }
+
+  function harness(state, ctx, storage = makeStore()) {
     const events = { dialogues: [], refreshes: 0, hudUpdates: 0, progressSaves: 0 };
+    const persistSide = saveSideFunction(state, storage);
     const toast = {
       textContent: '',
       classList: {
@@ -304,7 +330,7 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
         events.dialogues.push(lines);
         events.complete = typeof onDone === 'function' ? onDone : null;
       },
-      saveSide() { events.savedSide = JSON.parse(JSON.stringify(state)); },
+      saveSide() { persistSide(); events.savedSide = JSON.parse(storage.getItem(storeKey)); },
       save3DProgress() {
         events.progressSaves++;
         events.savedProgress = { coins: sandbox.coins, xp: sandbox.xp };
@@ -316,7 +342,7 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
       setTimeout(callback, delay) { events.toastDelay = delay; callback(); }
     };
     const talk = vm.runInNewContext('(' + talkSource + ')', sandbox, { timeout: 1000 });
-    return { talk, events, sandbox };
+    return { talk, events, sandbox, storage };
   }
 
   // Bento: oferta, coleta de quatro flores, entrega e restauração sem pagamento repetido.
@@ -338,8 +364,9 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
   assert.equal(bento.sandbox.coins, 10);
   assert.equal(bento.sandbox.xp, 30);
   assert.equal(bento.events.progressSaves, 1, 'callback repetido não deve pagar duas vezes');
-  const bentoReload = createSideState(bento.events.savedSide);
-  assert.equal(harness(bentoReload, bentoCtx).talk(bentoVendor), false);
+  const bentoReload = loadSideFromStorage(bento.storage);
+  assert.equal(bentoReload.ervas.state, 'done');
+  assert.equal(harness(bentoReload, bentoCtx, bento.storage).talk(bentoVendor), false);
 
   // Téo: a contagem externa real de waystones dirige 2/3, prontidão e recompensa.
   const teoState = createSideState();
@@ -360,7 +387,9 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
   assert.equal(teo.sandbox.coins, 12);
   assert.equal(teo.sandbox.xp, 40);
   assert.equal(teo.events.savedProgress.coins, 12);
-  assert.equal(harness(createSideState(teo.events.savedSide), teoCtx).talk(teoVendor), false);
+  const teoReload = loadSideFromStorage(teo.storage);
+  assert.equal(teoReload.abrigos.state, 'done');
+  assert.equal(harness(teoReload, teoCtx, teo.storage).talk(teoVendor), false);
 
   // Lia: permanece bloqueada até a etapa 2, depois entrega o pingente uma única vez.
   const liaState = createSideState();
@@ -379,5 +408,114 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
   assert.equal(liaState.pingente.state, 'done');
   assert.equal(lia.sandbox.coins, 14);
   assert.equal(lia.sandbox.xp, 35);
-  assert.equal(harness(createSideState(lia.events.savedSide), liaCtx).talk(liaVendor), false);
+  const liaReload = loadSideFromStorage(lia.storage);
+  assert.equal(liaReload.pingente.state, 'done');
+  assert.equal(harness(liaReload, liaCtx, lia.storage).talk(liaVendor), false);
+});
+
+
+test('coleta no mundo usa o updater real e restaura contagem do save após recarregar', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const storeKey = runtime.match(/const SIDE_STORE='([^']+)';/)?.[1];
+  const saveStart = runtime.indexOf('function saveSide(){');
+  const saveEnd = runtime.indexOf('\n', saveStart);
+  const loadStart = runtime.indexOf('const sideState=(()=>{');
+  const loadEnd = runtime.indexOf('})();', loadStart) + 4;
+  const restoreStart = runtime.indexOf('// Itens já entregues/coletados não reaparecem.');
+  const restoreEnd = runtime.indexOf('\nfunction syncSideItems', restoreStart);
+  const syncStart = runtime.indexOf('function syncSideItems(){');
+  const syncEnd = runtime.indexOf('\nfunction refreshSideQuests', syncStart);
+  const updateStart = runtime.indexOf('function updateSideItems(dt,now){');
+  const updateEnd = runtime.indexOf('\n}\n/** Conversa nas bancas', updateStart) + 2;
+  assert.ok(storeKey && saveEnd > saveStart && loadEnd > loadStart && restoreEnd > restoreStart && syncEnd > syncStart && updateEnd > updateStart, 'extrair persistência e coleta reais do runtime');
+  const saveSource = runtime.slice(saveStart, saveEnd);
+  const loadSource = runtime.slice(loadStart, loadEnd);
+  const restoreSource = runtime.slice(restoreStart, restoreEnd);
+  const syncSource = runtime.slice(syncStart, syncEnd).trim();
+  const updateSource = runtime.slice(updateStart, updateEnd).trim();
+
+  function makeStore() {
+    const values = new Map();
+    return {
+      getItem(key) { return values.has(key) ? values.get(key) : null; },
+      setItem(key, value) { values.set(key, String(value)); }
+    };
+  }
+  function saveSideFunction(state, storage) {
+    const context = vm.createContext({ SIDE_STORE: storeKey, sideState: state, localStorage: storage });
+    return vm.runInContext('(' + saveSource + ')', context, { timeout: 1000 });
+  }
+  function loadSideFromStorage(storage) {
+    const context = vm.createContext({ SIDE_STORE: storeKey, localStorage: storage, createSideState });
+    vm.runInContext(loadSource, context, { timeout: 1000 });
+    return vm.runInContext('sideState', context, { timeout: 1000 });
+  }
+  function makeItems() {
+    return Array.from({ length: 6 }, (_, i) => ({
+      item: 'flor',
+      group: { position: { x: i * 10, z: 0 }, visible: false },
+      glow: { material: { opacity: 0 } },
+      taken: false
+    }));
+  }
+  function worldHarness(state, storage, items) {
+    const events = { reveals: 0, rewards: [] };
+    const context = vm.createContext({
+      SIDE_ITEMS: items,
+      SIDE_QUESTS,
+      sideState: state,
+      player: { position: { x: 0, z: 0 } },
+      collectSide,
+      saveSide: saveSideFunction(state, storage),
+      worldAudio: { reveal() { events.reveals++; } },
+      showRewardPop(message) { events.rewards.push(message); }
+    });
+    const sync = vm.runInContext('(' + syncSource + ')', context, { timeout: 1000 });
+    context.refreshSideQuests = () => {
+      refreshSide(state, { questStep: 1, waystones: 0 });
+      sync();
+    };
+    const restore = () => vm.runInContext(restoreSource, context, { timeout: 1000 });
+    const update = vm.runInContext('(' + updateSource + ')', context, { timeout: 1000 });
+    return { context, events, restore, sync, update };
+  }
+
+  const storage = makeStore();
+  const state = createSideState();
+  refreshSide(state, { questStep: 1, waystones: 0 });
+  assert.equal(acceptSide(state, 'ervas'), true);
+  const firstItems = makeItems();
+  const first = worldHarness(state, storage, firstItems);
+  first.sync();
+  first.update(1, 1000);
+  assert.equal(state.ervas.progress, 1);
+  assert.equal(firstItems[0].taken, true);
+  assert.equal(firstItems[0].group.visible, false);
+  assert.equal(first.events.reveals, 1);
+  assert.equal(JSON.parse(storage.getItem(storeKey)).ervas.progress, 1);
+
+  // O reload executa a mesma leitura do SIDE_STORE e a mesma restauração dos itens do mundo.
+  const restoredState = loadSideFromStorage(storage);
+  assert.equal(restoredState.ervas.state, 'active');
+  assert.equal(restoredState.ervas.progress, 1);
+  const resumedItems = makeItems();
+  const resumed = worldHarness(restoredState, storage, resumedItems);
+  resumed.restore();
+  resumed.sync();
+  assert.equal(resumedItems[0].taken, true);
+  assert.equal(resumedItems[0].group.visible, false);
+  assert.equal(resumedItems[1].group.visible, true);
+
+  for (const i of [1, 2, 3]) {
+    resumed.context.player.position.x = i * 10;
+    resumed.update(1, 1000 + i);
+  }
+  assert.equal(restoredState.ervas.progress, 4);
+  assert.equal(restoredState.ervas.state, 'ready');
+  assert.equal(resumedItems[4].group.visible, false, 'itens restantes somem quando a missão fica pronta');
+  const finalReload = loadSideFromStorage(storage);
+  assert.equal(finalReload.ervas.progress, 4);
+  assert.equal(finalReload.ervas.state, 'ready');
+  assert.deepEqual(turnInSide(finalReload, 'ervas'), SIDE_QUESTS[0].reward);
+  assert.equal(turnInSide(finalReload, 'ervas'), null);
 });
