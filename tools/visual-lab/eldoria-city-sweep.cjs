@@ -69,24 +69,24 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          const to=[edge.x+edge.targetOffset[0],targetState.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
          api.teleport(edge.x,edge.z,0);
          api.fly(from,to);
-         const view=api.camView?api.camView(to):null;
+         // A câmera livre já foi posicionada; não fazer raycast global aqui.
+         // camView percorre/raycasteia todas as malhas visíveis e é caro no SwiftShader.
+         const camera=api.cam();
          return {
            target:{x:targetState.x,y:targetState.y,z:targetState.z,walkable:targetState.walkable,boundaryDistance:targetState.edge},
            cameraGround:{x:cameraGround.x,y:cameraGround.y,z:cameraGround.z},
-           from,to,view
+           from,to,camera
          };
        },edge);
        await page.waitForTimeout(900);
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-       const valid=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&(!data.view||data.view.onScreen);
-       const framingIssue=data.view&&data.view.blocked&&data.view.blocked.dist<data.view.camToHero-1.5
-         ? "câmera obstruída por "+data.view.blocked.name+" a "+data.view.blocked.dist+" m":null;
-       if(!valid)report.errors.push("Sonda/câmera inválida na costura "+edge.name);
+       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite);
+       if(!positioned)report.errors.push("Sonda/câmera inválida na costura "+edge.name);
        report.cases.push({
-         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,pass:valid,reason:framingIssue|| (valid?"ponto de transição enquadrado":"ponto/câmera inválidos"),
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,from:data.from,to:data.to,view:data.view}
+         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"sonda e câmera posicionadas; conferir PNG":"ponto/câmera inválidos",
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,from:data.from,to:data.to,camera:data.camera}
        });
      }
    }
@@ -115,6 +115,7 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
    await page.close(); await context.close();context=null;
   }
   report.status=report.errors.length?"needs-review":"captured";
+  if(report.errors.length)process.exitCode=1;
  }catch(e){report.status="failed";report.error=String(e.stack||e).slice(0,1500);process.exitCode=1;}
  finally {if(context)await context.close().catch(()=>{});if(browser)await browser.close().catch(()=>{});
    report.videos=fs.readdirSync(path.join(output,"android-landscape"),{withFileTypes:true}).filter(x=>x.name.endsWith(".webm")).map(x=>"android-landscape/"+x.name).concat(fs.existsSync(path.join(output,"desktop"))?fs.readdirSync(path.join(output,"desktop")).filter(x=>x.endsWith(".webm")).map(x=>"desktop/"+x):[]);
