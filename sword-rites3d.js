@@ -46,6 +46,15 @@ export function passagePath(from,target,blocked){
   append(at(-r,r));if(ok)append(at(r,r));if(ok)append(at(r,0));if(ok)return points;
  }return null;
 }
+function auroraWaveTouches(w,o){
+ const dx=o.x-w.p.x,dz=o.z-w.p.z,along=dx*Math.sin(w.yaw)+dz*Math.cos(w.yaw),side=dx*Math.cos(w.yaw)-dz*Math.sin(w.yaw),dy=o.y-w.p.y;
+ const cross=side*Math.cos(w.roll)+dy*Math.sin(w.roll),thick=-side*Math.sin(w.roll)+dy*Math.cos(w.roll);
+ return Math.abs(along)<.55+(o.radius||.5)&&Math.abs(cross)<w.radius+(o.radius||.5)&&Math.abs(thick)<.55+(o.height||1.7)*.4;
+}
+function auroraWaveImpactPoint(w,o){
+ const fx=Math.sin(w.yaw),fz=Math.cos(w.yaw),r=o.radius||.5;
+ return{x:o.x-fx*r,y:o.y,z:o.z-fz*r};
+}
 export class SwordRites {
  constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.queued=false;this.energies=[];}
  get canCancel(){return !this.active||(this.active.kind==='basic'&&(this.active.t<this.active.def.open*.65||this.active.t>this.active.def.close+.04));}
@@ -163,7 +172,13 @@ export class SwordRites {
    const unblockedThisFrame=!e.done;
    const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
    // Inimigos secundários também devem ser atingidos no último quadro, sem atravessar paredes.
-   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
+   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});
+    // Secondary energy contacts need the same visible impact cue as the primary hit.
+    // Keep hitstop/shake disabled for a crowd to avoid stacking camera impulses.
+    const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),radius=o.radius||.5;
+    const dx=o.x-e.x,dz=o.z-e.z,radial=Math.hypot(dx,dz)||1;
+    const contact=e.kind==='sector'?{x:o.x-dx/radial*radius,y:o.y,z:o.z-dz/radial*radius}:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius};
+    this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:contact,hitstop:0,shake:0});}}}
    if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
@@ -175,10 +190,16 @@ export class SwordRites {
     // Sweep the width as well as the centre, so a wave cannot hit through a wall.
     for(let k=-2;k<=2;k++){const off=k*.5*w.radius*Math.cos(w.roll);if(this.api.blocked({x:w.p.x+Math.cos(w.yaw)*off,y:w.p.y,z:w.p.z-Math.sin(w.yaw)*off})){gone=true;break;}}
     if(gone)break;
-    if(target?.alive&&!w.hits.has(target.id)){
-     const dx=target.x-w.p.x,dz=target.z-w.p.z,along=dx*Math.sin(w.yaw)+dz*Math.cos(w.yaw),side=dx*Math.cos(w.yaw)-dz*Math.sin(w.yaw),dy=target.y-w.p.y;
-     const cross=side*Math.cos(w.roll)+dy*Math.sin(w.roll),thick=-side*Math.sin(w.roll)+dy*Math.cos(w.roll);
-     if(Math.abs(along)<.55+(target.radius||.5)&&Math.abs(cross)<w.radius+(target.radius||.5)&&Math.abs(thick)<.55+(target.height||1.7)*.4){w.hits.add(target.id);this.api.hit(w.damage,target.id,'eclipse');this.api.event('impact',{target,sword:'aurora',final:w.n===3});}
+    if(target?.alive&&!w.hits.has(target.id)&&auroraWaveTouches(w,target)){
+     w.hits.add(target.id);this.api.hit(w.damage,target.id,'eclipse');
+     this.api.event('impact',{target,sword:'aurora',final:w.n===3,by:'energy',energy:w,p:auroraWaveImpactPoint(w,target)});
+    }
+    // A onda do Eclipse também percorre ctx.others: cada alvo lateral recebe dano e
+    // impacto próprio uma vez por onda, sem acumular hitstop/shake da multidão.
+    if(ctx.others?.length)for(const o of ctx.others){
+     if(!o?.alive||o.id==null||o.id===target?.id||w.hits.has(o.id)||!auroraWaveTouches(w,o)||segmentBlocked(w.origin,o,this.api.blocked))continue;
+     w.hits.add(o.id);this.api.hit(Math.round(w.damage*.8),o.id,'energy-side',{target:o,wave:w});
+     this.api.event('impact',{target:o,sword:'aurora',final:false,by:'energy',energy:w,p:auroraWaveImpactPoint(w,o),hitstop:0,shake:0});
     }
    }
    if(gone||w.travel>=w.range){this.api.event('waveEnd',w);this.waves.splice(i,1);}
