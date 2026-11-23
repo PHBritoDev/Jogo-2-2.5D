@@ -13,7 +13,7 @@ fs.mkdirSync(dir, { recursive: true });
     '--disable-dev-shm-usage', '--ignore-gpu-blocklist'
   ] });
   let context;
-  const report = { ok: false, scenario: 'Eclipse das Lâminas / quatro ondas / dois secundários', errors: [],
+  const report = { ok: false, scenario: 'Eclipse das Lâminas / quatro ondas / dois secundários + foco separado + controle fora da faixa', errors: [],
     steps: {}, limitations: ['SwiftShader valida este renderer, não FPS de Android físico.',
       'A câmera e o cenário são de laboratório; revisar vídeo e PNGs antes de aprovar o acabamento visual.'] };
   try {
@@ -47,15 +47,15 @@ fs.mkdirSync(dir, { recursive: true });
       const sides = actors.filter(a => a.id !== primaryId);
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
-      D.squadPose(primaryId, -5, 12.2, 0, true);
-      D.squadPose(sides[0].id, -5.55, 12, 0, true);
-      D.squadPose(sides[1].id, -4.45, 12, 0, true);
-      D.squadPose(sides[2].id, -11, 12, 0, true);
+      D.squadPose(primaryId, -5, 13.7, 0, true);
+      D.squadPose(sides[0].id, -5.15, 12, 0, true);
+      D.squadPose(sides[1].id, -3.75, 12, 0, true);
+      D.squadPose(sides[2].id, -7.8, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();
       if (synced.focus !== primaryId) throw new Error('Foco do combate mudou durante a preparação.');
       D.riteEquip('aurora');
-      D.fly([0, 4.5, 22], [-5, 1, 14]);
+      D.fly([-5, 3.8, 19.5], [-4.6, 1, 12.8]);
       D.render();
       for (const el of document.querySelectorAll('#enemy1-lab,#vfx-lab')) el.style.display = 'none';
       const current = synced.snap.actors;
@@ -72,9 +72,9 @@ fs.mkdirSync(dir, { recursive: true });
     assert.ok(report.steps.before.actors.every(a => a && Number.isFinite(a.hp)));
     const initialById = new Map(report.steps.before.actors.map(a => [a.id, a]));
     assert.ok(Math.abs(initialById.get(report.steps.before.sideIds[0]).x -
-      initialById.get(report.steps.before.sideIds[1]).x)  >= 1.05,
-      'os dois secundários precisam estar separados dentro da largura efetiva das quatro ondas');
-    assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 12.2) < .5,
+      initialById.get(report.steps.before.sideIds[1]).x)  >= 1.35,
+      'os dois secundários precisam ficar visualmente separados e dentro da faixa comum das quatro ondas');
+    assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 13.7) < .5,
       'ponte de alvo precisa acompanhar o foco reposicionado');
     await page.screenshot({ path: path.join(dir, '01-antes-do-rito.png'), timeout: 120000 });
 
@@ -115,30 +115,39 @@ fs.mkdirSync(dir, { recursive: true });
     });
     const before = new Map(report.steps.before.actors.map(a => [a.id, a]));
     const after = new Map(report.steps.after.actors.map(a => [a.id, a]));
+    const trackedIds = [report.steps.before.primaryId, ...report.steps.before.sideIds];
     const impactEvents = report.steps.after.events.filter(e => e.type === 'impact' && e.position);
-    report.steps.after.mappedImpacts = Object.fromEntries(report.steps.before.sideIds.map(id => {
+    const belongsTo = (e, a) => Math.abs(e.position.x - a.x) < .12 &&
+      Math.abs(e.position.z - a.z) < .8;
+    report.steps.after.mappedImpactsById = Object.fromEntries(trackedIds.map(id => {
       const a = before.get(id);
-      return [id, impactEvents.filter(e => Math.abs(e.position.x - a.x) < .12 &&
-        Math.abs(e.position.z - a.z) < .8).length];
+      return [id, impactEvents.filter(e => belongsTo(e, a)).length];
+    }));
+    report.steps.after.impactTimesById = Object.fromEntries(trackedIds.map(id => {
+      const a = before.get(id);
+      return [id, impactEvents.filter(e => belongsTo(e, a)).map(e => e.at)];
+    }));
+    report.steps.after.impactPositionsById = Object.fromEntries(trackedIds.map(id => {
+      const a = before.get(id);
+      return [id, impactEvents.filter(e => belongsTo(e, a)).map(e => e.position)];
     }));
     report.steps.after.hpDeltaById = Object.fromEntries([...before.keys()].map(id =>
       [id, before.get(id).hp - after.get(id).hp]));
-    report.steps.after.impactPositionsByTarget = Object.fromEntries(report.steps.before.sideIds.map(id => {
-      const a = before.get(id);
-      return [id, impactEvents.filter(e => Math.abs(e.position.x - a.x) < .12 &&
-        Math.abs(e.position.z - a.z) < .8).map(e => e.position)];
-    }));
     report.steps.after.controlImpacts = impactEvents.filter(e => {
       const a = before.get(report.steps.before.controlId);
       return Math.abs(e.position.x - a.x) < .2 && Math.abs(e.position.z - a.z) < .8;
     }).length;
-    for (const id of report.steps.before.sideIds) {
+    for (const id of trackedIds) {
       assert.ok(after.get(id)?.hp < before.get(id).hp, `HP de ${id} precisa cair pela onda real`);
-      assert.equal(report.steps.after.mappedImpacts[id], 4, `as quatro ondas precisam emitir exatamente um impacto separado em ${id}`);
+      assert.equal(report.steps.after.mappedImpactsById[id], 4,
+        `as quatro ondas precisam emitir exatamente um impacto separado em ${id}`);
+      assert.equal(new Set(report.steps.after.impactTimesById[id]).size, 4,
+        `cada impacto de ${id} precisa vir de uma onda/instante distinto`);
     }
     assert.equal(after.get(report.steps.before.controlId)?.hp, before.get(report.steps.before.controlId).hp,
       'alvo fora da largura da onda deve permanecer sem dano');
     assert.equal(report.steps.after.controlImpacts, 0, 'alvo fora da onda não pode receber impacto visual');
+    assert.equal(report.steps.after.projectiles.length, 0, 'as quatro ondas precisam dissipar antes do fim do QA');
     assert.deepEqual(report.errors, [], 'sem exceções WebGL/JS ou respostas HTTP falhas');
     await page.screenshot({ path: path.join(dir, '05-dissipacao.png'), timeout: 120000 });
     await page.evaluate(() => { SevenSinsDebug3D.fly(null); });
