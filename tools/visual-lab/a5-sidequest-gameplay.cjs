@@ -23,6 +23,9 @@ const report = {
   viewport: VIEWPORT,
   scenarios: [],
   screenshots: [],
+  cameraDiagnostics: [],
+  vendorApproaches: [],
+  framingWarnings: [],
   pageErrors: [],
   consoleErrors: [],
   requestFailures: [],
@@ -94,7 +97,40 @@ async function waitWorld(page) {
   );
 }
 
+async function waitCameraStable(page, maxMs = 9000) {
+  const started = Date.now();
+  let previous = null;
+  let still = 0;
+  let last = { camera: null, view: null };
+  while (Date.now() - started < maxMs) {
+    last = await page.evaluate(() => {
+      const d = window.SevenSinsDebug3D;
+      return {
+        camera: typeof d?.cam === 'function' ? d.cam() : null,
+        view: typeof d?.camView === 'function' ? d.camView() : null
+      };
+    });
+    const current = last.camera;
+    if (Array.isArray(current) && current.length >= 3) {
+      if (previous && Math.hypot(current[0] - previous[0], current[1] - previous[1], current[2] - previous[2]) < 0.03) {
+        if (++still >= 2) return { settled: true, elapsedMs: Date.now() - started, ...last };
+      } else {
+        still = 0;
+      }
+      previous = current;
+    }
+    await page.waitForTimeout(350);
+  }
+  return { settled: false, elapsedMs: Date.now() - started, ...last };
+}
+
 async function snap(page, name) {
+  const camera = await waitCameraStable(page, 10000);
+  const diagnostic = { file: name, settled: camera.settled, elapsedMs: camera.elapsedMs, camera: camera.camera, view: camera.view };
+  report.cameraDiagnostics.push(diagnostic);
+  if (!camera.settled || (camera.view && (!camera.view.onScreen || camera.view.blocked))) {
+    report.framingWarnings.push({ file: name, settled: camera.settled, onScreen: camera.view?.onScreen ?? null, blocked: camera.view?.blocked ?? null });
+  }
   const file = path.join(OUT, name);
   await page.screenshot({ path: file, animations: 'disabled', timeout: 60000 });
   report.screenshots.push(name);
@@ -125,12 +161,29 @@ async function interactVendor(page, index) {
   const v = await vendorPosition(page, index);
   // Ficar fora do pivô do NPC evita sobreposição do herói e da câmera.
   const offsets = [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [0, 0]];
+  const candidates = [];
   for (const offset of offsets) {
-    await page.evaluate(({ x, z }) => {
+    await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.teleport(x, z), { x: v.x + offset[0], z: v.z + offset[1] });
+    const camera = await waitCameraStable(page, 5000);
+    const views = await page.evaluate((pos) => {
       const d = window.SevenSinsDebug3D;
-      d.teleport(x, z);
-      d.interact();
-    }, { x: v.x + offset[0], z: v.z + offset[1] });
+      let vendor = null;
+      try { vendor = typeof d.camView === 'function' ? d.camView(pos) : null; } catch (_) {}
+      return { player: typeof d.camView === 'function' ? d.camView() : null, vendor };
+    }, await page.evaluate((i) => window.SevenSinsDebug3D.regressionState().vendors[i].pos, index));
+    const clear = (view) => !view || (view.onScreen && !view.blocked);
+    const score = (camera.settled ? 2 : 0) + (clear(views.player) ? 2 : -3) + (clear(views.vendor) ? 2 : -3);
+    candidates.push({ offset, score, settled: camera.settled, player: views.player, vendor: views.vendor });
+    if (camera.settled && clear(views.player) && clear(views.vendor)) break;
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  report.vendorApproaches.push({ vendor: v.name, candidates });
+  const selected = candidates[0]?.offset || offsets[0];
+  await page.evaluate(({ x, z }) => {
+    const d = window.SevenSinsDebug3D;
+    d.teleport(x, z);
+    d.interact();
+  }, { x: v.x + selected[0], z: v.z + selected[1] });
     try {
       await page.waitForFunction(() => {
         const p = document.getElementById('dialog-panel');
@@ -152,8 +205,7 @@ async function drainDialogue(page, expected, screenshotName) {
     const p = document.getElementById('dialog-panel');
     return !!p && !p.classList.contains('hidden');
   }, null, { timeout: 15000 });
-  // O teleporte QA move o ator imediatamente; aguardar a câmera real acompanhar antes da foto.
-  await page.waitForTimeout(750);
+  // A captura aguarda a câmera real estabilizar; não usar atraso fixo como prova de enquadramento.
   const pages = [];
   for (let i = 0; i < 20; i++) {
     const hidden = await page.evaluate(() => {
