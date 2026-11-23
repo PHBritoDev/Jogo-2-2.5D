@@ -37,9 +37,12 @@ function anchorRoot(clips, refName) { // raiz única: quadril horizontal fixo no
   for (const c of clips) { if (ROOTED.has(c)) continue; ROOTED.add(c); const tr = c.tracks.find(t => /hips[^.]*\.position$/i.test(t.name)); if (!tr) continue; const v = tr.values, dx = ax - v[0], dz = az - v[2]; for (let i = 0; i < v.length; i += 3) { v[i] += dx; v[i + 2] += dz; } }
 }
 function synth(T, clips, specs, ref) {
-  anchorRoot(clips, ref); const by = n => clips.find(c => c.name === n), out = [];
+  anchorRoot(clips, ref); const by = n => clips.find(c => c.name === n), out = [], refY = by(ref)?.tracks.find(t => /hips[^.]*\.position$/i.test(t.name))?.values[1] ?? .85;
   for (const [name, src, a, b, flatY] of specs) { const s = by(src); if (!s) continue; const c = T.AnimationUtils.subclip(s, name, a, b, 30);
-    if (flatY) for (const tr of c.tracks) if (/hips[^.]*\.position$/i.test(tr.name)) { const v = tr.values, y0 = v[1]; for (let i = 0; i < v.length; i += 3) v[i + 1] = Math.min(v[i + 1], y0 + .05) - (flatY === 'dive' ? 0 : 0); }
+    // 22/11 (Etapa 4): Dive_Down_and_Land_2 começa com o quadril a 8,8 u (~14 m) — o corpo "sumia" no voo. A altura do voo é do ator
+    // (airY); o clipe só dá a POSTURA: 'flat' fixa o quadril na altura de pé; 'shift' alinha o fim do clipe à altura de pé (pouso).
+    if (flatY) for (const tr of c.tracks) if (/hips[^.]*\.position$/i.test(tr.name)) { const v = tr.values, yL = v[v.length - 2], y0 = v[1];
+      for (let i = 0; i < v.length; i += 3) v[i + 1] = flatY === 'shift' ? clamp(v[i + 1] - yL + refY, refY * .45, refY * 1.2) : refY + clamp(v[i + 1] - y0, -.15, .15); }
     ROOTED.add(c); out.push(c); }
   return out;
 }
@@ -48,7 +51,7 @@ export function gkSynthB(T, clips) {
   // asas: sem trilhas (ficam 100 % procedurais — nenhum clipe do GLB as move; o runtime as anima por ossos)
   for (const c of clips) c.tracks = c.tracks.filter(t => !/^Bone_0(4[89]|5[0-9]|8[0-9]|9[0-2]|3[01])\./.test(t.name));
   return synth(T, clips, [['GK_idle', 'Arise', 48, 55], ['GK_guard', 'Weapon_Combo', 0, 6], ['GK_hit', 'Double_Combo_Attack', 52, 62], ['GK_cast', 'Arise', 40, 55], ['GK_pitch', 'Right_Hand_Sword_Slash', 0, 45],
-    ['GK_fly', 'Dive_Down_and_Land_2', 0, 3], ['GK_dive', 'Dive_Down_and_Land_2', 2, 30, 'dive'], ['GK_land', 'Dive_Down_and_Land', 24, 48], ['GK_jump', 'Basic_Jump', 30, 60]], 'Walking');
+    ['GK_fly', 'Dive_Down_and_Land_2', 0, 3, 'flat'], ['GK_dive', 'Dive_Down_and_Land_2', 2, 30, 'flat'], ['GK_land', 'Dive_Down_and_Land', 24, 48, 'shift'], ['GK_jump', 'Basic_Jump', 30, 60, 'flat']], 'Walking');
 }
 /** Fase II: reparenta as cadeias de asa presas à cabeça/raiz para as bases nas costas (hierarquia coerente para bater). */
 export function gkPrepareB(T, model) {
@@ -82,13 +85,13 @@ export const GK_MOVES_A = MA, GK_MOVES_B = MB;
 export const GK = Object.freeze({
   dash: { speed: 13.5, time: .22, cd: .6, minStart: .6 },
   scythe: { life: 10, speed: 11, maxSpeed: 7.8, accel: 20, keep: 1.35, windup: .34, strikeDur: .3, recoil: .38, dmg: 9, reach: 1.45, clashR: 2.3, clashCd: .6, stun: .9, repel: 9 },
-  spear: { speed: 18, turn: 1.7, life: 5, radius: .55, dmg: 22, gap: [3.5, 16], cd: 9, release: 1.67 },
-  throw: { release: 1.67, gap: [2, 12], cd: 8, phase2Release: .7 },
-  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 12, minCeil: 7.5, maxCeil: 18 },
-  suns: { n: 4, form: .45, hold: .35, gap: .36, speed: 11.5, radius: .55, boom: 2.3, direct: 14, area: 8, cd: 14 },
-  abyss: { first: [32, 38], slow: 25, fast: 20, charge: 3.3, speed: 9.5, radius: 1, boom: 3.2, direct: 24, area: 12 },
+  spear: { speed: 18, turn: 1.7, life: 5, radius: .55, dmg: 22, gap: [3.5, 16], cd: 9, release: 1.15 },
+  throw: { release: 1.15, gap: [2, 12], cd: 8, phase2Release: .7, p1Dur: 1.6, p1Speed: 1.45 }, // 22/11: arremesso da fase I 45% mais rápido (o vídeo de 9 s mostrava ritmo lento)
+  fly: { alt: 4.4, ceilMargin: 2.2, rise: 6, cruise: [1.4, 2.4], radius: 7, speed: 6.5, diveSpeed: 15, hang: 3.6, cd: 18, minCeil: 7.5, maxCeil: 22, spotSpeed: 11 },
+  suns: { n: 4, form: .55, hold: .35, gap: .42, speed: 13, radius: 1.7, boom: 4.6, direct: 14, area: 8, cd: 30 }, // 22/11 (Etapa 5): sóis ~4× maiores (raio 1,7 m) e área proporcional
+  abyss: { first: [32, 38], slow: 25, fast: 20, charge: 4.2, speed: 24, radius: 2.6, boom: 6.5, direct: 24, area: 12 }, // 22/11 (Etapa 6): carga gradual dentro da garganta, ~2,5× mais rápida, ~3× maior
   tele: { duel: [6, 8], orbitR: 1.7 },
-  phase: { fall: 2.6, arise: 1.9, revive: { die: 2.6, hold: .7, rise: 1.83, burst: .5 } }
+  phase: { fall: 2.6, arise: 1.9, revive: { die: 2.2, hold: .8, charge: 1.4, rise: 1.83, burst: .35, reveal: 1.1 } } // 22/11: diretor II→III (~7,7 s)
 });
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = x => Math.atan2(Math.sin(x), Math.cos(x)), ease = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
 const SETS = { scythes: { R: 'B', L: 'A' }, spearblade: { R: 'C', L: 'D' } };
@@ -111,12 +114,34 @@ function resummon(sq, a) {
 export function gkHoldDeath(sq, a) { const g = gkInit(sq, a); if (g.phase >= 3 || (a.act && a.act.type === 'gkPhase')) return false; if (a.kind === 'greedA') startPhaseOut(sq, a); else startRevive(sq, a); return false; }
 
 /* ---------------- armas autônomas (foices; na fase III, as quatro) ---------------- */
-const CHOREO = { // golpes por arma: eixo da haste (ângulo no plano vertical), varredura (de→para, rad) e altura
-  A: [{ sweep: [-1.6, 1.5], tilt: .25, h: 1.25 }, { sweep: [1.2, -1.4], tilt: -.6, h: .9 }, { sweep: [-2.6, 2.6], tilt: 0, h: 1.1, spin: true }],
-  B: [{ sweep: [2.2, -.2], tilt: 1.2, h: 1.7 }, { sweep: [-1.4, 1.3], tilt: -.2, h: .75 }, { sweep: [1.7, -1.7], tilt: .05, h: 1.55 }],
-  C: [{ thrust: 1.6, h: 1.2 }, { thrust: 1.9, h: 1.05 }, { sweep: [-1.2, 1.2], tilt: .1, h: 1.1 }],
-  D: [{ sweep: [1.4, -.9], tilt: .8, h: 1.5 }, { sweep: [-1.4, .9], tilt: .8, h: 1.5 }, { sweep: [0, 0], tilt: 1.45, h: 2.1, slam: true }]
+/** 22/11 (Etapa 2) — COREOGRAFIA das armas autônomas: cada golpe é um arco REAL num plano (h horizontal, d diagonal, v
+ *  vertical, spin giro, thrust estocada): preparo (recua/sobe ao ângulo inicial + avanço do "empunhador invisível"),
+ *  varredura rápida com o gume liderando, continuação com freio e retirada. a0/a1 = ângulo da haste no plano (rad), h = altura
+ *  do pivô (punho), r = distância de golpe, lunge = avanço no preparo, win = janelas de dano (giro tem 2). */
+const CHOREO = {
+  A: [{ p: 'h', a0: -2.1, a1: 1.9, h: 1.15, r: 1.2, lunge: 1.1 }, { p: 'd', a0: 2.2, a1: -1.5, h: 1.55, r: 1.15, tilt: .75, lunge: .9 }, { p: 'spin', a0: 0, a1: 4 * Math.PI, h: 1.05, r: 1.0, lunge: 2.2, win: 2, dur: .62 },
+    { p: 'v', a0: 2.4, a1: -.55, h: 1.5, r: 1.05, lunge: 1 }, { p: 'h', a0: 2.0, a1: -2.0, h: .95, r: 1.25, lunge: 1.2 }],
+  B: [{ p: 'd', a0: -2.2, a1: 1.6, h: 1.6, r: 1.15, tilt: -.7, lunge: 1 }, { p: 'h', a0: 2.1, a1: -1.9, h: 1.1, r: 1.2, lunge: 1.1 }, { p: 'v', a0: 2.5, a1: -.6, h: 1.6, r: 1.0, lunge: .9, slam: true },
+    { p: 'spin', a0: 0, a1: -4 * Math.PI, h: 1.1, r: 1.0, lunge: 2, win: 2, dur: .6 }, { p: 'd', a0: 1.9, a1: -2.0, h: 1.4, r: 1.2, tilt: .6, lunge: 1 }],
+  C: [{ p: 'thrust', h: 1.25, r: 2.15, lunge: 1.6 }, { p: 'thrust', h: .95, r: 2.05, lunge: 1.8 }, { p: 'h', a0: -1.8, a1: 1.8, h: 1.1, r: 1.85, lunge: .8 }],
+  D: [{ p: 'v', a0: 2.5, a1: -.7, h: 1.6, r: 1.0, lunge: 1, slam: true }, { p: 'd', a0: -2.0, a1: 1.7, h: 1.5, r: 1.05, tilt: -.6, lunge: 1 }, { p: 'h', a0: 1.9, a1: -1.9, h: 1.05, r: 1.1, lunge: 1.1 },
+    { p: 'thrust', h: 1.2, r: 1.25, lunge: 1.4 }]
 };
+/** Trechos de dano LOCAIS (o gume real de greed-weapons3d.js: 3 trechos do fio + haste; lança: ponta + haste). Teste: iguais ao userData.edges. */
+export const GK_WEAPON_EDGES = Object.freeze({
+  A: [[[.21, 1.19, 0], [.43, 1.21, 0]], [[.43, 1.21, 0], [.87, .94, 0]], [[.87, .94, 0], [1.25, .46, 0]], [[0, .6, 0], [0, 1.52, 0]]],
+  B: [[[.22, 1.17, 0], [.4, 1.2, 0]], [[.4, 1.2, 0], [.82, .92, 0]], [[.82, .92, 0], [1.19, .42, 0]], [[0, .6, 0], [0, 1.5, 0]]],
+  C: [[[0, 1.5, 0], [0, 2.56, 0]], [[0, .4, 0], [0, 1.5, 0]]],
+  D: [[[.13, .97, 0], [.42, .93, 0]], [[.42, .93, 0], [.85, .6, 0]], [[-.13, .98, 0], [-.79, .66, 0]], [[0, .5, 0], [0, 1.42, 0]]]
+});
+function weaponSegs(e) { const L = GK_WEAPON_EDGES[e.key] || GK_WEAPON_EDGES.A, [X0, X1, X2] = e.X || [1, 0, 0], [Y0, Y1, Y2] = e.ax, [Z0, Z1, Z2] = e.nrm;
+  const w = ([x, y, z]) => ({ x: e.x + X0 * x + Y0 * y + Z0 * z, y: e.y + X1 * x + Y1 * y + Z1 * z, z: e.z + X2 * x + Y2 * y + Z2 * z }); return L.map(([a, b]) => [w(a), w(b)]); }
+/** Pose da arma num golpe: haste = cos θ·u + sin θ·v no plano do golpe; o gume (+X do modelo) LIDERA a varredura. */
+function strikePose(e, c, th, sgn, f, r) { const up = [0, 1, 0]; let u, v;
+  if (c.p === 'v') { u = f; v = up; } else if (c.p === 'd') { const t = c.tilt || .7; u = f; v = [r[0] * Math.cos(t), Math.sin(t), r[2] * Math.cos(t)]; } else { u = f; v = r; }
+  const cs = Math.cos(th), sn = Math.sin(th), h = [cs * u[0] + sn * v[0], cs * u[1] + sn * v[1], cs * u[2] + sn * v[2]], tg = [-sn * u[0] + cs * v[0], -sn * u[1] + cs * v[1], -sn * u[2] + cs * v[2]];
+  const X = tg.map(q => q * sgn), N = [X[1] * h[2] - X[2] * h[1], X[2] * h[0] - X[0] * h[2], X[0] * h[1] - X[1] * h[0]]; e.ax = h; e.X = X; e.nrm = N; }
+
 function launchBlade(sq, a, key, t, side, mode = 'outbound') {
   const g = a.gk, S = GK.scythe, fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fx;
   const e = { id: g.nextId++, key, owner: a.id, mode, t: 0, life: mode === 'tele' ? GK.tele.duel[0] + sq.rand() * (GK.tele.duel[1] - GK.tele.duel[0]) : S.life,
@@ -127,10 +152,6 @@ function launchBlade(sq, a, key, t, side, mode = 'outbound') {
 /** Segmento do gume no mundo a partir da pose da arma (centro W, eixo da haste e alcance). */
 /** esquiva real (dash/esquiva perfeita) anula; a graça pós-acerto (iframes sem `evading`) vai ao resolvedor do jogo, que libera fontes independentes */
 const evades = tg => !!tg.iframes && tg.evading !== false;
-function bladeSeg(e) { const L = e.key === 'C' ? 1.55 : 1.35, c = e.key === 'C' ? .2 : .35, o = { base: { x: e.x + e.ax[0] * c, y: e.y + e.ax[1] * c, z: e.z + e.ax[2] * c }, tip: { x: e.x + e.ax[0] * L, y: e.y + e.ax[1] * L, z: e.z + e.ax[2] * L } };
-  if (e.key === 'C') return o; // gume da lâmina/picareta: sai do topo da haste no eixo X do modelo (= haste × normal), como no runtime
-  const [ax, ay, az] = e.ax, [nx, ny, nz] = e.nrm, X = [ay * nz - az * ny, az * nx - ax * nz, ax * ny - ay * nx], l = Math.hypot(...X) || 1, E = .8, h = L - .12;
-  o.eb = { x: e.x + ax * h, y: e.y + ay * h, z: e.z + az * h }; o.et = { x: o.eb.x + X[0] / l * E, y: o.eb.y + X[1] / l * E, z: o.eb.z + X[2] / l * E }; return o; }
 function stepBlades(sq, a, dt, t) {
   const g = a.gk, S = GK.scythe; if (!g.ents.length) return;
   for (const e of g.ents) { if (e.mode === 'gone') continue; e.t += dt; e.clashCd = Math.max(0, e.clashCd - dt);
@@ -153,38 +174,47 @@ function stepBlades(sq, a, dt, t) {
     if (e.mode === 'outbound') { // arremesso lateral/oblíquo que curva até o herói, girando
       const ax = ux * S.accel * 1.4 - e.vx * .6, az = uz * S.accel * 1.4 - e.vz * .6; e.vx += ax * dt; e.vz += az * dt; const sp = Math.hypot(e.vx, e.vz), mx = S.speed; if (sp > mx) { e.vx *= mx / sp; e.vz *= mx / sp; }
       const nx = e.wx + e.vx * dt, nz = e.wz + e.vz * dt; if (sq.blocked(nx, nz)) { e.vx *= -.4; e.vz *= -.4; } else { e.wx = nx; e.wz = nz; }
-      e.spin += dt * 16; e.ax = [Math.cos(e.spin) * Math.cos(e.yaw), .15, Math.cos(e.spin) * -Math.sin(e.yaw)]; e.x = e.wx; e.z = e.wz; e.y += (sq.ground(e.x, e.z) + 1.3 - e.y) * Math.min(1, dt * 3);
+      e.spin += dt * 16; e.ax = [Math.cos(e.spin) * Math.cos(e.yaw), .15, Math.cos(e.spin) * -Math.sin(e.yaw)]; { const l = Math.hypot(...e.ax); e.ax = e.ax.map(q => q / l); } e.nrm = [-Math.sin(e.spin) * Math.cos(e.yaw), 0, Math.sin(e.spin) * Math.sin(e.yaw)]; e.x = e.wx - e.ax[0] * .7; e.z = e.wz - e.ax[2] * .7; e.y += (sq.ground(e.x, e.z) + 1.3 - e.ax[1] * .7 - e.y) * Math.min(1, dt * 3); e.segs = null;
       if (d < 4 || e.t > 1.6) { e.mode = e.key && a.gk.phase >= 3 ? 'tele' : 'duel'; if (e.mode === 'tele') e.life = e.t + (e.life - e.t); sq.event('gkBlade', { actor: a, ent: e, phase: 'duel' }); }
       continue; }
-    // DUELO: empunhador invisível W mantém distância, desliza de lado e executa golpes com janelas próprias
-    const want = e.strike ? S.keep * .85 : S.keep + (e.cool > 0 ? .4 : 0), side = e.side, err = d - want;
-    let ax = ux * clamp(err, -1.5, 1.5) * S.accel - e.vx * 3, az = uz * clamp(err, -1.5, 1.5) * S.accel - e.vz * 3;
-    if (!e.strike) { ax += -uz * side * 4; az += ux * side * 4; }
-    e.vx += ax * dt; e.vz += az * dt; const sp = Math.hypot(e.vx, e.vz); if (sp > S.maxSpeed) { e.vx *= S.maxSpeed / sp; e.vz *= S.maxSpeed / sp; }
+    // DUELO (22/11): empunhador invisível W circula o herói; golpe = preparo (recua ao ângulo inicial e avança) → arco completo
+    // num plano real com o gume liderando → freio → retirada. Dano só do GUME/haste no espaço (varredura quadro anterior→atual).
+    let st = e.strike, want = S.keep + .45, strafe = !st;
+    if (st) { const ph = st.t < st.w ? 0 : st.t < st.w + st.d ? 1 : 2; want = ph === 2 ? S.keep + .85 : st.c.r - (st.c.p === 'spin' && ph === 1 ? .7 : 0); }
+    const err = d - want, gain = st ? S.accel * 1.7 : S.accel;
+    let ax = ux * clamp(err, -1.6, 1.6) * gain - e.vx * 3, az = uz * clamp(err, -1.6, 1.6) * gain - e.vz * 3;
+    if (strafe) { ax += -uz * e.side * 4.5; az += ux * e.side * 4.5; }
+    e.vx += ax * dt; e.vz += az * dt; const vmax = st && st.t < st.w + st.d ? S.maxSpeed * 1.6 : S.maxSpeed, sp = Math.hypot(e.vx, e.vz); if (sp > vmax) { e.vx *= vmax / sp; e.vz *= vmax / sp; }
     const nx = e.wx + e.vx * dt, nz = e.wz + e.vz * dt; if (!sq.blocked(nx, nz)) { e.wx = nx; e.wz = nz; } else { e.vx = e.vz = 0; }
-    if ((e.cool -= dt) <= 0 && !e.strike && d < S.keep + 1.2) { const list = CHOREO[e.key], c = list[e.combo++ % list.length]; e.strike = { id: g.nextId++, c, t: 0, hit: new Set(), face: Math.atan2(ux, uz) }; sq.event('gkBlade', { actor: a, ent: e, phase: 'windup', strike: e.strike }); }
-    const face = e.strike ? e.strike.face : Math.atan2(ux, uz), fx = Math.sin(face), fz = Math.cos(face), rx = fz, rz = -fx;
-    let hy = 1.25, ang = -.6, tilt = .3, reach = 0;
-    if (e.strike) { const s = e.strike, c = s.c; s.t += dt; const w = S.windup, u = (s.t - w) / S.strikeDur;
-      if (c.thrust) { reach = s.t < w ? -.45 * ease(s.t / w) : u < 1 ? -.45 + (c.thrust + .45) * ease(u * 1.4) : c.thrust * (1 - ease((u - 1) * 1.5)); ang = 0; tilt = 1.5; hy = c.h; }
-      else { ang = s.t < w ? c.sweep[0] * ease(s.t / w) : u < 1 ? c.sweep[0] + (c.sweep[1] - c.sweep[0]) * ease(u) : c.sweep[1]; tilt = c.tilt; hy = c.h; if (c.slam) { hy = u < 1 ? c.h - 1.6 * ease(u) : .5; } }
-      if (s.t >= w + S.strikeDur + S.recoil) { e.strike = null; e.cool = .25 + sq.rand() * .45; if (e.combo % 3 === 0) { e.cool += .5; e.side = -e.side; } } }
-    // pose: centro W + eixo da haste (no plano da varredura), à frente do empunhador
-    const sx = Math.sin(ang), cx = Math.cos(ang), lx = (fx * cx + rx * sx), lz = (fz * cx + rz * sx), ct = Math.cos(tilt), st = Math.sin(tilt);
-    e.ax = [lx * st, ct, lz * st]; const tl = Math.hypot(...e.ax); e.ax = e.ax.map(v => v / tl); e.nrm = [-lz, 0, lx];
-    if (e.strike && e.strike.c.thrust) e.ax = [fx, .05, fz];
-    e.x = e.wx + fx * (.25 + reach) - e.ax[0] * .2; e.z = e.wz + fz * (.25 + reach) - e.ax[2] * .2; e.y += (sq.ground(e.x, e.z) + hy - e.y) * Math.min(1, dt * 10);
-    // contato varrido (quadro anterior → atual) só na janela do golpe
-    const seg = bladeSeg(e), s = e.strike, open = s && s.t >= S.windup - .02 && s.t <= S.windup + S.strikeDur + .04;
-    if (open && e.base && !s.hit.has(tgt.id)) { const cap = { ...tgt, y: (tgt.y || 0) + (tgt.height || 1.8) * .5 };
-      if ((bladeContact(e.base, e.tip, seg.base, seg.tip, cap, (tgt.radius || .4) + .1) || (e.eb && seg.eb && bladeContact(e.eb, e.et, seg.eb, seg.et, cap, (tgt.radius || .4) + .1))) && sq.los(e.wx, e.wz, tgt.x, tgt.z)) { s.hit.add(tgt.id);
+    if ((e.cool -= dt) <= 0 && !st && d < S.keep + 1.8) { const list = CHOREO[e.key], c = list[e.combo++ % list.length], sgn = c.p === 'thrust' ? 1 : Math.sign(c.a1 - c.a0) || 1;
+      st = e.strike = { id: g.nextId++, c, t: 0, w: S.windup * (c.p === 'spin' ? 1.25 : c.p === 'v' ? 1.15 : 1), d: c.dur || S.strikeDur, rec: S.recoil, hit: new Set(), face: Math.atan2(ux, uz), sgn };
+      sq.event('gkBlade', { actor: a, ent: e, phase: 'windup', strike: st }); }
+    if (st && st.t < st.w * .7) st.face = Math.atan2(ux, uz); // mira só no começo do preparo; depois o arco é comprometido (esquivável)
+    const face = st ? st.face : Math.atan2(ux, uz), f = [Math.sin(face), 0, Math.cos(face)], r = [f[2], 0, -f[0]];
+    let hy = 1.35, reach = .25, exact = false;
+    if (st) { const c = st.c; st.t += dt; const tA = st.t - st.w, u = tA / st.d; hy = c.h;
+      if (c.p === 'thrust') { const k = st.t < st.w ? -.55 * ease(st.t / st.w) : u < 1 ? -.55 + 1.45 * ease(u * 1.25) : .9 * (1 - ease((u - 1) * .9));
+        reach = .25 + k; e.ax = [f[0] * .99, -.12, f[2] * .99]; e.X = [r[0], 0, r[2]]; e.nrm = [e.X[1] * e.ax[2] - e.X[2] * e.ax[1], e.X[2] * e.ax[0] - e.X[0] * e.ax[2], e.X[0] * e.ax[1] - e.X[1] * e.ax[0]]; exact = u >= -.1 && u < 1.2; }
+      else { const th = st.t < st.w ? c.a0 - st.sgn * .5 * Math.sin(Math.PI * .5 * (1 - st.t / st.w)) : u < 1 ? c.a0 + (c.a1 - c.a0) * (c.p === 'spin' ? u : ease(u)) : c.a1 + st.sgn * .4 * ease((tA - st.d) / st.rec);
+        strikePose(e, c, th, st.sgn, f, r); if (c.slam && u >= 0) hy = c.h - .55 * ease(Math.min(1, u)); exact = u >= -.15; }
+      if (st.t >= st.w + st.d + st.rec) { e.strike = null; e.cool = .18 + sq.rand() * .4; if (e.combo % 3 === 0) { e.cool += .45; e.side = -e.side; } } }
+    if (!exact) { // guarda / transição: orientação suavizada (sem estalo entre a guarda e o plano do golpe)
+      const ax0 = e.ax, X0 = e.X || [1, 0, 0]; if (!st) strikePose(e, { p: 'd', tilt: .95 }, 2.25 + .15 * Math.sin(e.t * 2.4), 1, f, r);
+      const k = 1 - Math.exp(-dt * 16), mix = (A, B) => { const m = A.map((q, i) => q + (B[i] - q) * k), l = Math.hypot(...m) || 1; return m.map(q => q / l); };
+      if (!st || st.t < .14) { e.ax = mix(ax0, e.ax); e.X = mix(X0, e.X); const Y = e.ax, X = e.X; e.nrm = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]]; }
+      if (!st) hy = 1.35 + .1 * Math.sin(e.t * 2.1); }
+    e.x = e.wx + f[0] * reach; e.z = e.wz + f[2] * reach; e.y += (sq.ground(e.x, e.z) + hy - e.y) * Math.min(1, dt * (st ? 14 : 6));
+    // contato varrido do gume real (trechos do modelo), 1 acerto por janela; o giro tem 2 janelas
+    const segs = weaponSegs(e), s = e.strike, open = s && s.t >= s.w - .02 && s.t <= s.w + s.d + .04, win = s ? Math.floor(clamp((s.t - s.w) / s.d, 0, .999) * (s.c.win || 1)) : 0, hk = tgt.id + ':' + win;
+    if (open && e.segs && !s.hit.has(hk)) { const cap = { ...tgt, y: (tgt.y || 0) + (tgt.height || 1.8) * .5 }, rad = (tgt.radius || .4) + .08;
+      if (segs.some((sg, i) => bladeContact(e.segs[i][0], e.segs[i][1], sg[0], sg[1], cap, rad)) && sq.los(e.wx, e.wz, tgt.x, tgt.z)) { s.hit.add(hk);
         if (evades(tgt)) sq.event('evaded', { spell: { type: 'gkBlade' }, target: tgt.id });
-        else { const r = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: s, weapon: e.key });
-          if (r === 'blocked') g.stats.scytheBlock++; else if (r === 'hit') g.stats.scytheHit++; sq.event('gkBlade', { actor: a, ent: e, phase: 'hit', result: r, x: tgt.x, z: tgt.z }); } } }
-    // CHOQUE de lâminas: herói golpeando de frente na janela do golpe (ou do preparo) rebate a arma (lança não — regra própria)
-    if (s && tgt.attacking && !e.clashCd && e.key !== 'C' && d < S.clashR && s.t < S.windup + S.strikeDur) { const fdot = -(ux * Math.sin(tgt.yaw ?? 0) + uz * Math.cos(tgt.yaw ?? 0));
-      if (tgt.yaw === undefined || fdot > .2) { e.strike = null; e.stun = S.stun; e.vx = -ux * S.repel; e.vz = -uz * S.repel; e.clashCd = S.clashCd; g.stats.clash++; sq.event('gkBlade', { actor: a, ent: e, phase: 'clash', x: e.x, y: e.y, z: e.z }); } }
-    e.base = seg.base; e.tip = seg.tip; e.eb = seg.eb; e.et = seg.et; }
+        else { const r2 = sq.damageTarget(tgt.id, S.dmg, { kind: 'gkBlade', actor: a.id, x: e.wx, z: e.wz, knock: .35, combo: 1, gkSrc: 'blade' + e.id, attackToken: win ? (s['tok' + win] ||= { strike: s.id, win }) : s, weapon: e.key, seqKey: s.c.win > 1 ? 'gkb' + e.id + ':' + s.id : undefined, seqN: win + 1 }); // cada JANELA tem token próprio (o giro tem duas)
+          if (r2 === 'blocked') g.stats.scytheBlock++; else if (r2 === 'hit') g.stats.scytheHit++; sq.event('gkBlade', { actor: a, ent: e, phase: 'hit', result: r2, x: tgt.x, z: tgt.z, y: (tgt.y || 0) + 1.1 }); } } }
+    // CHOQUE de lâminas: herói golpeando DE FRENTE no preparo/golpe rebate a arma (lança não — regra própria)
+    if (s && tgt.attacking && !e.clashCd && e.key !== 'C' && d < S.clashR && s.t < s.w + s.d) { const cx = e.x - tgt.x, cz = e.z - tgt.z, cl = Math.hypot(cx, cz) || 1, fdot = (cx * Math.sin(tgt.yaw ?? 0) + cz * Math.cos(tgt.yaw ?? 0)) / cl; // frente do herói → a ARMA (não o empunhador)
+      if (tgt.yaw === undefined || fdot > .2) { e.strike = null; e.stun = S.stun; e.vx = -ux * S.repel; e.vz = -uz * S.repel; e.clashCd = S.clashCd; g.stats.clash++; sq.event('gkBlade', { actor: a, ent: e, phase: 'clash', x: e.x, y: e.y + 1, z: e.z }); } }
+    e.segs = segs; }
   // armas que acabaram: liberam a mão (a fase I/II re-materializa o par)
   for (const e of g.ents) if (e.mode === 'gone' && g.away[e.key]) { g.away[e.key] = false; sq.event('gkBlade', { actor: a, ent: e, phase: 'free' }); }
   g.ents = g.ents.filter(e => e.mode !== 'gone'); resummon(sq, a);
@@ -220,8 +250,9 @@ function stepSpear(sq, a, dt, t) {
 /* ---------------- quatro mini-sóis ---------------- */
 function startSuns(sq, a, t) {
   const g = a.gk, U = GK.suns, fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), rx = fz, rz = -fx; g.stats.suns++; g.sunWave = (g.sunWave || 0) + 1;
-  for (let i = 0; i < U.n; i++) { const off = (i - 1.5) * 1.15, up = 1.3 + (i % 2) * .65 + Math.abs(off) * .12;
-    g.suns.push({ id: g.nextId++, wave: g.sunWave, i, state: 'forming', t: -i * U.form, x: a.x + fx * 1.6 + rx * off, y: a.y + up + (a.airY ? 0 : .5), z: a.z + fz * 1.6 + rz * off, ox: fx * 1.6 + rx * off, oy: up, oz: fz * 1.6 + rz * off,
+  const hang = (a.gkFlip || 0) > .5; // pendurada: os sóis nascem ABAIXO dela (a cabeça aponta para o chão), afastados do teto
+  for (let i = 0; i < U.n; i++) { const off = (i - 1.5) * 3.4, up = hang ? -(3.4 + (i % 2) * 1.3) : 1.6 + (i % 2) * 1.2 + Math.abs(off) * .1;
+    g.suns.push({ id: g.nextId++, owner: a, wave: g.sunWave, i, state: 'forming', t: -i * U.form, x: a.x + fx * 2.6 + rx * off, y: a.y + up + (a.airY ? 0 : .5), z: a.z + fz * 2.6 + rz * off, ox: fx * 2.6 + rx * off, oy: up, oz: fz * 2.6 + rz * off,
       launchAt: U.n * U.form + U.hold + i * U.gap + sq.rand() * .12, vx: 0, vy: 0, vz: 0, hit: new Set(), r: 0 }); }
   sq.event('gkSuns', { actor: a, phase: 'summon', suns: g.suns });
 }
@@ -241,7 +272,7 @@ function stepSuns(sq, a, dt, t) {
         for (const tg of sq.enemyTargets()) { if (!tg.alive) continue; const cy = (tg.y || 0) + (tg.height || 1.8) * .5, dd = Math.hypot(tg.x - s.x, (cy - s.y) * .6, tg.z - s.z);
           if (dd > U.radius + (tg.radius || .4)) continue; if (evades(tg)) { sq.event('evaded', { spell: { type: 'gkSun' }, target: tg.id }); continue; }
           s.hit.add(tg.id); const r = sq.damageTarget(tg.id, U.direct, { kind: 'gkSun', actor: a.id, x: s.x, z: s.z, knock: .7, combo: 1, gkSrc: 'sun' + s.id }); if (r === 'hit') g.stats.sunHit++; boom = 'hero'; break; } }
-      if (!boom && s.ft > 3) boom = 'air';
+      if (!boom && s.ft > 5) boom = 'air';
       if (boom) { s.state = 'done'; // explosão: área só em quem NÃO levou o impacto direto deste mesmo sol
         for (const tg of sq.enemyTargets()) { if (!tg.alive || s.hit.has(tg.id)) continue; if (Math.hypot(tg.x - s.x, tg.z - s.z) > U.boom + (tg.radius || .4) || Math.abs((tg.y || 0) - s.y) > 2.5) continue; if (!sq.los(s.x, s.z, tg.x, tg.z)) continue;
           if (evades(tg)) continue; const r = sq.damageTarget(tg.id, U.area, { kind: 'gkSunArea', actor: a.id, x: s.x, z: s.z, knock: .5, area: true, gkSrc: 'sunA' + s.id }); if (r === 'hit') g.stats.sunArea++; }
@@ -254,28 +285,33 @@ function stepAbyss(sq, a, dt, t) {
   const g = a.gk, B = GK.abyss; if (g.phase < 3 || !sq.abyssAnchor) return; const anc = sq.abyssAnchor, tgt = t && t.alive !== false ? t : null;
   if (g.abyssT === null) g.abyssT = B.first[0] + sq.rand() * (B.first[1] - B.first[0]);
   const s = g.sphere;
-  if (!s) { g.abyssT -= dt; if (g.abyssT <= 0 && tgt) { g.sphere = { id: g.nextId++, state: 'charge', t: 0, x: anc.x, y: anc.y, z: anc.z, k: 0, hit: new Set(), power: 1 - a.hp / a.maxHp }; g.stats.abyss++; sq.event('gkAbyss', { actor: a, phase: 'charge', sphere: g.sphere }); } return; }
+  if (!s) { g.abyssT -= dt; if (g.abyssT <= 0 && tgt) { g.sphere = { id: g.nextId++, owner: a, state: 'charge', t: 0, x: anc.x, y: anc.y, z: anc.z, k: 0, hit: new Set(), power: 1 - a.hp / a.maxHp }; g.stats.abyss++; sq.event('gkAbyss', { actor: a, phase: 'charge', sphere: g.sphere }); } return; }
   s.t += dt;
   if (s.state === 'charge') { s.k = clamp(s.t / B.charge, 0, 1); if (s.t >= B.charge && tgt) { const lead = .5, px = tgt.x + (tgt.vx || 0) * lead, pz = tgt.z + (tgt.vz || 0) * lead, py = (tgt.y || 0) + 1, dx = px - s.x, dy = py - s.y, dz = pz - s.z, d = Math.hypot(dx, dy, dz) || 1;
       s.vx = dx / d * B.speed; s.vy = dy / d * B.speed; s.vz = dz / d * B.speed; s.state = 'fly'; s.ft = 0; sq.event('gkAbyss', { actor: a, phase: 'fire', sphere: s }); } return; }
   if (s.state === 'fly') { s.ft += dt; const steps = Math.max(1, Math.ceil(B.speed * dt / .3)); let boom = null;
     for (let k = 0; k < steps && !boom; k++) { s.x += s.vx * dt / steps; s.y += s.vy * dt / steps; s.z += s.vz * dt / steps;
-      if (s.y <= sq.ground(s.x, s.z) + .4) { boom = 'ground'; break; }
+      if (s.y <= sq.ground(s.x, s.z) + .4) { boom = 'ground'; break; } if (!sq.blocked(s.x, s.z)) s.inside = true; else if (s.inside) { boom = 'wall'; break; } // parede só depois de entrar na arena (nasce na boca)
       for (const tg of sq.enemyTargets()) { if (!tg.alive) continue; const cy = (tg.y || 0) + (tg.height || 1.8) * .5; if (Math.hypot(tg.x - s.x, (cy - s.y) * .6, tg.z - s.z) > B.radius + (tg.radius || .4)) continue;
         if (evades(tg)) { sq.event('evaded', { spell: { type: 'gkAbyss' }, target: tg.id }); continue; } s.hit.add(tg.id); const r = sq.damageTarget(tg.id, B.direct, { kind: 'gkAbyss', actor: a.id, x: s.x, z: s.z, knock: 1, gkSrc: 'aby' + s.id }); if (r === 'hit') g.stats.abyssHit++; boom = 'hero'; break; } }
     if (!boom && s.ft > 6) boom = 'air';
     if (boom) { for (const tg of sq.enemyTargets()) { if (!tg.alive || s.hit.has(tg.id) || evades(tg)) continue; if (Math.hypot(tg.x - s.x, tg.z - s.z) > B.boom + (tg.radius || .4)) continue; sq.damageTarget(tg.id, B.area, { kind: 'gkAbyssArea', actor: a.id, x: s.x, z: s.z, knock: .8, area: true, gkSrc: 'abyA' + s.id }); }
       s.state = 'boom'; s.bt = 0; sq.event('gkAbyss', { actor: a, phase: 'boom', sphere: s, where: boom, gy: sq.ground(s.x, s.z) });
-      g.abyssT = Math.max(4, B.slow + (B.fast - B.slow) * clamp((1 - a.hp / a.maxHp) / .7, 0, 1) - s.t); /* disparo→disparo: 25 s → 20 s conforme a vida cai */ /* depois da 1ª: 25 s → 20 s conforme a vida cai */ } return; }
+      g.abyssT = Math.max(4, B.slow + (B.fast - B.slow) * clamp((1 - a.hp / a.maxHp) / .7, 0, 1) - s.t); /* disparo→disparo: 25 s → 20 s conforme a vida cai */ } return; }
   if (s.state === 'boom') { s.bt += dt; if (s.bt > 1.2) g.sphere = null; }
 }
 
 /* ---------------- voo (fases II–III) ---------------- */
+/** 22/11 (Etapa 4): ponto de pendurar = superfície REAL do cenário (teto/arcada da garganta) a 7–22 m do chão, achada por raycast no
+ *  mundo (sq.hangSpot). Sem esse gancho, usa o teto logo acima (sq.ceilingAt). Sem superfície válida → o plano vira mergulho. */
+function findHang(sq, a, t) { const F = GK.fly; if (sq.hangSpot) { const sp = sq.hangSpot(a, t); if (sp) return sp; }
+  if (sq.ceilingAt) { const c = sq.ceilingAt(a.x, a.z), gr = sq.ground(a.x, a.z); if (c && c - gr >= F.minCeil && c - gr <= F.maxCeil) return { x: a.x, z: a.z, y: c, local: true }; } return null; }
 function startFlight(sq, a, t, plan) {
-  const g = a.gk, F = GK.fly, ceil = sq.ceilingAt ? sq.ceilingAt(a.x, a.z) : null, alt = Math.min(F.alt, ceil ? ceil - (a.y) - F.ceilMargin : F.alt);
-  if (alt < 2.6) return false; g.stats.flights++;
-  sq.begin(a, { type: 'gkFly', dur: 30, anim: 'gk_jump', token: 'melee', tid: t && t.id, face: true, stage: 'takeoff', st: 0, alt, plan, cruise: F.cruise[0] + sq.rand() * (F.cruise[1] - F.cruise[0]), dives: 0, orbitDir: sq.rand() < .5 ? -1 : 1 });
-  a.cds.gkFly = F.cd * a.cdMul; sq.event('gkFly', { actor: a, phase: 'takeoff' }); return true;
+  const g = a.gk, F = GK.fly; let spot = null; if (plan === 'hang' || plan === 'suns') { spot = findHang(sq, a, t); plan = spot ? 'hang' : 'dive'; } // sóis SÓ pendurado
+  const ceil = sq.ceilingAt ? sq.ceilingAt(a.x, a.z) : null, alt = Math.min(F.alt, ceil ? ceil - (a.y) - F.ceilMargin : F.alt);
+  if (alt < 2.6 && !spot) return false; g.stats.flights++;
+  sq.begin(a, { type: 'gkFly', dur: 40, anim: 'gk_jump', token: 'melee', tid: t && t.id, face: true, stage: 'takeoff', st: 0, alt: Math.max(2.6, alt), plan, spot, cruise: F.cruise[0] + sq.rand() * (F.cruise[1] - F.cruise[0]), dives: 0, orbitDir: sq.rand() < .5 ? -1 : 1 });
+  a.cds.gkFly = F.cd * a.cdMul; a.cds.gkSuns = Math.max(a.cds.gkSuns || 0, (plan === 'hang' ? GK.suns.cd : 8) * a.cdMul); sq.event('gkFly', { actor: a, phase: 'takeoff' }); return true; // voo e pendurar dividem a janela: chão ≥ 60% do tempo
 }
 function flyAnim(sq, a, role) { if (a.anim.role !== role) a.anim = { role, once: role !== 'gk_fly' && role !== 'gk_hang', speed: 1, rev: a.anim.rev + 1 }; }
 function stepFlight(sq, a, dt, t) {
@@ -283,19 +319,21 @@ function stepFlight(sq, a, dt, t) {
   const air = h => { a.airY = Math.max(0, h); a.airV = 0; a.y = sq.ground(a.x, a.z) + a.airY; };
   const glide = (tx, tz, sp) => { const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz); if (d < .05) return d; const st = Math.min(d, sp * dt), nx = a.x + dx / d * st, nz = a.z + dz / d * st; if (!sq.blocked(nx, nz)) { a.x = nx; a.z = nz; } a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(dx, dz) - a.yaw), -6 * dt, 6 * dt)); return d; };
   g.wing = { mode: 'flap', k: 1 };
-  if (act.stage === 'takeoff') { air(act.alt * ease(act.st / .7)); if (act.st >= .7) { act.stage = 'cruise'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'cruise' }); } return; }
+  if (act.stage === 'takeoff') { air(act.alt * ease(act.st / .7)); if (act.st >= .7 && act.plan === 'hang' && act.spot && !act.home) { act.stage = 'cruise'; act.st = act.cruise; flyAnim(sq, a, 'gk_fly'); return; } /* pendurar: sobe direto rumo à superfície */ if (act.st >= .7) { act.stage = 'cruise'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'cruise' }); } return; }
   if (act.stage === 'cruise') { air(act.alt + Math.sin(sq.time * 2.2) * .25); act.face = false;
     if (tgt) { const ang = Math.atan2(a.x - tgt.x, a.z - tgt.z) + act.orbitDir * F.speed / F.radius * dt; glide(tgt.x + Math.sin(ang) * F.radius, tgt.z + Math.cos(ang) * F.radius, F.speed); a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -5 * dt, 5 * dt)); }
     if (act.st >= act.cruise) { act.st = 0;
-      if (act.plan === 'hang' && sq.ceilingAt) { const c = sq.ceilingAt(a.x, a.z); if (c && c - a.y > 3 && c - sq.ground(a.x, a.z) >= F.minCeil && c - sq.ground(a.x, a.z) <= F.maxCeil) { /* teto real e alcançável (a garganta da arena tem ~80 m: aborta) */ act.stage = 'toCeil'; act.ceil = c; sq.event('gkFly', { actor: a, phase: 'toCeil', ceil: c }); return; } act.plan = 'suns'; }
-      if (act.plan === 'suns') { act.stage = 'cast'; startSuns(sq, a, tgt); sq.event('gkFly', { actor: a, phase: 'castAir' }); return; }
+      if (act.plan === 'hang' && act.spot) { act.stage = 'toCeil'; act.ceil = act.spot.y; act.from = { x: a.x, z: a.z, h: a.airY }; act.home = { x: a.x, z: a.z }; sq.event('gkFly', { actor: a, phase: 'toCeil', ceil: act.ceil, spot: act.spot }); return; }
       act.stage = 'dive'; act.lock = tgt ? { x: tgt.x + (tgt.vx || 0) * .3, z: tgt.z + (tgt.vz || 0) * .3 } : { x: a.x, z: a.z }; act.from = { x: a.x, z: a.z, h: a.airY }; act.hitDone = false; flyAnim(sq, a, 'gk_dive'); g.stats.dives++; sq.event('gkFly', { actor: a, phase: 'dive', lock: act.lock }); }
     return; }
-  if (act.stage === 'toCeil') { const want = act.ceil - sq.ground(a.x, a.z) - 1.25; a.gkCeil = act.ceil; a.airY += Math.min(F.rise * dt, want - a.airY); air(a.airY); if (want - a.airY < .05) { act.stage = 'hang'; act.st = 0; act.flip = 0; flyAnim(sq, a, 'gk_hang'); g.stats.hangs++; sq.event('gkFly', { actor: a, phase: 'hang', ceil: act.ceil }); } return; }
-  if (act.stage === 'hang') { g.wing = { mode: 'fold', k: 1 }; a.gkFlip = clamp(act.st / .45, 0, 1); if (tgt) a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -3 * dt, 3 * dt));
+  if (act.stage === 'toCeil') { // voo visível até a superfície: avança no ar (sem colisão de chão) subindo até 1,25 m abaixo dela
+    const sp = act.spot, dx = sp.x - a.x, dz = sp.z - a.z, dh = Math.hypot(dx, dz); if (dh > .05) { const stp = Math.min(dh, F.spotSpeed * dt); a.x += dx / dh * stp; a.z += dz / dh * stp; a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(dx, dz) - a.yaw), -5 * dt, 5 * dt)); }
+    const want = act.ceil - sq.ground(a.x, a.z) - 1.25; a.gkCeil = act.ceil; a.airY += clamp(want - a.airY, -F.rise * dt, F.rise * dt); air(a.airY); if (dh < .3 && Math.abs(want - a.airY) < .05) { act.stage = 'hang'; act.st = 0; act.flip = 0; flyAnim(sq, a, 'gk_hang'); g.stats.hangs++; sq.event('gkFly', { actor: a, phase: 'hang', ceil: act.ceil }); } return; }
+  if (act.stage === 'hang') { g.wing = { mode: 'fold', k: 1 }; air(act.ceil - sq.ground(a.x, a.z) - 1.25); /* preso à superfície (sem gravidade) */ a.gkFlip = clamp(act.st / .45, 0, 1); if (tgt) a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -3 * dt, 3 * dt));
     if (!act.sunsCast && act.st > .6) { act.sunsCast = true; startSuns(sq, a, tgt); }
-    if (act.st >= F.hang && !g.suns.length) { act.stage = 'drop'; act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'drop' }); } return; }
-  if (act.stage === 'drop') { a.gkFlip = 1 - clamp(act.st / .4, 0, 1); a.airY = Math.max(act.alt, a.airY - 8 * dt); air(a.airY); if (act.st > .5) { act.stage = 'cruise'; act.st = 0; act.plan = 'dive'; act.cruise = .6; } return; }
+    if (act.st >= F.hang && !g.suns.some(q => q.state === 'forming' || q.state === 'hold')) { act.stage = 'drop'; /* solta assim que os 4 sóis partiram */ act.st = 0; flyAnim(sq, a, 'gk_fly'); sq.event('gkFly', { actor: a, phase: 'drop' }); } return; }
+  if (act.stage === 'drop') { a.gkFlip = 1 - clamp(act.st / .4, 0, 1); if (act.st > .35 && act.home) { const dx = act.home.x - a.x, dz = act.home.z - a.z, dh = Math.hypot(dx, dz); if (dh > .1) { const stp = Math.min(dh, F.spotSpeed * 1.5 * dt); a.x += dx / dh * stp; a.z += dz / dh * stp; } }
+    a.airY = Math.max(act.alt, a.airY - 6 * dt); air(a.airY); if (act.st > .5 && (!act.home || Math.hypot(act.home.x - a.x, act.home.z - a.z) < .4)) { act.stage = 'cruise'; act.st = 0; act.plan = 'dive'; act.cruise = .6; act.home = null; } return; }
   if (act.stage === 'cast') { air(act.alt + Math.sin(sq.time * 2.2) * .15); g.wing = { mode: 'hover', k: 1 }; if (tgt) a.yaw = wrap(a.yaw + clamp(wrap(Math.atan2(tgt.x - a.x, tgt.z - a.z) - a.yaw), -4 * dt, 4 * dt));
     if (act.st > 1.2 && !g.suns.length) { act.stage = 'land'; act.st = 0; flyAnim(sq, a, 'gk_land'); } return; }
   if (act.stage === 'dive') { // mergulho: trajetória reta até o ponto travado, corte na chegada, recua
@@ -324,24 +362,43 @@ function stepPhase(sq, a, dt) {
       sq.begin(b, { type: 'gkPhase', dur: P.arise, anim: 'arise', iframes: true, armor: true, stage: 'arise', face: true });
       sq.event('gkPhase', { actor: b, from: 1, to: 2, stage: 'arise', prev: a }); a.gkFalling = false; sq.kill(a); } return; }
   if (act.stage === 'die' && act.st >= R.die) { act.stage = 'hold'; act.st = 0; sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'hold' }); return; }
-  if (act.stage === 'hold' && act.st >= R.hold) { act.stage = 'rise'; act.st = 0; a.anim = { role: 'arise', once: true, speed: 1, rev: a.anim.rev + 1 }; sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'rise' }); return; }
+  // 22/11 — CARGA (fonte → compressão): o núcleo cresce sobre o corpo caído antes do levante (evento gkCine; a ordem de gkPhase não muda)
+  if (act.stage === 'hold' && act.st >= R.hold) { act.stage = 'charge'; act.st = 0; sq.event('gkCine', { actor: a, stage: 'charge', dur: R.charge }); return; }
+  if (act.stage === 'charge' && act.st >= R.charge) { act.stage = 'rise'; act.st = 0; a.anim = { role: 'arise', once: true, speed: 1, rev: a.anim.rev + 1 }; sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'rise' }); return; }
   if (act.stage === 'rise' && act.st >= R.rise) { act.stage = 'burst'; act.st = 0; const g = a.gk; g.phase = 3; a.maxHp = a.hp = Math.round(a.gkBaseHp * 1.25); a.vzPhase = 3; a.cdMul = .8;
     g.hands.R = g.hands.L = null; g.ents = g.ents.filter(e => e.mode !== 'fall'); for (const k of ['A', 'B', 'C', 'D']) if (!g.ents.some(e => e.key === k)) { const e = launchBlade(sq, a, k, null, 1, 'orbit'); e.x = a.x; e.y = a.y + 1.5; e.z = a.z; }
     sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'burst' }); return; }
-  if (act.stage === 'burst' && act.st >= R.burst) { act.t = act.dur; sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'done' }); }
+  // 22/11 — REVELAÇÃO: a silhueta III (chifres, dois pares de asas, armas em órbita) fica parada e legível antes do combate voltar
+  if (act.stage === 'burst' && act.st >= R.burst) { act.stage = 'reveal'; act.st = 0; a.anim = { role: 'cast', once: true, speed: .8, rev: a.anim.rev + 1 }; sq.event('gkCine', { actor: a, stage: 'reveal', dur: R.reveal }); return; }
+  if (act.stage === 'reveal' && act.st >= R.reveal) { act.t = act.dur; sq.event('gkPhase', { actor: a, from: 2, to: 3, stage: 'done' }); }
 }
 
 /* ---------------- escolha de golpe e cérebro ---------------- */
 export function gkPickMove(sq, a, t, pool) {
   if (!pool.length) return null; const hist = a.gkHist || (a.gkHist = []), last = hist.at(-1), list = pool.filter(m => m.id !== last && (!m.minPhase || (a.gk?.phase || 1) - 1 >= m.minPhase)), use = list.length ? list : pool;
-  let best = null, bs = -1e9; for (const m of use) { let w = m.weight || 1; if (hist.includes(m.id)) w -= .6; if (m.hits.length > 2) w += .2 * ((a.gk?.phase || 1) - 1); w += (sq.rand() - .5) * .6; if (w > bs) { bs = w; best = m; } }
+  let best = null, bs = -1e9; const op = new Set((GK_CHAINS[a.gk?.phase || 1] || []).map(c => c[0])); for (const m of use) { let w = m.weight || 1; const rep = hist.filter(x => x === m.id).length; w -= .5 * rep; if (op.has(m.id) && !rep) w += .3; /* abre corrente; repetição recente pesa (variedade entre sessões) */ if (m.hits.length > 2) w += .2 * ((a.gk?.phase || 1) - 1); w += (sq.rand() - .5) * .6; if (w > bs) { bs = w; best = m; } }
   return best;
 }
 function dashTo(sq, a, t, f, s, len = 1) { const d = Math.hypot(t.x - a.x, t.z - a.z) || 1, ux = (t.x - a.x) / d, uz = (t.z - a.z) / d; let dx = f * ux + s * uz, dz = f * uz - s * ux; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
   const reach = GK.dash.speed * GK.dash.time * len; if (sq.blocked(a.x + dx * reach, a.z + dz * reach)) return false;
   sq.begin(a, { type: 'dodge', dur: GK.dash.time * len, anim: 'dash', animFrom: GK_TIME.dash.from, animSpeed: GK_TIME.dash.speed, dx, dz, iframes: s !== 0, face: true, chain: f > 0 ? 'melee' : undefined, token: f > 0 ? 'melee' : undefined, tid: t.id });
   a.cds.dodge = GK.dash.minStart; a.gkLastDash = sq.time; return true; }
-export const GK_TACTICS = Object.freeze({ every: [.28, .5] });
+export const GK_TACTICS = Object.freeze({ every: [.2, .38] }); // 22/11: decide mais rápido (menos tempo morto)
+/** 22/11 (Etapa 7) — CORRENTES de golpes nativos: o próximo corte cancela a RECUPERAÇÃO do anterior (nunca a janela de dano) se o herói
+ *  continua ao alcance; cada golpe mantém janelas/tokens próprios. Fase I: pares curtos; II: pares; III: trios. Esquiva/dash do herói
+ *  quebra a corrente (há sempre uma brecha de resposta). */
+export const GK_CHAINS = Object.freeze({
+  1: [['Ceifa_Gemea', 'Corte_Avaro'], ['Corte_Avaro', 'Tributo_Triplo'], ['Usura_Cruzada', 'Ceifa_Gemea']],
+  2: [['Ceifa_Gemea', 'Talho_Relampago'], ['Tributo_Triplo', 'Rodopio_Asas'], ['Usura_Cruzada', 'Machado_do_Dizimo'], ['Pendulo_do_Ouro', 'Juizo_Quadruplo'], ['Talho_Relampago', 'Corte_Avaro']],
+  3: [['Talho_Relampago', 'Ceifa_Gemea', 'Rodopio_Asas'], ['Corte_Avaro', 'Tributo_Triplo', 'Machado_do_Dizimo'], ['Machado_do_Dizimo', 'Talho_Relampago', 'Juizo_Quadruplo'], ['Pendulo_do_Ouro', 'Juizo_Quadruplo'], ['Usura_Cruzada', 'Rodopio_Asas', 'Talho_Relampago']]
+});
+const CHAIN_P = { 1: .4, 2: .6, 3: .8 };
+function stepChain(sq, a, t) { const act = a.act, m = act && act.move, g = a.gk, C = a.gkChain; if (!m || !C || !t) return;
+  if (C.list[C.i] !== m.id) { a.gkChain = null; return; } if (C.i + 1 >= C.list.length) return;
+  if (act.t < m.close + .06) return; // nunca corta a janela de dano: só a recuperação
+  const next = C.list[C.i + 1], pool = BOSS_MOVES[a.kind], nm = pool && pool.find(x => x.id === next); if (!nm) { a.gkChain = null; return; }
+  const gap = Math.hypot(t.x - a.x, t.z - a.z) - (t.radius || .4) - a.T.radius; if (gap > a.T.melee.reach + 1.4 || t.dashing || t.evading) { a.gkChain = null; return; }
+  const base = (act.seqBase || 0) + m.hits.length; C.i++; a.act = null; a.cds.melee = 0; sq.startMelee(a, t, next); if (a.act && a.act.move) { a.act.seqKey = C; a.act.seqBase = base; } g.stats.chainSteps = (g.stats.chainSteps || 0) + 1; } // a corrente é UMA sequência de dano para o resolvedor (o 1º corte do golpe seguinte continua a contagem)
 export function gkBrain(sq, a, dt, t) {
   const g = gkInit(sq, a); if (a.gkBaseHp === undefined) a.gkBaseHp = a.maxHp;
   stepBlades(sq, a, dt, t); stepSpear(sq, a, dt, t); stepSuns(sq, a, dt, t); stepAbyss(sq, a, dt, t);
@@ -352,7 +409,11 @@ export function gkBrain(sq, a, dt, t) {
   if (a.act && a.act.type === 'gkSunsCast') { if (!a.act.cast && a.act.t >= .35) { a.act.cast = true; startSuns(sq, a, t); } return; }
   if (!a.act && a.airY > 0) { a.airY = Math.max(0, a.airY - 6 * dt); a.y = sq.ground(a.x, a.z) + a.airY; }
   g.wing = g.wing && g.wing.mode !== 'fold' ? { mode: 'fold', k: Math.max(0, (g.wing.k || 0) - dt * 2) } : (g.wing || { mode: 'fold', k: 0 });
-  if (a.act && a.act.type === 'melee') { const m = a.act.move; if (m && a.act !== a._gkAct) { a._gkAct = a.act; g.stats.combos++; (a.gkHist || (a.gkHist = [])).push(m.id); if (a.gkHist.length > 3) a.gkHist.shift(); a.cds.melee = Math.min(a.cds.melee || 0, (m.duration / (m.rate || 1) + .12) * a.cdMul); } }
+  if (a.act && a.act.type === 'melee') { const m = a.act.move; if (m && a.act !== a._gkAct) { a._gkAct = a.act; g.stats.combos++; (a.gkHist || (a.gkHist = [])).push(m.id); if (a.gkHist.length > 6) a.gkHist.shift(); a.cds.melee = Math.min(a.cds.melee || 0, (m.duration / (m.rate || 1) + .12) * a.cdMul);
+      const U = g.stats.moves || (g.stats.moves = {}); U[m.id] = (U[m.id] || 0) + 1;
+      if (!a.gkChain || a.gkChain.list[a.gkChain.i] !== m.id) { a.gkChain = null; const L = (GK_CHAINS[g.phase] || []).filter(c => c[0] === m.id);
+        if (L.length && sq.rand() < CHAIN_P[g.phase]) { const list = L[Math.floor(sq.rand() * L.length)]; a.gkChain = { list, i: 0 }; a.act.seqKey = a.gkChain; a.act.seqBase = 0; const K = g.stats.chainsUsed || (g.stats.chainsUsed = {}), key = list.join('>'); K[key] = (K[key] || 0) + 1; } } }
+    stepChain(sq, a, t); }
   if (!t || a.alert > 0 || a.act || a.react) return;
   if ((a.gkTacT = (a.gkTacT ?? .3) - dt) > 0) return; a.gkTacT = GK_TACTICS.every[0] + sq.rand() * (GK_TACTICS.every[1] - GK_TACTICS.every[0]);
   const d = Math.hypot(t.x - a.x, t.z - a.z), gap = d - (t.radius || .4) - a.T.radius, see = sq.los(a.x, a.z, t.x, t.z), can = sq.canAttack(a, 'melee', t.id), ph = g.phase, opts = [];
@@ -360,7 +421,7 @@ export function gkBrain(sq, a, dt, t) {
   const freeScythes = ['A', 'B'].filter(k => !g.away[k] && (g.hands.R === k || g.hands.L === k)), clock = sq.time - (g.lastTech ?? -4) > 7 ? .55 : 0; // relógio de técnica: nada de só combos colados
   if (ph < 3 && can && see && !a.cds.gkThrow && freeScythes.length && gap >= (clock ? .2 : GK.throw.gap[0]) && gap <= GK.throw.gap[1]) opts.push(['foices', .42 + (toward < -1.5 ? .25 : 0) + clock]);
   if (can && see && !a.cds.gkSpear && !g.spear && (!g.away.C || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && (g.hands.R === 'C' || (ph >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit'))) && gap >= (clock ? 1.6 : GK.spear.gap[0]) && gap <= GK.spear.gap[1]) opts.push(['lanca', .4 + (toward < -1.5 ? .3 : 0) + (t.blocking ? .3 : 0) + clock * .8]);
-  if (ph >= 2 && !a.cds.gkFly && can) opts.push(['voo', .34 + (gap > 6 ? .2 : 0) + (ph >= 3 ? .1 : 0) + clock]);
+  if (ph >= 2 && !a.cds.gkFly && can) opts.push(['voo', .18 + (gap > 6 ? .28 : 0) + (ph >= 3 ? .08 : 0) + clock * .6]); // 22/11: voo é pontuação, não o padrão (chão ≥ ~55%)
   if (ph >= 2 && !a.cds.gkSuns && can && see && gap > (clock ? 1.2 : 3) && gap < 16 && !g.suns.length) opts.push(['sois', .3 + clock * .7]);
   if (ph >= 3 && !a.cds.gkTele) { const orb = g.ents.filter(e => e.mode === 'orbit'), duel = g.ents.filter(e => e.mode === 'tele' || e.mode === 'outbound').length, budget = hpk > .6 ? 2 : hpk > .3 ? 3 : 4;
     if (orb.length && duel < budget) opts.push(['telecinese', .5 + (gap > 3 ? .2 : 0)]); }
@@ -370,10 +431,10 @@ export function gkBrain(sq, a, dt, t) {
   const top = Math.max(...opts.map(o => o[1])); if (sq.rand() > Math.min(.9, top + .1)) return;
   let roll = sq.rand() * opts.reduce((x, o) => x + o[1], 0), goal = opts[0][0]; for (const o of opts) { roll -= o[1]; if (roll <= 0) { goal = o[0]; break; } }
   sq.event('gkTactic', { actor: a, goal, gap: +gap.toFixed(2) }); g.stats[goal] = (g.stats[goal] || 0) + 1;
-  if (goal === 'foices') { g.lastTech = sq.time; a.cds.gkThrow = GK.throw.cd * a.cdMul; sq.begin(a, { type: 'gkThrow', dur: ph >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, keys: ph >= 2 ? freeScythes : [freeScythes[0]], what: 'blades', release: ph >= 2 ? GK.throw.phase2Release : GK.throw.release, rate: 1 }); return; }
-  if (goal === 'lanca') { g.lastTech = sq.time; a.cds.gkSpear = GK.spear.cd * a.cdMul; if (ph >= 3 && !g.hands.R) { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: ph >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: ph >= 2 ? GK.throw.phase2Release : GK.spear.release }); return; }
+  if (goal === 'foices') { g.lastTech = sq.time; a.cds.gkThrow = GK.throw.cd * a.cdMul; sq.begin(a, { type: 'gkThrow', dur: ph >= 2 ? 1.25 : GK.throw.p1Dur, animSpeed: ph >= 2 ? 1 : GK.throw.p1Speed, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, keys: ph >= 2 ? freeScythes : [freeScythes[0]], what: 'blades', release: ph >= 2 ? GK.throw.phase2Release : GK.throw.release, rate: 1 }); return; }
+  if (goal === 'lanca') { g.lastTech = sq.time; a.cds.gkSpear = GK.spear.cd * a.cdMul; if (ph >= 3 && !g.hands.R) { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: ph >= 2 ? 1.25 : GK.throw.p1Dur, animSpeed: ph >= 2 ? 1 : GK.throw.p1Speed, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: ph >= 2 ? GK.throw.phase2Release : GK.spear.release }); return; }
   if (goal === 'voo') { if (!startFlight(sq, a, t, sq.rand() < .45 ? 'hang' : sq.rand() < .5 ? 'suns' : 'dive')) a.cds.gkFly = 3; else g.lastTech = sq.time; return; }
-  if (goal === 'sois') { g.lastTech = sq.time; a.cds.gkSuns = GK.suns.cd * a.cdMul; sq.begin(a, { type: 'gkSunsCast', dur: 2.4, anim: 'cast', face: true, tid: t.id }); return; }
+  if (goal === 'sois') { g.lastTech = sq.time; a.cds.gkSuns = GK.suns.cd * a.cdMul; if (!startFlight(sq, a, t, 'hang')) a.cds.gkSuns = 3; return; } // 22/11: os 4 sóis SÓ pendurado na superfície
   if (goal === 'telecinese') { const orb = g.ents.filter(e => e.mode === 'orbit'), n = Math.min(orb.length, 1 + Math.floor(sq.rand() * (hpk > .5 ? 2 : 3))); for (let i = 0; i < n; i++) { const e = orb[i]; e.mode = 'outbound'; e.t = 0; e.life = GK.tele.duel[0] + sq.rand() * 2; e.wx = e.x; e.wz = e.z; e.side = i % 2 ? -1 : 1; const fx = Math.sin(a.yaw), fz = Math.cos(a.yaw); e.vx = (fz * e.side + fx * .5) * 9; e.vz = (-fx * e.side + fz * .5) * 9; } a.cds.gkTele = (4 + sq.rand() * 2) * a.cdMul; g.stats.tele++; sq.event('gkTele', { actor: a, n }); return; }
   if (goal === 'avanco') { dashTo(sq, a, t, .9, side * .35); return; }
   if (goal === 'flanco') { dashTo(sq, a, t, .15, side, .85); return; }
@@ -387,22 +448,22 @@ function stepThrow(sq, a, dt, t) {
 }
 /** QA (ADM/teste): força uma técnica — nunca usado pela IA. */
 export function gkForceTech(sq, a, t, name) {
-  const g = gkInit(sq, a); if (!t || (a.act && a.act.type !== 'melee')) return false; a.act = null;
-  if (name === 'foices') { const k = ['A', 'B'].filter(x => !g.away[x]); if (!k.length) return false; if (g.phase < 3) setHands(a, 'scythes'); sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, keys: g.phase >= 2 ? k : [k[0]], what: 'blades', release: g.phase >= 2 ? GK.throw.phase2Release : GK.throw.release }); return true; }
-  if (name === 'lanca') { if (g.spear || (g.away.C && !(g.phase >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit')))) return false; if (g.phase < 3) setHands(a, 'spearblade'); else { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : 2.3, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: g.phase >= 2 ? GK.throw.phase2Release : GK.spear.release }); return true; }
+  const g = gkInit(sq, a); if (!t || (a.act && (a.act.type === 'gkPhase' || a.act.type === 'gkThrow'))) return false; if (a.act && a.act.type === 'gkFly') { for (const q of g.suns) q.state = 'done'; g.suns = []; a.airY = 0; a.gkFlip = 0; a.gkCeil = null; } a.act = null; // QA/ADM: interrompe voo/golpe para forçar a técnica
+  if (name === 'foices') { const k = ['A', 'B'].filter(x => !g.away[x]); if (!k.length) return false; if (g.phase < 3) setHands(a, 'scythes'); sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : GK.throw.p1Dur, animSpeed: g.phase >= 2 ? 1 : GK.throw.p1Speed, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, keys: g.phase >= 2 ? k : [k[0]], what: 'blades', release: g.phase >= 2 ? GK.throw.phase2Release : GK.throw.release }); return true; }
+  if (name === 'lanca') { if (g.spear || (g.away.C && !(g.phase >= 3 && g.ents.some(e => e.key === 'C' && e.mode === 'orbit')))) return false; if (g.phase < 3) setHands(a, 'spearblade'); else { const e = g.ents.find(x => x.key === 'C'); if (e) e.mode = 'gone'; } sq.begin(a, { type: 'gkThrow', dur: g.phase >= 2 ? 1.25 : GK.throw.p1Dur, animSpeed: g.phase >= 2 ? 1 : GK.throw.p1Speed, anim: 'gk_pitch', token: 'melee', tid: t.id, face: true, what: 'spear', release: g.phase >= 2 ? GK.throw.phase2Release : GK.spear.release }); return true; }
   if (name.startsWith('voo')) return g.phase >= 2 && startFlight(sq, a, t, name.split('-')[1] || 'dive');
-  if (name === 'sois') { if (g.phase < 2 || g.suns.length) return false; sq.begin(a, { type: 'gkSunsCast', dur: 2.4, anim: 'cast', face: true, tid: t.id }); return true; }
+  if (name === 'sois') { if (g.phase < 2 || g.suns.length) return false; return startFlight(sq, a, t, 'hang'); }
   if (name === 'telecinese') { if (g.phase < 3) return false; const orb = g.ents.filter(e => e.mode === 'orbit'); orb.forEach((e, i) => { e.mode = 'outbound'; e.t = 0; e.life = 7; e.wx = e.x; e.wz = e.z; e.side = i % 2 ? -1 : 1; e.vx = 0; e.vz = 0; }); return orb.length > 0; }
   if (name === 'abismo') { g.abyssT = 0; return g.phase >= 3; }
   return false;
 }
-export function gkStateOf(a) { const g = a && a.gk; if (!g) return null; return { kind: a.kind, phase: g.phase, hp: a.hp, maxHp: a.maxHp, act: a.act && (a.act.type + (a.act.stage ? ':' + a.act.stage : '') + (a.act.move ? ':' + a.act.move.id : '')), hands: { ...g.hands }, ents: g.ents.map(e => e.key + ':' + e.mode), spear: g.spear && (g.spear.alive ? 'fly' : g.spear.end), suns: g.suns.map(s => s.state), sphere: g.sphere && g.sphere.state, sp: g.sphere && [+g.sphere.x.toFixed(2), +g.sphere.y.toFixed(2), +g.sphere.z.toFixed(2)], airY: +(a.airY || 0).toFixed(2), x: +a.x.toFixed(2), z: +a.z.toFixed(2), stats: g.stats }; }
+export function gkStateOf(a) { const g = a && a.gk; if (!g) return null; return { kind: a.kind, phase: g.phase, hp: a.hp, maxHp: a.maxHp, act: a.act && (a.act.type + (a.act.stage ? ':' + a.act.stage : '') + (a.act.move ? ':' + a.act.move.id : '')), hands: { ...g.hands }, ents: g.ents.map(e => e.key + ':' + e.mode), spear: g.spear && (g.spear.alive ? 'fly' : g.spear.end), suns: g.suns.map(s => s.state), sphere: g.sphere && g.sphere.state, sp: g.sphere && [+g.sphere.x.toFixed(2), +g.sphere.y.toFixed(2), +g.sphere.z.toFixed(2)], ep: g.ents.filter(e => e.mode !== 'gone').map(e => [e.key, +e.x.toFixed(2), +e.y.toFixed(2), +e.z.toFixed(2), e.strike ? e.strike.c.p : '']), airY: +(a.airY || 0).toFixed(2), x: +a.x.toFixed(2), z: +a.z.toFixed(2), stats: g.stats }; }
 /** Cancelamento (saída da dimensão, morte): armas e projéteis somem, nada fica preso no ar. */
-export function gkCancel(sq, a) { const g = a.gk; if (!g) return; g.ents = []; g.away = {}; g.spear = null; g.suns = []; g.sphere = null; a.airY = 0; a.gkFlip = 0; }
+export function gkCancel(sq, a) { const g = a.gk; if (!g) return; for (const q of g.suns) q.state = 'done'; if (g.sphere) g.sphere.state = 'done'; g.ents = []; g.away = {}; g.spear = null; g.suns = []; g.sphere = null; a.airY = 0; a.gkFlip = 0; }
 
 const BASE = { ...E1.common, radius: .5, height: 2.2, poise: 80, flinch: 99, stamina: 180, sight: 44, leash: 70, boss: true, pref: [1.4, 2.6], phase2: -1, furyCd: .82, staggerArmor: 2,
   speed: { walk: 2.9, run: 6.4, strafe: 3.3, back: 2.4, turn: 10 }, melee: { max: 3, reach: 2.8, arc: .1, windup: .4, hits: [.4], dur: 1, dmg: 13, cd: 1, knock: .45 }, aimWarp: { warp: 2, warpSpeed: 7 },
   dash: { speed: GK.dash.speed, time: GK.dash.time, cd: GK.dash.cd }, block: { chance: .14, dur: .5, cd: 3.4, cost: 14, reduce: .8 }, dodge: { chance: .24, cd: GK.dash.cd },
-  counter: { ...E1.common.counter, chance: 0, cd: 99 }, leap: null, shield: null, decide: [.14, .24], gap: .36, kit: [], interrupt: true, feint: null, maxBig: 1,
+  counter: { ...E1.common.counter, chance: 0, cd: 99 }, leap: null, shield: null, decide: [.1, .2], gap: .3, kit: [], interrupt: true, feint: null, maxBig: 1,
   brain: gkBrain, pickMove: gkPickMove, moveAim: vxAim, holdDeath: gkHoldDeath };
 export const GREED = Object.freeze({ A: registerKind('greedA', { ...BASE, hp: 2300 }), B: registerKind('greedB', { ...BASE, hp: 2600, melee: { ...BASE.melee, dmg: 14 } }) });

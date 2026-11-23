@@ -29,6 +29,8 @@ import { makeEnergy, energyStep } from './combat-energy3d.js';
  *   kill(), weaken(n) }.
  */
 const TAU = Math.PI * 2, STEP = 1 / 120;
+/** 22/11 — empurrão dos golpes intermediários de um combo (fração do knock do golpe final): o herói continua no alcance do próximo corte. */
+export const COMBO_MID_KNOCK = .3;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v, wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const smooth = k => { k = clamp(k, 0, 1); return k * k * (3 - 2 * k); };
 
@@ -382,7 +384,7 @@ export class Enemy1Squad {
       for(let n=0;n<m.hits.length;n++){
         const open=m.hits[n]-.10,close=m.hits[n]+.11;
         if(previous<=close&&act.t>=open&&!act.contacts.has(n)&&t&&this.los(a.x,a.z,t.x,t.z)&&this.meleeTrace(a,act,t,Math.max(previous,open),Math.min(act.t,close))){
-          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:a.T.melee.knock,combo:n+1,attackToken:(a.kind==='veraxion'||a.kind==='greedA'||a.kind==='greedB')?act:null});
+          act.contacts.add(n);const result=this.damageTarget(t.id,Math.round(a.T.melee.dmg*m.damageScale),{kind:'melee',actor:a.id,x:a.x,z:a.z,knock:n<m.hits.length-1?a.T.melee.knock*COMBO_MID_KNOCK:a.T.melee.knock,combo:n+1,attackToken:act,seqKey:act.seqKey,seqN:act.seqKey?(act.seqBase||0)+n+1:undefined}); /* 22/11: TODA janela de combo carrega o token do ataque (o mundo deixa o 2º/3º corte furar a graça de 850 ms do 1º) e só o golpe final empurra forte — antes, só VÉRAXION/Ganância tinham token e o empurrão do 1º corte tirava o herói do alcance dos seguintes */
           if(result==='hit')act.landed=true;this.event('meleeHit',{actor:a,target:t.id,result,n:n+1});
         }
       }
@@ -402,7 +404,7 @@ export class Enemy1Squad {
       while (act.done < m.hits.length && act.t >= m.hits[act.done].t) {
         const h = m.hits[act.done++]; if (!t) continue;
         if (clawReaches(a, t, h, m.reach) && this.los(a.x, a.z, t.x, t.z)) {
-          const res = this.damageTarget(t.id, h.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: a.T.melee.knock, combo: act.done });
+          const res = this.damageTarget(t.id, h.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: act.done < m.hits.length ? a.T.melee.knock * COMBO_MID_KNOCK : a.T.melee.knock, combo: act.done, attackToken: act });
           if (res === 'hit') act.landed = true; this.event('meleeHit', { actor: a, target: t.id, result: res, n: act.done, move: m.id });
         } else this.event('meleeMiss', { actor: a, n: act.done, move: m.id });
         if (h.wave && !act.landed) this.spawnClawWave(a, h.wave);
@@ -415,7 +417,7 @@ export class Enemy1Squad {
         const d = Math.hypot(t.x - a.x, t.z - a.z), fx = Math.sin(a.yaw), fz = Math.cos(a.yaw), dot = d > 1e-4 ? ((t.x - a.x) * fx + (t.z - a.z) * fz) / d : 1;
         // dano só se a lâmina alcança: distância real até a borda do alvo, arco do golpe, altura e linha de visão
         if (d - t.radius <= a.T.melee.reach && dot >= a.T.melee.arc && Math.abs((t.y || 0) - a.y) < 1.3 && this.los(a.x, a.z, t.x, t.z)) {
-          const res = this.damageTarget(t.id, a.T.melee.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: a.T.melee.knock, combo: act.done });
+          const res = this.damageTarget(t.id, a.T.melee.dmg, { kind: 'melee', actor: a.id, x: a.x, z: a.z, knock: act.done < act.hits.length ? a.T.melee.knock * COMBO_MID_KNOCK : a.T.melee.knock, combo: act.done, attackToken: act });
           if (res === 'hit') act.landed = true; this.event('meleeHit', { actor: a, target: t.id, result: res, n: act.done });
         } else this.event('meleeMiss', { actor: a, n: act.done });
         if (act.done < act.hits.length) this.lastAttackAt = this.time;
