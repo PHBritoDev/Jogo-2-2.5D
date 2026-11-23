@@ -72,27 +72,36 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          const cameraState=api.state();
          const from=[cameraX,Math.max(target.y,cameraGround.y)+edge.cameraOffset[1],cameraZ];
          const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
-         api.fly(from,to);
-         const camera=api.cam();
-         // O jogador não deve permanecer teleportado em uma borda possivelmente não caminhável.
+         // Restaura o jogador antes de fixar a câmera: culling e visibilidade também usam sua posição.
          api.teleport(-12.2,-44.5,0);
          const restored=api.state();
+         // Última operação de câmera: o override precisa sobreviver ao próximo frame do jogo.
+         api.fly(from,to);
          return {
-           target,cameraGround,from,to,camera,
+           target,cameraGround,from,to,camera:api.cam(),
            targetState:{walkable:targetState.walkable,edge:targetState.edge},
            cameraState:{walkable:cameraState.walkable,edge:cameraState.edge},
            playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1
          };
        },edge);
-       await page.waitForTimeout(900);
+       // SwiftShader cai a 1 FPS durante a cena; aguardar frames reais evita fotografar antes da câmera atualizar.
+       await page.waitForTimeout(2600);
+       const cameraCheck=await page.evaluate(()=>{
+         const api=window.SevenSinsDebug3D;
+         const centerHits=api.pickAt(innerWidth/2,innerHeight/2);
+         return {camera:api.cam(),centerHits,terrainHit:centerHits.some(h=>/terrain-mod186|terrain-prologue-patch-mod291/.test(h))};
+       });
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite)&&data.playerRestored;
-       if(!positioned)report.errors.push("Sonda/câmera inválida ou jogador não restaurado na costura "+edge.name);
+       const cameraPinned=Array.isArray(cameraCheck.camera)&&cameraCheck.camera.length===3&&cameraCheck.camera.every((v,i)=>Math.abs(v-data.from[i])<.5);
+       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&cameraPinned&&data.playerRestored&&cameraCheck.terrainHit;
+       if(!cameraPinned)report.errors.push("Override de câmera não permaneceu ativo na costura "+edge.name);
+       if(!cameraCheck.terrainHit)report.errors.push("Raio central não atingiu a malha do terreno na costura "+edge.name+": "+cameraCheck.centerHits.join(" | "));
+       if(!data.playerRestored)report.errors.push("Jogador não foi restaurado após sondar "+edge.name);
        report.cases.push({
-         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"sonda e câmera posicionadas; conferir PNG":"ponto/câmera inválidos",
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,playerRestored:data.playerRestored}
+         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"câmera fixa e raio central atingem a malha; inspecionar PNG":"captura sem enquadramento comprovado",
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,cameraAfter:cameraCheck.camera,centerHits:cameraCheck.centerHits,terrainHit:cameraCheck.terrainHit,playerRestored:data.playerRestored}
        });
      }
    }
