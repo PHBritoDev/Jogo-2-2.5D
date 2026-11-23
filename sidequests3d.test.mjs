@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 
+
+
+import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+
 test('cada missão opcional está ligada a um vendedor real e usa sua identidade nas falas', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   const block = runtime.match(/const villageVendors=\[([\s\S]*?)\n\];/);
@@ -20,8 +24,6 @@ test('cada missão opcional está ligada a um vendedor real e usa sua identidade
     assert.ok(quest.turnIn.length > 0 && quest.turnIn.every(line => line.who === vendor.name));
   }
 });
-
-import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
   const s = createSideState();
