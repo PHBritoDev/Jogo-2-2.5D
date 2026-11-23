@@ -45,10 +45,10 @@ async function installThreeRoutes(context) {
   });
 }
 
-async function openBattle(url, stage, viewport) {
+async function openBattle(browser, url, stage, viewport) {
   const videoDir = path.join(out, 'videos', stage);
   fs.mkdirSync(videoDir, { recursive: true });
-  const context = await chromium.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
+  const context = await browser.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
   await installThreeRoutes(context);
   const page = await context.newPage();
   listen(page, stage.includes('base') ? 'baseline' : 'head');
@@ -158,8 +158,8 @@ async function finish(context, page) {
   return videoPath;
 }
 
-async function runLandscapeThenPortrait(url, stage, assertHead) {
-  const { context, page } = await openBattle(url, stage, { width: 960, height: 540 });
+async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
+  const { context, page } = await openBattle(browser, url, stage, { width: 960, height: 540 });
   let result = null;
   try {
     const landscape = await inspect(page);
@@ -177,8 +177,8 @@ async function runLandscapeThenPortrait(url, stage, assertHead) {
   return result;
 }
 
-async function runFreshPortrait(url, stage) {
-  const { context, page } = await openBattle(url, stage, { width: 393, height: 852 });
+async function runFreshPortrait(browser, url, stage) {
+  const { context, page } = await openBattle(browser, url, stage, { width: 393, height: 852 });
   let portrait = null, videoPath = null;
   try {
     portrait = await inspect(page);
@@ -198,11 +198,11 @@ async function main() {
   try {
     if (baselineUrl) {
       report.baseline = {};
-      report.baseline = await runLandscapeThenPortrait(baselineUrl, '01-base', false);
+      report.baseline = await runLandscapeThenPortrait(browser, baselineUrl, '01-base', false);
     }
     report.head = {};
-    report.head = await runLandscapeThenPortrait(headUrl, '03-head', true);
-    report.head.freshPortrait = await runFreshPortrait(headUrl, '05-head');
+    report.head = await runLandscapeThenPortrait(browser, headUrl, '03-head', true);
+    report.head.freshPortrait = await runFreshPortrait(browser, headUrl, '05-head');
     assert.deepEqual(report.errors.head, [], 'sem erros JS/WebGL no HEAD');
     assert.deepEqual(report.networkFailures.head, [], 'sem falhas de rede no HEAD');
     report.ok = true;

@@ -35,6 +35,9 @@ test('HUD retrato coloca a barra do Bispo no topo, mantém controles nos cantos 
 
 test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewport sem forçar câmera', () => {
   assert.match(qa, /VISUAL_BASELINE_URL/);
+  assert.match(qa, /async function openBattle\(browser, url, stage, viewport\)/);
+  assert.match(qa, /await browser\.newContext/);
+  assert.doesNotMatch(qa, /chromium\.newContext/);
   assert.match(qa, /setViewportSize\(\{\s*width:\s*393,\s*height:\s*852\s*\}\)/);
   assert.doesNotMatch(qa, /SevenSinsDebug3D\.view\(/);
   assert.match(qa, /runLandscapeThenPortrait\(headUrl,\s*'03-head',\s*true\)/);
