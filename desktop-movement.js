@@ -30,20 +30,18 @@ export function bindMovementKeys(win, doc) {
   win.addEventListener('keydown', event => {
     const key = bindings[event.code];
     if (!key || !acceptsGameKey(event)) return;
-    if (suppressedUntilKeyup.has(event.code)) {
-      if (event.code.startsWith('Arrow')) event.preventDefault();
-      return;
-    }
+    // Arrow keys control movement; suppress browser scrolling even when a
+    // repeat arrives after blur cleared the held-key map.
+    if (event.code.startsWith('Arrow')) event.preventDefault();
+    if (suppressedUntilKeyup.has(event.code)) return;
     if (held.has(event.code)) {
       // A second keydown is not a new press, even when repeat is false.
       // Do not overwrite the capture context of the original press.
-      if (event.code.startsWith('Arrow')) event.preventDefault();
       return;
     }
     if (event.repeat) return;
     held.set(event.code, { key, fullscreen:doc.fullscreenElement, pointer:doc.pointerLockElement });
     state[key] = true;
-    if (event.code.startsWith('Arrow')) event.preventDefault();
   });
   win.addEventListener('keyup', event => {
     suppressedUntilKeyup.delete(event.code);

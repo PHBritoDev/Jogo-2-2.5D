@@ -19,9 +19,11 @@ function harness() {
       altKey: { value: false },
       repeat: { value: repeat },
       target: { value: null },
-      preventDefault: { value: () => {} }
+      preventDefault: { value: () => { event.wasPrevented = true; } },
+      wasPrevented: { value: false, writable: true }
     });
     win.dispatchEvent(event);
+    return event;
   };
   const lock = target => {
     doc.pointerLockElement = target;
@@ -117,4 +119,18 @@ test('A1: blur limpa quarentena antiga para não perder a próxima tecla após A
   h.win.dispatchEvent(new Event('blur'));
   h.key('keydown', 'KeyW');
   assert.equal(h.state.w, true, 'uma nova pressão após recuperar foco deve responder');
+});
+
+test('A1: repetição de seta após blur não rola a página nem reativa movimento', () => {
+  const mapping = { ArrowUp:'arrowup', ArrowDown:'arrowdown', ArrowLeft:'arrowleft', ArrowRight:'arrowright' };
+  for (const [code, key] of Object.entries(mapping)) {
+    const h = harness();
+    h.key('keydown', code);
+    assert.equal(h.state[key], true);
+    h.win.dispatchEvent(new Event('blur'));
+    assert.equal(h.state[key], false);
+    const repeat = h.key('keydown', code, true);
+    assert.equal(repeat.wasPrevented, true, code + ' deve impedir scroll após blur');
+    assert.equal(h.state[key], false, code + ' repetido não deve reativar movimento');
+  }
 });
