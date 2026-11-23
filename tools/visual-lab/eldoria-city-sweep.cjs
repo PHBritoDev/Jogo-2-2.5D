@@ -79,7 +79,7 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
        await page.waitForTimeout(900);
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
-       const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\\b\\d{1,3}\\s*FPS\\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
+       const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
        const valid=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&(!data.view||data.view.onScreen);
        const framingIssue=data.view&&data.view.blocked&&data.view.blocked.dist<data.view.camToHero-1.5
          ? "câmera obstruída por "+data.view.blocked.name+" a "+data.view.blocked.dist+" m":null;
