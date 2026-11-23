@@ -4,10 +4,10 @@ export function getVorgazhekLighting(radius = 85) {
  return {
   bg: 0x000000, fog: 0x010102, fogNear: R * .7, fogFar: R * 2.7,
   // Cool sky fill and a restrained rim keep armor readable without lifting the abyss.
-  hemi: [0xa3abb1, 0x030304, 1.05],
-  sun: [0xc1cad1, .46],
+  hemi: [0xa3abb1, 0x030304, 1.1],
+  sun: [0xc1cad1, .48],
   // The same single local point light; intensity only, no new light or shadow pass.
-  light: [0xe7e7ec, 8, Math.max(150, R * 2), [0, 11, 0]],
+  light: [0xe7e7ec, 12, Math.max(150, R * 2), [0, 11, 0]],
   exposure: 1.12
  };
 }
