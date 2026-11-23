@@ -9,7 +9,7 @@ function harness() {
   doc.fullscreenElement = null;
   doc.hidden = false;
   const state = bindMovementKeys(win, doc);
-  const key = (type, code) => {
+  const key = (type, code, repeat = false) => {
     const event = new Event(type);
     Object.defineProperties(event, {
       code: { value: code },
@@ -17,8 +17,9 @@ function harness() {
       ctrlKey: { value: false },
       metaKey: { value: false },
       altKey: { value: false },
-      repeat: { value: false },
-      target: { value: null }
+      repeat: { value: repeat },
+      target: { value: null },
+      preventDefault: { value: () => {} }
     });
     win.dispatchEvent(event);
   };
@@ -39,8 +40,9 @@ test('A1: trocar diretamente o alvo do pointer lock libera WASD antigo', () => {
   h.lock(canvasB);
   assert.equal(h.state.w, false, 'W antigo não pode andar no novo canvas');
   assert.equal(h.state.d, false, 'D antigo não pode andar no novo canvas');
+  h.key('keyup', 'KeyW');
   h.key('keydown', 'KeyW');
-  assert.equal(h.state.w, true, 'novo pressionamento deve responder imediatamente');
+  assert.equal(h.state.w, true, 'novo pressionamento após keyup deve responder imediatamente');
   h.lock(canvasB);
   assert.equal(h.state.w, true, 'notificação repetida do mesmo alvo não apaga tecla nova');
   h.lock(null);
@@ -75,4 +77,32 @@ test('A1: keydown duplicado não transfere uma tecla antiga para o novo contexto
   h.key('keydown', 'KeyW');
   h.doc.dispatchEvent(new Event('pointerlockchange'));
   assert.equal(h.state.w, false, 'a tecla do canvas antigo deve ser liberada');
+});
+
+
+test('A1: keydown duplicado depois de pointerlockchange fica bloqueado até keyup', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  h.lock(canvasB);
+  assert.equal(h.state.w, false);
+  h.key('keydown', 'KeyW', false);
+  assert.equal(h.state.w, false, 'duplicado tardio não pode reiniciar o movimento');
+  h.key('keyup', 'KeyW');
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'um novo pressionamento após keyup deve funcionar');
+});
+
+test('A1: keydown duplicado depois de fullscreenchange fica bloqueado até keyup', () => {
+  const h = harness();
+  h.doc.fullscreenElement = {};
+  h.key('keydown', 'KeyW');
+  h.doc.fullscreenElement = null;
+  h.doc.dispatchEvent(new Event('fullscreenchange'));
+  assert.equal(h.state.w, false);
+  h.key('keydown', 'KeyW', false);
+  assert.equal(h.state.w, false, 'duplicado tardio não pode reiniciar o movimento');
+  h.key('keyup', 'KeyW');
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'um novo pressionamento após keyup deve funcionar');
 });

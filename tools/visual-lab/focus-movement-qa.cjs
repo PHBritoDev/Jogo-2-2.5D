@@ -90,8 +90,31 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
   report.lockDrift=Math.hypot(report.lockAfter.p[0]-report.lockBefore.p[0],report.lockAfter.p[2]-report.lockBefore.p[2]);
   report.lockSettled=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
   report.lockResidualDrift=Math.hypot(report.lockSettled.p[0]-report.lockAfter.p[0],report.lockSettled.p[2]-report.lockAfter.p[2]);
-  report.lockPass=report.lockDuplicate.repeat===false&&report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
-  report.frameAfterPointerLock=await frameHero(report.lockSettled);
+  const firstLockPass=report.lockDuplicate.repeat===false&&report.lockAfter.speed<.08&&report.lockSettled.speed<.08&&report.lockResidualDrift<.06;
+  // Also test the reverse event order: pointerlockchange first, stale keydown second.
+  await page.keyboard.up('w');held=false;
+  await page.evaluate(()=>{window.__a1LockTarget=document.querySelector('#scene');document.dispatchEvent(new Event('pointerlockchange'))});
+  await page.keyboard.down('w');held=true;
+  report.lateLockBefore=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.4,{fps:30,draw:false});return d.heroState()});
+  report.lateLockDuplicate=await page.evaluate(()=>{
+    window.__a1LockTarget=document.querySelector('#a1-qa-second-lock-target');
+    document.dispatchEvent(new Event('pointerlockchange'));
+    const duplicate=new KeyboardEvent('keydown',{key:'w',code:'KeyW',bubbles:true,repeat:false});
+    window.dispatchEvent(duplicate);
+    return {repeat:duplicate.repeat,isTrusted:duplicate.isTrusted};
+  });
+  report.lateLockAfter=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.8,{fps:30,draw:false});return d.heroState()});
+  report.lateLockSettled=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.lateLockDrift=Math.hypot(report.lateLockSettled.p[0]-report.lateLockAfter.p[0],report.lateLockSettled.p[2]-report.lateLockAfter.p[2]);
+  await page.keyboard.up('w');held=false;
+  await page.keyboard.down('w');held=true;
+  report.lateFresh=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.lateFreshMotion=Math.hypot(report.lateFresh.p[0]-report.lateLockSettled.p[0],report.lateFresh.p[2]-report.lateLockSettled.p[2]);
+  await page.keyboard.up('w');held=false;
+  report.lateFreshStop=await page.evaluate(()=>{const d=SevenSinsDebug3D;d.combatStep(.5,{fps:30,draw:false});return d.heroState()});
+  report.lateLockPass=report.lateLockDuplicate.repeat===false&&report.lateLockAfter.speed<.08&&report.lateLockSettled.speed<.08&&report.lateLockDrift<.06&&report.lateFreshMotion>.2&&report.lateFresh.speed>.08&&report.lateFreshStop.speed<.08;
+  report.lockPass=firstLockPass&&report.lateLockPass;
+  report.frameAfterPointerLock=await frameHero(report.lateFreshStop);
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   await capture('stopped-after-pointerlock-switch');
   await page.evaluate(()=>SevenSinsDebug3D.fly(null));
