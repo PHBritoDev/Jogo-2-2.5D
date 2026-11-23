@@ -63,24 +63,31 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          api.teleport(edge.x,edge.z,0);
          const targetPlayer=api.cineState().player;
          const target={x:targetPlayer[0],y:targetPlayer[1],z:targetPlayer[2]};
+         const state=api.state();
          const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
-         // Câmera alta em relação ao alvo: evita segunda telemetria de terreno
-         // e mantém a tomada acima da encosta sem raycast global.
+         // Câmera no lado interno da malha, mirando o chão da costura.
          const from=[cameraX,target.y+edge.cameraOffset[1],cameraZ];
          const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
          api.fly(from,to);
          const camera=api.cam();
-         return {target,from,to,camera};
+         // O jogador não deve permanecer teleportado em uma borda possivelmente não caminhável.
+         api.teleport(-12.2,-44.5,0);
+         const restored=api.state();
+         return {
+           target,from,to,camera,
+           targetState:{walkable:state.walkable,edge:state.edge},
+           playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1
+         };
        },edge);
        await page.waitForTimeout(900);
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-       const positioned=Number.isFinite(data.target.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite);
-       if(!positioned)report.errors.push("Sonda/câmera inválida na costura "+edge.name);
+       const positioned=Number.isFinite(data.target.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite)&&data.playerRestored;
+       if(!positioned)report.errors.push("Sonda/câmera inválida ou jogador não restaurado na costura "+edge.name);
        report.cases.push({
          preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"sonda e câmera posicionadas; conferir PNG":"ponto/câmera inválidos",
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,from:data.from,to:data.to,camera:data.camera}
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,targetState:data.targetState,from:data.from,to:data.to,camera:data.camera,playerRestored:data.playerRestored}
        });
      }
    }
