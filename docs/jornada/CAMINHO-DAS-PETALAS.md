@@ -4,7 +4,7 @@ Na campanha, leia o bilhete após a vitória sobre VORGAZHEK. Saia de Cinzária 
 
 ## Distâncias percorríveis
 
-Medidas horizontais ao longo dos segmentos de caminhada. As cotas estão em metros do mundo. A coluna de tempo calcula caminhada contínua a 2,8 m/s na superfície livre. Os registros de gameplay anexos à PR medem a viagem com física, curvas, diálogos, corrida e frio.
+Medidas horizontais ao longo dos segmentos de caminhada. As cotas estão em metros do mundo. A coluna de tempo calcula caminhada contínua a 2,8 m/s na superfície livre. A estimativa exclui curvas, diálogos e pausas. A duração observada deve ser lida no registro da caminhada por teclado.
 
 | Região | Percurso | Cotas | Caminhada | O que orienta a travessia |
 |---|---:|---:|---:|---|

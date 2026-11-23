@@ -4,7 +4,7 @@ fs.mkdirSync(out,{recursive:true});
 (async()=>{const b=await chromium.launch({args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader','--autoplay-policy=no-user-gesture-required']});
 try{
  const mobile=['mobile','portrait'].includes(mode);
- const width=mode==='portrait'?393:mobile?852:1200, height=mode==='portrait'?852:mobile?393:675;
+ const width=mode==='walk'?640:mode==='portrait'?393:mobile?852:1200, height=mode==='walk'?360:mode==='portrait'?852:mobile?393:675;
  const tier=process.env.GRAPHICS||'low';
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
  const page=await ctx.newPage(),root=path.resolve(path.dirname(require.resolve('three')),'..');
@@ -54,7 +54,7 @@ try{
   const button=page.locator('#dialog-continue');
   await at(-1038.2,-1608.6);await page.waitForFunction(()=>SevenSinsDebug3D.storyState().label==='FALAR COM A MESTRA');
   await page.evaluate(()=>SevenSinsDebug3D.interact());await button.waitFor({state:'visible'});
-  const first=await page.locator('#dialog-text').innerText();if(!first.includes('Lia'))throw Error('Nome ausente no dojo');
+  const first=await page.locator('#dialog-text').textContent();if(!first?.startsWith('Lia,'))throw Error('Fala inesperada da mestra: '+first);
   for(let i=0;i<3;i++)await button.click();
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
   await page.reload({waitUntil:'domcontentloaded'});
@@ -87,7 +87,7 @@ try{
       dialog:!document.querySelector('#dialog-panel').classList.contains('hidden')};});
      if(state.story.q>=16)break;
      if(state.dialog || state.story.scene){
-      await press([]);const next=state.dialog?'#dialog-continue':state.story.waitingTap?'#story-layer':null;
+      await press([]);const next=state.dialog?'#dialog-continue':state.story.waitingTap?'#cine-continue':null;
       if(next&&await page.locator(next).isVisible())await page.locator(next).click({force:true});
       if(await page.locator('#choice-no').isVisible())await page.locator('#choice-no').click();
      }else{
@@ -122,6 +122,21 @@ try{
    ['10b-castelo-distante',637,-576,564,-254],['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
    ['14-bairro',145,-37,162,-34]
   ];
+  if(mobile){
+   const cdp=await ctx.newCDPSession(page);
+   const stick=page.locator('#stick'),box=await stick.boundingBox();
+   if(!box||box.width<=0)throw Error('Controle de toque fora do layout');
+   const origin=await page.evaluate(()=>SevenSinsDebug3D.walkState());
+   const x=box.x+box.width/2,y=box.y+box.height/2;
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+   try{
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-box.width*.31,y}]});
+    await page.waitForFunction(p=>{const s=SevenSinsDebug3D.walkState();return Math.hypot(p.x-s.x,p.z-s.z)>.5;},origin,{timeout:20000});
+   }finally{await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+   await cdp.detach();
+   const moved=await page.evaluate(()=>SevenSinsDebug3D.walkState());
+   fs.writeFileSync(path.join(out,'input-touch.json'),JSON.stringify({origin,moved,layout:box,width,height}));
+  }
   // Keep the HUD visible for framing and touch-control inspection.
   for(const [name,x,z,tx,tz] of shots){
    const result=await page.evaluate(async({name,x,z,tx,tz})=>{
