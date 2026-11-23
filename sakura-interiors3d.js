@@ -15,7 +15,7 @@ export function surfaceFinish(T,wood){
   `vec2 block=q*vec2(.56,1.15);block.x+=mod(floor(block.y),2.)*.5;vec2 f=abs(fract(block)-.5);
   float seam=smoothstep(.437,.496,max(f.x,f.y))*(1.-smoothstep(.12,.62,max(fwidth(block.x),fwidth(block.y))));
   diffuseColor.rgb*=(1.-seam*.22)*(.92+.10*a);diffuseColor.rgb+=vec3(.012,.026,.044);
-  `);};
+  `));};
  return m;
 }
 export function hallDetails(T,{root,feature,landmarks}){

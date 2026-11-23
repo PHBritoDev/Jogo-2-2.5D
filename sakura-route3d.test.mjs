@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createSakuraWorld} from './sakura-world3d.js';
 import assert from 'node:assert/strict';
 import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
 import {CITY2,GATE2} from './jornada3d.js';
@@ -14,7 +15,7 @@ test('a saída canônica do bilhete fica fora da cratera e encontra a passagem d
  assert.equal(leavesVolcano(GATE2.z,sampleRoad(GATE2.x,GATE2.z)),false);
 });
 test('cada metro do eixo, do retorno e de nove desvios é atravessável e contínuo',()=>{
- assert.ok(LENGTHS.at(-1)>5000);
+ assert.equal(typeof createSakuraWorld,'function');assert.ok(LENGTHS.at(-1)>5000);
  assert.equal(DETOURS.length,9);
  for(const road of [ROUTE,CITY_ROAD,...DETOURS.map(d=>d.points)])for(let j=1;j<road.length;j++){
   const a=road[j-1],b=road[j],n=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z));let previous;

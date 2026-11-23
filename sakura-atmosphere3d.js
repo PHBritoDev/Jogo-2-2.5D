@@ -4,7 +4,7 @@ import {atlas,seeded} from './sakura-grove3d.js';
 // keep control. A transparent horizon fades back to the exterior at both ends.
 export function skyVeil(T){
  const u={clock:{value:0},snow:{value:0},bloom:{value:0},night:{value:0},opacity:{value:0},haze:{value:new T.Color()}};
- const mat=new T.ShaderMaterial({uniforms:u,side:T.BackSide,depthWrite:false,transparent:false,
+ const mat=new T.ShaderMaterial({uniforms:u,side:T.BackSide,depthWrite:false,transparent:true,
  vertexShader:`varying vec3 ray;void main(){ray=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position.z=gl_Position.w*.99998;}`,
  fragmentShader:`varying vec3 ray;uniform float clock,snow,bloom,night,opacity;uniform vec3 haze;
  float h(vec2 p){return fract(sin(dot(p,vec2(27.61,79.94)))*43758.54);}
@@ -16,7 +16,7 @@ export function skyVeil(T){
  sky=mix(sky,cloud,smoothstep(.34,.68,v)*(.53+.46*snow));vec3 moon=normalize(vec3(.48,.44,-.76));
  float disc=length(d-moon);sky+=vec3(.33,.15,.15)*exp(-disc*8.)*bloom;
  sky=mix(sky,vec3(1.,.84,.80)*(.83+.17*clouds(d.xz*85.)),(1.-smoothstep(.076,.081,disc))*bloom*(1.-smoothstep(.52,.7,v)));
- sky*=1.-night*.57;gl_FragColor=vec4(sky,1.);
+ sky*=1.-night*.57;gl_FragColor=vec4(sky,opacity);
  #include <colorspace_fragment>
  }`});
  const mesh=new T.Mesh(new T.SphereGeometry(1,24,14),mat);mesh.renderOrder=-7;mesh.frustumCulled=false;
