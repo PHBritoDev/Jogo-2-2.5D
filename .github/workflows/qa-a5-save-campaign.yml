@@ -9,6 +9,8 @@ on:
       - 'act2-flow.test.mjs'
       - 'sidequests3d.js'
       - 'sidequests3d.test.mjs'
+      - 'tests/a5-vendor-rescue-actual.test.mjs'
+      - 'tests/vila-solida.test.mjs'
       - 'mundo-3d-prototype.js'
       - '.github/workflows/qa-a5-save-campaign.yml'
   workflow_dispatch:
@@ -25,7 +27,7 @@ jobs:
           node-version: '22'
       - name: Verificar arquivo JS
         run: node --check act1-flow.js && node --check act2-flow.js && node --check sidequests3d.js && node --check mundo-3d-prototype.js
-      - name: Executar regressão das missões opcionais
-        run: node --test sidequests3d.test.mjs
+      - name: Executar regressão das missões e integração dos vendedores
+        run: node --test sidequests3d.test.mjs tests/a5-vendor-rescue-actual.test.mjs tests/vila-solida.test.mjs
       - name: Executar teste específico e contrato base
         run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs

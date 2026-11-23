@@ -48,11 +48,21 @@ export const SIDE_QUESTS = [
 
 // Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
 function safeSideCount(value, max) {
-  // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
+  // Contagens externas podem superar a meta (há seis abrigos, mas a missão pede três).
+  // Arrays, booleanos e objetos nunca comprovam progresso.
   if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
   return Math.min(max, Math.max(0, Math.floor(n)));
+}
+
+// Progresso salvo/em memória acima da meta é corrupção, não uma missão concluída.
+// Diferente de uma contagem externa de abrigos, ele não pode ser simplesmente truncado.
+function safeSideProgress(value, max) {
+  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n > max) return 0;
+  return Math.max(0, Math.floor(n));
 }
 
 export function createSideState(saved) {
@@ -60,7 +70,7 @@ export function createSideState(saved) {
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
     const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
-    const progress = state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count);
+    const progress = state === 'locked' ? 0 : safeSideProgress(s && s.progress, q.goal.count);
     // Um save corrompido não pode entregar recompensa sem cumprir a meta.
     // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
     out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };
@@ -75,7 +85,7 @@ export function refreshSide(state, ctx) {
     // Um estado ready restaurado/adulterado sem progresso suficiente não deve
     // instruir o jogador a entregar uma missão que turnInSide recusará.
     if (['active', 'ready'].includes(s.state) && (!Number.isFinite(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
-      s.progress = safeSideCount(s.progress, q.goal.count);
+      s.progress = safeSideProgress(s.progress, q.goal.count);
     }
     if (s.state === 'ready' && s.progress < q.goal.count) {
       s.state = 'active';
@@ -103,7 +113,7 @@ export function collectSide(state, item) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     if (q.goal.type === 'collect' && q.goal.item === item && s.state === 'active') {
-      s.progress = Math.min(q.goal.count, safeSideCount(s.progress, q.goal.count) + 1);
+      s.progress = Math.min(q.goal.count, safeSideProgress(s.progress, q.goal.count) + 1);
       if (s.progress >= q.goal.count) s.state = 'ready';
       return q;
     }
@@ -114,7 +124,7 @@ export function collectSide(state, item) {
 /** Entrega: devolve a recompensa uma única vez. */
 export function turnInSide(state, id) {
   const q = SIDE_QUESTS.find(x => x.id === id), s = state[id];
-  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress < q.goal.count) return null;
+  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress !== q.goal.count) return null;
   s.state = 'done';
   return q.reward;
 }
@@ -126,7 +136,7 @@ export function questForGiver(state, giver) {
 export function activeSideLines(state) {
   return SIDE_QUESTS.filter(q => ['active', 'ready'].includes(state[q.id].state)).map(q => {
     const s = state[q.id];
-    const progress = safeSideCount(s.progress, q.goal.count);
+    const progress = safeSideProgress(s.progress, q.goal.count);
     return s.state === 'ready' && progress >= q.goal.count
       ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0]
       : q.title + ' · ' + progress + '/' + q.goal.count;

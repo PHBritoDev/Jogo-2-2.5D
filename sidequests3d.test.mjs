@@ -72,9 +72,12 @@ test('reload da vila limita contadores inválidos sem concluir missões indevida
   const s = createSideState(saved);
   assert.equal(s.ervas.progress, 0);
   assert.equal(s.pingente.progress, 0);
-  assert.equal(s.abrigos.progress, 3);
+  assert.equal(s.abrigos.progress, 0, 'progresso salvo acima da meta é corrupção, não conclusão');
   assert.equal(s.abrigos.state, 'active');
   refreshSide(s, { questStep: 2, waystones: 2 });
+  assert.equal(s.abrigos.progress, 2, 'a contagem real dos abrigos é a fonte de verdade');
+  assert.equal(s.abrigos.state, 'active');
+  refreshSide(s, { questStep: 2, waystones: 3 });
   assert.equal(s.abrigos.state, 'ready');
   assert.equal(s.ervas.state, 'active');
   assert.equal(turnInSide(s, 'ervas'), null);
@@ -146,6 +149,8 @@ test('entrega exige progresso completo mesmo se estado ready for adulterado apó
   assert.equal(acceptSide(s, 'pingente'), true);
   collectSide(s, 'pingente');
   assert.equal(s.pingente.state, 'ready');
+  s.pingente.progress = 2;
+  assert.equal(turnInSide(s, 'pingente'), null, 'não pagar com progresso acima da meta');
   s.pingente.progress = 0;
   assert.equal(turnInSide(s, 'pingente'), null, 'não pagar missão sem o item');
   assert.equal(s.pingente.state, 'ready', 'não converter em done sem recompensa');
@@ -203,7 +208,11 @@ test('progresso negativo ou acima da meta durante a sessão é normalizado', () 
   assert.equal(s.pingente.state, 'ready');
   s.pingente.progress = 999;
   refreshSide(s, { questStep: 2 });
-  assert.equal(s.pingente.progress, 1);
+  assert.equal(s.pingente.progress, 0, 'progresso acima da meta deve ser invalidado');
+  assert.equal(s.pingente.state, 'active');
+  assert.equal(turnInSide(s, 'pingente'), null, 'contador adulterado não paga recompensa');
+  collectSide(s, 'pingente');
+  assert.equal(s.pingente.state, 'ready');
   assert.deepEqual(turnInSide(s, 'pingente'), SIDE_QUESTS[1].reward);
 });
 
@@ -258,6 +267,8 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   s.ervas.state = 'ready';
   s.ervas.progress = Infinity;
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
+  s.ervas.progress = 999;
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4'], 'o diário não pode anunciar entrega com contador acima da meta');
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
