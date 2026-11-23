@@ -90,23 +90,73 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          const api=window.SevenSinsDebug3D;
          return {camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};
        },data.to);
+       const visualGuide=await page.evaluate(edge=>{
+         const api=window.SevenSinsDebug3D;
+         const sampleLine=boundary=>[-edge.edgeSpan,edge.edgeSpan].map(offset=>{
+           const x=edge.axis==="x"?boundary:edge.x+offset;
+           const z=edge.axis==="x"?edge.z+offset:boundary;
+           const hit=(api.rayDown(x,z)||[]).find(h=>String(h.n).includes("terrain-mod186"))||null;
+           if(!hit)return {world:[x,null,z],mesh:null,ndc:null,onScreen:false,blocked:null};
+           const view=api.camView([x,hit.y+.04,z]);
+           return {world:[x,+hit.y.toFixed(3),z],mesh:hit.n,ndc:view.ndc,onScreen:view.onScreen,blocked:view.blocked};
+         });
+         const fine=sampleLine(edge.fineEdge),outer=sampleLine(edge.firstOuter);
+         const screen=p=>p.ndc?[(p.ndc[0]+1)*innerWidth/2,(1-p.ndc[1])*innerHeight/2]:null;
+         const mid=points=>points.every(p=>p.ndc)?[
+           (screen(points[0])[0]+screen(points[1])[0])/2,
+           (screen(points[0])[1]+screen(points[1])[1])/2
+         ]:null;
+         const fm=mid(fine),om=mid(outer);
+         const pixelGap=fm&&om?Math.hypot(fm[0]-om[0],fm[1]-om[1]):0;
+         const allTerrainHits=[...fine,...outer].every(p=>p.mesh==="terrain-mod186");
+         const allOnScreen=[...fine,...outer].every(p=>p.onScreen);
+         const ns="http://www.w3.org/2000/svg";
+         const svg=document.createElementNS(ns,"svg");
+         svg.id="a3-terrain-edge-overlay";
+         svg.setAttribute("viewBox","0 0 "+innerWidth+" "+innerHeight);
+         svg.setAttribute("width",String(innerWidth));svg.setAttribute("height",String(innerHeight));
+         svg.style.cssText="position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:999999";
+         const draw=(points,color)=>{
+           if(!points.every(p=>p.ndc))return;
+           const a=screen(points[0]),b=screen(points[1]);
+           const line=document.createElementNS(ns,"line");
+           line.setAttribute("x1",a[0]);line.setAttribute("y1",a[1]);line.setAttribute("x2",b[0]);line.setAttribute("y2",b[1]);
+           line.setAttribute("stroke",color);line.setAttribute("stroke-width","4");line.setAttribute("stroke-linecap","round");
+           svg.appendChild(line);
+           for(const p of [a,b]){
+             const dot=document.createElementNS(ns,"circle");dot.setAttribute("cx",p[0]);dot.setAttribute("cy",p[1]);dot.setAttribute("r","4");dot.setAttribute("fill",color);dot.setAttribute("stroke","#101820");dot.setAttribute("stroke-width","1.5");svg.appendChild(dot);
+           }
+         };
+         draw(fine,"#00e5ff");draw(outer,"#ff9f1c");
+         const box=document.createElementNS(ns,"rect");box.setAttribute("x",innerWidth/2-142);box.setAttribute("y","148");box.setAttribute("width","284");box.setAttribute("height","42");box.setAttribute("rx","7");box.setAttribute("fill","rgba(8,12,18,.88)");box.setAttribute("stroke","#b8a37a");svg.appendChild(box);
+         const label=document.createElementNS(ns,"text");label.setAttribute("x",innerWidth/2);label.setAttribute("y","165");label.setAttribute("text-anchor","middle");label.setAttribute("font-size","11");label.setAttribute("font-family","Arial,sans-serif");label.setAttribute("fill","#ffffff");label.textContent="CIANO: limite fino  •  LARANJA: 1ª célula externa";svg.appendChild(label);
+         const sub=document.createElementNS(ns,"text");sub.setAttribute("x",innerWidth/2);sub.setAttribute("y","181");sub.setAttribute("text-anchor","middle");sub.setAttribute("font-size","10");sub.setAttribute("font-family","Arial,sans-serif");sub.setAttribute("fill","#f5d8a4");sub.textContent="largura nominal entre linhas: 2,5 m";svg.appendChild(sub);
+         const cross=document.createElementNS(ns,"circle");cross.setAttribute("cx",innerWidth/2);cross.setAttribute("cy",innerHeight/2);cross.setAttribute("r","7");cross.setAttribute("fill","none");cross.setAttribute("stroke","#ffffff");cross.setAttribute("stroke-width","2");svg.appendChild(cross);
+         document.body.appendChild(svg);
+         return {fine,outer,pixelGap,allTerrainHits,allOnScreen,overlay:true};
+       },edge);
        const primaryPick=verified.centerPick?.[0]||null;
        const terrainHit=!!primaryPick&&/terrain-mod186/.test(primaryPick[0]||"");
        const horizontalMiss=primaryPick?Math.hypot(primaryPick[2]-data.to[0],primaryPick[4]-data.to[2]):null;
        const targetVisible=!!verified.viewCheck?.onScreen&&!verified.viewCheck?.blocked;
        const cameraPinned=Array.isArray(verified.camera)&&verified.camera.length===3&&verified.camera.every((v,i)=>Math.abs(v-data.from[i])<.5);
-       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&cameraPinned&&data.playerRestored&&terrainHit&&horizontalMiss!==null&&horizontalMiss<1.5&&targetVisible;
+       const visualGuideOk=visualGuide.allTerrainHits&&visualGuide.allOnScreen&&visualGuide.pixelGap>=8;
+      const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&cameraPinned&&data.playerRestored&&terrainHit&&horizontalMiss!==null&&horizontalMiss<1.5&&targetVisible&&visualGuideOk;
        if(!cameraPinned)report.errors.push("Override de câmera não permaneceu ativo na costura "+edge.name);
        if(!terrainHit||horizontalMiss===null||horizontalMiss>=1.5)report.errors.push("Raio central não atingiu o ponto da malha na costura "+edge.name+": "+JSON.stringify(primaryPick));
        if(!targetVisible)report.errors.push("Alvo da costura fora do quadro ou obstruído em "+edge.name+": "+JSON.stringify(verified.viewCheck));
        if(!data.playerRestored)report.errors.push("Jogador não foi restaurado após sondar "+edge.name);
+       if(!visualGuide.allTerrainHits)report.errors.push("Amostras das duas linhas não atingiram terrain-mod186 em "+edge.name+": "+JSON.stringify(visualGuide));
+       if(!visualGuide.allOnScreen)report.errors.push("Linhas de referência fora do quadro em "+edge.name+": "+JSON.stringify(visualGuide));
+       if(visualGuide.pixelGap<8)report.errors.push("Linhas de referência não distinguíveis em "+edge.name+": "+visualGuide.pixelGap+" px");
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
+       await page.evaluate(()=>document.getElementById("a3-terrain-edge-overlay")?.remove());
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\\b\\d{1,3}\\s*FPS\\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
        report.cases.push({
          preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,
-         reason:positioned?"alvo central no terreno, visível e sem oclusão; inspecionar PNG":"captura sem enquadramento comprovado",
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,cameraAfter:verified.camera,centerPick:verified.centerPick,viewCheck:verified.viewCheck,horizontalMiss,terrainHit,targetVisible,playerRestored:data.playerRestored}
+         reason:positioned?"duas bordas amostradas no terreno e projetadas no quadro; inspecionar continuidade":"captura sem enquadramento/linhas de referência comprovados",
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,cameraAfter:verified.camera,centerPick:verified.centerPick,viewCheck:verified.viewCheck,horizontalMiss,terrainHit,targetVisible,playerRestored:data.playerRestored,visualGuide}
        });
      }
      // seamMode oculta o céu e objetos de fundo; recarregar restaura a cena normal antes do teste de escada/vídeo.
