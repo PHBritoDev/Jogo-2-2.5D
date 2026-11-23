@@ -63,10 +63,14 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          api.teleport(edge.x,edge.z,0);
          const targetPlayer=api.cineState().player;
          const target={x:targetPlayer[0],y:targetPlayer[1],z:targetPlayer[2]};
-         const state=api.state();
+         const targetState=api.state();
          const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
-         // Câmera no lado interno da malha, mirando o chão da costura.
-         const from=[cameraX,target.y+edge.cameraOffset[1],cameraZ];
+         // Amostra também o chão sob a câmera: um único offset alto pode ficar enterrado numa encosta.
+         api.teleport(cameraX,cameraZ,0);
+         const cameraPlayer=api.cineState().player;
+         const cameraGround={x:cameraX,y:cameraPlayer[1],z:cameraZ};
+         const cameraState=api.state();
+         const from=[cameraX,Math.max(target.y,cameraGround.y)+edge.cameraOffset[1],cameraZ];
          const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
          api.fly(from,to);
          const camera=api.cam();
@@ -74,8 +78,9 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
          api.teleport(-12.2,-44.5,0);
          const restored=api.state();
          return {
-           target,from,to,camera,
-           targetState:{walkable:state.walkable,edge:state.edge},
+           target,cameraGround,from,to,camera,
+           targetState:{walkable:targetState.walkable,edge:targetState.edge},
+           cameraState:{walkable:cameraState.walkable,edge:cameraState.edge},
            playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1
          };
        },edge);
@@ -83,11 +88,11 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-       const positioned=Number.isFinite(data.target.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite)&&data.playerRestored;
+       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite)&&data.playerRestored;
        if(!positioned)report.errors.push("Sonda/câmera inválida ou jogador não restaurado na costura "+edge.name);
        report.cases.push({
          preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"sonda e câmera posicionadas; conferir PNG":"ponto/câmera inválidos",
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,targetState:data.targetState,from:data.from,to:data.to,camera:data.camera,playerRestored:data.playerRestored}
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,playerRestored:data.playerRestored}
        });
      }
    }

@@ -90,6 +90,8 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
     assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
     assert.equal(shot.cameraOffset.length, 3);
     assert.ok(shot.cameraOffset[1] >= 12, 'camera must clear the surface');
+    const horizontalOffset = Math.hypot(shot.cameraOffset[0], shot.cameraOffset[2]);
+    assert.ok(horizontalOffset > 0 && horizontalOffset <= 2.5, 'camera must stay close to the seam to avoid cutting through steep terrain');
     assert.equal(shot.targetOffset.length, 3);
     assert.ok([...shot.cameraOffset, ...shot.targetOffset].every(Number.isFinite));
     assert.ok(!JOURNEY_HOLES.some(h => inside(h, shot.x, shot.z)), `${shot.name} falls inside an intentional journey cutout`);
