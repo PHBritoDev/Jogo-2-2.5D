@@ -204,7 +204,8 @@ fs.mkdirSync(dir, { recursive: true });
       // Measured contact on the real first combo sweep is near (-4.82, 1.07, 14.84).
       // Put both secondary capsules on that same swept arc, separated by 1 m; keep focus ahead
       // so the actors do not overlap and the test proves two genuine side contacts.
-      D.squadPose(primaryId, -5, 13.7, 0, true);
+      // Keep e3 inside the pickSquadFocus 0.9 hysteresis: z=13.7 lets e1 steal focus.
+      D.squadPose(primaryId, -5, 13.9, 0, true);
       D.squadPose(sides[0].id, -5.32, 14.84, 0, true);
       D.squadPose(sides[1].id, -4.32, 14.84, 0, true);
       D.squadPose(sides[2].id, -8.8, 14.9, 0, true);
