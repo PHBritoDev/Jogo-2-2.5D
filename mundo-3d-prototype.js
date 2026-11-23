@@ -116,8 +116,10 @@ import { VG_FILE, VG_ROLES, VG_IN_PLACE, VG_TIME, vgSynthClips } from './vorgazh
 import { ZK_FILE, ZK_ROLES, ZK_IN_PLACE, ZK_TIME, zkSynthClips, zkStartSpiral } from './zarkhael-squad3d.js';
 import { zkBeastOf, zkBeastMouth, zkBeastMagicHit, zkBeastSwordHit, zkHeroDebuffLeft, zkClearDebuff } from './zarkhael-beast3d.js'; // 21/11: Fera dos Mil Olhos (Bispo 3)
 import { VX_FILE, VX_ROLES, VX_IN_PLACE, VX_TIME, vxSynthClips, vxStartThrow, vxStartUpslash } from './veraxion-squad3d.js';
+import {createGreedCampaignUltimate} from './greed-ultimate-campaign3d.js';
+import {createAdmPanel} from './adm-panel3d.js';
 import { GK_FILE1, GK_FILE2, GK_ROLES_A, GK_ROLES_B, GK_IN_PLACE, GK_TIME, gkSynthA, gkSynthB, gkPrepareB, gkForceTech, gkStateOf } from './greed-boss3d.js?v=mod342'; // 21/11: Ganância em três fases (NewGanancia1/2.glb)
-import { vxComboFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
+import { vxComboFollowupAllowed, seqFollowupAllowed } from './veraxion-combo-damage3d.js'; // missão 20/11: VÉRAXION com NewBispo4.glb e duas espadas // missão 20/11: ZAR'KHAEL com NewBispo3.glb e foice
 import { createTornadoRitual, createTornadoVFX, VORGAZHEK_TORNADO_BUILD } from './vorgazhek-tornado3d.js';
 import { createPortalSwords, createPortalSwordsVFX, PORTAL_SWORDS_BUILD } from './vorgazhek-portal-swords3d.js';
 import { createEclipseSword, createEclipseVFX, eclipseArms, ECLIPSE_SWORD_BUILD } from './vorgazhek-eclipse-sword3d.js';
@@ -2221,7 +2223,7 @@ function updateHolyProjectiles(dt){
   if(p.life<=0){scene.remove(p.group);p.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}});holyProjectiles.splice(i,1);}
  }
 }
-function action(kind){if(whiteLease.locked)return;if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(!heroMob.canDash(combatClock)||!rites.canCancel)return;rites.cancel('dash');heroMob.dash(combatClock);dashCooldownUntil=now+MOBILITY.dashCooldown*1000;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}if(newHero){protaDashStart(now);return;}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!rites.canCancel)return;const jumpN=heroMob.jump(grounded,combatClock);if(!jumpN)return;rites.cancel('jump');const airJump=jumpN>1;grounded=false;verticalVelocity=(newHero?PROTA_JUMP.impulse:jumpImpulse)*(airJump?MOBILITY.airJumpK:1);if(airJump){heroShadows?.emit();slashVFX.impact({x:player.position.x,y:player.position.y+.15,z:player.position.z},{x:0,y:-1,z:0},{style:'prota',power:.12});}if(newHero){/* MOD 315: pular durante o dash não corta o deslocamento: o dash termina no próprio tempo e o salto herda o impulso */if(!(dashRemaining>0))protaDashEnd();if(!airJump)prota302.airAttacks=0;prota302.airborneT=0;}(worldAudio.jump?worldAudio.jump():worldAudio.whoosh());if(newHero&&actions.Prota302_jump){const a=actions.Prota302_jump,air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;playOnce('Prota302_jump',.06);a.setEffectiveTimeScale(a.getClip().duration/air);actionUntil=now+60;return;}heroShadows?.emit();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget(false,siege));siegeHUD();return;}tryPlayerAttack();return;}if(kind==='shield'){heroShieldUp();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
+function action(kind){if(whiteLease.locked)return;if(greedCineLock&&combatClock<greedCineLock)return; /* 22/11: diretor II→III bloqueia ações (o herói não interrompe a revelação) */if(cosmicLock())return;if(vzLocked){if(kind==='attack'||kind==='jump')vzSkip();return;}if(playerHP<=0||cineActive||gamePaused||dialogueOpen||namePromptOpen||awakeningActive)return;const now=performance.now();if(kind==='sword-skill'){castSwordRite();return;}if(kind==='dash'){if(!heroMob.canDash(combatClock)||!rites.canCancel)return;rites.cancel('dash');heroMob.dash(combatClock);dashCooldownUntil=now+MOBILITY.dashCooldown*1000;let intentX=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+joyX;let intentZ=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0)+joyY;let intentLen=Math.hypot(intentX,intentZ);if(intentLen>.12){intentX/=intentLen;intentZ/=intentLen;dashDirX=intentX*Math.cos(cameraYaw)+intentZ*Math.sin(cameraYaw);dashDirZ=-intentX*Math.sin(cameraYaw)+intentZ*Math.cos(cameraYaw);}else{const moveLen=Math.hypot(moveVX,moveVZ);if(moveLen>.2){dashDirX=moveVX/moveLen;dashDirZ=moveVZ/moveLen;}else{dashDirX=Math.sin(playerYaw);dashDirZ=Math.cos(playerYaw);}}if(newHero){protaDashStart(now);return;}dashRemaining=.32;playerInvulnerableUntil=Math.max(playerInvulnerableUntil,now+330);heroShadows?.emit();worldAudio.whoosh();if(actions.dash)playOnce('dash',.045);else if(actions.walk)play('walk',.045);actionUntil=now+360;return;}if(kind==='jump'){if(!rites.canCancel)return;const jumpN=heroMob.jump(grounded,combatClock);if(!jumpN)return;rites.cancel('jump');const airJump=jumpN>1;grounded=false;verticalVelocity=(newHero?PROTA_JUMP.impulse:jumpImpulse)*(airJump?MOBILITY.airJumpK:1);if(airJump){heroShadows?.emit();slashVFX.impact({x:player.position.x,y:player.position.y+.15,z:player.position.z},{x:0,y:-1,z:0},{style:'prota',power:.12});}if(newHero){/* MOD 315: pular durante o dash não corta o deslocamento: o dash termina no próprio tempo e o salto herda o impulso */if(!(dashRemaining>0))protaDashEnd();if(!airJump)prota302.airAttacks=0;prota302.airborneT=0;}(worldAudio.jump?worldAudio.jump():worldAudio.whoosh());if(newHero&&actions.Prota302_jump){const a=actions.Prota302_jump,air=2*PROTA_JUMP.impulse/PROTA_JUMP.gravity;playOnce('Prota302_jump',.06);a.setEffectiveTimeScale(a.getClip().duration/air);actionUntil=now+60;return;}heroShadows?.emit();if(actions.jump){playOnce('jump',.08);actionUntil=now+Math.max(320,Math.min(700,actions.jump.getClip().duration*1000));}else{actionUntil=now+180;}return;}if(kind==='attack'){if(siege.active){siege.fire(siegeTarget(false,siege));siegeHUD();return;}tryPlayerAttack();return;}if(kind==='shield'){heroShieldUp();return;}if(kind==='magic'||kind==='magic2'||kind==='magic3'||kind==='ultimate'){rites.cancel('magic');castHolyMagic(slotSkill(kind));return;}}
 // MOD 187 — o celular não gera 'click' para um segundo dedo enquanto o primeiro segura o joystick; pointerdown responde sempre.
 /* MOD 291 — "clique fantasma": um toque que FECHA um painel (ex.: ✕ da Loja, no canto superior direito) dispara no
    pointerdown; o click que o navegador gera no pointerup cai no botão que ficou embaixo (⏸) e abria a PAUSA.
@@ -2401,7 +2403,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -3169,20 +3171,41 @@ const _gkRay=new THREE.Raycaster(),_gkV=new THREE.Vector3(),_gkUp=new THREE.Vect
 /** Teto REAL da caverna da Ganância sobre (x,z) — raio para cima contra a malha da arena (só na decisão de voo/pouso). */
 function greedCeilingAt(x,z){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;const gy=fxGy(x,z);/* chão da dimensão (terrainHeightAt é o mundo) */_gkRay.set(_gkV.set(x,gy+2,z),_gkUp);_gkRay.far=45;_gkRay.camera=camera;/* Sprite.raycast exige câmera */
  let hits=[];try{hits=_gkRay.intersectObject(arena.group,true);}catch(e){return null;}for(const h of hits)if(h.object.isMesh&&!h.object.isInstancedMesh&&h.object.visible&&h.face)return h.point.y;return null;}
+/** 22/11 (Etapa 4) — pontos REAIS para a Ganância pendurar: varredura única (raycast para cima) do anel 30–46 m da arena, guardando
+ *  superfícies com 7–22 m de vão (arcada/beirais da garganta; o teto central fica a ~80 m). Sem cenário novo nem piso falso. */
+let greedHangCache=null;
+function greedHangSpot(a,t){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;
+ if(!greedHangCache||greedHangCache.key!==voidSpec.x+':'+voidSpec.z){const list=[];for(let r=31;r<=46;r+=3)for(let k=0,n=Math.round(r*2*Math.PI/3);k<n;k++){const an=k/n*Math.PI*2,x=voidSpec.x+Math.sin(an)*r,z=voidSpec.z+Math.cos(an)*r,c=greedCeilingAt(x,z);if(c==null)continue;const h=c-fxGy(x,z);if(h>=7&&h<=22)list.push({x,y:c,z,h});}greedHangCache={key:voidSpec.x+':'+voidSpec.z,list};}
+ let best=null,bs=1e9;for(const p of greedHangCache.list){const db=Math.hypot(p.x-a.x,p.z-a.z),dh=t?Math.hypot(p.x-t.x,p.z-t.z):0;if(dh>34)continue;const sc=db+dh*.6+Math.abs(p.h-13)*.5;if(sc<bs){bs=sc;best=p;}}return best&&{x:best.x,y:best.y,z:best.z};}
 /** Ponto da boca colossal (módulo do Codex, sem editá-lo): mesma origem/raio da arena usada por createGreedAbyss. */
-function greedAbyssAnchor(){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;arena.group.updateMatrixWorld(true);const p=arena.group.localToWorld(new THREE.Vector3(7,12.5,-(arenaSpec('greed').radius||30)-6));return{x:p.x,y:p.y,z:p.z};}
+function greedAbyssAnchor(){const arena=dimKey==='greed'?dimArenas.greed:null;if(!arena)return null;arena.group.updateMatrixWorld(true);
+ /* 22/11 (Etapa 6): CENTRO ANATÔMICO da garganta — o crânio do colosso (greed-abyss3d.js, do Codex, só lido) termina a coluna no
+    focinho (0,0,0); 3–4 m para dentro ao longo da última curva (rumo a (7,3,−8)) fica o meio da goela. Antes: 4 m À FRENTE da boca. */
+ const skull=arena.group.getObjectByName('ganancia-colosso');if(skull){const p=skull.localToWorld(new THREE.Vector3(3.1,1.3,-3.5));return{x:p.x,y:p.y,z:p.z};}
+ const p=arena.group.localToWorld(new THREE.Vector3(7,12.5,-(arenaSpec('greed').radius||30)-6));return{x:p.x,y:p.y,z:p.z};}
+/** 22/11 — câmera do diretor II→III: posição relativa ao chefe, do lado do herói, por estágio (alto → baixo → tilt-up → recuo → retrato). */
+let greedCineLock=0;
+function greedCineCam(a,stage){const front=stage==='rise'||stage==='burst'||stage==='reveal',hx=front?Math.sin(a.yaw):player.position.x-a.x,hz=front?Math.cos(a.yaw):player.position.z-a.z,l=Math.hypot(hx,hz)||1,ux=hx/l,uz=hz/l,sx=-uz,sz=ux; /* levante/estouro/revelação: referência = a FRENTE do chefe (rosto, chifres, asas abertas) */
+ /* [distância, altura, azimute (rad a partir do eixo chefe→herói; ~90° = lateral, herói fora do quadro central), altura do olhar] */
+ const S={die:[6,3.6,1.2,.7],hold:[5.8,3,1.35,.9],charge:[5.2,1.0,1.55,1.3],rise:[6,.8,.55,3.0],burst:[9.5,2.4,.4,2.4],reveal:[6.4,1.5,.35,2.7]}[stage]||[8,3,1.3,2];
+ const [dist,h,az,look]=S,cx=ux*Math.cos(az)+sx*Math.sin(az),cz=uz*Math.cos(az)+sz*Math.sin(az);ultCam.at=(ultCam.at||new THREE.Vector3()).set(a.x+cx*dist,a.y+h,a.z+cz*dist);ultCam.look.set(a.x,a.y+look,a.z);ultCam.want=stage==='burst'?.9:1;ultCam.until=combatClock+3.5;}
 function greedPhaseEvent(d){const a=d.actor,b=dimBattle,story=b&&!b.test&&questStep===ACT6N.greed;
  if(d.stage==='fall'){showCombatCallout('A GANÂNCIA CAI…');cameraShake(.25);}
  if(d.stage==='arise'){squadFocus=a;squadManual=false;enemyMaxHP=a.maxHp;enemyHP=a.hp;writeSquadProxy();syncEnemyLabel();showCombatCallout('GANÂNCIA · SEGUNDA FORMA');cameraShake(.35);
   if(story){enemy.position.set(a.x,a.y,a.z);playStory('ganancia-1',greedPhase2Scene().filter(s=>s.id!=='transformar'),{focus:'enemy'});}}
- if(d.stage==='die'){enemy.position.set(a.x,a.y,a.z);showCombatCallout('A GANÂNCIA NÃO MORRE…');slowMo(700,.45);Object.assign(ultCam,{want:.85,height:3.4,dist:11});ultCam.look.set(a.x,a.y+1.6,a.z);} /* foco de câmera sem cena de história: o combate (e a ressurreição) segue no mesmo relógio */
- if(d.stage==='rise'){ultCam.look.set(a.x,a.y+3.2,a.z);ultCam.height=4.6;}
- if(d.stage==='burst'){ultCam.want=0;enemyMaxHP=a.maxHp;enemyHP=a.hp;writeSquadProxy();syncEnemyLabel();showCombatCallout('GANÂNCIA · FORMA FINAL');cameraShake(.6);vibrate(160);worldAudio.corrupt();
+ /* 22/11 — diretor II→III (sem cena de história: combate e ressurreição seguem no mesmo relógio). Câmera autoral por estágio:
+    morte vista do alto → carga em ângulo baixo → levante com tilt-up → estouro recua → revelação da silhueta III → devolve o jogo. */
+ if(d.stage==='die'||d.stage==='hold'||d.stage==='charge'||d.stage==='rise'||d.stage==='burst'||d.stage==='reveal'){enemy.position.set(a.x,a.y,a.z);greedCineCam(a,d.stage);greedCineLock=combatClock+(d.stage==='reveal'?1.1:2.6);}
+ if(d.stage==='die'){showCombatCallout('A GANÂNCIA NÃO MORRE…');slowMo(700,.45);}
+ if(d.stage==='charge'){worldAudio.corrupt&&worldAudio.corrupt();if(!userSettings.reduceShake)cameraShake(.08);}
+ if(d.stage==='done'){ultCam.want=0;greedCineLock=0;}
+ if(d.stage==='burst'){if(!userSettings.reduceShake)cameraShake(.45);enemyMaxHP=a.maxHp;enemyHP=a.hp;writeSquadProxy();syncEnemyLabel();showCombatCallout('GANÂNCIA · FORMA FINAL');cameraShake(.6);vibrate(160);worldAudio.corrupt();
   if(story){enemy.position.set(a.x,a.y,a.z);playStory('ganancia-2',greedPhase3Scene().filter(s=>s.id!=='transformar'),{focus:'enemy',done:()=>startAllies6()});}}
 }
 function zarkhaelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop3')return;if(!b.test&&questStep===ACT3N.boss&&!b.outro){b.outro=true;const a=squadSq()?.actors.find(x=>x.kind==='zarkhael');if(a)enemy.position.set(a.x,a.y,a.z);playStory('zarkhael-cai',zarkhaelDefeatScene(),{focus:'enemy',done:()=>dimensionVictory()});return;}dimensionVictory();}
 function vhazraelSquadDone(){const b=dimBattle;if(!b||b.key!=='bishop1')return;if(b.test){dimensionVictory();return;}if(questStep<8&&!b.outro){b.outro=true;enemy.visible=true;vhazraelOutro(()=>dimensionVictory());}else dimensionVictory();}
 function resetEnemyAfterDimension(){
+  greedAtomicEnd();
  if(pack&&pack.dim)clearPack();
  enemy.visible=false;enemy.rotation.set(0,0,0);enemy.scale.setScalar(1);enemyAttackCooldown=0;enemyAttackResolved=true;enemyDashRemaining=0;wardenFanPending=false;
  stopLunarUlt();stopVeraxionCyclone();stopVeraxionSwords();stopMoonFlames();stopHydra();stopZarkhaelSword();stopZarkUlt();zarkUltTestFired=false;clearHazards();stopCosmicUlt();stopEclipseSword();stopPortalSwords();stopTornadoRitual();useRig('enemy1');encounterProfile='captor';enemyHP=100;enemyMaxHP=100;enemyAlive=true;
@@ -4228,11 +4251,31 @@ function journeyTeleport(key){
  player.position.set(S.x,y,S.z);playerYaw=S.yaw;player.rotation.y=S.yaw;cameraYaw=S.yaw+Math.PI;verticalVelocity=0;grounded=true;moveVX=moveVZ=0;dashRemaining=0;journeyFall.on=false;checkpointX=S.x;checkpointZ=S.z;
  for(let i=0;i<10;i++)updatePlayerCamera(1);status.textContent='TP de teste — '+S.name;return true;
 }
-if(new URLSearchParams(location.search).get('adm')==='1'){const mountAdm=()=>{const el=document.createElement('div');el.id='adm-panel';el.style.cssText='position:fixed;right:8px;top:calc(env(safe-area-inset-top) + 112px);z-index:31;display:flex;flex-direction:column;gap:4px;align-items:flex-end';
- const st='border-radius:9px;border:1px solid #c8a24a;background:#1e1608e6;color:#ffe6b0;font:700 11px system-ui;padding:6px 9px;min-height:30px',menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:4px';
- const tog=document.createElement('button');tog.type='button';tog.textContent='ADM (teste) ▾';tog.style.cssText=st;tog.onclick=()=>{menu.style.display=menu.style.display==='none'?'flex':'none';};
- for(const [k,t] of [['eldoria','TP Cidade 1 — Eldória'],['vale','Ir ao Vale do Entardecer (início da jornada)']]){const b=document.createElement('button');b.type='button';b.textContent=t;b.dataset.tp=k;b.style.cssText=st;b.onclick=()=>{journeyTeleport(k);menu.style.display='none';};menu.appendChild(b);}
- el.append(tog,menu);document.body.appendChild(el);};if(document.readyState==='complete')mountAdm();else addEventListener('load',mountAdm);} // o mundo carrega por blob depois do load
+/** Painel ADM Mod 350: categorias em uma única interface mobile/PC.
+ * Atalho por URL ?adm=1. TESTES não modificam arquivos de save ao entrar com ?testeDimensao. */
+if(new URLSearchParams(location.search).get('adm')==='1'){
+ const mountAdm=()=>{
+  createAdmPanel({
+   getState:()=>{
+    const a=squadSq()?.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB'));
+    return{inGreed:!!dimBattle?.active&&dimBattle.key==='greed',phase:a?.gk?.phase||0};
+   },
+   onTeleport:key=>journeyTeleport(key)?'Teleporte realizado.':'Teleporte indisponível neste local ou durante combate.',
+   onDimension:key=>{
+    if(!DIMENSIONS[key])return 'Dimensão não encontrada.';
+    location.href='mundo-3d-prototype.html?adm=1&debug3d=1&testeDimensao='+encodeURIComponent(key);
+    return 'Abrindo teste isolado da dimensão.';
+   },
+   onUltimate:()=>greedAdmCastUltimate(),
+   onPhase:()=>greedAdmNextPhase(),
+   onKill:()=>{
+    const count=window.SevenSinsDebug3D?.killNearby?.(12)??0;
+    return count?'Foram atingidos '+count+' adversário(s).':'Nenhum adversário próximo.';
+   }
+  });
+ };
+ if(document.readyState==='complete')mountAdm();else addEventListener('load',mountAdm);
+}
 // ---------- Chuva (shader: sem atualizar vértices na CPU) e relâmpagos ----------
 const rain=(()=>{
  const N=terrainLowSpec?900:1800,pos=new Float32Array(N*2*3),seed=new Float32Array(N*2);
@@ -4452,11 +4495,77 @@ const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
 function squadRuntime(){
  if(squadRT)return squadRT;
- squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,ceilingAt:greedCeilingAt,abyssAnchor:greedAbyssAnchor,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
+ squadRT=createEnemy1SquadRuntime({T:THREE,scene,ash:ashFx,ground:terrainHeightAt,ceilingAt:greedCeilingAt,hangSpot:greedHangSpot,abyssAnchor:greedAbyssAnchor,blocked:squadBlocked,los:(ax,az,bx,bz)=>{const n=Math.min(10,Math.ceil(Math.hypot(bx-ax,bz-az)/1.5));for(let i=1;i<n;i++){const k=i/n;if(squadBlocked(ax+(bx-ax)*k,az+(bz-az)*k))return false;}return true;},
   source:k=>rigSource(k==='bandit'?'bandit':k==='e2'||k==='e2boss'?'enemy2':k==='e3'||k==='e3boss'?'enemy3':k==='e4'||k==='e4boss'?'enemy4':k==='vhazrael'?'bishop1':k==='vorgazhek'?'bishop2n':k==='zarkhael'?'bishop3n':k==='veraxion'?'bishop4n':k==='greedA'?'greed1n':k==='greedB'?'greed2n':'enemy1'),clone:cloneSkinned,measure:measureModelBounds,heroHeight:()=>playerReferenceHeight,damageTarget:squadDamageTarget,event:squadEvent,slash:slashVFX,shields:shieldVFX,pose:(root,kind,dur,yawFn)=>playPose(root,kind,dur,yawFn)});
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
+/** Mod 349: ultimate do Codex ligada ao corpo real da fase III, sem editar o motor do Claude. */
+let greedAtomic=null;
+function greedAdmCastUltimate(){
+ const a=squadSq()?.actors.find(x=>x.alive&&x.kind==='greedB');
+ if(!dimBattle?.active||dimBattle.key!=='greed')return 'Entre no teste da Dimensão V — Ganância.';
+ if(!a||a.gk?.phase!==3)return 'A ultimate só pode ser ativada na fase III. Use “Próxima fase”.';
+ if(cineActive||greedCineLock>combatClock||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
+ if(greedAtomic.active)return 'O Juízo da Usura já está em execução.';
+ if(!greedAtomic.force())return 'Aguarde o chefe ficar pronto e tente novamente.';
+ showCombatCallout('ADM · JUÍZO DA USURA');
+ return 'Ultimate solicitada! A Ganância iniciará o ritual no próximo quadro.';
+}
+function greedAdmNextPhase(){
+ if(!dimBattle?.active||dimBattle.key!=='greed')return 'Abra o teste da Dimensão V — Ganância primeiro.';
+ const squad=squadSq(),a=squad?.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB'));
+ if(!a)return 'Aguarde o carregamento da Ganância.';
+ if(a.gk?.phase>=3)return 'A Ganância já está na fase III.';
+ if(a.act?.type==='gkPhase'||a.pendingDeath)return 'Transição entre fases já em andamento.';
+ // Atalho DEV: mantém a lógica real de morte e transição do motor; nunca teleporta o boss de fase.
+ if(a.act?.iframes)a.act.iframes=false;
+ const before=a.hp;
+ squad.damageActor(a.id,Math.max(100000,a.maxHp*10),{x:player.position.x,z:player.position.z,kind:'area',by:'adm-phase'});
+ return a.hp<before||a.pendingDeath||a.act?.type==='gkPhase'
+  ? 'Avanço de fase iniciado. Aguarde a animação cinematográfica.'
+  : 'O chefe está protegido por uma animação; tente novamente após ela.';
+}
+function greedAtomicEnd(){if(greedAtomic){greedAtomic.dispose();greedAtomic=null;}}
+function greedAtomicTick(dt,paused=false){
+ if(!dimBattle?.active||dimBattle.key!=='greed'||!squadOn||!squadRT){greedAtomicEnd();return;}
+ const sq=squadSq(),a=sq?.actors.find(x=>x.alive&&x.kind==='greedB'),b=a&&squadRT.body(a.id);
+ if(!a||!b||a.gk?.phase!==3||playerHP<=0){greedAtomicEnd();return;}
+ if(!greedAtomic){
+  const spec=arenaSpec('greed');
+  greedAtomic=createGreedCampaignUltimate(THREE,scene,{
+   arenaCenterWorld:{x:voidSpec.x,y:voidSpec.y,z:voidSpec.z},radius:spec.radius||30,walkable:voidSpec.walk,
+   quality:graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium',
+   camera:shot=>{
+    if(!shot){
+     if(ultCam.usuraFov==null)return;
+     ultCam.want=0;ultCam.until=0;ultCam.usuraFov=null;
+     document.body.classList.remove('usura-cine');return;
+    }
+    document.body.classList.add('usura-cine');
+    if(!ultCam.at)ultCam.at=new THREE.Vector3();
+    ultCam.at.copy(shot.at);ultCam.look.copy(shot.look);ultCam.want=shot.weight;
+    ultCam.usuraFov=shot.fov;ultCam.until=combatClock+1.5;
+   },
+   beat:phase=>{
+    worldAudio.usura(phase);
+    if(phase==='announce')showCombatCallout('JUÍZO DA USURA');
+    else if(phase==='escape')showCombatCallout('BUSQUE REFÚGIO ALÉM DA CORRENTE!');
+    else if(phase==='detonate'&&!userSettings.reduceShake)cameraShake(.46);
+    else if(phase==='recover')showCombatCallout('A COROA SE DISSIPA');
+   },
+   damage:({actor})=>{
+    if(playerHP<=0||!actor||!dimBattle?.active||dimBattle.key!=='greed')return;
+    damagePlayerFromEnemyAttack(60,{kind:'atomic',area:true,source:'greed-usura',from:{x:actor.x,z:actor.z}});
+   }
+  });
+ }
+ const hero={x:player.position.x,y:player.position.y,z:player.position.z,
+  evading:dashRemaining>0||!!(newHero&&prota302.clock<prota302.iframesUntil),
+  blocking:defending||heroShield.active};
+ greedAtomic.tick(dt,a,b,hero,{paused});
+}
+
 const squadAlive=()=>{const s=squadSq();return s?s.actors.filter(a=>a.alive):[];};
 /** Vida por encontro: Enemy1 comum bem mais resistente (100→180 no Ato I), Guardião ~1,6×; grupos grandes um pouco menos. */
 /** Enemy2: 150→240 no Ato II (grupos de 3+ ×0,85); mini-chefe 480→650. Mais esperto, não esponja de dano. */
@@ -4481,7 +4590,7 @@ function startSquadPack(){
  P.active=true;P.index=0;squadLabelN=0;pickSquadFocus(true);writeSquadProxy();syncEnemyLabel();
  if(n>1&&!P.lab&&!P.dim)showCombatCallout(n+(rigN==='bandit'?' BANDIDOS FAMINTOS':rigN==='enemy2'?' DEMÔNIOS':rigN==='enemy3'?' ABISSAIS':rigN==='enemy4'?' DEMÔNIOS DA TORRE':' SEGUIDORES')+' ATACAM JUNTOS');
 }
-function squadAbort(){if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
+function squadAbort(){greedAtomicEnd();if(!squadRT)return;squadOn=false;squadFocus=null;squadRT.stop();for(const al of squadAllies.splice(0))disposeClone(al.c);enemyModelRoot.visible=true;enemyGroundShadow.visible=true;}
 function hideSquadProxy(){enemyModelRoot.visible=false;enemySprite.visible=false;enemyGroundShadow.visible=false;wardenRing.visible=false;}
 function writeSquadProxy(){
  const f=squadFocus;if(!f)return;hideSquadProxy();
@@ -4559,10 +4668,11 @@ function squadDamageTarget(id,dmg,info){
   if(info.kind==='orbitalBlast'&&vzMeteorIframe&&playerInvulnerableUntil===vzMeteorIframe)playerInvulnerableUntil=0; // Mod 320: explosão é dano SEPARADO — o pós-acerto do corpo do meteoro não a anula (dash/i-frames reais continuam valendo)
   const now=performance.now();
   const perfect=!!(newHero&&prota302.clock<prota302.iframesUntil),followup=vxComboFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:perfect})
-   ||(!!info.gkSrc&&!!vxLastDamagingContact&&vxLastDamagingContact.gkSrc!==info.gkSrc&&now-vxLastDamagingContact.at>=260&&vxLastDamagingContact.until===playerInvulnerableUntil&&now<playerInvulnerableUntil&&dashRemaining<=0&&!perfect); // 21/11: atacantes independentes da Ganância (arma autônoma, sol, lança) não somem na graça de outro — anti-stunlock de 0,26 s
+   ||(!!info.gkSrc&&!!vxLastDamagingContact&&vxLastDamagingContact.gkSrc!==info.gkSrc&&now-vxLastDamagingContact.at>=260&&vxLastDamagingContact.until===playerInvulnerableUntil&&now<playerInvulnerableUntil&&dashRemaining<=0&&!perfect) // 21/11: atacantes independentes da Ganância (arma autônoma, sol, lança) não somem na graça de outro — anti-stunlock de 0,26 s
+   ||seqFollowupAllowed(vxLastDamagingContact,info,{now,until:playerInvulnerableUntil,dash:dashRemaining>0,perfectDodge:perfect}); /* 22/11: SEQUÊNCIA declarada (2ª janela do giro, golpe encadeado) continua o dano em ordem; esquiva/dash protegem */
   const hp0=playerHP,inv0=playerInvulnerableUntil,wasDef=defending,res=damagePlayerFromEnemyAttack(amount,{kind:info.kind,source:info.spell??info.actor??info.kind,from:{x:info.x,z:info.z},area:!!info.area,vxComboFollowup:followup,pierceShield:!!info.pierceShield});
   if(window.__vxLog)window.__vxLog.push({t:+now.toFixed(0),kind:info.kind,move:info.attackToken?.move?.id,combo:info.combo,inv:+(inv0-now).toFixed(0),followup,dash:dashRemaining>0,res,hp0,hp1:playerHP}); // QA (debug): telemetria de cada contato
-  if(res===true&&(info.kind==='melee'&&info.attackToken||info.gkSrc)){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,gkSrc:info.gkSrc,at:performance.now(),until:playerInvulnerableUntil};}
+  if(res===true&&(info.kind==='melee'&&info.attackToken||info.gkSrc)){vxLastDamagingContact={attackToken:info.attackToken,actor:info.actor,combo:info.combo,gkSrc:info.gkSrc,seqKey:info.seqKey,seqN:info.seqN,at:performance.now(),until:playerInvulnerableUntil};}
   if(!res)return 'evaded';if(res==='shield')return 'blocked';
   // hitstop/shake do Enemy2 só com acerto CONFIRMADO e com trava contra duplo disparo
   if(/^(vortex|collapse|collapseWave|trinity)$/.test(info.kind)){const now=performance.now();if(now>squadSakugaCd){squadSakugaCd=now+160;hitStop(info.kind==='trinity'?40:55);cameraShake(info.kind==='trinity'?.08:.17);}}
@@ -4712,6 +4822,9 @@ function squadEvent(type,d){
   case 'reap':showCombatCallout('CEIFA DO ABISMO');break;
   case 'phase2':if(a&&a.kind==='vhazrael'){showCombatCallout('VHAZRAEL NÃO RECUA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='VHAZRAEL ergue a aura carmesim: mais rápido, mais lacaios, mais pressão.';break;}if(a&&a.kind==='e4boss'){showCombatCallout('A MANDÍBULA DESPERTA');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O mini-chefe da torre entra em fúria: a espada-mandíbula pulsa e os poderes voltam mais rápido.';break;}if(a&&a.kind==='e3boss'){showCombatCallout('FÚRIA DO DRAGÃO CARMIM');worldAudio.roar();if(!userSettings.reduceShake)cameraShake(.3);status.textContent='O Guardião da Distorção entra em fúria: a katana arde, os poderes voltam mais rápido.';break;}showCombatCallout('O GUARDIÃO DESPERTA');worldAudio.roar();cameraShake(.3);status.textContent='O Guardião do Portal desperta a fúria: mais rápido e com garras maiores.';break;
   case 'gkPhase':greedPhaseEvent(d);break;
+  case 'gkCine':greedPhaseEvent({...d,cine:true});break;
+  case 'gkFly':if(d.phase==='hang'&&d.actor){Object.assign(ultCam,{want:.55,height:6.5,dist:15,until:combatClock+6});ultCam.at=null;ultCam.look.set(d.actor.x,d.actor.y-1,d.actor.z);}else if(d.phase==='drop'&&!greedCineLock)ultCam.want=0;break; /* 22/11 (Etapa 4): enquadra a Ganância pendurada lá no alto sem tirar o controle (câmera sobe e recua, volta ao soltar) */
+  case 'gkSuns':if(d.phase==='boom'&&d.sun){const dd=Math.hypot(d.sun.x-player.position.x,d.sun.z-player.position.z),k=Math.max(0,1-dd/20);if(k>0&&!userSettings.reduceShake)cameraShake(.38*k);}break; /* 22/11: tremor relativo à distância (o clarão é do próprio VFX, sem inverter a tela) */
   case 'gkSpear':if(d.phase==='end'&&d.end==='hit')cameraShake(.15);break;
   case 'death':{const P=pack;if(!P)break;if(!P.lab&&!P.dim)registerEnemyDefeat(P.profile);P.index++;if(P.onEach)P.onEach(P.index);worldAudio.hit();cameraShake(.2);if(a===squadFocus){squadFocus=null;squadManual=false;}break;}
  }
@@ -4779,6 +4892,8 @@ function dimTestFight(key){
  startDimensionBattle(key,{hp:DIMENSIONS[key].hp,returnTo:{x:-5,z:16},test:true,onVictory:()=>{status.textContent='Teste concluído: vitória. Escolha uma luta para repetir.';},onAbort:()=>{status.textContent='Teste encerrado. Escolha uma luta para repetir.';}});
 }
 function dimTestPanel(){
+ // ?adm=1 já dispõe de um painel unificado. Evita dois menus sobre o HUD.
+ if(new URLSearchParams(location.search).get('adm')==='1')return;
  if(dimTest.panel)return;const el=document.createElement('div');el.id='dim-test-panel';el.style.cssText='position:fixed;top:calc(env(safe-area-inset-top) + 118px);left:8px;z-index:30;display:flex;flex-direction:column;gap:5px;width:min(300px,62vw)';
  const menu=document.createElement('div');menu.style.cssText='display:none;flex-direction:column;gap:5px';
  const tog=document.createElement('button');tog.type='button';tog.textContent='⚙ TESTE DAS DIMENSÕES (nada é salvo) ▾';tog.style.cssText='width:100%;height:auto;max-width:none;box-sizing:border-box;min-height:34px;padding:6px 9px;border-radius:9px;border:1px solid #ff6a7a;background:#3a0a14ee;color:#ffd6dc;font:800 11px system-ui;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';bindInstantTap(tog,()=>{menu.style.display=menu.style.display==='none'?'flex':'none';});el.appendChild(tog);el.appendChild(menu);
@@ -4799,7 +4914,7 @@ function updateSquadCombat(dt,now){
  if(ENEMY2_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy2)startEnemy1Lab('e3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy2').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
  if(!squadOn&&pack&&pack.squad&&pack.waitRig&&rigSource(squadRig(pack)))startSquadPack();
- if(!squadOn){if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
+ if(!squadOn){greedAtomicEnd();if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
  const s=squadSq();if(!s)return;
  zkBeastHero(s,now);
  // 1) o que o herói fez no procurador vai para o ator em foco
@@ -4828,7 +4943,7 @@ function updateSquadCombat(dt,now){
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause});vzAuditTick(dt);
+ squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||!!greedAtomic?.active});greedAtomicTick(dt,paused||squadQAPause);vzAuditTick(dt);
  updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
@@ -4838,6 +4953,7 @@ function updateSquadCombat(dt,now){
 }
 /** Fim do encontro: todos caíram. Mesmo fechamento do pacote antigo (onDone, perfil e rig de volta). */
 function finishSquad(){
+  greedAtomicEnd();
  const P=pack;squadOn=false;squadFocus=null;squadEndAt=0;squadStopAt=performance.now()+3200;enemyModelRoot.visible=true;enemyGroundShadow.visible=true;
  lockOnActive=false;{const b=document.getElementById('aim');if(b)b.classList.remove('on');}
  for(const al of squadAllies.splice(0))disposeClone(al.c);
@@ -7341,6 +7457,7 @@ function autoRecenterCamera(dt,now){
  const want=Math.atan2(-moveVX,-moveVZ),d=Math.atan2(Math.sin(want-cameraYaw),Math.cos(want-cameraYaw));cameraYaw+=d*Math.min(1,dt*1.1);
 }
 function updateFovKick(dt){
+ if(ultCam.usuraFov!=null && ultCam.want>.01)return;
  const fp=cameraDistance<1.05&&!riteCinematicView,base=fp?FP_FOV:56,want=dashRemaining>0?7:(isSprinting()&&Math.hypot(moveVX,moveVZ)>5.2?4:0);fovKick+=(want-fovKick)*Math.min(1,dt*(want?14:5));
  prota302.punch*=Math.exp(-7*dt);const fov=base+fovKick+(fp?0:vzFovAdd+hydraFovAdd+vxFovAdd+cyFovAdd+prota302.punch);if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
 }
@@ -7412,9 +7529,13 @@ function updateBlackHole(dt,now){
 let slowMoUntil=0,slowMoK=1;function slowMo(ms,k){slowMoUntil=performance.now()+ms;slowMoK=k;}
 const ultCam={w:0,want:0,height:5,dist:13,look:new THREE.Vector3()};
 function applyUltCam(dt,target){
+ if(ultCam.usuraFov!=null && ultCam.want>.01){camera.fov+=(ultCam.usuraFov-camera.fov)*Math.min(1,dt*6);camera.updateProjectionMatrix();}
+ if(ultCam.until&&combatClock>ultCam.until){ultCam.until=0;ultCam.want=0;} /* 22/11: nenhuma câmera autoral fica presa (saída da dimensão, morte, aborto) */
  ultCam.w+=(ultCam.want-ultCam.w)*Math.min(1,dt*(ultCam.want>ultCam.w?3:1.5));if(ultCam.w<.003)return;
- const p=new THREE.Vector3(player.position.x+Math.sin(cameraYaw)*ultCam.dist,player.position.y+ultCam.height,player.position.z+Math.cos(cameraYaw)*ultCam.dist);
- camera.position.lerp(p,ultCam.w*Math.min(1,dt*6));camera.lookAt(target.clone().lerp(ultCam.look,ultCam.w));
+ const p=ultCam.at?ultCam.at:new THREE.Vector3(player.position.x+Math.sin(cameraYaw)*ultCam.dist,player.position.y+ultCam.height,player.position.z+Math.cos(cameraYaw)*ultCam.dist); /* 22/11: ultCam.at = posição autoral (diretor da Ganância) */
+ if(ultCam.at){if(!ultCam.cur)ultCam.cur=camera.position.clone();ultCam.cur.lerp(ultCam.at,Math.min(1,dt*2.6));camera.position.lerp(ultCam.cur,ultCam.w);} /* trilho próprio: a câmera de seguir não puxa o plano autoral de volta a cada quadro */
+ else camera.position.lerp(p,ultCam.w*Math.min(1,dt*6));
+ if(ultCam.at&&ultCam.want===0&&ultCam.w<.05){ultCam.at=null;ultCam.cur=null;}camera.lookAt(target.clone().lerp(ultCam.look,ultCam.w));
 }
 let ultDimEl=null;
 function ultDim(v,sec){if(!ultDimEl){ultDimEl=document.createElement('div');ultDimEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:6;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(40,0,50,.15) 0,rgba(8,0,14,.9) 70%);transition:opacity .5s';document.body.appendChild(ultDimEl);}ultDimEl.style.transition='opacity '+(sec||.5)+'s';ultDimEl.style.opacity=String(v);}
@@ -8653,7 +8774,10 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
  projectBoss(){/* missão combate (QA): ponto do alvo na tela, para tocar nele */const c=protaCandidates().find(x=>x.alive);if(!c)return null;const r=renderer.domElement.getBoundingClientRect();_tapV.set(c.x,c.y+(c.height||1.7)*.1,c.z).project(camera);return[r.left+(_tapV.x+1)/2*r.width,r.top+(1-_tapV.y)/2*r.height];},
  camFix(from,to){/* missão combate (QA): câmera fixa de observação (null solta) */if(!from){debugCameraOverride=null;return null;}debugCameraOverride={from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)};camera.position.copy(debugCameraOverride.from);camera.lookAt(debugCameraOverride.to);return true;},
 vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou 'up' */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='veraxion'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;if(n==='throw')vxStartThrow(s,a,t);else vxStartUpslash(s,a,t);return true;},
- gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats()};},
+ atomicInput(x,z){joyX=x*Math.cos(cameraYaw)-z*Math.sin(cameraYaw);joyY=x*Math.sin(cameraYaw)+z*Math.cos(cameraYaw);},
+ atomicPose(x,z){const a=squadSq()?.actors.find(v=>v.alive&&v.kind==='greedB');if(!a||greedAtomic?.active||Math.hypot(x,z)>voidSpec.radius-1)return false;a.x=voidSpec.x+x;a.z=voidSpec.z+z;a.y=fxGy(a.x,a.z);return true;},
+ atomicState(){return greedAtomic?{...greedAtomic.getState(),draws:renderer.info.render.calls,triangles:renderer.info.render.triangles,camera:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,hero:player.position.toArray(),safe:greedAtomic.arena.safe(player.position.x-voidSpec.x,player.position.z-voidSpec.z),hp:playerHP}:null;},
+ gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='usura'){/* QA: forca ultimate real depois da transformacao, sem tocar no script do boss */if(a.gk?.phase!==3)return false;a.hp=Math.max(1,Math.floor(a.maxHp*.44));a.act=null;a.alert=0;a.airY=0;return{phase:3,hp:a.hp};}if(cmd==='hold'){/* QA: chefe parado (retrato da silhueta) */a.alert=a.alert>1e5?0:1e9;a.act=null;return a.alert;}if(cmd==='ceilscan'){/* QA: superfícies reais alcançáveis (teto/arcada) a 7–22 m do chão */const o=[];for(let x=-48;x<=48;x+=2)for(let z=-56;z<=48;z+=2){const c=greedCeilingAt(voidSpec.x+x,voidSpec.z+z);if(c==null)continue;const h=c-fxGy(voidSpec.x+x,voidSpec.z+z);if(h>=7&&h<=22)o.push([x,z,+h.toFixed(1),+Math.hypot(x,z).toFixed(1)]);}o.sort((p,q)=>p[3]-q[3]);return{n:o.length,R:voidSpec.radius,anc:greedAbyssAnchor()&&[+(greedAbyssAnchor().x-voidSpec.x).toFixed(1),+(greedAbyssAnchor().y-voidSpec.y).toFixed(1),+(greedAbyssAnchor().z-voidSpec.z).toFixed(1)],o:o.slice(0,60)};}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats(),body:squadRT?.bodyInfo?.(a.id)};},
  zkBeast(){/* QA (21/11): estado público da Fera e do debuff */const s=squadSq(),L=s&&zkBeastOf(s);return{beast:L?{phase:L.b.phase,x:+L.b.x.toFixed(2),z:+L.b.z.toFixed(2),jaw:+L.b.jaw.toFixed(2),result:L.b.result}:null,debuff:s?+zkHeroDebuffLeft(s).toFixed(1):0,stats:s?.actors.find(a=>a.kind==='zarkhael')?.zkStats||null,aim:!!zkBeastAim()};},
  zkSpiral(){/* QA (teste isolado, não conta como luta orgânica): força a Espiral do Carrasco */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='zarkhael'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;zkStartSpiral(s,a,t);return true;},
  bossActor(){/* QA: estado cru do chefe da esquadra */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.T?.boss);if(!a)return null;return{kind:a.kind,alert:a.alert,act:a.act&&{type:a.act.type,goal:a.act.goal,t:+a.act.t.toFixed(2)},react:a.react,cds:Object.fromEntries(Object.entries(a.cds).map(([k,v])=>[k,+v.toFixed(2)])),tac:a.vgTacT,intent:a.intent?.mode,x:+a.x.toFixed(2),z:+a.z.toFixed(2),hp:a.hp,chain:a.vgChain?a.vgChain.goal:null,stats:a.vgStats,target:a.targetId};},vzAudit(){return{...vzA,_rev:undefined,_act:undefined,t:+vzA.t.toFixed(2),passive:+vzA.passive.toFixed(2),passiveMax:+vzA.passiveMax.toFixed(2),dist:vzA.dist.map(x=>+x.toFixed(1))};},vzAuditReset(){vzAuditReset();return true;},vzPoseQA(role='walk',step=0,actType=null){/* QA (missão 19/11): força o papel de locomoção do VHAZRAEL e anda 'step' m por passo, sem IA */const s=squadSq();if(!s)return null;const a=s.actors.find(x=>x.alive&&(x.kind==='vhazrael'||x.kind==='vorgazhek'));if(!a)return null;a.alert=1e9;a.decideT=1e9;a.react=null;a.act=actType?{type:actType,t:0,dur:99,dx:Math.sin(a.yaw),dz:Math.cos(a.yaw),face:false}:null;if(a.anim.role!==role||a.anim.once)a.anim={role,once:false,speed:1,rev:a.anim.rev+1};if(step){a.x+=Math.sin(a.yaw)*step;a.z+=Math.cos(a.yaw)*step;a.y=terrainHeightAt(a.x,a.z);}return{x:a.x,z:a.z,yaw:a.yaw,role:a.anim.role};},

@@ -23,5 +23,5 @@ test('rota elevada da câmara ligada aos respiradouros e aos checkpoints dos sav
   for (const p of [{ x: 10, z: 112 }, { x: -12, z: 120 }, { x: 20, z: 100 }]) assert.equal(volcanoWalkable(p.x, p.z), false, 'lago de lava não é chão: ' + JSON.stringify(p));
   for (const v of M.vents) assert.ok(volcanoWalkable(v.x, v.z) && Math.hypot(v.x - M.landing.x, v.z - M.landing.z) + v.r < M.landing.r, 'respiradouro dentro do patamar, contornável');
   assert.ok(Math.abs(M.landing.x) + M.causeway.r < M.landing.r, 'calçada livre ao lado dos respiradouros');
-  assert.equal(VOLCANO.checkpoints.entrance.z, 172);
+  assert.equal(VOLCANO.checkpoints.entrance.z, 263);
 });

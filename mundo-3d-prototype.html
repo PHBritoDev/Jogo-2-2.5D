@@ -152,6 +152,15 @@ button:active{transform:scale(.96);background:#31583d}
 #crosshair[hidden]{display:none}
 
 #vfx-lab select,#vfx-lab button{background:#191c26;color:#eddfc2;border:1px solid #776848;border-radius:5px;font:11px system-ui;min-height:28px;height:28px;padding:3px 6px;width:auto}body.vfx-lab-mode #sword-training,body.vfx-lab-mode #quest-box{display:none}#vfx-lab a{color:#f0d389;margin-left:10px}#vfx-lab .lab-title{font-size:10px;margin-bottom:3px}body.vfx-lab-mode #status{bottom:76px}#lab-metrics{padding-top:3px;font-size:10px}@media(max-width:600px){#vfx-lab{top:137px!important;bottom:auto!important;right:7px;left:auto!important;transform:none!important;max-width:210px!important}#vfx-lab label{display:inline-block;margin-bottom:3px}}
+
+/* Keep the volcano shortcut beside the collapsed ADM control in compact views. */
+@media (max-width:680px), (max-height:510px) {
+  body:has(#adm-panel) #adm-tp-vulcao-ato2-quick {
+    right:calc(98px + env(safe-area-inset-right)) !important;
+    top:calc(64px + env(safe-area-inset-top)) !important;
+  }
+}
+body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:none; }
 </style>
 <link rel="stylesheet" href="./hud3d.css?v=mod244-combate-cinematico">
 <link rel="stylesheet" href="./galaxies-infernal-reference.css?v=ui-inferno-20261112">

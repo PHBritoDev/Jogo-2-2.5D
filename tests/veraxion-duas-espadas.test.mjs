@@ -127,7 +127,7 @@ test('integração: Dimensão IV (campanha e TESTAR) usa SEMPRE NewBispo4 na esq
   assert.ok(/k==='veraxion'\?'bishop4n'/.test(m) && /P\.rig==='bishop4n'\?'veraxion'/.test(m) && /loadRig\('bishop4n'\)/.test(m));
   assert.ok(!/b\.key==='bishop3'&&BISHOP_DUEL_ONLY/.test(m), 'nenhum parâmetro devolve o Bispo 3 clássico');
   const r = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
-  assert.ok(/if\(a\.kind!=='zarkhael'&&a\.kind!=='veraxion'\)b\.tell=new T\.Mesh/.test(r), 'sem setor no chão');
+  assert.ok(/if\(a\.kind!=='zarkhael'&&a\.kind!=='veraxion'(?:&&a\.kind!=='greedA'&&a\.kind!=='greedB')?\)b\.tell=new T\.Mesh/.test(r), 'sem setor no chão'); // 22/11: Ganância também sem setor
   assert.ok(/vxfx\.fracture\(/.test(r) && /vxfx\.teleport\(/.test(r) && /vbfx\.release\(/.test(r) && /vbfx\.sync\(a\.vxBloom\)/.test(r) && /style: 'veraxionA'/.test(r) && /style: 'veraxionB'/.test(r));
   if (THREE) { const { createZarkhaelBeastVFX } = await import('../zarkhael-beast-vfx3d.js'); const sc = new THREE.Scene(), fx = createZarkhaelBeastVFX(THREE, sc), b = { id: 1, x: 0, y: 0, z: 0, yaw: 0, v: 0, phase: 'run', pt: 0, gait: 0, jaw: 0, neck: 0, crouch: 0, air: 0, burn: 0, headY: .72 };
     fx.sync(b, true, 1 / 30, null); fx.update(1 / 30); assert.equal(fx.stats().rig, true); b.phase = 'dome'; fx.sync(b, true, 1 / 30, null); fx.update(1 / 30); assert.equal(fx.stats().domeOn, 1, 'cúpula só depois da mordida/desintegração'); fx.dispose(); }

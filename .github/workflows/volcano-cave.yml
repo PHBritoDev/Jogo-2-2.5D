@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'volcano*.js'
+      - 'volcano-cave-bark.webp'
       - 'volcano*.test.mjs'
       - 'dimension-arenas3d.js'
       - 'tools/qa/volcano-*'
@@ -17,6 +18,8 @@ jobs:
           sparse-checkout: |
             /*.js
             /*.mjs
+            /volcano-cave-bark.webp
+            /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
             /CristalCaverna01.glb
             /TochaMedievalTripo.glb
             /tools/qa/volcano-*

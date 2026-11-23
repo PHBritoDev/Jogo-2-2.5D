@@ -1,0 +1,46 @@
+name: Travessia gravada de Cinzária
+on:
+  pull_request:
+    paths:
+      - 'tools/qa/volcano-gameplay.cjs'
+      - '.github/workflows/volcano-journey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  percurso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [base, candidate]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/qa
+          path: controller
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.revision == 'base' && (github.event.pull_request.base.sha || 'main') || (github.event.pull_request.head.sha || github.sha) }}
+          persist-credentials: false
+          path: game
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --prefix "$RUNNER_TEMP/qa" playwright@1.56.1 three@0.160.0
+      - run: '"$RUNNER_TEMP/qa/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Entrada física, rota a velocidade normal e portal
+        run: |
+          mkdir evidence
+          git -C game rev-parse HEAD > evidence/sha.txt
+          python3 -m http.server 4263 --bind 127.0.0.1 --directory game > "$RUNNER_TEMP/server.log" 2>&1 &
+          trap 'kill $!' EXIT
+          NODE_PATH="$RUNNER_TEMP/qa/node_modules" node controller/tools/qa/volcano-gameplay.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: percurso-${{ matrix.revision }}-${{ github.run_id }}
+          path: evidence
+          retention-days: 7

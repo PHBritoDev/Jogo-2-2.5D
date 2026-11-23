@@ -23,6 +23,23 @@ async function run(){
   const arena=buildDimensionArena(THREE,'volcano',{x:0,y:0,z:0,radius:140});
   scene.add(arena.group);arena.group.visible=true;
   await ready;
+  // The stone map can finish before the dynamic GLTFLoader import starts.
+  // Wait for the actual meshes in every populated batch before profiling.
+  const expected=[
+   ['Santuário das Cataratas de Fogo','CristalCaverna01.glb'],
+   ['Santuário das Cataratas de Fogo','TochaMedievalTripo.glb'],
+   ['Santuário • galeria superior','CristalCaverna01.glb'],
+   ['Santuário • galeria superior','TochaMedievalTripo.glb'],
+   ['Bosque das Veias Ardentes','CristalCaverna01.glb']
+  ];
+  const deadline=performance.now()+25000;
+  for(const [group,file] of expected){
+   const owner=arena.group.getObjectByName(group);
+   while(!owner?.children.some(o=>o.isInstancedMesh && o.name===file)){
+    check(performance.now()<deadline,'GLB ausente em '+group+': '+file);
+    await new Promise(resolve=>setTimeout(resolve,25));
+   }
+  }
   const views=[];
   for(const key of ['overlook','fork','spine']){
    const [x,z]=nodes[key];camera.position.set(x,caveHeight(z)+2,z);
@@ -31,6 +48,30 @@ async function run(){
    renderer.render(scene,camera);
    views.push({key,calls:renderer.info.render.calls,triangles:renderer.info.render.triangles});
   }
+  // Turning the camera without moving the hero must repopulate instance
+  // batches. A camera cut must also work when the real player stays put.
+  const hero=new THREE.Vector3(nodes.fork[0],2,nodes.fork[1]);
+  const counts=()=>{
+   const result=[];
+   arena.group.traverse(o=>{if(o.isInstancedMesh)result.push(o.count);});
+   return result.join(',');
+  };
+  camera.position.copy(hero);
+  const aim=z=>{
+   arena.update(1100,camera,180,{player:hero,quality:'low'});
+   camera.lookAt(hero.x,2,z);
+   renderer.render(scene,camera);
+   return counts();
+  };
+  const south=aim(hero.z-30),north=aim(hero.z+30);
+  check(south!==north,'Girar a câmera deve mudar as instâncias visíveis');
+  check(aim(hero.z-30)===south,'As instâncias precisam reaparecer ao retornar');
+  // The outer rim of the grove used to cover the forward view from the arcade.
+  const [ax,az]=nodes.arcade;
+  const forward=new THREE.Raycaster(new THREE.Vector3(ax,caveHeight(az)+2.7,az),
+   new THREE.Vector3(0,-.025,-1).normalize(),0,12);
+  const rim=arena.group.getObjectByName('Bosque das Veias Ardentes-basalto');
+  check(rim && !forward.intersectObject(rim,false).length,'Falésia do bosque encobre a arcada');
   let paths=0;
   for(const [a,b] of safePathGraph){
    const [x,z]=nodes[a],[u,v]=nodes[b],steps=Math.ceil(Math.hypot(u-x,v-z)*3);

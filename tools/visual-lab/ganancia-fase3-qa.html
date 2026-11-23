@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ganância — silhueta III</title>
+<style>html,body{margin:0;background:#2a2830;color:#e6d3ff;font:12px system-ui}#info{position:fixed;left:6px;bottom:4px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head><body><div id="info">…</div>
+<script type="module">
+/* QA da silhueta III (Etapa 8): NewGanancia2 + as MESMAS transformações do runtime (greed-runtime3d.js): chifres ×2 pelos ossos
+   GK_BONES.horns, asas superiores ×1,35 e abertas (giro no eixo frontal), par inferior GananciaAsas2.glb na coluna.
+   Colunas: frente · 3/4 · perfil · costas; linha de cima = fase II (base), de baixo = fase III. ?dark=1 = luz da arena. */
+import * as T from 'three'; import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; import { gkPrepareB, GK_BONES } from '../../greed-boss3d.js'; import { gkHornGeometry } from '../../greed-runtime3d.js';
+const q = new URLSearchParams(location.search), dark = q.get('dark') === '1', W = 300, H = 380, views = [0, .75, 1.5708, Math.PI, 'head'];
+const r = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setSize(W * 5, H * 2); r.setScissorTest(true); r.outputColorSpace = T.SRGBColorSpace; document.body.appendChild(r.domElement);
+const sc = new T.Scene(); sc.background = new T.Color(dark ? 0x0b0a0d : 0x2c2a32); sc.add(new T.HemisphereLight(0xffffff, 0x303040, dark ? .45 : 1.8)); const dl = new T.DirectionalLight(0xffffff, dark ? .7 : 2); dl.position.set(1, 3, 4); sc.add(dl);
+const L = new GLTFLoader(), [g, wg] = await Promise.all([L.loadAsync('../../NewGanancia2.glb'), L.loadAsync('../../GananciaAsas2.glb')]);
+const m = g.scene, holder = new T.Group(); holder.add(m); sc.add(holder); gkPrepareB(T, m, g.animations); const bones = {}; m.traverse(o => { if (o.isBone) bones[o.name] = o; }); m.updateMatrixWorld(true);
+const qq = new T.Quaternion(), bindAxis = (bn, a) => { bn.updateWorldMatrix(true, false); bn.getWorldQuaternion(qq); return a.clone().applyQuaternion(qq.clone().invert()).normalize(); };
+const wings = [bones[GK_BONES.wingBaseR], bones[GK_BONES.wingBaseL]].map((bn, i) => ({ bn, q0: bn.quaternion.clone(), s0: bn.scale.clone(), ax: bindAxis(bn, new T.Vector3(0, 0, 1)), up: bindAxis(bn, new T.Vector3(0, 1, 0)), s: i ? -1 : 1 }));
+const horns = (q.get('hb') ? q.get('hb').split(',') : GK_BONES.horns).map(n => bones[n]).filter(Boolean).map(bn => ({ bn, s0: bn.scale.clone() }));
+const lower = wg.scene; lower.scale.setScalar(+(q.get('ls') || 1.35)); lower.position.set(0, +(q.get('ly') || .2), +(q.get('lz') || -.3)); lower.rotation.set(+(q.get('lrx') || .5), +(q.get('lry') ?? 0), Math.PI); lower.traverse(o => { if (o.isMesh && o.material) { o.material = o.material.clone(); o.material.color && o.material.color.multiplyScalar(.42); if (o.material.emissive) { o.material.emissive.setHex(0x1a0306); o.material.emissiveIntensity = .6; } } });
+const lb = {}; lower.traverse(o => { if (o.isBone) lb[o.name] = o; }); const chains = [['bone_1', 1], ['tripoHead_0', -1]].map(([n, s]) => lb[n] && { bn: lb[n], q0: lb[n].quaternion.clone(), s }).filter(Boolean); lower.visible = false; (bones.Spine || bones.Chest).add(lower);
+const q1 = new T.Quaternion(), q2 = new T.Quaternion();
+// chifres III como no runtime: presos à cabeça, ~2× os originais
+const hm = new T.MeshStandardMaterial({ color: 0x0d0a0c, metalness: .35, roughness: .32, emissive: 0x140205, emissiveIntensity: .6 }), head = bones.Head, hpos = head.getWorldPosition(new T.Vector3()), hfp = bones.headfront.getWorldPosition(new T.Vector3()), fw = hfp.clone().sub(hpos).setY(0).normalize(), rt = new T.Vector3(fw.z, 0, -fw.x);
+const bigH = [1, -1].map(sd => { const mm = new T.Mesh(gkHornGeometry(T, sd), hm); head.worldToLocal(mm.position.copy(hpos).addScaledVector(rt, sd * .085).add(new T.Vector3(0, .165, 0)).addScaledVector(fw, .02)); mm.quaternion.copy(head.getWorldQuaternion(new T.Quaternion()).invert().multiply(new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(rt, new T.Vector3(0, 1, 0), fw)))); mm.visible = false; head.add(mm); return mm; });
+function pose(p3) { const spread = p3 ? +(q.get('sp') || .16) : .2, big = p3 ? +(q.get('big') || 1.25) : 1, open = p3 ? .55 : 0; for (const c of chains) c.bn.quaternion.copy(c.q0).multiply(q1.setFromAxisAngle(new T.Vector3(0, 0, 1), c.s * +(q.get('lsp') || 1.0))); for (const w of wings) { w.bn.quaternion.copy(w.q0).multiply(q1.setFromAxisAngle(w.ax, w.s * (spread * .6 + open))).multiply(q2.setFromAxisAngle(w.up, -w.s * spread * .5)); w.bn.scale.copy(w.s0).multiplyScalar(big); }
+  for (const h of bigH) h.visible = !!p3; lower.visible = !!p3; m.updateMatrixWorld(true); }
+pose(1); const box = new T.Box3().setFromObject(m), c = box.getCenter(new T.Vector3()), h = Math.max(box.max.y - box.min.y, box.max.x - box.min.x), cam = new T.PerspectiveCamera(34, W / H, .01, 100);
+[0, 1].forEach(p3 => { pose(p3); views.forEach((ang, i) => { const hd = ang === 'head'; holder.rotation.y = hd ? 0 : ang; holder.updateMatrixWorld(true); for (const w of wings) w.bn.visible = !hd; if (hd) { const hp = bones.Head.getWorldPosition(new T.Vector3()); cam.position.set(hp.x, hp.y + .08, hp.z + .75); cam.lookAt(hp.x, hp.y + .06, hp.z); for (const w of wings) w.bn.scale.setScalar(1e-4); } else { cam.position.set(c.x, c.y + h * .05, c.z + h * 1.55); cam.lookAt(c); } const y = p3 ? 0 : H; r.setViewport(i * W, y, W, H); r.setScissor(i * W, y, W, H); r.render(sc, cam); if (hd) pose(p3); }); });
+document.getElementById('info').textContent = 'cima: fase II · baixo: fase III (chifres novos ~2×, asas ×1,25 abertas para os lados, par inferior nas costas baixas) | frente · 3/4 · perfil · costas | ossos dos chifres: ' + horns.map(h => h.bn.name).join(', ');
+window.__done = true;
+</script></body></html>

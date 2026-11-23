@@ -28,18 +28,25 @@ export function assetLod(T,group,file,source,material,instances){
   mesh.name=file;group.add(mesh);return mesh;
  });
  const dummy=new T.Object3D();
+ source.geometry.computeBoundingSphere();
  const entries=instances.map(([x,y,z,s,rz,ry,color])=>{
   dummy.position.set(x,y,z);dummy.rotation.set(0,ry,rz);dummy.scale.setScalar(s);dummy.updateMatrix();
-  return {x,y,z,s,color:new T.Color(color),matrix:dummy.matrix.clone().multiply(source.matrixWorld)};
+  const matrix=dummy.matrix.clone().multiply(source.matrixWorld);
+  return {x,y,z,s,color:new T.Color(color),matrix,bounds:source.geometry.boundingSphere.clone().applyMatrix4(matrix),level:-2};
  });
- let lastX=Infinity,lastZ=Infinity,lastQuality='';
- function update(x,y,z,quality){
-  if(quality===lastQuality&&Math.abs(x-lastX)+Math.abs(z-lastZ)<3)return;
-  lastX=x;lastZ=z;lastQuality=quality;
-  const counts=[0,0];
+ function update(x,y,z,quality,frustum){
+  let changed=false;
   for(const e of entries){
    const limit=(quality==='low'?10:18)+e.s*1.6;
-   const level=(e.x-x)**2+(e.z-z)**2+(e.y-y)**2>limit**2?1:0;
+   const level=frustum&&!frustum.intersectsSphere(e.bounds)?-1:
+    Number((e.x-x)**2+(e.z-z)**2+(e.y-y)**2>limit**2);
+   if(e.level!==level){e.level=level;changed=true;}
+  }
+  if(!changed)return;
+  const counts=[0,0];
+  for(const e of entries){
+   const level=e.level;
+   if(level<0)continue;
    const m=meshes[level],slot=counts[level]++;
    m.setMatrixAt(slot,e.matrix);m.setColorAt(slot,e.color);
   }

@@ -15,17 +15,25 @@ const EYE_F = `uniform float uTime,uK;varying vec2 vUv;void main(){vec2 p=vUv*2.
 float iris=1.-smoothstep(.55,.95,r);vec3 c=mix(vec3(.5,0.,.02),vec3(1.,.12,.08),smoothstep(-.3,.8,sw))*iris+vec3(1.,.6,.5)*(1.-smoothstep(0.,.25,r))*.8;float pup=1.-smoothstep(.06,.12,length(vec2(p.x*2.6,p.y)));c*=1.-pup*.85;
 float a2=iris*uK;if(a2<.02)discard;gl_FragColor=vec4(c*a2*1.6,a2);}`;
 
+/** Chifre da fase III (unidades do modelo; +X = para fora no lado sd, +Y = cima, +Z = frente): tubo curvo que afina até a ponta. */
+export function gkHornGeometry(T, sd = 1) { const pts = [[0, 0, 0], [.07, .08, -.01], [.16, .15, -.03], [.27, .19, -.05], [.36, .17, -.07], [.42, .1, -.07], [.44, .02, -.05]].map(([x, y, z]) => new T.Vector3(x * sd, y, z)), curve = new T.CatmullRomCurve3(pts), seg = 40, rs = 10, geo = new T.TubeGeometry(curve, seg, .036, rs, false), P = geo.attributes.position;
+  for (let i = 0; i <= seg; i++) { const c = curve.getPointAt(i / seg), k = Math.pow(1 - i / seg, .8) * .94 + .06; for (let j = 0; j <= rs; j++) { const n = i * (rs + 1) + j; P.setXYZ(n, c.x + (P.getX(n) - c.x) * k, c.y + (P.getY(n) - c.y) * k, c.z + (P.getZ(n) - c.z) * k); } }
+  geo.computeVertexNormals(); return geo; }
 export function createGreedRuntime(T, scene, ctx = {}) {
   const vfx = createGreedVFX(T, scene), _v = new T.Vector3(), _v2 = new T.Vector3(), _v3 = new T.Vector3(), _q = new T.Quaternion(), _q2 = new T.Quaternion(), _m = new T.Matrix4(), _x = new T.Vector3(), _y = new T.Vector3(), _z = new T.Vector3();
   let wingsSrc = null, wingsLoading = false, time = 0; const grip = new T.Quaternion().setFromRotationMatrix(new T.Matrix4().makeBasis(new T.Vector3(0, 1, 0), new T.Vector3(0, 0, 1), new T.Vector3(1, 0, 0)));
   const eyeGeo = new T.CircleGeometry(.016, 16), clawGeo = (() => { const g = new T.ConeGeometry(.018, 1, 5, 4); g.translate(0, .5, 0); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setZ(i, p.getZ(i) + .35 * y * y); } g.computeVertexNormals(); return g; })();
   const clawMat = new T.MeshStandardMaterial({ color: 0x140808, metalness: .8, roughness: .3, emissive: 0x5a0808, emissiveIntensity: .8 });
+  const hornMat = new T.MeshStandardMaterial({ color: 0x0b090a, metalness: .3, roughness: .3, emissive: 0x140205, emissiveIntensity: .6 }); // chifres III: queratina negra com veio rubro
   function loadWings() { if (wingsSrc || wingsLoading) return; wingsLoading = true; new GLTFLoader().load(GK_WINGS, g => { wingsSrc = g.scene; }, undefined, () => { wingsLoading = false; }); }
   function boneMap(model) { const m = {}; model.traverse(o => { if (o.isBone) m[o.name] = o; }); return m; }
   function bindAxis(bone, worldAxis) { bone.updateWorldMatrix(true, false); bone.getWorldQuaternion(_q); return worldAxis.clone().applyQuaternion(_q.clone().invert()).normalize(); }
+  const FILL = { value: .6 }; // intensidade da luz própria do chefe (qualidade baixa reduz em pose())
   function aura(mats, color) { for (const m of mats) { if (!m.isMeshStandardMaterial || m.userData.gkAura) continue; m.userData.gkAura = { value: 0 }; const U = m.userData.gkAura, C = new T.Color(color);
-      m.onBeforeCompile = sh => { sh.uniforms.gkRimK = U; sh.uniforms.gkRimC = { value: C }; sh.fragmentShader = 'uniform float gkRimK;uniform vec3 gkRimC;\n' + sh.fragmentShader.replace('#include <lights_fragment_begin>', '#include <lights_fragment_begin>\n totalEmissiveRadiance += gkRimC * pow(1.0 - saturate(dot(normal, geometryViewDir)), 3.0) * gkRimK;'); };
-      m.customProgramCacheKey = () => 'gkAura'; m.needsUpdate = true; } }
+      // 22/11 (Etapa 9): LUZ SÓ DO CHEFE — chave virtual em espaço de vista (de cima/esquerda da câmera) + preenchimento suave aplicados
+      // como emissivo no próprio material: realça ouro, vermelho, joias e rosto na arena escura sem luz nova, sombra ou draw call extra.
+      m.onBeforeCompile = sh => { sh.uniforms.gkRimK = U; sh.uniforms.gkRimC = { value: C }; sh.uniforms.gkFill = FILL; sh.fragmentShader = 'uniform float gkRimK;uniform vec3 gkRimC;uniform float gkFill;\n' + sh.fragmentShader.replace('#include <lights_fragment_begin>', '#include <lights_fragment_begin>\n totalEmissiveRadiance += gkRimC * pow(1.0 - saturate(dot(normal, geometryViewDir)), 3.0) * gkRimK;\n { vec3 gkL = normalize(vec3(-.45, .75, .5)); float gkD = max(dot(normal, gkL), 0.); vec3 gkH = normalize(gkL + geometryViewDir); totalEmissiveRadiance += gkFill * (diffuseColor.rgb * (.22 + .78 * gkD) + mix(vec3(.04), diffuseColor.rgb, metalnessFactor) * pow(max(dot(normal, gkH), 0.), 24.) * (1. - roughnessFactor) * 2.2); }'); };
+      m.customProgramCacheKey = () => 'gkAura2'; m.needsUpdate = true; } }
   return {
     vfx,
     /** Prende o arsenal e os enfeites ao corpo novo (chamado uma vez por corpo). */
@@ -38,6 +46,12 @@ export function createGreedRuntime(T, scene, ctx = {}) {
         for (const s of [-1, 1]) { const mat = new T.ShaderMaterial({ uniforms: { uTime: { value: 0 }, uK: { value: 1 } }, vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}', fragmentShader: EYE_F, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false });
           const e = new T.Mesh(eyeGeo, mat); const wp = _y.copy(_v2).addScaledVector(right, s * .033 * (phase2 ? 1 : 1.05)).addScaledVector(fwd, .028).add(_z.set(0, phase2 ? .07 : .045, 0));
           head.worldToLocal(e.position.copy(wp)); e.scale.setScalar(1 / S); head.add(e); e.lookAt(_y.copy(wp).addScaledVector(fwd, 1)); e.renderOrder = 12; G.eyes.push(e); } G.mouth = { head, fwd: fwd.clone(), right: right.clone(), at: _v2.clone().addScaledVector(fwd, .03).add(_z.set(0, -.035, 0)) }; head.worldToLocal(G.mouth.at); }
+      // 22/11 (Etapa 8): os chifres do GLB não têm osso próprio (pesam na cabeça) — escalar Bone_043/045 não mudava nada. Fase III ganha
+      // CHIFRES NOVOS (~2× os originais) presos ao osso da cabeça, curvando para fora e para cima, que crescem na transformação.
+      if (phase2 && head && hf) { b.model.updateMatrixWorld(true); head.getWorldPosition(_v); hf.getWorldPosition(_v2); const fwd = _v3.subVectors(_v2, _v).setY(0).normalize(), right = new T.Vector3(fwd.z, 0, -fwd.x), up = new T.Vector3(0, 1, 0), hs = head.getWorldScale(new T.Vector3()).x;
+        G.bigHorns = [1, -1].map(sd => { const geo = gkHornGeometry(T, sd), m = new T.Mesh(geo, hornMat); m.frustumCulled = false; m.visible = false;
+          const wp = _y.copy(_v).addScaledVector(right, sd * .085 * S).addScaledVector(up, .165 * S).addScaledVector(fwd, .02 * S); head.worldToLocal(m.position.copy(wp));
+          const basis = new T.Matrix4().makeBasis(right, up, fwd), wq = new T.Quaternion().setFromRotationMatrix(basis), hq = head.getWorldQuaternion(new T.Quaternion()); m.quaternion.copy(hq.invert().multiply(wq)); m.userData.s = S / hs; m.scale.setScalar(1e-3); head.add(m); return m; }); }
       // garras demoníacas: 4 talões por mão presos às falanges distais (visíveis na fase III)
       for (const side of ['Left', 'Right']) for (const f of ['Index', 'Middle', 'Ring', 'Little']) { const bn = bones[side + f + 'Distal']; if (!bn) continue; const c = new T.Mesh(clawGeo, clawMat); c.scale.set(1 / S, .42 / S * (f === 'Middle' ? 1.15 : 1), 1 / S); bn.add(c); c.visible = false; G.claws.push(c); }
       if (phase2) { const R = bones[GK_BONES.wingBaseR], L = bones[GK_BONES.wingBaseL]; b.model.updateMatrixWorld(true);
@@ -54,33 +68,35 @@ export function createGreedRuntime(T, scene, ctx = {}) {
       const placeHand = (root, hand) => { hand.updateWorldMatrix(true, false); hand.getWorldPosition(root.position); hand.getWorldQuaternion(root.quaternion).multiply(grip);
         const L = 1.2, ax = _v.set(0, L, 0).applyQuaternion(root.quaternion), floor = (a.y || 0) + .1 - root.position.y; if (ax.y < floor) { const want = Math.asin(clamp(floor / L, -1, 1)), cur = Math.asin(clamp(ax.y / L, -1, 1)); _v2.set(-ax.z, 0, ax.x); if (_v2.lengthSq() < 1e-4) _v2.set(Math.cos(a.yaw), 0, -Math.sin(a.yaw)); _q.setFromAxisAngle(_v2.normalize(), want - cur); root.quaternion.premultiply(_q); } };
       const ents = g ? g.ents : [], held = { [g?.hands?.R]: 'R', [g?.hands?.L]: 'L' };
-      for (const k of 'ABCD') { const r = G.roots[k], w = G.W[k]; let on = false, trail = false;
+      for (const k of 'ABCD') { const r = G.roots[k], w = G.W[k]; let on = false, trail = false, tkey = null;
+        if(G.ritualBlade===k){w.userData.updateFx(time,.85,low);continue;}
         if (a.alive && held[k] && !(a.act && a.act.type === 'gkPhase')) { placeHand(r, held[k] === 'R' ? b.hand : b.lhand); on = true; trail = !!(a.act && a.act.move) || (a.act && a.act.type === 'gkFly' && a.act.stage === 'dive'); }
         else { const e = ents.find(x => x.key === k && x.mode !== 'gone'); const sp = k === 'C' && g?.spear && (g.spear.alive || g.spear.dead < .5) ? g.spear : null;
           if (sp) { r.position.set(sp.x, sp.y, sp.z); _y.set(sp.dx, sp.dy, sp.dz).normalize(); _z.set(0, 1, 0).cross(_y).normalize(); if (_z.lengthSq() < .01) _z.set(1, 0, 0); _x.crossVectors(_y, _z); _m.makeBasis(_x, _y, _z); r.quaternion.setFromRotationMatrix(_m); r.position.addScaledVector(_y, -.6); on = sp.alive; trail = sp.alive; }
           else if (e) { r.position.set(e.x, e.y, e.z); _y.set(...e.ax).normalize(); _z.set(...e.nrm); _z.addScaledVector(_y, -_z.dot(_y)); if (_z.lengthSq() < 1e-4) _z.set(1, 0, 0).addScaledVector(_y, -_y.x); _z.normalize(); _x.crossVectors(_y, _z); _m.makeBasis(_x, _y, _z); r.quaternion.setFromRotationMatrix(_m);
-            if (e.mode === 'outbound') r.quaternion.premultiply(_q.setFromAxisAngle(_v.set(0, 1, 0), 0)); r.position.addScaledVector(_y, -.55);
-            on = true; trail = !!(e.strike && e.strike.t > .2) || e.mode === 'outbound'; vfx.weaponAura(k, r, e.mode, dt); } }
+            /* 22/11: a origem lógica JÁ é o punho (pivô do golpe) — sem deslocamento: o gume visto é o gume que dá dano */
+            on = true; trail = !!(e.strike && e.strike.t > e.strike.w - .06 && e.strike.t < e.strike.w + e.strike.d + .12) || e.mode === 'outbound'; tkey = e.strike ? 'gkE' + k + ':' + e.strike.id : 'gkO' + k + ':' + e.id; vfx.weaponAura(k, r, e.mode, dt); } }
         r.visible = on && vis; if (r.visible !== G.vis[k]) { if (G.vis[k] !== undefined) vfx.flashWeapon(k, r.position, r.visible); G.vis[k] = r.visible; }
         w.userData.updateFx(time, (a.act && a.act.glow) || (phase >= 3 ? .35 : 0), low);
-        if (trail && r.visible && slash) { r.updateMatrixWorld(true); const ud = w.userData; _v.copy(ud.tipA).applyMatrix4(w.matrixWorld); _v2.copy(ud.tipB).applyMatrix4(w.matrixWorld); const key = 'gk' + k + ':' + (a.act?.rev ?? '') + (a.anim?.rev ?? 0); slash.sample(key, _v, _v2, { style: ud.style, gain: .85, extend: .7, inner: .15 }); } }
+        if (trail && r.visible && slash) { r.updateMatrixWorld(true); const ud = w.userData; _v.copy(ud.tipA).applyMatrix4(w.matrixWorld); _v2.copy(ud.tipB).applyMatrix4(w.matrixWorld); const key = tkey || ('gk' + k + ':' + (a.act?.rev ?? '') + (a.anim?.rev ?? 0)); slash.sample(key, _v, _v2, { style: ud.style, gain: tkey ? 1 : .7, extend: tkey ? .7 : .45, inner: .15 }); } } /* 22/11: rastro por GOLPE da arma autônoma (não emenda golpes) */
       // asas (fase II/III): batida procedural pelos ossos-base nas costas, com fase/amplitude pelo modo de voo
-      if (G.wings) { const wm = g?.wing || { mode: 'fold', k: 0 }, mode = wm.mode, f = mode === 'flap' ? 2.3 : mode === 'hover' ? 3.1 : mode === 'brake' ? 1.6 : .7, amp = mode === 'flap' ? .62 : mode === 'hover' ? .48 : mode === 'brake' ? .3 : mode === 'dive' ? .05 : .06;
-        G.flapPh += dt * f * Math.PI * 2; G.flap += ((mode === 'dive' ? -.55 : mode === 'brake' ? .55 : mode === 'fold' ? -.08 : .1) - G.flap) * Math.min(1, dt * 4);
-        const beat = Math.sin(G.flapPh) * amp, spread = G.flap + (phase >= 3 ? .12 : 0), big = 1 + .35 * G.p3;
-        for (const w of G.wings) { w.bn.quaternion.copy(w.q0).multiply(_q.setFromAxisAngle(w.ax, w.s * (beat + spread * .6))).multiply(_q2.setFromAxisAngle(w.up, -w.s * (spread * .5 + Math.cos(G.flapPh) * amp * .25))); w.bn.scale.copy(w.s0).multiplyScalar(big); }
+      if (G.wings) { const wm = g?.wing || { mode: 'fold', k: 0 }, mode = wm.mode, f = mode === 'flap' ? 2.3 : mode === 'hover' ? 3.1 : mode === 'brake' ? 1.6 : .7, amp = mode === 'flap' ? .62 : mode === 'hover' ? .48 : mode === 'brake' ? .3 : mode === 'dive' ? .05 : phase >= 3 ? .11 : .06;
+        G.flapPh += dt * f * Math.PI * 2; G.flap += ((mode === 'dive' ? -.55 : mode === 'brake' ? .55 : mode === 'fold' ? (phase >= 3 ? .1 : .2) : .1) - G.flap) * Math.min(1, dt * 4); /* 22/11 (Etapa 8): no chão a fase III mantém as asas ABERTAS (respiração lenta), a II entreaberta */
+        G.open = (G.open || 0) + (((phase >= 3 && mode === 'fold') ? 1 : 0) - (G.open || 0)) * Math.min(1, dt * 3); /* fase III no chão: asas ABERTAS para os lados (giro no eixo frontal, sem varrer para a frente) */
+        const beat = Math.sin(G.flapPh) * amp, spread = G.flap + (phase >= 3 ? .06 : 0), big = 1 + .25 * G.p3;
+        for (const w of G.wings) { w.bn.quaternion.copy(w.q0).multiply(_q.setFromAxisAngle(w.ax, w.s * (beat + spread * .6 + G.open * .55))).multiply(_q2.setFromAxisAngle(w.up, -w.s * (spread * .5 + Math.cos(G.flapPh) * amp * .25))); w.bn.scale.copy(w.s0).multiplyScalar(big); }
         if (a.alive && (mode === 'flap' || mode === 'hover') && Math.random() < dt * (low ? .6 : 1.4) && G.wingTips?.length) { const tb = G.wingTips[(Math.random() * G.wingTips.length) | 0]; tb.getWorldPosition(_v); vfx.feather(_v, phase); } }
       // fase III: chifres ×2 e par inferior de asas nas costas
       if (phase >= 3 && G.p3 < 1) G.p3 = Math.min(1, G.p3 + dt / 1.2);
-      if (G.horns) for (const h of G.horns) h.bn.scale.copy(h.s0).multiplyScalar(1 + ease(G.p3));
+      if (G.bigHorns) for (const h of G.bigHorns) { const k = ease(G.p3); h.visible = phase >= 3 && vis && k > .01; h.scale.setScalar(Math.max(1e-3, h.userData.s * (.45 + .55 * k))); } // chifres ×2 visíveis (o osso original não move os chifres)
       for (const c of G.claws) c.visible = phase >= 3 && vis && a.alive;
       if (phase >= 3 && wingsSrc && !G.lower) { const sp = G.bones.Spine || G.bones.Chest; if (sp) { const L = wingsSrc.clone(true); L.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } }); sp.add(L);
-          L.scale.setScalar(1.75 / G.S); L.position.set(0, -.06 / G.S, -.16 / G.S); L.rotation.set(-.25, Math.PI, Math.PI); const bm = boneMap(L); G.lower = { L, chains: [['bone_1', 1], ['tripoHead_0', -1], ['bone_18', .6], ['bone_24', -.6]].map(([n, s]) => bm[n] && { bn: bm[n], q0: bm[n].quaternion.clone(), s }).filter(Boolean) }; vfx.burstAt(L.getWorldPosition(_v), 'wings'); } }
-      if (G.lower) { G.lower.L.visible = vis; const k = Math.min(1, G.p3); for (const c of G.lower.chains) c.bn.quaternion.copy(c.q0).multiply(_q.setFromAxisAngle(_v.set(0, 0, 1), c.s * (Math.sin(G.flapPh + .9) * .32 + .12) * k)); }
+          L.scale.setScalar(1.35 / G.S); L.position.set(0, .2 / G.S, -.3 / G.S); L.rotation.set(.5, 0, Math.PI); L.traverse(o => { if (o.isMesh && o.material) { o.material = o.material.clone(); o.material.color && o.material.color.multiplyScalar(.42); if (o.material.emissive) { o.material.emissive.setHex(0x1a0306); o.material.emissiveIntensity = .6; } } }); /* 22/11 (Etapa 8, QA ganancia-fase3-qa.html): par inferior ATRÁS das costas baixas, em leque para fora/baixo, tom negro-rubro como o par de cima */ const bm = boneMap(L); G.lower = { L, chains: [['bone_1', 1], ['tripoHead_0', -1], ['bone_18', .6], ['bone_24', -.6]].map(([n, s]) => bm[n] && { bn: bm[n], q0: bm[n].quaternion.clone(), s }).filter(Boolean) }; vfx.burstAt(L.getWorldPosition(_v), 'wings'); } }
+      if (G.lower) { G.lower.L.visible = vis; const k = Math.min(1, G.p3); for (const c of G.lower.chains) c.bn.quaternion.copy(c.q0).multiply(_q.setFromAxisAngle(_v.set(0, 0, 1), c.s * (Math.sin(G.flapPh + .9) * .2 + 1.0) * k)); /* abertas em leque para os lados */ }
       // olhos (vórtice) e sangue nas comissuras
       for (const e of G.eyes) { e.material.uniforms.uTime.value = time; e.material.uniforms.uK.value = a.alive ? (phase >= 3 ? 1.3 : phase === 2 ? 1.1 : .9) : Math.max(0, e.material.uniforms.uK.value - dt); e.visible = vis; }
       if (G.mouth && a.alive && vis) { G.drops -= dt; if (G.drops <= 0) { G.drops = 1.6 + Math.random() * 2.6; const s = Math.random() < .5 ? -1 : 1; _v.copy(G.mouth.at); _v.x += s * .022 * (G.phase2 ? 1 : 1); G.mouth.head.localToWorld(_v); vfx.blood(_v, ctx.ground ? ctx.ground(_v.x, _v.z) : a.y); } }
-      for (const m of b.mats) if (m.userData.gkAura) m.userData.gkAura.value = a.alive ? (phase >= 3 ? .9 : phase === 2 ? .55 : .35) + .1 * Math.sin(time * 2.4) : 0;
+      for (const m of b.mats) if (m.userData.gkAura) m.userData.gkAura.value = a.alive ? (phase >= 3 ? .5 : phase === 2 ? .38 : .28) + .08 * Math.sin(time * 2.4) : 0; /* 22/11: aura menor — a luz própria (FILL) revela ouro/vermelho/rosto em vez de lavar de vermelho */
       // pouso invertido no teto: o corpo gira 180° em torno do eixo lateral (pés no teto)
       // pouso invertido: o clipe Upside_Down_Rope_Hang_1 já pendura o corpo de cabeça para baixo; os PÉS ficam presos ao teto real
       if (b.modelY0 === undefined) b.modelY0 = b.model.position.y; const flip = ease(a.gkFlip || 0); let off = 0;

@@ -105,8 +105,11 @@ test('fase III: esfera do abismo — primeira em 30–40 s, depois 20–25 s com
 });
 
 test('revisão: choque só de frente (yaw real), graça pós-acerto vai ao resolvedor, lança em órbita arremessável na fase III', () => {
-  const clashWith = facing => { const C = sim(); C.run(1); force(C, 'foices'); C.run(8, t => { C.h.attacking = (t % .8) < .3; const e = C.boss().gk.ents[0]; const yawTo = e ? Math.atan2(e.x - C.h.x, e.z - C.h.z) : 0; C.h.yaw = facing ? yawTo : yawTo + Math.PI; }); return C.boss().gk.stats.clash; };
-  assert.ok(clashWith(true) >= 1, 'de frente repele'); assert.equal(clashWith(false), 0, 'de costas não repele');
+  const clashWith = facing => { const C = sim(); C.run(1); force(C, 'foices'); let behind = 0;
+    C.sq.event = ((ev) => (t, d) => { if (t === 'gkBlade' && d.phase === 'clash') { const cx = d.x - C.h.x, cz = d.z - C.h.z; if ((cx * Math.sin(C.h.yaw) + cz * Math.cos(C.h.yaw)) / (Math.hypot(cx, cz) || 1) <= .2) behind++; } ev(t, d); })(C.sq.event.bind(C.sq));
+    C.run(8, t => { C.h.attacking = (t % .8) < .3; const L = C.boss().gk.ents.filter(x => x.mode !== 'gone'), e = L.find(x => x.strike) || L[0]; const yawTo = e ? Math.atan2(e.x - C.h.x, e.z - C.h.z) : 0; C.h.yaw = facing ? yawTo : yawTo + Math.PI; });
+    return { n: C.boss().gk.stats.clash, behind }; };
+  assert.ok(clashWith(true).n >= 1, 'de frente repele'); assert.equal(clashWith(false).behind, 0, 'arma às costas nunca é rebatida');
   const grace = evading => { const S = sim(); S.h.iframes = true; S.h.evading = evading; S.run(1); force(S, 'foices'); S.run(8); return S.dmg.filter(d => d.kind === 'gkBlade').length; };
   assert.ok(grace(false) >= 1, 'graça pós-acerto: o jogo decide (fontes independentes)'); assert.equal(grace(true), 0, 'esquiva real anula');
   const S = sim({ kind: 'greedB' }); S.run(1); S.sq.damageActor(S.boss(), 99999, { x: 0, z: 0, by: 'hero' }); S.run(7); assert.equal(S.boss().gk.phase, 3);
