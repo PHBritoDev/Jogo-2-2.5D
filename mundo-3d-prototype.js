@@ -4537,7 +4537,11 @@ function greedAtomicTick(dt,paused=false){
    arenaCenterWorld:{x:voidSpec.x,y:voidSpec.y,z:voidSpec.z},radius:spec.radius||30,walkable:voidSpec.walk,
    quality:graphics3DIsLow()?'low':graphics3DMode==='max'?'high':'medium',
    camera:shot=>{
-    if(!shot){ultCam.want=0;ultCam.until=0;ultCam.usuraFov=null;document.body.classList.remove('usura-cine');return;}
+    if(!shot){
+     if(ultCam.usuraFov==null)return;
+     ultCam.want=0;ultCam.until=0;ultCam.usuraFov=null;
+     document.body.classList.remove('usura-cine');return;
+    }
     document.body.classList.add('usura-cine');
     if(!ultCam.at)ultCam.at=new THREE.Vector3();
     ultCam.at.copy(shot.at);ultCam.look.copy(shot.look);ultCam.want=shot.weight;

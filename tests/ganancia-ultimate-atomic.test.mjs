@@ -75,3 +75,19 @@ for(const [x,z] of [[0,0],[28,0],[-28,0],[0,28],[0,-28],[14,-8],[-11,16]]){
   r.start({phase:3,grounded:true});r.update(50,safe);assert.equal(count,5);
  });
 }
+
+test('impacto deslocado percorre oito metros antes de atingir o herói',()=>{
+ const arena=measureRefuge(30,(x,z)=>Math.hypot(x,z)<=30,192,{x:17,z:4});
+ const hero={x:9,z:4};
+ const hits=[];
+ const ritual=createGreedUltimate({arena,speed:2.8,camera:{focus(){},release(){}},
+  weapon:{release(){},restore(){}},damage:hit=>hits.push(hit)});
+ ritual.start({phase:3,grounded:true});
+ while(ritual.getState().phase!=='detonate')ritual.update(.005,hero);
+ while(ritual.getState().front<7.7)ritual.update(.005,hero);
+ assert.equal(hits.length,0);
+ while(ritual.getState().front<8.2)ritual.update(.005,hero);
+ assert.equal(hits.length,1);
+ ritual.update(10,hero);
+ assert.equal(hits.length,1);
+});
