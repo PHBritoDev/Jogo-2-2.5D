@@ -46,15 +46,11 @@ export const SIDE_QUESTS = [
   }
 ];
 
-// Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
-function safeSideCount(value, max) {
-  // Contagens externas podem superar a meta (há seis abrigos, mas a missão pede três).
-  // Arrays, booleanos e objetos nunca comprovam progresso.
-  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(max, Math.max(0, Math.floor(n)));
-}
+export const SIDE_QUEST_WAYSTONES = Object.freeze([
+  'abrigo-vila',
+  'abrigo-mata',
+  'abrigo-caverna'
+]);
 
 // Progresso salvo/em memória acima da meta é corrupção, não uma missão concluída.
 // Diferente de uma contagem externa de abrigos, ele não pode ser simplesmente truncado.
@@ -78,7 +74,7 @@ export function createSideState(saved) {
   return out;
 }
 
-/** Atualiza disponibilidade e prontidão. ctx: { questStep, waystones }. */
+/** Atualiza disponibilidade e prontidão. ctx.waystones aceita Set/array de IDs registrados. */
 export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
@@ -93,10 +89,16 @@ export function refreshSide(state, ctx) {
     const rawStep = ctx?.questStep;
     const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
     if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state) && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
-      // O mapa é a fonte de verdade: um save "ready" não pode pagar se faltam abrigos registrados.
-      s.progress = safeSideCount(ctx.waystones, q.goal.count);
-      if (s.state === 'ready' && s.progress < q.goal.count) s.state = 'active';
+    if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state)) {
+      // A missão pertence a Eldória: abrigos da jornada/Ato II não contam para ela.
+      const registered = ctx?.waystones;
+      const has = registered instanceof Set
+        ? (id) => registered.has(id)
+        : Array.isArray(registered) ? (id) => registered.includes(id) : null;
+      if (has) {
+        s.progress = Math.min(q.goal.count, SIDE_QUEST_WAYSTONES.reduce((count, id) => count + (has(id) ? 1 : 0), 0));
+        if (s.state === 'ready' && s.progress < q.goal.count) s.state = 'active';
+      }
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }

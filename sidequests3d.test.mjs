@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { SIDE_QUEST_WAYSTONES } from './sidequests3d.js';
+import { WAYSTONES } from './map3d.js';
+
+const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
 
 test('cada missão opcional está ligada a um vendedor real e usa sua identidade nas falas', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
@@ -11,6 +15,7 @@ test('cada missão opcional está ligada a um vendedor real e usa sua identidade
   const vendors = [...block[1].matchAll(/\{name:'([^']+)',shortName:'([^']+)'/g)]
     .map(([, name, shortName]) => ({ name, shortName }));
   assert.match(runtime, /if\(trySideQuestTalk\(vendor\)\)return;/, 'a conversa da vila precisa chamar o roteador das missões');
+  assert.match(runtime, /refreshSide\(sideState,\{questStep,waystones:mapState\.waystones\}\)/, 'o runtime precisa passar os IDs do mapa, não a contagem global');
   const state = createSideState();
   refreshSide(state, { questStep: 2 });
   for (const quest of SIDE_QUESTS) {
@@ -38,32 +43,53 @@ test('missões abrem conforme a campanha e só contam itens quando ativas', () =
   assert.equal(turnInSide(s, 'ervas'), null, 'recompensa uma vez só');
 });
 
+test('Pedras que Lembram conta somente os três abrigos de Eldória', () => {
+  const mapIds = new Set(WAYSTONES.map((stone) => stone.id));
+  assert.deepEqual(SIDE_QUEST_WAYSTONES, ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);
+  for (const id of SIDE_QUEST_WAYSTONES) assert.ok(mapIds.has(id), id + ' precisa existir no mapa');
+  const laterActIds = WAYSTONES.filter((stone) => !SIDE_QUEST_WAYSTONES.includes(stone.id)).map((stone) => stone.id);
+  assert.equal(laterActIds.length, 3, 'o mapa também possui três abrigos da jornada');
+
+  const state = createSideState();
+  refreshSide(state, { questStep: 2, waystones: eldoriaWaystones(0) });
+  assert.equal(acceptSide(state, 'abrigos'), true);
+  refreshSide(state, { questStep: 2, waystones: new Set(laterActIds) });
+  assert.equal(state.abrigos.progress, 0, 'três abrigos de outros atos não concluem a missão de Eldória');
+  assert.equal(state.abrigos.state, 'active');
+  refreshSide(state, { questStep: 2, waystones: new Set([SIDE_QUEST_WAYSTONES[0], ...laterActIds]) });
+  assert.equal(state.abrigos.progress, 1, 'somente um abrigo de Eldória conta, mesmo com três abrigos globais');
+  assert.equal(state.abrigos.state, 'active');
+  refreshSide(state, { questStep: 2, waystones: new Set(SIDE_QUEST_WAYSTONES) });
+  assert.equal(state.abrigos.progress, 3);
+  assert.equal(state.abrigos.state, 'ready');
+});
+
 test('contagem atual do mapa é a fonte de verdade das pedras registradas', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
   acceptSide(s, 'abrigos');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
   refreshSide(s, { questStep: 2 });
   assert.equal(s.abrigos.progress, 2, 'sem snapshot do mapa, preserva o progresso salvo');
-  refreshSide(s, { questStep: 2, waystones: 1 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(1) });
   assert.equal(s.abrigos.progress, 1, 'snapshot atual do mapa reconcilia o progresso');
-  refreshSide(s, { questStep: 2, waystones: 3 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
 });
 
 test('save ready adulterado não entrega recompensa sem três abrigos no mapa', () => {
   const ready = createSideState({ abrigos: { state: 'ready', progress: 3 } });
-  refreshSide(ready, { questStep: 2, waystones: 2 });
+  refreshSide(ready, { questStep: 2, waystones: eldoriaWaystones(2) });
   assert.equal(ready.abrigos.progress, 2);
   assert.equal(ready.abrigos.state, 'active');
   assert.equal(turnInSide(ready, 'abrigos'), null, 'mapa com dois registros não pode pagar missão pronta');
 
   const active = createSideState({ abrigos: { state: 'active', progress: 3 } });
-  refreshSide(active, { questStep: 2, waystones: 2 });
+  refreshSide(active, { questStep: 2, waystones: eldoriaWaystones(2) });
   assert.equal(active.abrigos.progress, 2);
   assert.equal(active.abrigos.state, 'active');
 
-  refreshSide(ready, { questStep: 2, waystones: 3 });
+  refreshSide(ready, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(ready.abrigos.progress, 3);
   assert.equal(ready.abrigos.state, 'ready');
   assert.deepEqual(turnInSide(ready, 'abrigos'), SIDE_QUESTS[2].reward);
@@ -74,9 +100,9 @@ test('abrigos acompanham as pedras registradas; diário mostra progresso', () =>
   const s = createSideState();
   refreshSide(s, { questStep: 2 });
   acceptSide(s, 'abrigos');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
   assert.deepEqual(activeSideLines(s), ['Pedras que Lembram · 2/3']);
-  refreshSide(s, { questStep: 2, waystones: 3 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
   assert.equal(questForGiver(s, 'PROVISÕES')?.id, 'abrigos');
   const back = createSideState(JSON.parse(JSON.stringify(s)));
@@ -94,10 +120,10 @@ test('reload da vila limita contadores inválidos sem concluir missões indevida
   assert.equal(s.pingente.progress, 0);
   assert.equal(s.abrigos.progress, 0, 'progresso salvo acima da meta é corrupção, não conclusão');
   assert.equal(s.abrigos.state, 'active');
-  refreshSide(s, { questStep: 2, waystones: 2 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(2) });
   assert.equal(s.abrigos.progress, 2, 'a contagem real dos abrigos é a fonte de verdade');
   assert.equal(s.abrigos.state, 'active');
-  refreshSide(s, { questStep: 2, waystones: 3 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
   assert.equal(s.ervas.state, 'active');
   assert.equal(turnInSide(s, 'ervas'), null);
@@ -134,11 +160,11 @@ test('save available recupera o desbloqueio pelo checkpoint da campanha', () => 
     abrigos: { state: 'available', progress: 0 }
   });
   // O checkpoint da campanha é a fonte de verdade para o desbloqueio.
-  refreshSide(s, { questStep: 1, waystones: 0 });
+  refreshSide(s, { questStep: 1, waystones: eldoriaWaystones(0) });
   assert.equal(s.ervas.state, 'available');
   assert.equal(s.abrigos.state, 'available');
   assert.equal(s.pingente.state, 'locked');
-  refreshSide(s, { questStep: 2, waystones: 0 });
+  refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(0) });
   assert.equal(s.pingente.state, 'available');
 });
 
@@ -266,12 +292,12 @@ test('pedras de abrigo ignoram arrays e objetos de contagem durante a sessão', 
   const state = createSideState();
   refreshSide(state, { questStep: 2 });
   assert.equal(acceptSide(state, 'abrigos'), true);
-  for (const invalid of [[3], true, { valueOf: () => 3 }, '3']) {
+  for (const invalid of [3, [3], true, { valueOf: () => 3 }, '3']) {
     refreshSide(state, { questStep: 2, waystones: invalid });
     assert.equal(state.abrigos.progress, 0);
     assert.equal(state.abrigos.state, 'active');
   }
-  refreshSide(state, { questStep: 2, waystones: 3 });
+  refreshSide(state, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(state.abrigos.state, 'ready');
 });
 
@@ -366,7 +392,7 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
 
   // Bento: oferta, coleta de quatro flores, entrega e restauração sem pagamento repetido.
   const bentoState = createSideState();
-  const bentoCtx = { questStep: 1, waystones: 0 };
+  const bentoCtx = { questStep: 1, waystones: eldoriaWaystones(0) };
   const bento = harness(bentoState, bentoCtx);
   const bentoVendor = { shortName: 'ALIMENTOS', name: 'Bento · Alimentos' };
   assert.equal(bento.talk(bentoVendor), true);
@@ -389,16 +415,16 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
 
   // Téo: a contagem externa real de waystones dirige 2/3, prontidão e recompensa.
   const teoState = createSideState();
-  const teoCtx = { questStep: 1, waystones: 0 };
+  const teoCtx = { questStep: 1, waystones: eldoriaWaystones(0) };
   const teo = harness(teoState, teoCtx);
   const teoVendor = { shortName: 'PROVISÕES', name: 'Téo · Provisões' };
   assert.equal(teo.talk(teoVendor), true);
   assert.equal(teo.events.dialogues[0], SIDE_QUESTS.find(q => q.id === 'abrigos').offer);
   teo.events.complete();
-  teoCtx.waystones = 2;
+  teoCtx.waystones = eldoriaWaystones(2);
   assert.equal(teo.talk(teoVendor), true);
   assert.equal(teo.events.dialogues[1][0].text, 'Registre as três pedras de abrigo. (2/3)');
-  teoCtx.waystones = 3;
+  teoCtx.waystones = eldoriaWaystones(3);
   assert.equal(teo.talk(teoVendor), true);
   assert.equal(teo.events.dialogues[2], SIDE_QUESTS.find(q => q.id === 'abrigos').turnIn);
   teo.events.complete();
@@ -412,7 +438,7 @@ test('fluxo real de conversa entrega as três missões e persiste sem duplicar r
 
   // Lia: permanece bloqueada até a etapa 2, depois entrega o pingente uma única vez.
   const liaState = createSideState();
-  const liaCtx = { questStep: 1, waystones: 0 };
+  const liaCtx = { questStep: 1, waystones: eldoriaWaystones(0) };
   const lia = harness(liaState, liaCtx);
   const liaVendor = { shortName: 'FRUTAS', name: 'Lia · Frutas' };
   assert.equal(lia.talk(liaVendor), false);
@@ -491,7 +517,7 @@ test('coleta no mundo usa o updater real e restaura contagem do save após recar
     });
     const sync = vm.runInContext('(' + syncSource + ')', context, { timeout: 1000 });
     context.refreshSideQuests = () => {
-      refreshSide(state, { questStep: 1, waystones: 0 });
+      refreshSide(state, { questStep: 1, waystones: eldoriaWaystones(0) });
       sync();
     };
     const restore = () => vm.runInContext(restoreSource, context, { timeout: 1000 });
@@ -501,7 +527,7 @@ test('coleta no mundo usa o updater real e restaura contagem do save após recar
 
   const storage = makeStore();
   const state = createSideState();
-  refreshSide(state, { questStep: 1, waystones: 0 });
+  refreshSide(state, { questStep: 1, waystones: eldoriaWaystones(0) });
   assert.equal(acceptSide(state, 'ervas'), true);
   const firstItems = makeItems();
   const first = worldHarness(state, storage, firstItems);

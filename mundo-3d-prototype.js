@@ -4087,7 +4087,7 @@ const SIDE_ITEMS=[];
 // Itens já entregues/coletados não reaparecem.
 {const taken={flor:sideState.ervas.progress+(sideState.ervas.state==='done'?99:0),pingente:sideState.pingente.progress+(sideState.pingente.state==='done'?99:0)};for(const it of SIDE_ITEMS){if(taken[it.item]>0){it.taken=true;taken[it.item]--;}}}
 function syncSideItems(){for(const it of SIDE_ITEMS){const q=SIDE_QUESTS.find(x=>x.goal.item===it.item);it.group.visible=!it.taken&&sideState[q.id].state==='active';}}
-function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
+function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
 function updateSideItems(dt,now){
  for(const it of SIDE_ITEMS){if(!it.group.visible)continue;it.glow.material.opacity=.5+Math.sin(now*.004+it.group.position.x)*.25;
   if(Math.hypot(it.group.position.x-player.position.x,it.group.position.z-player.position.z)<1.5){const q=collectSide(sideState,it.item);if(!q)continue;it.taken=true;it.group.visible=false;saveSide();worldAudio.reveal();showRewardPop(q.title+' · '+sideState[q.id].progress+'/'+q.goal.count);refreshSideQuests();}}
