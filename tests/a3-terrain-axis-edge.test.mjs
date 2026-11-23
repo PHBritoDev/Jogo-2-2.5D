@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAxis, buildTerrainArrays } from '../world3d-terrain.js';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { TERRAIN_EDGE_SHOTS } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
@@ -64,4 +67,22 @@ test('mobile Eldoria mesh keeps nonzero triangles across all four fine-to-outer 
   }
   assert.equal(ax.length, nx);
   assert.equal(az.length, nz);
+});
+
+test('A3 visual sweep targets the four exact mobile terrain seams', () => {
+  assert.deepEqual(
+    TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.fineCell]),
+    [
+      ['x', 203, -126, 203, 205.5, 2.5],
+      ['x', -207, -126, -207, -209.5, 2.5],
+      ['z', -2, 39, 39, 41.5, 2.5],
+      ['z', -2, -291, -291, -293.5, 2.5],
+    ],
+  );
+  for (const shot of TERRAIN_EDGE_SHOTS) {
+    assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
+    assert.equal(shot.cameraOffset.length, 3);
+    assert.equal(shot.targetOffset.length, 3);
+    assert.ok([...shot.cameraOffset, ...shot.targetOffset].every(Number.isFinite));
+  }
 });

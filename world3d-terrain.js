@@ -174,8 +174,8 @@ export function buildAxis(fineHalf, fineCell, outerSteps, growth) {
   const fineSteps = Math.round(fineHalf / fineCell);
   // The fine grid ends at fineSteps * fineCell, which can differ from
   // fineHalf when the requested extent is not an exact cell multiple.
-  // Anchor the exterior to the actual last fine vertex: otherwise the
-  // transition can overlap or leave a narrow gap along the playable valley.
+  // Using fineHalf for the exterior would stretch the first outer cell
+  // (3.5 m instead of 2.5 m in the mobile preset); anchor to the real vertex.
   const fineEdge = fineSteps * fineCell;
   // Growth 1 defines an evenly spaced exterior; geometric-series division
   // would otherwise yield 0/0 and send NaN positions to WebGL.

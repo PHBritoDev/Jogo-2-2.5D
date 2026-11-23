@@ -3,6 +3,7 @@
 const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
+const { TERRAIN_EDGE_SHOTS } = require("./a3-terrain-edge-plan.cjs");
 const output = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "eldoria-city-sweep");
 fs.mkdirSync(output,{recursive:true});
 const base = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
@@ -48,6 +49,46 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
      await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
      const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
      report.cases.push({preset:preset.name,name:s.name,image:path.relative(output,filename),...actual,drawCalls:data.state?.calls,triangles:data.state?.triangles});
+   }
+   // A3: fotografa as quatro costuras reais da malha mobile (X-/X+/Z-/Z+).
+   // A altura de cada ponto é sondada no terreno real antes de posicionar a câmera livre.
+   if(preset.mobile) {
+     const device=await page.evaluate(()=>({coarsePointer:matchMedia("(pointer: coarse)").matches,innerWidth:window.innerWidth,innerHeight:window.innerHeight}));
+     const lowSpec=device.coarsePointer||device.innerWidth<700;
+     report[preset.name].terrainGrid={...device,lowSpec,fineCell:2.5,reason:lowSpec?"preset mobile de terreno ativo":"preset mobile de terreno NÃO ativo"};
+     if(!lowSpec)report.errors.push("Android-landscape não ativou terrainLowSpec; costuras 2.5 m não foram comprovadas.");
+     for(const edge of TERRAIN_EDGE_SHOTS) {
+       const data=await page.evaluate(edge=>{
+         const api=window.SevenSinsDebug3D;
+         api.teleport(edge.x,edge.z,0);
+         const targetState=api.state();
+         const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
+         api.teleport(cameraX,cameraZ,0);
+         const cameraGround=api.state();
+         const from=[cameraX,cameraGround.y+edge.cameraOffset[1],cameraZ];
+         const to=[edge.x+edge.targetOffset[0],targetState.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
+         api.teleport(edge.x,edge.z,0);
+         api.fly(from,to);
+         const view=api.camView?api.camView(to):null;
+         return {
+           target:{x:targetState.x,y:targetState.y,z:targetState.z,walkable:targetState.walkable,boundaryDistance:targetState.edge},
+           cameraGround:{x:cameraGround.x,y:cameraGround.y,z:cameraGround.z},
+           from,to,view
+         };
+       },edge);
+       await page.waitForTimeout(900);
+       const filename=path.join(dir,safe(edge.name)+".png");
+       await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
+       const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\\b\\d{1,3}\\s*FPS\\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
+       const valid=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&(!data.view||data.view.onScreen);
+       const framingIssue=data.view&&data.view.blocked&&data.view.blocked.dist<data.view.camToHero-1.5
+         ? "câmera obstruída por "+data.view.blocked.name+" a "+data.view.blocked.dist+" m":null;
+       if(!valid)report.errors.push("Sonda/câmera inválida na costura "+edge.name);
+       report.cases.push({
+         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,pass:valid,reason:framingIssue|| (valid?"ponto de transição enquadrado":"ponto/câmera inválidos"),
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,from:data.from,to:data.to,view:data.view}
+       });
+     }
    }
    // Teste funcional reproduzível: subir a escada verdadeira em passos, medindo altura do root.
    const climb=await page.evaluate(async()=>{
