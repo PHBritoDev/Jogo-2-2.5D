@@ -6,6 +6,27 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const dir = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results', 'combat-multitarget');
 const base = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4176';
+
+async function advanceCombat(page, { seconds, sideImpacts = null, complete = false }) {
+  const fps = 30;
+  return page.evaluate(({ seconds, sideImpacts, complete, fps }) => {
+    const D = window.SevenSinsDebug3D;
+    const maxFrames = Math.ceil(seconds * fps);
+    let state = D.riteState(), framesAdvanced = 0;
+    for (; framesAdvanced < maxFrames; framesAdvanced++) {
+      D.combatStep(1 / fps, { fps, draw: true });
+      state = D.riteState();
+      const count = (state.events || []).filter(e => e.type === 'impact' && e.secondary).length;
+      if (sideImpacts !== null && count >= sideImpacts) { framesAdvanced++; break; }
+      if (complete && !state.active && (state.projectiles || []).length === 0) { framesAdvanced++; break; }
+    }
+    return {
+      waves: state.waves, projectiles: state.projectiles, events: state.events, vfx: state.vfx,
+      framesAdvanced, simulatedSeconds: framesAdvanced / fps
+    };
+  }, { seconds, sideImpacts, complete, fps });
+}
+
 fs.mkdirSync(dir, { recursive: true });
 (async () => {
   const browser = await chromium.launch({ headless: true, args: [
@@ -84,50 +105,42 @@ fs.mkdirSync(dir, { recursive: true });
       return { active: state.active, mana: state.mana, sword: state.sword, camera: state.camera };
     });
     assert.equal(report.steps.cast.active?.kind, 'aurora', 'Eclipse das Lâminas precisa iniciar no jogo real');
-    await page.evaluate(() => { SevenSinsDebug3D.combatStep(.25, { fps: 30, draw: true }); });
+    await advanceCombat(page, { seconds: .25 });
     await page.screenshot({ path: path.join(dir, '02-conjuracao.png'), timeout: 120000 });
 
-    report.steps.firstImpact = await page.evaluate(() => {
-      const D = window.SevenSinsDebug3D;
-      D.combatStep(.40, { fps: 30, draw: true });
-      const r = D.riteState();
-      return { waves: r.waves, projectiles: r.projectiles, events: r.events, vfx: r.vfx };
-    });
+    // Step at the actual 30 FPS cadence: a 0.40 s lump ages short-lived impact cuts before they can be inspected.
+    report.steps.firstImpact = await advanceCombat(page, { seconds: 1.0, sideImpacts: 2 });
     const firstSide = report.steps.firstImpact.events.filter(e => e.type === 'impact' && e.secondary);
     assert.equal(firstSide.length, 2, 'primeira onda precisa gerar dois impactos secundários');
     assert.deepEqual(firstSide.map(e => e.targetId).sort(), [...report.steps.before.sideIds].sort());
     assert.ok(report.steps.firstImpact.vfx.cuts >= 5, 'os dois impactos laterais precisam manter cortes visíveis no frame de contato');
     await page.screenshot({ path: path.join(dir, '03-impactos-primeira-onda.png'), timeout: 120000 });
 
-    report.steps.mid = await page.evaluate(() => {
-      const D = window.SevenSinsDebug3D;
-      D.combatStep(.40, { fps: 30, draw: true });
-      const r = D.riteState();
-      return { waves: r.waves, projectiles: r.projectiles, events: r.events };
-    });
+    report.steps.mid = await advanceCombat(page, { seconds: 1.2, sideImpacts: 4 });
     assert.ok(report.steps.mid.projectiles.length > 0, 'ondas precisam existir em voo');
     assert.ok(report.steps.mid.projectiles.some(w => w.direction.z < -.9), 'ondas devem viajar à frente do protagonista');
     assert.equal(report.steps.mid.events.filter(e => e.type === 'impact' && e.secondary).length, 4,
       'a segunda onda precisa repetir os dois impactos individuais');
     await page.screenshot({ path: path.join(dir, '04-impactos-segunda-onda.png'), timeout: 120000 });
 
-    report.steps.late = await page.evaluate(() => {
-      const D = window.SevenSinsDebug3D;
-      D.combatStep(.90, { fps: 30, draw: true });
-      const r = D.riteState();
-      return { waves: r.waves, projectiles: r.projectiles, events: r.events };
-    });
+    report.steps.late = await advanceCombat(page, { seconds: 2.0, sideImpacts: 8 });
     assert.equal(report.steps.late.events.filter(e => e.type === 'impact' && e.secondary).length, 8,
       'as quatro ondas precisam atingir os dois secundários');
     await page.screenshot({ path: path.join(dir, '05-impactos-ultimas-ondas.png'), timeout: 120000 });
 
-    report.steps.after = await page.evaluate(() => {
+    report.steps.after = await page.evaluate(async () => {
       const D = window.SevenSinsDebug3D;
-      D.combatStep(.65, { fps: 30, draw: true });
+      const fps = 30, maxFrames = Math.ceil(4.5 * fps);
+      let r = D.riteState(), framesAdvanced = 0;
+      for (; framesAdvanced < maxFrames; framesAdvanced++) {
+        D.combatStep(1 / fps, { fps, draw: true });
+        r = D.riteState();
+        if (!r.active && (r.projectiles || []).length === 0) { framesAdvanced++; break; }
+      }
       const s = D.squadState();
-      const r = D.riteState();
       return { actors: s.snap.actors, events: r.events, projectiles: r.projectiles,
-        active: r.active, sword: r.sword, vfx: r.vfx };
+        active: r.active, sword: r.sword, vfx: r.vfx, framesAdvanced,
+        simulatedSeconds: framesAdvanced / fps };
     });
     const before = new Map(report.steps.before.actors.map(a => [a.id, a]));
     const after = new Map(report.steps.after.actors.map(a => [a.id, a]));
