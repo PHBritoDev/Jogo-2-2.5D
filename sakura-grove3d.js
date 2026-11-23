@@ -16,15 +16,25 @@ export function blossomTexture(T){return atlas(T,128,(ctx,n)=>{
   for(let k=0;k<5;k++){const a=1.2566*k;ctx.beginPath();ctx.ellipse(x+rad*.52*Math.cos(a),y+rad*.52*Math.sin(a),rad*.61,rad*.43,a,0,6.29);ctx.fill();}
   ctx.fillStyle='#e9a68c';ctx.fillRect(x-1,y-1,1.9,1.9);}
  });}
-export function groundTexture(T){const t=atlas(T,128,(c,n)=>{const r=seeded(321);
- c.fillStyle='#cecaca';c.fillRect(0,0,n,n);
- for(let i=0;i<5400;i++){const a=122+Math.floor(r()*128);c.fillStyle='rgba('+a+','+a+','+a+','+(.08+r()*.28)+')';const x=r()*n,y=r()*n;c.fillRect(x,y,.4+r()*3,.4+r()*1.6);}
- });t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=2;return t;}
 export function treeLibrary(T){
  const barkColors=[0x49343c,0x513b41,0x433444,0x554047],lib=[];
- const flowerMap=blossomTexture(T);
+ const flowerMap=blossomTexture(T),wind={value:0};
+ const needleMap=atlas(T,96,(ctx,n)=>{const r=seeded(9913);ctx.lineCap='round';
+  for(let i=0;i<290;i++){const u=r(),x=u*n,h=(1-u*.73)*(.48+.50*r())*n;
+   ctx.strokeStyle=i%3?'#e2e6e5':'#aebcb5';ctx.lineWidth=.8+r()*2.6;
+   ctx.beginPath();ctx.moveTo(x,2+r()*9);ctx.quadraticCurveTo(x+5,h*.52,x+8+r()*9,h);ctx.stroke();}
+  ctx.lineWidth=3;ctx.strokeStyle='#bfd0c4';ctx.beginPath();ctx.moveTo(0,3);ctx.lineTo(n,3);ctx.stroke();
+ });
+ const needles=new T.MeshLambertMaterial({map:needleMap,alphaTest:.37,side:T.DoubleSide,vertexColors:true,emissive:0x28373f,emissiveIntensity:.12});
  const solid=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
- const leaves=new T.MeshLambertMaterial({map:flowerMap,alphaTest:.41,side:T.DoubleSide,vertexColors:true,emissive:0x4e273b,emissiveIntensity:.18});
+ const leaves=new T.MeshLambertMaterial({map:flowerMap,alphaTest:.41,side:T.DoubleSide,vertexColors:true,emissive:0x875666,emissiveIntensity:.32});
+ for(const mat of [leaves,needles])mat.onBeforeCompile=sh=>{
+  sh.uniforms.groveTime=wind;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float groveTime;').replace('#include <begin_vertex>',`#include <begin_vertex>
+   #ifdef USE_INSTANCING
+   float phase=instanceMatrix[3].x*.038+instanceMatrix[3].z*.042;
+   transformed.x+=sin(groveTime*1.13+phase+position.y*.24)*smoothstep(2.,11.,position.y)*.16;
+   transformed.z+=cos(groveTime*.78+phase)*smoothstep(2.,11.,position.y)*.08;
+   #endif`);};
  function sakura(n,far){
   const m=batch(T),pos=[],uv=[],col=[],r=seeded(841+n*59),w=[1.10,1.22,.9,1.28][n],h=[1,1.18,1.05,.82][n];
   const c=new T.Color();function cluster(p,s){
@@ -48,17 +58,34 @@ export function treeLibrary(T){
   return [[m.geometry(),solid],[g,leaves]];
  }
  function pine(n,far){
-  const m=batch(T),r=seeded(209+n*86),ht=11+3*n;m.tube([0,0,0],[.14,ht,0],.45,.03,0x524142,8);
-  for(let j=0;j<(far?5:8);j++){const t=j/(far?5:8),y=2+t*(ht-2),rad=(1-t)*3.2+1;
-   for(let k=0;k<(far?5:8);k++){const a=k*2.4+j*.71,w=rad*(.63+r()*.34),x=Math.cos(a)*w,z=Math.sin(a)*w;
-    const tip=[x,y-.8-r()*.45,z],peak=[x*.55,y+.35,z*.55],base=[0,y+.64,0],s=w*.3,
-    l=[x*.76-Math.sin(a)*s,y-.44,z*.76+Math.cos(a)*s],q=[x*.76+Math.sin(a)*s,y-.52,z*.76-Math.cos(a)*s];
-    m.tri(base,l,tip,0x29474e);m.tri(base,tip,q,0x324e53);
-    m.tri(base,peak,l,0xa2bac7);m.tri(peak,tip,l,0x819dab);m.tri(base,q,peak,0xc0d1d9);m.tri(peak,q,tip,0xa2becc);
+  const m=batch(T),r=seeded(209+n*86),green=n===3,ht=green?9.4:12.3+2.4*n;
+  const pos=[],col=[],uv=[];const c=new T.Color();
+  function spray(base,tip,width,phase,light){
+   const dx=tip[0]-base[0],dz=tip[2]-base[2],len=Math.hypot(dx,dz)||1;
+   // Pendulous wing on each side of the bough. The shaped alpha-tested needle
+   // clusters leave holes and an uneven outline even on the distant trees.
+   for(const sign of [-1,1]){
+    const ex=-dz/len*width*sign,ez=dx/len*width*sign;
+    const p=[base,[base[0]+dx*.42+ex,base[1]-.32-width*.19,base[2]+dz*.42+ez],
+     [tip[0]+ex*.26,tip[1]-.22,tip[2]+ez*.26],tip];
+    c.set(green?(phase%2?0x60806e:0x7c9774):phase%3?0xb3c8d1:0xdce4e4).multiplyScalar(light);
+    for(const k of [0,1,2,0,2,3]){pos.push(...p[k]);uv.push(k<2?0:1,k===0||k===3?.04:.94);col.push(c.r,c.g,c.b);}
    }
-  }return [[m.geometry(),solid]];
+  }
+  m.tube([0,0,0],[.14,ht,0],.33,.028,0x65504a,7);
+  const levels=far?6:9;
+  for(let j=0;j<levels;j++){const t=j/levels,y=1.5+t*ht*.86,rad=(1-t)**.72*(green?2.9:3.8)+.47,branches=far?5:8;
+   for(let k=0;k<branches;k++){const a=k*6.283/branches+j*1.32+r()*.45,w=rad*(.68+r()*.40),dx=Math.cos(a),dz=Math.sin(a);
+    const B=[dx*w*.48,y-.45,dz*w*.48],tip=[dx*w,y-1.2+r()*.5,dz*w];
+    if(!far)m.tube([0,y,0],tip,.095*(1-t)+.025,.018,green?0x504d3d:0x4b575b,5);
+    spray([0,y+.2,0],tip,w*.30,j+k,.9+t*.12);
+    if(!far)for(const sign of [-1,1]){const a2=a+.54*sign;const D=[B[0]+w*.57*Math.cos(a2),B[1]-.58,B[2]+w*.57*Math.sin(a2)];spray(B,D,w*.19,j+k+1,.95);}
+   }
+  }
+  const g=new T.BufferGeometry();for(const [name,a,d] of [['position',pos,3],['color',col,3],['uv',uv,2]])g.setAttribute(name,new T.Float32BufferAttribute(a,d));g.computeVertexNormals();g.computeBoundingSphere();
+  return [[m.geometry(),solid],[g,needles]];
  }
  for(let n=0;n<4;n++)lib.push([sakura(n,false),sakura(n,true)]);
- for(let n=0;n<3;n++)lib.push([pine(n,false),pine(n,true)]);
- return {lib,solid};
+ for(let n=0;n<4;n++)lib.push([pine(n,false),pine(n,true)]);
+ return {lib,solid,wind};
 }

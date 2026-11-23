@@ -1,6 +1,6 @@
 // Eixo percorrível em metros. Cada ponto tem uma cota desenhada; todos os desvios
 // voltam ao eixo. Render, bússola, clima e pés consultam o mesmo traçado.
-import { GATE2, TRAIL2, journeyHeight } from './jornada3d.js';
+import { CITY2, GATE2, TRAIL2, journeyHeight } from './jornada3d.js';
 
 export const clamp01 = x => Math.max(0, Math.min(1, x));
 export function smooth(a, b, x) { const t = clamp01((x-a)/(b-a)); return t*t*(3-2*t); }
@@ -17,7 +17,7 @@ const authored = [
  [gate.x,gate.z,journeyHeight(gate.x,gate.z)],[-1624,-319,29],[-1560,-411,36],[-1567,-546,42],
  [-1688,-659,46],[-1740,-827,31],[-1655,-936,33],[-1480,-967,48],[-1392,-1106,59],
  [-1483,-1235,69],[-1650,-1270,62],[-1728,-1420,51],[-1590,-1544,55],[-1400,-1533,44],
- [-1315,-1487,40],[-1320,-1390,43],[-1190,-1368,45],[-1108,-1455,64],[-1195,-1535,82],
+ [-1358,-1487,40],[-1359,-1383,43],[-1190,-1368,45],[-1108,-1455,64],[-1195,-1535,82],
  [-1143,-1680,105],[-1040,-1700,116],[-1040,-1650,125],[-1040,-1623,127],[DOJO.x,DOJO.z,DOJO.y],
  [-1040,-1623,127],[-993,-1641,126],[-911,-1772,114],[-735,-1805,99],[-618,-1682,110],
  [-470,-1718,113],[-322,-1868,94],[-256,-2040,108],[-77,-2105,124],[7,-1980,118],
@@ -29,7 +29,8 @@ const authored = [
  [564,-254,81],[564,-213,81],[564,-194,84]
 ];
 export const ROUTE = authored.map(p=>node(...p));
-export const FROM_CITY = [{x:-1262,z:-66},...TRAIL2.slice(0,-1).map(([x,z])=>({x,z}))];
+export const DEPARTURE_NOTE = {x:CITY2.x+25,z:CITY2.z-10};
+export const FROM_CITY = [{x:DEPARTURE_NOTE.x+1.2,z:DEPARTURE_NOTE.z+1},{x:-1246,z:-92},{x:-1265,z:-101},{x:-1288,z:-106},...TRAIL2.slice(0,-1).map(([x,z])=>({x,z}))];
 export const CITY_ROAD = [[564,-194,84],[564,-224,81],[564,-267,81],[564,-304,79],[564,-355,69],[534,-361,68],[492,-337,70],[485,-295,74],[448,-261,66],
  [426,-176,52],[348,-117,34],[287,-55,19],[244,-39,11],[218,-38,7],[202,-37,5],[186,-35,4],[165,-36,4],[148,-40,4]].map(p=>node(...p));
 const paths=[
@@ -89,6 +90,9 @@ export function regionWeight(x,z,p=sampleRoad(x,z)){
  const w=p.kind==='town'?smooth(201,249,x):p.i<3?smooth(-280,-384,z):1;
  return w*(1-smooth(155,235,p.d));
 }
+// The old basalt ring ends a few metres behind the cave. Its original boundary
+// must open down this particular outward-facing trail before the ground blend starts.
+export function leavesVolcano(z,p){return !!p && p.kind==='main' && p.i<2.1 && z<gate.z-.4 && p.d<8.8;}
 export function lakeDepth(x,z){
  const a=ellipse(x,z,SPRING_LAKE);if(a<1)return (1-a)*17;
  for(const [cx,cz,r] of [[825,-1702,23],[726,-1790,15],[900,-1820,12]]){
@@ -108,14 +112,23 @@ export function buildingFloor(x,z){
  if(Math.abs(x-DOJO.x)<14&&Math.abs(z-DOJO.z)<13)return DOJO.y;
  return null;
 }
+const ga=ROUTE[46],gb=ROUTE[47],bridgeLength=Math.hypot(gb.x-ga.x,gb.z-ga.z);
+export const GLACIER_BRIDGE={x:ga.x+(gb.x-ga.x)*.31,z:ga.z+(gb.z-ga.z)*.31,y:ga.y+(gb.y-ga.y)*.31,
+ dx:(gb.x-ga.x)/bridgeLength,dz:(gb.z-ga.z)/bridgeLength,len:bridgeLength*.44,rise:(gb.y-ga.y)*.44};
+export function ravine(x,z){
+ const b=GLACIER_BRIDGE,dx=x-b.x,dz=z-b.z;
+ const t=(dx*b.dx+dz*b.dz)/b.len,side=dx*b.dz-dz*b.dx;
+ return {t,side,cut:smooth(0,.19,t)*(1-smooth(.81,1,t))*(1-smooth(44,87,Math.abs(side)))};
+}
 export function landscape(x,z,p=sampleRoad(x,z)){
  if(!p)return 30;
  const b=buildingFloor(x,z);if(b!==null)return b;
  const n=noise(x*.013,z*.013),f=noise(x*.049,z*.049),d=p.d;
  let y=p.y+smooth(5,62,d)*((n-.37)*24+(f-.5)*5)+smooth(54,195,d)*(23+105*noise(x*.0062,z*.0062));
+ if(p.i>45&&p.i<49){const g=ravine(x,z);y-=g.cut*47;}
  // The rope bridge leaves the escarpment exposed on both sides of its deck.
  if(Math.abs(x-DOJO.x)<47&&z>-1682&&z<-1624){
-  const t=smooth(-1682,-1672,z)*(1-smooth(-1633,-1624,z));y-=t*48;
+  const t=smooth(-1682,-1672,z)*(1-smooth(-1633,-1624,z));y-=t*48*(p.i>23?smooth(5,23,p.d):1)*(1-smooth(31,47,Math.abs(x-DOJO.x)));
  }
  if(Math.abs(x-DOJO.x)<30&&Math.abs(z-DOJO.z)<27)y=127-1.2*smooth(12,27,Math.abs(z-DOJO.z));
  for(const l of [SPRING_LAKE,ICE_LAKE]){
@@ -125,12 +138,14 @@ export function landscape(x,z,p=sampleRoad(x,z)){
  return y;
 }
 export function routeGround(x,z,p=sampleRoad(x,z)){
+ if(p&&p.i>45&&p.i<49){const g=ravine(x,z);if(g.t>=0&&g.t<=1&&Math.abs(g.side)<3.55)return GLACIER_BRIDGE.y+g.t*GLACIER_BRIDGE.rise;}
  if(Math.abs(x-DOJO.x)<3&&z>=-1682&&z<=-1624)return p.y;
  return landscape(x,z,p);
 }
 export function roadBlocked(x,z,p=sampleRoad(x,z)){
  if(!p)return false;
  if(lakeDepth(x,z)>=1.25)return true;
+ if(p.i>45&&p.i<49){const g=ravine(x,z);if(g.t>.01&&g.t<.99&&Math.abs(g.side)>3.13&&Math.abs(g.side)<3.94)return true;}
  let X=Math.abs(x-DOJO.x),Z=z-DOJO.z;
  if(X<12&&Z>=-11&&Z<=11){
   if(X>11.1||Z>10.3||(Z<-10.2&&X>2.4))return true;

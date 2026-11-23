@@ -53,7 +53,7 @@ export function dojoBuilding(m){
   if(x<12)m.tube([x,-8,z],[x+4,-2,z],.26,.22,wood,6);
   if(z<10)m.tube([x,-8,z],[x,-2,z+5],.26,.22,wood,6);
  }
- function shoji(x,z,w,h,along,base){const bx=(u,y,d,l,c)=>m.box(x+(along?u:0),base+y,z+(along?0:u),along?l:d,h,.01,c);
+ function shoji(x,z,w,h,along,base){
   m.box(x,base+h/2,z,along?w:.18,h,along?.18:w,base>6?0xe9a2bb:0xc3a7a3);
   for(let i=0;i<=Math.ceil(w/.82);i++){const u=-w/2+w*i/Math.ceil(w/.82);
    m.box(x+(along?u:0),base+h/2,z+(along?0:u),along?.09:.27,h,along?.27:.09,bark);}
@@ -125,7 +125,6 @@ export function castleBuilding(m){
    for(const dz of [0,7.8,-7.8])m.rib([[s*14.9,16.8,z],[s*14,21,z+dz*.22],[s*10,26,z+dz*.60],[0,31.4,z+dz]],.44,edge,8);
    m.rib([[s*38,.3,z],[s*35,10,z],[s*32.5,18,z],[s*28.5,22,z]],1,edge,7);
    m.tube([s*35,8,z],[s*35,25,z],1.5,.05,ice,6);
-   for(const t of [-1,1])m.quad([0,32,z],[s*15,23,z],[s*27,21,z],[s*27,21,z+t*8],deep);
    m.quad([0,32,z-8],[s*27,21,z-8],[s*27,21,z+8],[0,32,z+8],deep);
   }
   for(let i=0;i<40;i++){const z=-101+i*1.5,h=12*i/40;m.box(s*9,h-12+.17,z,17.9,.35,1.52,i%4?edge:snow);}

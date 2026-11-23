@@ -1,6 +1,9 @@
 import {ROUTE,DETOURS,CITY_ROAD,DOJO,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
 import {batch,lantern,torii,dojoBuilding,castleBuilding,glacierHouse,spire,arch} from './sakura-masonry3d.js';
-import {treeLibrary,groundTexture,seeded} from './sakura-grove3d.js';
+import {treeLibrary,seeded} from './sakura-grove3d.js';
+import {surfaceFinish,hallDetails} from './sakura-interiors3d.js';
+import {dressBasins} from './sakura-landscape3d.js';
+import {skyVeil,underfoot} from './sakura-atmosphere3d.js';
 import {lakes,weather} from './sakura-waters3d.js';
 
 const TILE=96, key=(i,j)=>i+128*j;
@@ -8,9 +11,9 @@ const springColors=[0x756060,0x8e8168,0xa99a86,0x957882],snowColors=[0xc8d3dc,0x
 const near=(x,z,p,d)=>Math.hypot(x-p.x,z-p.z)<d;
 export function createSakuraWorld(T,scene,{ground,low}){
  const root=new T.Group();root.name='Ato III · Dojo da Lua e Invernália';root.visible=false;scene.add(root);
- const {lib,solid}=treeLibrary(T), terrainMat=new T.MeshLambertMaterial({map:groundTexture(T),vertexColors:true,side:T.DoubleSide});
+ const {lib,solid,wind}=treeLibrary(T), terrainMat=underfoot(T);
  const dummy=new T.Object3D(),c=new T.Color(),tone=new T.Color(),shadow=new T.Color(0x667e88);
- const white=new T.Color(0xffffff),tileCache=new Map(),landmarks=[],landmarkSolids=[],groveSolids=new Map();
+ const tileCache=new Map(),landmarks=[],landmarkSolids=[],groveSolids=new Map();
  const summer=new T.Color(0xe0bfc2),winter=new T.Color(0xa8bccd),night=new T.Color(0x424c67),air=new T.Color();
  function feature(name,p,fn,reach=300,mat=solid){
   const m=batch(T);fn(m);const o=new T.Mesh(m.geometry(),mat);o.name=name;o.position.set(p.x,p.y??ground(p.x,p.z),p.z);
@@ -37,15 +40,15 @@ export function createSakuraWorld(T,scene,{ground,low}){
    m.rib(pts,.10,0xbba17d,5);m.rib([[s*w*.43,-.42,0],[s*w*.43,dy-.42,len]],.27,0x433d43);
   }
  }
- for(const [i,s] of [[5,1.24],[9,.94],[18,1],[21,.68]])model('Torii des pèlerins',i,m=>{torii(m,s);lantern(m,-4.5*s,0,-1,true,s);lantern(m,4.5*s,0,-1,true,s);});
+ for(const [i,s] of [[5,1.24],[9,.94],[18,1],[21,.68]])model('Torii dos peregrinos',i,m=>{torii(m,s);lantern(m,-4.5*s,0,-1,true,s);lantern(m,4.5*s,0,-1,true,s);});
  for(const [k,d] of DETOURS.entries()){const p=d.points[2],o=feature(d.name,{x:p.x+6,z:p.z+4},m=>{
    if(k===7||k===8){spire(m,0,0,0,3.4,18+k*.7);arch(m,6,0,0,2.7,6,'x',.5);return;}
    if(k===6){for(let j=0;j<15;j++){const a=j*2.4,r=1.5+(j%4)*.57;m.tube([Math.cos(a)*r,-.6,Math.sin(a)*r],[Math.cos(a)*(r+1.2),2+(j%5)*.7,Math.sin(a)*(r+1.2)],.6,.03,j%2?0x8ac9dd:0xa4d7de,6);}return;}
    azimuthMark(m,k%2?'bell':'shrine');
   });o.rotation.y=.4*k;register(o.position.x,o.position.z,k>=7?3.2:1.3);}
- const dojo=feature('Dojo da Lua Suspensa',DOJO,dojoBuilding,1100);
+ feature('Dojo da Lua Suspensa',DOJO,dojoBuilding,1100,surfaceFinish(T,true));
  feature('Ponte suspensa', {x:DOJO.x,z:-1682,y:ROUTE[20].y+(ROUTE[21].y-ROUTE[20].y)*18/50},m=>bridge(m,58,5.1,7.1,true),500);
- feature('Cidadela e salão do trono',CASTLE,castleBuilding,1450);
+ feature('Cidadela e salão do trono',CASTLE,castleBuilding,1450,surfaceFinish(T,false));
  // Exterior streets on either side of the central stair, at the same altitude as their pavement.
  for(const s of [-1,1])for(let j=0;j<5;j++){const x=CASTLE.x+s*(34+j%2*5),z=CASTLE.z-72+j*20;
   const o=feature('Bairro da muralha',{x,z},m=>glacierHouse(m,j%3),300);o.rotation.y=s*1.26;register(x,z,3.3);}
@@ -65,26 +68,30 @@ export function createSakuraWorld(T,scene,{ground,low}){
    },430);o.rotation.y=Math.atan2(sn,cs);
   }
  }
- const water=lakes(T),snow=weather(T,low);root.add(water.group,snow.mesh);
- const plazas=[DOJO,CASTLE];const relative=(x,z)=>[x-CASTLE.x,z-CASTLE.z];
+ const lightHall=hallDetails(T,{root,feature,landmarks});
+ const animateBasins=dressBasins(T,{feature,ground,lib,root,landmarks,register});
+ const water=lakes(T),snow=weather(T,low),sky=skyVeil(T);root.add(water.group,snow.mesh,sky.mesh);
+ const relative=(x,z)=>[x-CASTLE.x,z-CASTLE.z];
  function reserve(x,z){const [dx,dz]=relative(x,z);
   return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
  function physical(x,z,p){const w=regionWeight(x,z,p);if(w>=.999)return landscape(x,z,p);
   return ground(x,z)-(routeGround(x,z,p)-landscape(x,z,p))*w;}
  function groundTile(ix,iz,steps){
-  const px=ix*TILE,pz=iz*TILE,h=[],colors=[],uv=[],idx=[],n=steps+1;
+  const px=ix*TILE,pz=iz*TILE,h=[],colors=[],uv=[],mix=[],idx=[],n=steps+1;
   for(let j=0;j<=steps;j++)for(let i=0;i<=steps;i++){
    const x=px+i*TILE/steps,z=pz+j*TILE/steps,p=sampleRoad(x,z),w=regionWeight(x,z,p);
    const y=p?physical(x,z,p):22,ns=noise(x*.068,z*.068),cold=snowAt(p?.i??0),road=p?1-smooth(3,9,p.d):0;
    const n2=noise(x*.012,z*.012),k=Math.min(3,Math.floor(ns*4)),slope=p?smooth(50,125,p.d):1;
    c.set(springColors[k]).lerp(tone.set(snowColors[k]),cold).lerp(shadow,slope*(.15+.27*ns));
    if(p){c.lerp(tone.set(0x61514e),(1-smooth(1,5,p.i))*.6);c.lerp(tone.set(cold>.55?0xb0becc:0xa99488),road*.7);}
-   c.multiplyScalar(.84+.27*n2);h.push(x,y-.12,z);colors.push(c.r,c.g,c.b);uv.push(x*.15,z*.15);
+   const flower=bloomAt(p?.i??0);
+   c.lerp(tone.set(0xd1b5b4),flower*(.30+.24*ns)).lerp(tone.set(0xe3dedc),cold*.31);
+   mix.push(flower*(.50+.5*ns),cold,road);c.multiplyScalar(.91+.23*n2);h.push(x,y-.12,z);colors.push(c.r,c.g,c.b);uv.push(x*.15,z*.15);
    if(i&&j){const a=j*n+i-n-1,b=a+1,d=a+n,e=d+1;
     const cx=x-TILE/(2*steps),cz=z-TILE/(2*steps),q=sampleRoad(cx,cz);
     if(q&&regionWeight(cx,cz,q)>.004)idx.push(a,d,b,b,d,e);}
   }
-  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(h,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(h,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setAttribute('groundMix',new T.Float32BufferAttribute(mix,3));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();
   return new T.Mesh(g,terrainMat);
  }
  const coarse=new Map();
@@ -105,14 +112,19 @@ export function createSakuraWorld(T,scene,{ground,low}){
     const q=sampleRoad(x,z);if(regionWeight(x,z,q)<.12||ellipse(x,z,ICE_LAKE)<1.04||ellipse(x,z,SPRING_LAKE)<1.02)continue;
     const cold=snowAt(q.i),w=q.kind==='trail'?1.45:2.35;
     for(const s of [-1,1]){const off=(.3+.42*Math.sin(i*17.7))*w+.4,xx=x+s*vx*off,zz=z+s*vz*off;
-     const y=physical(xx,zz,q)+.035,vr=.35+r()*.51,lr=.26+r()*.51,col=cold>.65?0xb3bfca:i%3?0x937d76:0xa29289;
-     pebbles.quad([xx-vx*vr-dx/len*lr,y,zz-vz*vr-dz/len*lr],[xx-vx*vr+dx/len*lr,y+.02,zz-vz*vr+dz/len*lr],[xx+vx*vr+dx/len*lr,y+.03,zz+vz*vr+dz/len*lr],[xx+vx*vr-dx/len*lr,y,zz+vz*vr-dz/len*lr],col);drawn=true;}
+     const y=physical(xx,zz,sampleRoad(xx,zz))+.065,vr=.26+r()*.60,lr=.36+r()*.62,col=cold>.65?0x879baa:i%3?0x887978:0xa3968a;
+     const points=[];for(let k=0;k<7;k++){const a=k*.8976,rad=.79+r()*.24;
+      const ax=Math.cos(a)*vr*rad,az=Math.sin(a)*lr*rad;
+      points.push([xx+vx*ax+dx/len*az,y,zz+vz*ax+dz/len*az]);}
+     if(cold>.65){if(i%3===0){for(const p of points){p[0]=xx+(p[0]-xx)*.22;p[2]=zz+(p[2]-zz)*.46;}}else continue;}
+     for(let k=0;k<points.length;k++)pebbles.tri([xx,y+.038,zz],points[k],points[(k+1)%7],col,.91+.09*(k%3)/2);drawn=true;}
+
    }
   }
   for(let j=0;j<(low?60:80);j++){const x=px+r()*TILE,z=pz+r()*TILE,p=sampleRoad(x,z);
    if(!p||p.d<4.3||regionWeight(x,z,p)<.05||reserve(x,z)||ellipse(x,z,ICE_LAKE)<1.03||ellipse(x,z,SPRING_LAKE)<1.035||lakeDepth(x,z)>0)continue;
    const bloom=bloomAt(p.i),cold=snowAt(p.i);if(p.i>37&&p.i<56&&r()<.60||p.i<3&&r()<.7)continue;
-   const type=bloom>r()&&p.i<33?Math.floor(r()*4):4+Math.floor(r()*3);
+   const type=bloom>r()&&p.i<33?Math.floor(r()*4):(cold<.42?7:4+Math.floor(r()*3));
    const size=(.60+r()*.70)*(p.i<5?.70:1)*(p.d<17?1.08:1),y=physical(x,z,p)-.12;
    if(!clusters.has(type))clusters.set(type,[]);clusters.get(type).push([x,y,z,size,r()*6.283]);
    obstacles.push({x,z,r:type<4?.54*size:.39*size});
@@ -129,7 +141,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
   root.add(group);return {group,draws,obstacles};
  }
  // Three mountain chains with fluted faces, snow cornices and separate shadowed foothills.
- const peaks=feature('Cordilheiras do norte',{x:0,y:0,z:0},m=>{
+ feature('Cordilheiras do norte',{x:0,y:0,z:0},m=>{
   const r=seeded(901),rings=[[-2340,-2000,13,148,310],[-1830,-2490,23,161,438],[1320,-2170,16,147,386],[-120,-1140,9,131,218]];
   for(let zone=0;zone<rings.length;zone++){
    const [x0,z0,count,spacing,base]=rings[zone];
@@ -168,14 +180,16 @@ export function createSakuraWorld(T,scene,{ground,low}){
    for(const d of part.draws)d.o.visible=d.lod===(task.dist<=1.05?0:1);}
   for(const l of landmarks)l.o.visible=l.reach===Infinity||Math.hypot(l.o.position.x-P.x,l.o.position.z-P.z)<l.reach;
   const cold=snowAt(p.i),blossom=bloomAt(p.i),inside=Math.abs(P.x-DOJO.x)<11&&Math.abs(P.z-DOJO.z)<10||Math.abs(P.x-CASTLE.x)<27&&P.z>CASTLE.z-40&&P.z<CASTLE.z+67;
-  air.copy(summer).lerp(winter,cold).lerp(night,nightK*.66);
+  lightHall(P,inside&&Math.abs(P.x-DOJO.x)<11,inside&&Math.abs(P.x-CASTLE.x)<27);
+  animateBasins(now*.001);wind.value=now*.001;air.copy(summer).lerp(winter,cold).lerp(night,nightK*.66);
   if(fog&&w>.01){fog.color.lerp(air,w*.82);fog.near+=(34+22*cold-fog.near)*w;fog.far+=(625-cold*80-fog.far)*w;}
+  sky.update(camera,now*.001,cold,blossom,nightK,w,air);
   water.update(now*.001,fog?.color||air,640);for(let i=0;i<2;i++)water.group.children[i].visible=near(P.x,P.z,i?ICE_LAKE:SPRING_LAKE,i?520:425);
   snow.update(P,now*.001,cold,inside?0:Math.max(blossom*.78,cold*.92)*w,innerHeight);
  }
  function solidAt(x,z){
   if(!active)return false;const list=groveSolids.get(key(Math.floor(x/TILE),Math.floor(z/TILE)))||[];
-  return [...list,...landmarkSolids].some(p=>(p.x-x)**2+(p.z-z)**2<p.r*p.r);
+  for(const items of [list,landmarkSolids])for(const p of items)if((p.x-x)**2+(p.z-z)**2<p.r*p.r)return true;return false;
  }
  return {update,solidAt,root,stats:()=>({active,nearTiles:tileCache.size,farTiles:[...coarse.values()].filter(Boolean).length,waiting:pending.length})};
 }

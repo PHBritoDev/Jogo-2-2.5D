@@ -9,7 +9,7 @@ import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,w
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
 import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,CITY_PROPS,JOURNEY_HOLES,ROUTE,polyProject} from './jornada3d.js';
-import {ROUTE as SAKURA_ROAD, CITY_ROAD as GLACIAL_ROAD, FROM_CITY, MASTER, THRONE, DOJO, CASTLE, COAT_STALL, sampleRoad, regionWeight, routeGround, roadBlocked, lakeDepth, nextGuide, snowAt} from './sakura-route3d.js';
+import {ROUTE as SAKURA_ROAD, CITY_ROAD as GLACIAL_ROAD, FROM_CITY, MASTER, THRONE, DOJO, CASTLE, COAT_STALL, sampleRoad, regionWeight, routeGround, roadBlocked, lakeDepth, nextGuide, snowAt, leavesVolcano} from './sakura-route3d.js';
 import {createSakuraWorld} from './sakura-world3d.js';
 import {batch as sakuraBatch, glacierHouse} from './sakura-masonry3d.js';
 import {createJourneyWorld} from './jornada-world3d.js';
@@ -297,9 +297,10 @@ var journeyWorld=null,journeyFall={on:false,from:0,cp:null,reached:new Set()};
 // A bacia nova só assume a superfície no seu próprio vale. A boca do vulcão e
 // o bairro canônico de Invernália usam a malha anterior nas duas costuras.
 var sakuraWorld=null;
-{const old=terrain3D.height,edge=terrain3D.boundaryDistance,water=terrain3D.waterDepth;
+{const old=terrain3D.height,edge=terrain3D.boundaryDistance,water=terrain3D.waterDepth,walk=terrain3D.walkable;
  terrain3D.height=(x,z)=>{const p=sampleRoad(x,z),w=regionWeight(x,z,p);if(!w)return old(x,z);const h=routeGround(x,z,p);return w===1?h:old(x,z)*(1-w)+h*w;};
- terrain3D.boundaryDistance=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.02?Math.min(edge(x,z),p.d-119):edge(x,z);};
+ terrain3D.boundaryDistance=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.02?Math.min(edge(x,z),p.d-119):edge(x,z);};
+ terrain3D.walkable=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.15?!roadBlocked(x,z,p)&&p.d<164:walk(x,z);};
  terrain3D.waterDepth=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.12?lakeDepth(x,z):water(x,z);};
 }
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
@@ -2318,7 +2319,7 @@ function blockedAt(x,z,skipRocks=false){
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  const road=sampleRoad(x,z);
- if(road&&regionWeight(x,z,road)>.15){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z)||road.d>164;}
+ if(road&&(leavesVolcano(z,road)||regionWeight(x,z,road)>.15)){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z)||road.d>164;}
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
 /* MOD 321 */ if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;
@@ -2448,6 +2449,10 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>camDistUse+2||Math.abs(rz)>camDistUse+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   if(!voidMode)for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  if(!voidMode&&sakuraWorld&&sakuraWorld.root.visible){
+   for(let i=1;i<=16;i++){const f=i/16*limit,x=target.x+camOffset.x*f,z=target.z+camOffset.z*f;
+    if(roadBlocked(x,z)||sakuraWorld.solidAt(x,z)){limit=Math.max(.12,(i-1)/16*limit);break;}}
+  }
   if(!voidMode&&cameraOccluders.length){const L=Math.hypot(camOffset.x,camOffset.y,camOffset.z)*limit;for(const oc of cameraOccluders){if(Math.hypot(target.x-oc.x,target.z-oc.z)>oc.r)continue;camRay.set(camRayO.copy(target),camRayD.copy(camOffset).normalize());camRay.far=L+.3;const h=camRay.intersectObject(oc.obj,true)[0];if(h)limit=Math.max(.14,Math.min(limit,(h.distance-.35)/Math.max(.01,L/limit)));}}
   // RENASCIMENTO F1: o braço da câmera também não atravessa guarda-corpos/parapeitos (deques, escadas, ponte) nem rochas altas
   if(!voidMode)for(let i=2;i<=12;i++){const f=i/12*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;const bd=bridgeDeck(sx,sz);
@@ -2976,7 +2981,7 @@ const faunaCtx={biome:faunaBiome,water:(x,z)=>terrain3D.waterDepth(x,z),road:fau
 const ashFx=createAshDissolve(THREE,scene,{low:terrainLowSpec});
 let fauna=null,faunaInsects=0;
 /* áudio: bioma para os ambientes reais (consulta a cada 0,5 s — faunaBiome varre árvores próximas) */
-let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;const r=sampleRoad(player.position.x,player.position.z);audioBiomeV=r&&regionWeight(player.position.x,player.position.z,r)>.2?(snowAt(r.i)>.55?'neve':r.i>3?'forest':'serra'):faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
+let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;const r=sampleRoad(player.position.x,player.position.z);audioBiomeV=r&&regionWeight(player.position.x,player.position.z,r)>.2?(snowAt(r.i)>.55?'serra':r.i>3?'floresta':'cinzas'):faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
 const forestPlaces=buildForestPlaces(THREE,{ground:(x,z)=>groundHeightAt(x,z),obstacles:rockObstacles,lowSpec:terrainLowSpec});scene.add(forestPlaces.group);
 /* MOD 317 — a garganta de origem segue por dias até as terras baixas: depois da curva (ORIGIN_LIMIT) o herói não segue
    (limite narrativo da estrada, sem parede invisível em objeto pequeno). O Anjo chama de volta uma vez. */
@@ -4227,7 +4232,7 @@ function updateJourney(dt,now){
  {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
  journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
- if(!sakuraWorld&&!voidMode&&questStep>=15&&sampleRoad(P.x,P.z)&&regionWeight(P.x,P.z)>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
+ if(!sakuraWorld&&!voidMode&&sampleRoad(P.x,P.z)&&regionWeight(P.x,P.z)>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
  if(sakuraWorld)sakuraWorld.update(dt,now,P,camera,scene.fog,dayNightState.t,voidMode);
  if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
@@ -8930,6 +8935,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
  walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},
  walkBusy(){return !!qaMove;},
+ sakuraProbe(x,z){const p=sampleRoad(x,z);return {blocked:blockedAt(x,z),playerBlocked:playerBlockedAt(x,z),height:terrainHeightAt(x,z),water:terrain3D.waterDepth(x,z),stage:questStep,part:act1Sub,stream:sakuraWorld?.stats()};},
  snapCam(){for(let i=0;i<10;i++)updatePlayerCamera(1);return camera.position.toArray().map(v=>+v.toFixed(2));},
  whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
  walkJump(){action('jump');return true;},

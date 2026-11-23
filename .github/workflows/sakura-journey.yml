@@ -1,0 +1,50 @@
+name: Jornada de Invernália · gameplay
+on:
+  pull_request:
+    paths:
+      - 'sakura-*.js'
+      - 'sakura-*.test.mjs'
+      - 'tools/qa/sakura-gameplay.cjs'
+      - '.github/workflows/sakura-journey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sakura-journey-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  gameplay:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'codex/ato3-jornada-sakura-castelo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [walk, mobile, desktop, survey]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Regressão de mapas, jornada e campanha
+        run: node --test sakura-route3d.test.mjs map3d.test.mjs act1-flow.test.mjs act2-flow.test.mjs act3-flow.test.mjs tests/jornada-mod*.test.mjs
+      - name: Ferramentas de captura
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1 three@0.160.0
+          npx playwright install --with-deps chromium
+      - name: Percorrer e gravar o jogo
+        env:
+          OUT: evidence
+        run: |
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/commit.txt
+          python3 -m http.server 4432 --bind 127.0.0.1 > /tmp/sakura-http.log 2>&1 &
+          node tools/qa/sakura-gameplay.cjs "${{ matrix.mode }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: invernalia-${{ matrix.mode }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: evidence/
+          retention-days: 14
