@@ -54,3 +54,19 @@ test('the fill reuses the arena light rig without adding lights or render passes
   assert.doesNotMatch(source,/WebGLRenderTarget|EffectComposer|ShadowMap/);
   assert.match(arenas,/mushrooms\(THREE,\s*g,\s*spec,\s*ctx\)\s*\{\s*return buildMushroomDimension/);
 });
+
+test('production runtime and preview consume the exact Zar’khael preset through existing lights',()=>{
+  const world=readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+  const preview=readFileSync(new URL('./tools/visual-lab/bispo3-dimension-preview.html',import.meta.url),'utf8');
+  const start=world.indexOf('function updateVoid(dt,now){');
+  const end=world.indexOf('// ---------- Etapas ----------',start);
+  const updateVoidSource=start>=0&&end>start?world.slice(start,end):'';
+  assert.ok(updateVoidSource,'production updateVoid function must be present');
+  assert.match(updateVoidSource,/const e=arena\.env/);
+  assert.match(updateVoidSource,/hemiLight\.intensity=e\.hemi\[2\]/);
+  assert.match(updateVoidSource,/sunLight\.intensity=e\.sun\[1\]/);
+  assert.match(updateVoidSource,/dimLight\.intensity=e\.light\[1\][\s\S]*?dimLight\.distance=e\.light\[2\]/);
+  assert.match(updateVoidSource,/else dimLight\.position\.set\(voidSpec\.x\+e\.light\[3\]\[0\],voidSpec\.y\+e\.light\[3\]\[1\],voidSpec\.z\+e\.light\[3\]\[2\]\)/);
+  assert.match(preview,/const e=arena\.env/);
+  assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
+});
