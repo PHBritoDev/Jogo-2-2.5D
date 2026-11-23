@@ -1,5 +1,7 @@
 # Eldória — Mod 291: matriz de fidelidade, intenção emocional e benchmarks
 
+> Registro técnico histórico. A seção “Rota canônica do roteiro v1” deve ser lida como rota de produção daquela proposta, não como cânone aprovado. O v1 permanece não canônico; consulte `docs/narrativa/STATUS-CANONE-GALAXIA-1.md`.
+
 Capturas reais do jogo (câmera do jogador, Chromium/SwiftShader, celular paisagem 960×432 e desktop 1280×720) em
 `docs/evidencias/mod291/` (`land-*.jpg`, `desk-*.jpg`, `estrada-*.jpg`). As referências do criador não foram copiadas para o
 repositório; são citadas pelo conteúdo. Notas atribuídas por inspeção lado a lado (julgamento artístico, não métrica
