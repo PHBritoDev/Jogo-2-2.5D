@@ -93,8 +93,10 @@ export function refreshSide(state, ctx) {
     const rawStep = ctx?.questStep;
     const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
     if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active' && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
-      s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
+    if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state) && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
+      // O mapa é a fonte de verdade: um save "ready" não pode pagar se faltam abrigos registrados.
+      s.progress = safeSideCount(ctx.waystones, q.goal.count);
+      if (s.state === 'ready' && s.progress < q.goal.count) s.state = 'active';
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }
