@@ -3,6 +3,8 @@
 **Fonte:** roteiro original do autor, anexo do [documento mestre](../GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf), páginas 7 a 9.
 As falas revisadas estão em [`act1-flow.js`](../../act1-flow.js), e o nome digitado entra no lugar de `{nome}`.
 
+> **Status histórico:** este arquivo resume a implementação antiga do Ato I a partir do roteiro original. Preservar como registro; ele não resolve sozinho divergências com propostas posteriores nem aprova os NPCs/missões atuais. Consulte `docs/narrativa/STATUS-CANONE-GALAXIA-1.md`.
+
 O texto original continua sendo a referência; as transcrições abaixo são resumidas por cena. Nenhuma fala, personagem, acontecimento ou número de inimigos foi cortado.
 
 ## Cenas (ORIGINAL → REVISADO)
