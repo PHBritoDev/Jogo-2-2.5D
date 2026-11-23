@@ -48,8 +48,8 @@ fs.mkdirSync(dir, { recursive: true });
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
       D.teleport(-5, 16, 0);
       D.squadPose(primaryId, -5, 12.2, 0, true);
-      D.squadPose(sides[0].id, -6, 12, 0, true);
-      D.squadPose(sides[1].id, -4, 12, 0, true);
+      D.squadPose(sides[0].id, -5.55, 12, 0, true);
+      D.squadPose(sides[1].id, -4.45, 12, 0, true);
       D.squadPose(sides[2].id, -11, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();
@@ -72,8 +72,8 @@ fs.mkdirSync(dir, { recursive: true });
     assert.ok(report.steps.before.actors.every(a => a && Number.isFinite(a.hp)));
     const initialById = new Map(report.steps.before.actors.map(a => [a.id, a]));
     assert.ok(Math.abs(initialById.get(report.steps.before.sideIds[0]).x -
-      initialById.get(report.steps.before.sideIds[1]).x) >= 1.9,
-      'os dois secundários precisam estar visualmente separados, não sobrepostos');
+      initialById.get(report.steps.before.sideIds[1]).x)  >= 1.05,
+      'os dois secundários precisam estar separados dentro da largura efetiva das quatro ondas');
     assert.ok(Math.hypot(report.steps.before.target[0] - (-5), report.steps.before.target[2] - 12.2) < .5,
       'ponte de alvo precisa acompanhar o foco reposicionado');
     await page.screenshot({ path: path.join(dir, '01-antes-do-rito.png'), timeout: 120000 });
