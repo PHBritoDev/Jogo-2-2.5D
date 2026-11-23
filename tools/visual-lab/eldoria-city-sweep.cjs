@@ -52,7 +52,7 @@ async function captureMainBaseline(browser,base,output,report){
     return{target,cameraGround,from,to,playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1};
    },edge);
    await page.waitForTimeout(2600);
-   const verified=await page.evaluate(to=>{const api=window.SevenSinsDebug3D;return{camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};},data.to);
+   const verified=await page.evaluate(to=>{const api=window.SevenSinsDebug3D;const viewCheck=api.camView(to);const centerPick=api.pick(0,0);return{camera:api.cam(),centerPick,viewCheck};},data.to);
    const visualGuide=await page.evaluate(edge=>{
     const api=window.SevenSinsDebug3D;
     const sampleLine=boundary=>[-edge.edgeSpan,edge.edgeSpan].map(offset=>{
@@ -168,7 +168,7 @@ async function captureMainBaseline(browser,base,output,report){
        await page.waitForTimeout(2600);
        const verified=await page.evaluate(to=>{
          const api=window.SevenSinsDebug3D;
-         return {camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};
+         const viewCheck=api.camView(to);const centerPick=api.pick(0,0);return {camera:api.cam(),centerPick,viewCheck};
        },data.to);
        const visualGuide=await page.evaluate(edge=>{
          const api=window.SevenSinsDebug3D;
