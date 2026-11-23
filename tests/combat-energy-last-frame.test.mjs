@@ -1,7 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
 import { SwordRites } from '../sword-rites3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
+
+const worldSource = await readFile(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+
+test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX do adaptador', () => {
+  const start = worldSource.indexOf('function protaSideHit(');
+  const end = worldSource.indexOf('\nfunction riteReady()', start);
+  assert.ok(start >= 0 && end > start, 'adaptador de dano lateral precisa existir');
+  const adapter = worldSource.slice(start, end).replace(
+    'function protaSideHit',
+    'globalThis.protaSideHit = function protaSideHit'
+  );
+  const calls = { damage: 0, audio: 0, slash: 0, flash: 0 };
+  const actor = { id: 'e1', alive: true };
+  const sandbox = {
+    squadSq: () => ({ actor: () => actor, damageActor: () => { calls.damage++; return 12; } }),
+    player: { position: { x: 0, z: 0 } },
+    slashVFX: { impact: () => { calls.slash++; } },
+    squadRT: { flash: () => { calls.flash++; } },
+    worldAudio: { hit: () => { calls.audio++; } },
+  };
+  runInNewContext(adapter, sandbox);
+  sandbox.protaSideHit(20, 'e1', { target: { x: 1, y: 1, z: 2 }, wave: {} });
+  assert.deepEqual(calls, { damage: 1, audio: 0, slash: 0, flash: 1 },
+    'wave/energy já emitem VFX e áudio pelo evento impact');
+  sandbox.protaSideHit(20, 'e1', { target: { x: 1, y: 1, z: 2 } });
+  assert.deepEqual(calls, { damage: 2, audio: 1, slash: 1, flash: 2 },
+    'contatos sem evento de energia preservam o fallback');
+});
 
 function sideTargetNearEnd({ wall = false, fps = 120 } = {}) {
   const hits = [], events = [];
