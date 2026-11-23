@@ -7,7 +7,7 @@ export function getVorgazhekLighting(radius = 85) {
   hemi: [0xa3abb1, 0x030304, 1.1],
   sun: [0xc1cad1, .48],
   // The same single local point light; intensity only, no new light or shadow pass.
-  light: [0xe7e7ec, 12, Math.max(150, R * 2), [0, 11, 0]],
+  light: [0xe7e7ec, 8, Math.max(150, R * 2), [0, 8, 7]],
   exposure: 1.12
  };
 }
