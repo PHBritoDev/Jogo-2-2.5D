@@ -177,9 +177,9 @@ export function getZarkhaelLighting() {
   return {
     bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
     hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
-    // Reuse the existing point light as a restrained combat-center fill.
-    // The lower mount reveals both actors; the shorter range leaves the black corridor untouched.
-    light:[0xdfe6f2,4.2,48,[0,8,4]], exposure:.85
+    // Lower, stronger fill reaches actor materials instead of only the floor.
+    // 36m covers the 30m combat disc from its center mount while leaving the corridor outside.
+    light:[0xdfe6f2,7.2,36,[0,5.5,4]], exposure:.85
   };
 }
 export function buildMushroomDimension(THREE,group,spec,ctx) {

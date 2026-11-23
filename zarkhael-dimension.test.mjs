@@ -37,12 +37,14 @@ test('Zar’khael keeps the black corridor and concentrates the existing fill on
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,4.2,48,[0,8,4]]);
+  assert.deepEqual(env.light,[0xdfe6f2,7.2,36,[0,5.5,4]]);
+  assert.ok(env.light[1]>=7&&env.light[3][1]<=6,'fill must reach actor height with enough intensity');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
   const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
   assert.ok(distanceTo(spots.player)<env.light[2],'player spawn must be inside the local fill');
   assert.ok(distanceTo(spots.boss)<env.light[2],'boss spawn must be inside the local fill');
+  assert.ok(Math.hypot(0,1.7-ly,-30-lz)<env.light[2],'the far edge of the combat disc must remain inside the local fill');
   assert.ok(Math.hypot(lx,3.5-ly,-210-lz)>env.light[2],'distant corridor must remain outside the local fill');
 });
 
