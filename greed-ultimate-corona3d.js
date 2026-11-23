@@ -73,7 +73,7 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
   const k=s.phase==='announce'?.1*p:s.phase==='bladeCombo'?.045+.11*p:s.phase==='throw'?.29+.22*p:s.phase==='charge'?.34+.66*p:1;
   U.clock.value=t;U.pressure.value=k;U.front.value=blast?s.front:-100;U.fade.value=after?(s.phase==='recover'?0:1-p):1;
   curtain.visible=blast;const crest=4+10*Math.sin(Math.PI*p);curtain.position.y=crest*.5;curtain.scale.set(Math.max(.01,s.front),crest,Math.max(.01,s.front));
-  chain.visible=!after;fragments.visible=blast||s.phase==='aftermath';
+  chain.visible=!after&&!['announce','bladeCombo','throw'].includes(s.phase);fragments.visible=blast||s.phase==='aftermath';
   if(fragments.visible){
    const u=blast?p:1+p, count=fragments.count;
    for(let i=0;i<count;i++){

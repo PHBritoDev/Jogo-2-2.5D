@@ -4,7 +4,7 @@ export function createUsuraPlasma(T,parent,arenaUniforms,quality){
  const geometry=new T.SphereGeometry(1,quality==='low'?48:72,quality==='low'?24:36,0,Math.PI*2,0,Math.PI);
  const shells=[],count=quality==='low'?2:3;
  for(let i=0;i<count;i++){
-  const uniforms={...arenaUniforms,layer:{value:i},intensity:{value:0}};
+  const uniforms={...arenaUniforms,layer:{value:i},intensity:{value:0},winding:{value:0}};
   const material=new T.ShaderMaterial({uniforms,transparent:true,side:T.DoubleSide,depthWrite:false,
    vertexShader:`varying vec3 dir,w;uniform float clock,layer;
    void main(){dir=position;vec3 p=position;float a=atan(p.z,p.x);
@@ -12,13 +12,16 @@ export function createUsuraPlasma(T,parent,arenaUniforms,quality){
    p.y*=.76+.23*plume+.17*sin(a*11.-clock*3.+p.y*5.);
    p.xz*=1.+.055*sin(p.y*15.+a*8.-clock*5.)*p.y;
    w=(modelMatrix*vec4(p,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(w,1.);}`,
-   fragmentShader:`varying vec3 dir,w;uniform vec2 arenaCenter,normal;uniform float clock,layer,edge,radius,intensity,arenaFloor;
+   fragmentShader:`varying vec3 dir,w;uniform vec2 arenaCenter,normal;uniform float clock,layer,edge,radius,intensity,arenaFloor,winding;
    void main(){vec2 local=w.xz-arenaCenter;if(dot(local,normal)>=edge||length(local)>radius)discard;
    vec3 q=normalize(dir);float a=atan(q.z,q.x),h=q.y,t=clock*(1.1+.14*layer);
    if(w.y<arenaFloor+.12)discard;float warp=sin(5.*a+7.*h-t)+.52*sin(11.*a-10.*h+t*2.);
    float fold=sin(a*9.+h*18.+2.3*warp-t*3.);
    float vein=pow(1.-abs(fold),3.);float lace=pow(1.-abs(sin(a*19.-h*31.+3.5*warp+t*3.)),7.);
-   float rim=pow(1.-h,4.);float heat=clamp(vein+.55*lace+rim*.7,0.,1.);
+   // Open spiral windows expose the physical blade during condensation.
+   float gap=sin(4.*a+5.8*h-t*1.3+warp*.32);
+   if(winding>.5 && gap<.25)discard;
+   float rim=pow(1.-abs(h),4.);float heat=clamp(vein+.55*lace+rim*.7,0.,1.);
    vec3 color=mix(vec3(.095,.009,.20),vec3(.67,.045,.96),.38+.62*heat);
    color=mix(color,vec3(1.,.62,.19),smoothstep(.64,.97,heat)*(.5+.5*sin(a*3.+t)));
    color+=vec3(.88,.65,.88)*pow(heat,5.);
@@ -52,11 +55,11 @@ export function createUsuraPlasma(T,parent,arenaUniforms,quality){
   shells.forEach((o,i)=>{
    o.visible=blast||after||collapse||charge||s.phase==='escape';
    if(!o.visible)return;
-   const u=blast?p:after?1:0;
+   o.material.uniforms.winding.value=blast||after?0:1;
    const scale=blast?Math.max(.16,s.front*(1-i*.17)):after?s.reach*(1-i*.17):collapse?2.4*(1-p*.92):1.15+(charge?p:1)*1.25;
    o.position.set(0,blast||after?.16:anchor.y-.8,0);
    o.scale.set(scale,blast||after?scale*(.46+i*.09):scale*1.5,scale);
-   const fade=blast?Math.min(1,p*15)*(.98-.48*p):after?.50*(1-p)**2:collapse?(1-p):.45;
+   const fade=blast?Math.min(1,p*15)*(.98-.48*p):after?.50*(1-p)**2:collapse?(1-p)*.8:.32;
    o.material.uniforms.intensity.value=fade*(1-i*.16);
   });
  },dispose(){lance.geometry.dispose();lance.material.dispose();lance.removeFromParent();geometry.dispose();for(const o of shells){o.material.dispose();o.removeFromParent()}light.removeFromParent()}};

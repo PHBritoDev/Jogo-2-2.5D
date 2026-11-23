@@ -51,7 +51,7 @@ function note(hz,length){
  const osc=ctx.createOscillator(),g=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(hz,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(hz*.36,ctx.currentTime+length);
  g.gain.setValueAtTime(.05,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+length);osc.connect(g).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+length);
 }
-const labels={announce:'Juízo da Usura',throw:'Ascensão da lâmina',charge:'A dívida se fecha',escape:'Refúgio além da linha verde · toque no piso ou use WASD',detonate:'Cobrança',aftermath:'Cinzas da coroa',recover:'Retorno',idle:'Ganância · Fase III'};
+const labels={announce:'Juízo da Usura',bladeCombo:'Talho do dízimo',collapse:'Compressão',throw:'Ascensão da lâmina',charge:'A dívida se fecha',escape:'Refúgio além da linha verde · toque no piso ou use WASD',detonate:'Cobrança',aftermath:'Cinzas da coroa',recover:'Retorno',idle:'Ganância · Fase III'};
 const hud=document.querySelector('#status');
 const ult=createGreedUltimate({arena,speed:2.8,camera:{focus(){focused=true},release(){focused=false}},
  weapon:{release(){scene.attach(blade);launch.copy(blade.position);originQ.copy(blade.quaternion);detached=true},restore(){hand.add(blade);blade.position.copy(mount.position);blade.quaternion.copy(mount.rotation);blade.scale.copy(mount.scale);detached=false}},
@@ -83,7 +83,7 @@ function step(dt,draw=true){
   if(s.phase==='recover'){hand.getWorldPosition(landing);blade.position.lerp(landing,p);hand.getWorldQuaternion(goalQ).multiply(mount.rotation);blade.quaternion.slerp(goalQ,p);}
  }
  blade.getWorldPosition(anchor);crown.update(s,clock,anchor);blade.userData.updateFx?.(clock,detached?1:.25,low);
- if(s.phase==='announce'){eye.set(2.1,3.5,4.5);to.set(0,3.1,0)}
+ if(s.phase==='announce'||s.phase==='bladeCombo'){eye.set(2.1,3.5,4.5);to.set(0,3.1,0)}
  else if(s.phase==='throw'||s.phase==='charge'){eye.set(4,2,8+(s.phase==='charge'?p*8:0));to.set(0,Math.max(2,anchor.y*.73),0)}
  else if(s.phase==='idle'){eye.set(5,3.3,8);to.set(0,2,0)}
  else{const wide=s.phase==='escape'?Math.max(0,1-phaseTime/2.3):0;eye.set(15-13*wide,14+18*wide,19-7*wide);to.set(0,2,3+hero.root.position.z*.20)}

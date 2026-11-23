@@ -2403,7 +2403,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView();if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -4506,7 +4506,7 @@ function greedAdmCastUltimate(){
  const a=squadSq()?.actors.find(x=>x.alive&&x.kind==='greedB');
  if(!dimBattle?.active||dimBattle.key!=='greed')return 'Entre no teste da Dimensão V — Ganância.';
  if(!a||a.gk?.phase!==3)return 'A ultimate só pode ser ativada na fase III. Use “Próxima fase”.';
- if(cineActive||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
+ if(cineActive||greedCineLock>combatClock||gamePaused||!greedAtomic)return 'Aguarde o fim da transformação e o começo da luta.';
  if(greedAtomic.active)return 'O Juízo da Usura já está em execução.';
  if(!greedAtomic.force())return 'Aguarde o chefe ficar pronto e tente novamente.';
  showCombatCallout('ADM · JUÍZO DA USURA');
@@ -4543,12 +4543,11 @@ function greedAtomicTick(dt,paused=false){
     ultCam.at.copy(shot.at);ultCam.look.copy(shot.look);ultCam.want=shot.weight;
     ultCam.usuraFov=shot.fov;ultCam.until=combatClock+1.5;
    },
-   beat:(phase,actor)=>{
-    if(phase==='announce'){showCombatCallout('JUÍZO DA USURA');worldAudio.roar?.();}
-    else if(phase==='throw')worldAudio.whoosh?.();
-    else if(phase==='charge')worldAudio.dark?.('lock');
+   beat:phase=>{
+    worldAudio.usura(phase);
+    if(phase==='announce')showCombatCallout('JUÍZO DA USURA');
     else if(phase==='escape')showCombatCallout('BUSQUE REFÚGIO ALÉM DA CORRENTE!');
-    else if(phase==='detonate'){worldAudio.dark?.('blast');if(!userSettings.reduceShake)cameraShake(.46);}
+    else if(phase==='detonate'&&!userSettings.reduceShake)cameraShake(.46);
     else if(phase==='recover')showCombatCallout('A COROA SE DISSIPA');
    },
    damage:({actor})=>{
@@ -8773,7 +8772,7 @@ if(new URLSearchParams(location.search).has('debug3d'))window.SevenSinsDebug3D={
 vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou 'up' */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='veraxion'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;if(n==='throw')vxStartThrow(s,a,t);else vxStartUpslash(s,a,t);return true;},
  atomicInput(x,z){joyX=x*Math.cos(cameraYaw)-z*Math.sin(cameraYaw);joyY=x*Math.sin(cameraYaw)+z*Math.cos(cameraYaw);},
  atomicPose(x,z){const a=squadSq()?.actors.find(v=>v.alive&&v.kind==='greedB');if(!a||greedAtomic?.active||Math.hypot(x,z)>voidSpec.radius-1)return false;a.x=voidSpec.x+x;a.z=voidSpec.z+z;a.y=fxGy(a.x,a.z);return true;},
- atomicState(){return greedAtomic?{...greedAtomic.getState(),camera:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,hero:player.position.toArray(),safe:greedAtomic.arena.safe(player.position.x-voidSpec.x,player.position.z-voidSpec.z),hp:playerHP}:null;},
+ atomicState(){return greedAtomic?{...greedAtomic.getState(),draws:renderer.info.render.calls,triangles:renderer.info.render.triangles,camera:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,hero:player.position.toArray(),safe:greedAtomic.arena.safe(player.position.x-voidSpec.x,player.position.z-voidSpec.z),hp:playerHP}:null;},
  gk(cmd){/* QA (21/11, Ganância): estado; 'kill' leva à próxima fase; nome de técnica força a técnica */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB')),t=s&&s.targets.find(x=>x.alive);if(!a)return null;if(cmd==='kill'){s.damageActor(a,99999,{x:a.x,z:a.z,by:'hero'});return gkStateOf(a);}if(cmd==='usura'){/* QA: forca ultimate real depois da transformacao, sem tocar no script do boss */if(a.gk?.phase!==3)return false;a.hp=Math.max(1,Math.floor(a.maxHp*.44));a.act=null;a.alert=0;a.airY=0;return{phase:3,hp:a.hp};}if(cmd==='hold'){/* QA: chefe parado (retrato da silhueta) */a.alert=a.alert>1e5?0:1e9;a.act=null;return a.alert;}if(cmd==='ceilscan'){/* QA: superfícies reais alcançáveis (teto/arcada) a 7–22 m do chão */const o=[];for(let x=-48;x<=48;x+=2)for(let z=-56;z<=48;z+=2){const c=greedCeilingAt(voidSpec.x+x,voidSpec.z+z);if(c==null)continue;const h=c-fxGy(voidSpec.x+x,voidSpec.z+z);if(h>=7&&h<=22)o.push([x,z,+h.toFixed(1),+Math.hypot(x,z).toFixed(1)]);}o.sort((p,q)=>p[3]-q[3]);return{n:o.length,R:voidSpec.radius,anc:greedAbyssAnchor()&&[+(greedAbyssAnchor().x-voidSpec.x).toFixed(1),+(greedAbyssAnchor().y-voidSpec.y).toFixed(1),+(greedAbyssAnchor().z-voidSpec.z).toFixed(1)],o:o.slice(0,60)};}if(cmd==='ceil'){const c=[];for(const [dx,dz] of [[0,0],[6,0],[-6,0],[0,6],[0,-6],[12,8],[-12,-8]])c.push([dx,dz,greedCeilingAt(a.x+dx,a.z+dz),+fxGy(a.x+dx,a.z+dz).toFixed(2)]);return c;}if(cmd)return gkForceTech(s,a,t,cmd);return{...gkStateOf(a),fx:squadRT?.greedRT?.stats(),body:squadRT?.bodyInfo?.(a.id)};},
  zkBeast(){/* QA (21/11): estado público da Fera e do debuff */const s=squadSq(),L=s&&zkBeastOf(s);return{beast:L?{phase:L.b.phase,x:+L.b.x.toFixed(2),z:+L.b.z.toFixed(2),jaw:+L.b.jaw.toFixed(2),result:L.b.result}:null,debuff:s?+zkHeroDebuffLeft(s).toFixed(1):0,stats:s?.actors.find(a=>a.kind==='zarkhael')?.zkStats||null,aim:!!zkBeastAim()};},
  zkSpiral(){/* QA (teste isolado, não conta como luta orgânica): força a Espiral do Carrasco */const s=squadSq(),a=s&&s.actors.find(x=>x.alive&&x.kind==='zarkhael'),t=s&&s.targets.find(x=>x.alive);if(!a||!t||a.act)return false;zkStartSpiral(s,a,t);return true;},
