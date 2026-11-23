@@ -61,32 +61,26 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
        const data=await page.evaluate(edge=>{
          const api=window.SevenSinsDebug3D;
          api.teleport(edge.x,edge.z,0);
-         const targetState=api.state();
+         const targetPlayer=api.cineState().player;
+         const target={x:targetPlayer[0],y:targetPlayer[1],z:targetPlayer[2]};
          const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
-         api.teleport(cameraX,cameraZ,0);
-         const cameraGround=api.state();
-         const from=[cameraX,cameraGround.y+edge.cameraOffset[1],cameraZ];
-         const to=[edge.x+edge.targetOffset[0],targetState.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
-         api.teleport(edge.x,edge.z,0);
+         // Câmera alta em relação ao alvo: evita segunda telemetria de terreno
+         // e mantém a tomada acima da encosta sem raycast global.
+         const from=[cameraX,target.y+edge.cameraOffset[1],cameraZ];
+         const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
          api.fly(from,to);
-         // A câmera livre já foi posicionada; não fazer raycast global aqui.
-         // camView percorre/raycasteia todas as malhas visíveis e é caro no SwiftShader.
          const camera=api.cam();
-         return {
-           target:{x:targetState.x,y:targetState.y,z:targetState.z,walkable:targetState.walkable,boundaryDistance:targetState.edge},
-           cameraGround:{x:cameraGround.x,y:cameraGround.y,z:cameraGround.z},
-           from,to,camera
-         };
+         return {target,from,to,camera};
        },edge);
        await page.waitForTimeout(900);
        const filename=path.join(dir,safe(edge.name)+".png");
        await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
        const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite);
+       const positioned=Number.isFinite(data.target.y)&&Array.isArray(data.camera)&&data.camera.length===3&&data.camera.every(Number.isFinite);
        if(!positioned)report.errors.push("Sonda/câmera inválida na costura "+edge.name);
        report.cases.push({
          preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,reason:positioned?"sonda e câmera posicionadas; conferir PNG":"ponto/câmera inválidos",
-         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,from:data.from,to:data.to,camera:data.camera}
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,from:data.from,to:data.to,camera:data.camera}
        });
      }
    }

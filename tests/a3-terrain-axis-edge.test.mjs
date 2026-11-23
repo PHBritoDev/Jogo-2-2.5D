@@ -82,6 +82,7 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
   for (const shot of TERRAIN_EDGE_SHOTS) {
     assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
     assert.equal(shot.cameraOffset.length, 3);
+    assert.ok(shot.cameraOffset[1] >= 20, 'câmera deve ficar acima da encosta sem segunda sonda');
     assert.equal(shot.targetOffset.length, 3);
     assert.ok([...shot.cameraOffset, ...shot.targetOffset].every(Number.isFinite));
   }
