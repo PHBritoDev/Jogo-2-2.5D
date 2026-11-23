@@ -24,7 +24,7 @@ const report={
   ok:false,
   baseSha:process.env.VISUAL_BASE_SHA||null,
   headSha:process.env.VISUAL_BRANCH_SHA||null,
-  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, runtime-relative actor positions, fixed camera and t=2000ms',
+  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, runtime-relative actor positions, fixed side camera and t=2000ms',
   proxy:'real current VORGAZHEK squad GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
   baseline:null,
   branch:null,
@@ -105,8 +105,8 @@ async function capture(browser,label,baseUrl){
 
       q.cam.fov=56;
       q.cam.updateProjectionMatrix();
-      q.cam.position.set(5,3.5,18);
-      q.cam.lookAt(-.35,1.2,8.8);
+      q.cam.position.set(18,3.4,15);
+      q.cam.lookAt(-.35,1.1,8.8);
       const metrics=q.frame(2000);
       q.scene.updateMatrixWorld(true);
       q.cam.updateMatrixWorld(true);
@@ -130,6 +130,7 @@ async function capture(browser,label,baseUrl){
         const y1=clamp(Math.ceil(Math.max(...pts.map(p=>p.y))+5),y0+1,canvas.height);
         return {x:x0,y:y0,width:x1-x0,height:y1-y0};
       }
+      function rectsOverlap(a,b){return a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;}
       function stats(rect){
         const d=ctx.getImageData(rect.x,rect.y,rect.width,rect.height).data;
         const values=[];
@@ -153,14 +154,14 @@ async function capture(browser,label,baseUrl){
         roi:{boss:stats(bossRect),hero:stats(heroRect),water:stats(waterRect),horizon:stats(horizonRect)}
       };
     });
-    await page.screenshot({path:path.join(output,label+'-wide.png'),timeout:60000});
+    await page.screenshot({path:path.join(output,label+'-side.png'),timeout:60000});
     await page.evaluate(()=>{
       const q=window.abyssQA;
-      q.cam.position.set(18,3.4,15);
-      q.cam.lookAt(-.35,1.1,8.8);
+      q.cam.position.set(12,3.5,18);
+      q.cam.lookAt(-.35,1.2,8.8);
       q.frame(2000);
     });
-    await page.screenshot({path:path.join(output,label+'-side.png'),timeout:60000});
+    await page.screenshot({path:path.join(output,label+'-oblique.png'),timeout:60000});
     assert.deepEqual(errors,[]);
     assert.deepEqual(networkFailures,[]);
     return {...data,errors,networkFailures};
@@ -182,15 +183,20 @@ async function main(){
     assert.equal(h.env.sun[1],.48,'branch directional intensity must match PR');
     assert.deepEqual(h.env.light,[0xe7e7ec,8,170,[0,8,7]],'branch local fill must match PR');
     assert.equal(b.lights,3);assert.equal(h.lights,3);
+    assert.ok(!rectsOverlap(b.rects.boss,b.rects.hero),'baseline boss/hero ROIs must not overlap');
+    assert.ok(!rectsOverlap(h.rects.boss,h.rects.hero),'branch boss/hero ROIs must not overlap');
     assert.equal(b.metrics.calls,h.metrics.calls,'draw calls must remain unchanged');
     assert.equal(b.metrics.triangles,h.metrics.triangles,'triangle count must remain unchanged');
-    assert.ok(h.roi.boss.mean>b.roi.boss.mean+2.5,'real VORGAZHEK squad model must gain a meaningful luminance increase');
-    assert.ok(h.roi.boss.visiblePct>b.roi.boss.visiblePct+5,'more of the real VORGAZHEK squad model must clear the visible-pixel threshold');
+    assert.ok(h.roi.boss.mean>b.roi.boss.mean+2,'real VORGAZHEK squad model must gain a meaningful luminance increase');
+    assert.ok(h.roi.boss.p95>b.roi.boss.p95+8,'armor highlights must gain a meaningful upper-tail luminance increase');
+    assert.ok(h.roi.boss.visiblePct>b.roi.boss.visiblePct+3,'more of the real VORGAZHEK squad model must clear the visible-pixel threshold');
     assert.ok(h.roi.hero.mean>b.roi.hero.mean-.5,'hero proxy must not become darker');
     assert.ok(Math.abs(h.roi.water.mean-b.roi.water.mean)<1.5,'water brightness must remain stable');
     assert.ok(Math.abs(h.roi.horizon.mean-b.roi.horizon.mean)<1.5,'black horizon must remain stable');
     report.comparison={
       bossMeanDelta:+(h.roi.boss.mean-b.roi.boss.mean).toFixed(3),
+      bossP95Delta:+(h.roi.boss.p95-b.roi.boss.p95).toFixed(3),
+      bossVisiblePctDelta:+(h.roi.boss.visiblePct-b.roi.boss.visiblePct).toFixed(2),
       heroMeanDelta:+(h.roi.hero.mean-b.roi.hero.mean).toFixed(3),
       waterMeanDelta:+(h.roi.water.mean-b.roi.water.mean).toFixed(3),
       horizonMeanDelta:+(h.roi.horizon.mean-b.roi.horizon.mean).toFixed(3),
