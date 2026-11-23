@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAxis, buildTerrainArrays } from '../world3d-terrain.js';
-import { JOURNEY_HOLES } from '../jornada3d.js';
+import { JOURNEY_HOLES, inJourney } from '../jornada3d.js';
 import { ROAD_TERRAIN_PATCH } from '../act1-world-layout.js';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -93,6 +93,7 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
     assert.equal(shot.targetOffset.length, 3);
     assert.ok([...shot.cameraOffset, ...shot.targetOffset].every(Number.isFinite));
     assert.ok(!JOURNEY_HOLES.some(h => inside(h, shot.x, shot.z)), `${shot.name} falls inside an intentional journey cutout`);
+    assert.ok(!inJourney(shot.x, shot.z), `${shot.name} depends on streamed journey terrain rather than the static edge mesh`);
     assert.ok(!inside(roadPatch, shot.x, shot.z), `${shot.name} falls inside the separate road patch`);
     const towardCenter = shot.axis === 'x'
       ? shot.cameraOffset[0] * (-2 - shot.x)
