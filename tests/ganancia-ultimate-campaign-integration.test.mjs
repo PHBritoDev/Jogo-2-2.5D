@@ -39,7 +39,7 @@ test('ultimate libera camera antes da fuga e recupera espada depois do impacto',
   damage:x=>damage.push(x),beat:p=>log.push(p)});
  assert.equal(u.start({phase:3,grounded:true,busy:false}),true);
  const hero={x:0,z:0,blocking:false,evading:false};
- for(let i=0;i<1400&&u.getState().phase!=='idle';i++)u.update(1/60,hero);
+ for(let i=0;i<60*35&&u.getState().phase!=='idle';i++)u.update(1/60,hero);
  assert.ok(log.indexOf('focus')<log.indexOf('throw'));
  assert.ok(log.indexOf('throw')<log.indexOf('release'));
  assert.ok(log.indexOf('release')<log.indexOf('detonate'));

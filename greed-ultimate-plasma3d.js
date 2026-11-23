@@ -46,20 +46,20 @@ export function createUsuraPlasma(T,parent,arenaUniforms,quality){
  return {update(s,anchor){
   const p=s.progress,blast=s.phase==='detonate',after=s.phase==='aftermath',charge=s.phase==='charge',collapse=s.phase==='collapse';
   const heat=blast?Math.exp(-p*2.2):after?.14*(1-p):collapse?.9*(1-p):charge?.28*p:.06;
-  lance.visible=charge||collapse||blast||after||s.phase==='escape';
-  const height=blast?12+18*Math.sin(p*Math.PI):after?12*(1-p)+2:Math.max(1,anchor.y+1.5);
-  const width=blast?4.5+5*Math.sin(p*Math.PI):after?4.5*(1-p):.7+heat*5;
+  lance.visible=charge||collapse||s.phase==='escape';
+  const height=Math.max(1,anchor.y+1.5);
+  const width=.7+heat*5;
   lance.position.set(0,height*.5,0);lance.scale.set(width,height,width);
-  lance.material.uniforms.boost.value=after?.65*(1-p):blast?1.2:collapse?1.3-p:.58;
+  lance.material.uniforms.boost.value=collapse?1.3-p:.58;
   light.position.copy(anchor);light.intensity=heat*95;
   shells.forEach((o,i)=>{
-   o.visible=blast||after||collapse||charge||s.phase==='escape';
+   o.visible=collapse||charge||s.phase==='escape';
    if(!o.visible)return;
-   o.material.uniforms.winding.value=blast||after?0:1;
-   const scale=blast?Math.max(.16,s.front*(1-i*.17)):after?s.reach*(1-i*.17):collapse?2.4*(1-p*.92):1.15+(charge?p:1)*1.25;
-   o.position.set(0,blast||after?.16:anchor.y-.8,0);
-   o.scale.set(scale,blast||after?scale*(.46+i*.09):scale*1.5,scale);
-   const fade=blast?Math.min(1,p*15)*(.98-.48*p):after?.50*(1-p)**2:collapse?(1-p)*.8:.32;
+   o.material.uniforms.winding.value=1;
+   const scale=collapse?2.4*(1-p*.92):1.15+(charge?p:1)*1.25;
+   o.position.set(0,anchor.y-.8,0);
+   o.scale.set(scale,scale*1.5,scale);
+   const fade=collapse?(1-p)*.8:.32;
    o.material.uniforms.intensity.value=fade*(1-i*.16);
   });
  },dispose(){lance.geometry.dispose();lance.material.dispose();lance.removeFromParent();geometry.dispose();for(const o of shells){o.material.dispose();o.removeFromParent()}light.removeFromParent()}};

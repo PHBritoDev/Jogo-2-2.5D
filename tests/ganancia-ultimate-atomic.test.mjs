@@ -12,7 +12,7 @@ for(const fps of [30,60,120])for(const mode of ['exposto','abrigo','dash','guard
  camera:{focus(){focused=true},release(){focused=false}},damage:h=>hits.push(h)});
  for(let cycle=0;cycle<2;cycle++){
  assert.ok(u.start({phase:3,grounded:true}));
- for(let i=0;i<fps*22;i++){u.update(1/fps,{x:0,z:mode==='abrigo'?28:-5,evading:mode==='dash',blocking:mode==='guarda'});if(u.getState().phase==='escape')assert.equal(focused,false);}
+ for(let i=0;i<fps*30;i++){u.update(1/fps,{x:0,z:mode==='abrigo'?28:-5,evading:mode==='dash',blocking:mode==='guarda'});if(u.getState().phase==='escape')assert.equal(focused,false);}
  assert.equal(u.getState().phase,'idle');assert.ok(attached);}
  assert.equal(hits.length,['exposto','guarda'].includes(mode)?2:0);
  assert.ok(hits.every(hit=>hit.blocked===(mode==='guarda')));
@@ -45,7 +45,7 @@ test('a janela começa ao devolver a câmera e cobre a caminhada desde o extremo
  const hero={x:0,z:-29.9};u.start({phase:3,grounded:true});while(u.getState().phase!=='escape')u.update(1/60,hero);
  assert.equal(u.getState().phase,'escape');assert.equal(releases,1);
  const window=u.getState().escape;assert.ok(window>(a.edge-hero.z)/2.8);
- for(let t=0;t<window+6;t+=1/60){if(hero.z<a.edge+1)hero.z+=2.8/60;u.update(1/60,hero);}
+ for(let t=0;t<window+10;t+=1/60){if(hero.z<a.edge+1)hero.z+=2.8/60;u.update(1/60,hero);}
  assert.equal(releases,1);assert.equal(u.getState().phase,'idle');
 });
 
@@ -68,7 +68,7 @@ for(const [x,z] of [[0,0],[28,0],[-28,0],[0,28],[0,-28],[14,-8],[-11,16]]){
   for(let i=0;i<5;i++){
    r.start({phase:3,grounded:true});while(r.getState().phase!=='detonate')r.update(.01,hero);
    assert.equal(count,i+1,'o primeiro contato ocorre na origem real');
-   r.update(6,hero);assert.equal(r.getState().phase,'idle');
+   r.update(10,hero);assert.equal(r.getState().phase,'idle');
   }
   const safe={x:arena.normal.x*25,z:arena.normal.z*25};
   assert.ok(arena.safe(safe.x,safe.z));assert.equal(arena.escapeDistance(safe.x,safe.z),0);

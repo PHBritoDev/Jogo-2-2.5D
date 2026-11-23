@@ -42,7 +42,7 @@ export function createGreedUltimate({arena, speed, camera, weapon, damage, beat=
   if (!(speed>0 && Number.isFinite(speed))) throw Error("Velocidade inválida");
   let escape = (arena.radius + arena.edge + 1) / speed + 1.1;
   const phases = [['announce',1.35],['bladeCombo',2.1],['throw',1.12],['charge',2.65],['escape',escape],['collapse',.48],
-    ['detonate',1.45],['aftermath',2.15],['recover',.95]];
+    ['detonate',1.45],['aftermath',6.6],['recover',.95]];
   let previous=null, ownsCamera=false;
   function releaseCamera(){if(ownsCamera){ownsCamera=false;camera.release();}}
   let index=-1, time=0, cast=0, consumed=false, disposed=false, detached=false;
