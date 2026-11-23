@@ -5,7 +5,7 @@ import { JOURNEY_HOLES, inJourney } from '../jornada3d.js';
 import { ROAD_TERRAIN_PATCH } from '../act1-world-layout.js';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { TERRAIN_EDGE_SHOTS } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
+const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
@@ -120,5 +120,42 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
       ? shot.cameraOffset[0] * (-2 - shot.x)
       : shot.cameraOffset[2] * (-126 - shot.z);
     assert.ok(towardCenter > 0, `${shot.name} camera must face the seam from the interior side`);
+  }
+});
+
+
+test('A3 walk scan crosses each fine-grid boundary in both directions', () => {
+  assert.deepEqual(
+    TERRAIN_EDGE_WALK_LINES.map(line => [line.name, line.axis, line.boundary, line.interiorSign]),
+    [
+      ['x-leste', 'x', 203, -1],
+      ['x-oeste', 'x', -207, 1],
+      ['z-norte', 'z', 39, -1],
+      ['z-sul', 'z', -291, 1],
+    ],
+  );
+  for (const line of TERRAIN_EDGE_WALK_LINES) {
+    assert.equal(line.walkDepth, 6);
+    assert.equal(line.probeOffset, 1);
+    assert.equal(line.seconds, 5);
+    assert.ok(line.step > 0 && line.step <= 8);
+    assert.ok(line.min < line.max);
+    const low = line.axis === 'x' ? -291 : -207;
+    const high = line.axis === 'x' ? 39 : 203;
+    assert.ok(line.min >= low + 8 && line.max <= high - 8, line.name + ' scan must stay inside the orthogonal fine-grid span');
+    for (const along of [line.min, (line.min + line.max) / 2, line.max]) {
+      const point = offset => line.axis === 'x'
+        ? [line.boundary + line.interiorSign * offset, along]
+        : [along, line.boundary + line.interiorSign * offset];
+      const insideStart = point(line.walkDepth);
+      const insideProbe = point(line.probeOffset);
+      const outsideProbe = point(-line.probeOffset);
+      const outsideEnd = point(-line.walkDepth);
+      assert.equal(Math.hypot(outsideEnd[0] - insideStart[0], outsideEnd[1] - insideStart[1]), 12);
+      assert.equal(Math.hypot(outsideProbe[0] - insideProbe[0], outsideProbe[1] - insideProbe[1]), 2);
+      for (const [x, z] of [insideStart, insideProbe, outsideProbe, outsideEnd]) {
+        assert.ok(Number.isFinite(x) && Number.isFinite(z));
+      }
+    }
   }
 });

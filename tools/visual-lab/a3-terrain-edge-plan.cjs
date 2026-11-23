@@ -8,4 +8,12 @@ const TERRAIN_EDGE_SHOTS = Object.freeze([
   Object.freeze({name:"transicao-z-norte",axis:"z",x:-100,z:40.25,fineEdge:39,firstOuter:41.5,legacyFirstOuter:42.5,fineCell:2.5,edgeSpan:1.5,cameraOffset:Object.freeze([0,9,-12]),targetOffset:Object.freeze([0,0.35,0])}),
   Object.freeze({name:"transicao-z-sul",axis:"z",x:100,z:-292.25,fineEdge:-291,firstOuter:-293.5,legacyFirstOuter:-294.5,fineCell:2.5,edgeSpan:1.5,cameraOffset:Object.freeze([0,9,12]),targetOffset:Object.freeze([0,0.35,0])}),
 ]);
-module.exports = { TERRAIN_EDGE_SHOTS };
+const TERRAIN_EDGE_WALK_LINES = Object.freeze([
+  // Procura corredores realmente caminháveis que atravessem a borda da grade fina.
+  // A faixa variável mantém 8 m de margem das extremidades da malha fina.
+  Object.freeze({name:"x-leste",axis:"x",boundary:203,interiorSign:-1,min:-283,max:31,step:8,walkDepth:6,probeOffset:1,seconds:5}),
+  Object.freeze({name:"x-oeste",axis:"x",boundary:-207,interiorSign:1,min:-283,max:31,step:8,walkDepth:6,probeOffset:1,seconds:5}),
+  Object.freeze({name:"z-norte",axis:"z",boundary:39,interiorSign:-1,min:-199,max:195,step:8,walkDepth:6,probeOffset:1,seconds:5}),
+  Object.freeze({name:"z-sul",axis:"z",boundary:-291,interiorSign:1,min:-199,max:195,step:8,walkDepth:6,probeOffset:1,seconds:5}),
+]);
+module.exports = { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES };

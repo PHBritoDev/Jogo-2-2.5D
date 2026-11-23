@@ -3,7 +3,7 @@
 const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
-const { TERRAIN_EDGE_SHOTS } = require("./a3-terrain-edge-plan.cjs");
+const { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES } = require("./a3-terrain-edge-plan.cjs");
 const output = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "eldoria-city-sweep");
 fs.mkdirSync(output,{recursive:true});
 const base = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
@@ -245,6 +245,101 @@ async function captureMainBaseline(browser,base,output,report){
      if(restoredReady!=="ready")throw Error("World did not reload after seam diagnostics");
      await page.evaluate(()=>window.SevenSinsDebug3D.freeRoam());
      await page.waitForTimeout(1200);
+     const edgeTraversal = await page.evaluate(async lines => {
+       const api = window.SevenSinsDebug3D;
+       const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+       const probe = async (x,z) => {
+         api.teleport(x,z,0);
+         await frame();
+         const state = api.state();
+         return {x:state.x,y:state.y,z:state.z,walkable:!!state.walkable,edge:state.edge};
+       };
+       const lineReports = [], candidates = [];
+       for (const line of lines) {
+         const local = [];
+         let scanned = 0;
+         const coords = (along,offset) => line.axis === "x"
+           ? [line.boundary + line.interiorSign * offset, along]
+           : [along, line.boundary + line.interiorSign * offset];
+         for (let along=line.min; along<=line.max+1e-6; along+=line.step) {
+           const samples = [];
+           const offsets = [line.walkDepth,line.probeOffset,-line.probeOffset,-line.walkDepth];
+           for (const offset of offsets) {
+             const [x,z] = coords(along,offset);
+             samples.push(await probe(x,z));
+           }
+           scanned++;
+           const valid = samples.every((s,i) => {
+             const [x,z] = coords(along,offsets[i]);
+             return s.walkable && Number.isFinite(s.y) && Math.hypot(s.x-x,s.z-z) < 1;
+           });
+           if (valid) {
+             const start=coords(along,line.walkDepth), end=coords(along,-line.walkDepth);
+             local.push({line:line.name,axis:line.axis,along,start,end,deltaY:Math.abs(samples[3].y-samples[0].y),samples});
+           }
+         }
+         local.sort((a,b)=>a.deltaY-b.deltaY);
+         candidates.push(...local.slice(0,4));
+         lineReports.push({name:line.name,scanned,walkableCandidates:local.length,best:local[0]||null});
+       }
+       candidates.sort((a,b)=>a.deltaY-b.deltaY);
+       const summarize = r => ({
+         progress:r?.progress, fell:!!r?.fell, pen:r?.pen??0, maxY:r?.maxY,
+         start:r?.start, end:r?.end, traceFrames:Array.isArray(r?.trace)?r.trace.length:null
+       });
+       const pass = r => Number.isFinite(r?.progress) && r.progress>=.92 && !r.fell && (r.pen??0)===0 && Array.isArray(r.end);
+       const tested=[];
+       let selected=null;
+       for (const candidate of candidates.slice(0,8)) {
+         const forward = await api.navWalk(candidate.start[0],candidate.start[1],candidate.end[0],candidate.end[1],{seconds:5});
+         const reverse = await api.navWalk(candidate.end[0],candidate.end[1],candidate.start[0],candidate.start[1],{seconds:5});
+         const f=summarize(forward), r=summarize(reverse), ok=pass(forward)&&pass(reverse);
+         tested.push({line:candidate.line,along:candidate.along,start:candidate.start,end:candidate.end,deltaY:candidate.deltaY,forward:f,reverse:r,pass:ok});
+         if (ok) { selected=candidate; break; }
+       }
+       api.teleport(-12.2,-44.5,0);
+       api.freeRoam();
+       return {
+         status:selected?"walk-tested":candidates.length?"walk-candidates-failed":"no-walkable-corridor-in-scan",
+         lines:lineReports,tested,
+         selected:selected?{line:selected.line,axis:selected.axis,along:selected.along,start:selected.start,end:selected.end,deltaY:selected.deltaY}:null
+       };
+     }, TERRAIN_EDGE_WALK_LINES);
+     report[preset.name].edgeTraversal = edgeTraversal;
+     if (edgeTraversal.status === "walk-candidates-failed") {
+       report.errors.push("Nenhum corredor de borda completou a caminhada nos dois sentidos: " + JSON.stringify(edgeTraversal.tested));
+     }
+     if (edgeTraversal.status === "walk-tested" && edgeTraversal.selected) {
+       const selected=edgeTraversal.selected;
+       const dx=selected.end[0]-selected.start[0], dz=selected.end[1]-selected.start[1];
+       const length=Math.hypot(dx,dz), direction={x:dx/length,z:dz/length};
+       await page.evaluate(({start,direction})=>{
+         const api=window.SevenSinsDebug3D;
+         api.teleport(start[0],start[1],0);
+         api.view(Math.atan2(direction.x,-direction.z),.18,7);
+       },{start:selected.start,direction});
+       let liveState=await page.evaluate(()=>window.SevenSinsDebug3D.walkState());
+       let liveProgress=0;
+       for(let i=0;i<48;i++){
+         liveState=await page.evaluate(direction=>{
+           const api=window.SevenSinsDebug3D;
+           api.motionStep(.25,direction);
+           return api.walkState();
+         },direction);
+         await page.waitForTimeout(100);
+         liveProgress=(liveState.x-selected.start[0])*direction.x+(liveState.z-selected.start[1])*direction.z;
+         if(liveProgress>=length-.5) break;
+       }
+       edgeTraversal.liveReplay={
+         start:selected.start,end:selected.end,targetMeters:+length.toFixed(2),
+         progressMeters:+liveProgress.toFixed(2),final:liveState,
+         reached:liveProgress>=length-1.5
+       };
+       const walkShot=path.join(dir,"travessia-"+safe(selected.line)+".png");
+       await page.screenshot({path:walkShot,timeout:65000,animations:"disabled"});
+       edgeTraversal.liveReplay.image=path.relative(output,walkShot);
+       await page.evaluate(()=>{const api=window.SevenSinsDebug3D;api.teleport(-12.2,-44.5,0);api.freeRoam();});
+     }
    }
    // Teste funcional reproduzível: subir a escada verdadeira em passos, medindo altura do root.
    const climb=await page.evaluate(async()=>{
@@ -277,6 +372,6 @@ async function captureMainBaseline(browser,base,output,report){
  finally {if(context)await context.close().catch(()=>{});if(browser)await browser.close().catch(()=>{});
    report.videos=fs.readdirSync(path.join(output,"android-landscape"),{withFileTypes:true}).filter(x=>x.name.endsWith(".webm")).map(x=>"android-landscape/"+x.name).concat(fs.existsSync(path.join(output,"desktop"))?fs.readdirSync(path.join(output,"desktop")).filter(x=>x.endsWith(".webm")).map(x=>"desktop/"+x):[]);
    fs.writeFileSync(path.join(output,"report.json"),JSON.stringify(report,null,2));
-   console.log(JSON.stringify({status:report.status,cases:report.cases.length,errors:report.errors.length,videos:report.videos.length,error:report.error||""}));
+   console.log(JSON.stringify({status:report.status,cases:report.cases.length,errors:report.errors.length,videos:report.videos.length,edgeTraversal:report["android-landscape"]?.edgeTraversal?.status||"not-run",error:report.error||""}));
  }
 })().catch(e=>{console.error(e);process.exitCode=1;});
