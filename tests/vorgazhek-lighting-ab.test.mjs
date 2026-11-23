@@ -15,6 +15,9 @@ test('VORGAZHEK A/B uses the current squad rig, fixed camera/time and untouched 
   assert.match(qa, /bossRoot\.position\.set\(-\.7,0,7\.6\)/);
   assert.match(qa, /q\.frame\(2000\)/);
   assert.match(qa, /bossMeanDelta/);
+  assert.match(qa, /rectsOverlap/);
+  assert.match(qa, /bossP95Delta/);
+  assert.match(qa, /bossVisiblePctDelta/);
   assert.match(qa, /waterMeanDelta/);
   assert.match(qa, /horizonMeanDelta/);
   assert.match(workflow, /github\.event\.pull_request\.base\.sha/);
