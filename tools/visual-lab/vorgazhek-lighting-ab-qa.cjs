@@ -1,8 +1,8 @@
 'use strict';
 /**
  * Controlled A/B of the production VORGAZHEK lighting preset.
- * Both pages use the exact base/head arena source, same GLB, camera, pose and clock.
- * The water shader is sampled separately to ensure the abyss floor is not washed out.
+ * Both pages use the exact base/head arena source, current squad GLB, same pose,
+ * camera and clock. Water and horizon are sampled separately.
  */
 const {chromium}=require('playwright');
 const fs=require('node:fs');
@@ -24,8 +24,8 @@ const report={
   ok:false,
   baseSha:process.env.VISUAL_BASE_SHA||null,
   headSha:process.env.VISUAL_BRANCH_SHA||null,
-  method:'same preview source, production arena.env, same Bispo2-lod.glb, fixed camera and t=2000ms',
-  proxy:'real Bispo2-lod GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
+  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, fixed camera and t=2000ms',
+  proxy:'real current VORGAZHEK squad GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
   baseline:null,
   branch:null,
   comparison:null
@@ -47,10 +47,12 @@ async function capture(browser,label,baseUrl){
       const q=window.abyssQA;
       const THREE=await import('three');
       const {GLTFLoader}=await import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
+      const {VG_FILE,vgSynthClips}=await import('/vorgazhek3d.js');
+      const {inPlaceClip}=await import('/vhazrael-rig3d.js');
       const env=q.arena.env;
       if(!env||!Array.isArray(env.hemi)||!Array.isArray(env.sun)||!Array.isArray(env.light))throw Error('production arena.env is incomplete');
 
-      // Replace any hand-authored preview lights with the exact production preset.
+      // Replace hand-authored preview lights with the exact production preset.
       for(const child of [...q.scene.children])if(child.isLight)q.scene.remove(child);
       q.scene.background=new THREE.Color(env.bg);
       q.scene.fog=new THREE.Fog(env.fog,env.fogNear,env.fogFar);
@@ -63,7 +65,7 @@ async function capture(browser,label,baseUrl){
       point.position.set(...env.light[3]);
       q.scene.add(point);
 
-      // Standardized neutral hero proxy; the boss is the real repository GLB.
+      // Standardized neutral hero proxy; use the actual default squad rig for VORGAZHEK.
       q.hero.geometry.dispose();
       q.hero.geometry=new THREE.CapsuleGeometry(.32,1.16,6,12);
       q.hero.material.color.set(0xe8e2d0);
@@ -72,23 +74,34 @@ async function capture(browser,label,baseUrl){
       q.boss.geometry.dispose();
       q.boss.material.dispose();
 
-      const gltf=await new GLTFLoader().loadAsync('/Bispo2-lod.glb');
+      const modelPath='/'+VG_FILE.replace(/^\.\//,'').split('?')[0];
+      const gltf=await new GLTFLoader().loadAsync(modelPath);
       const model=gltf.scene;
       model.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;o.frustumCulled=false;}});
-      const bounds=new THREE.Box3().setFromObject(model);
-      const rawHeight=bounds.max.y-bounds.min.y;
-      if(!(rawHeight>0))throw Error('Bispo2-lod.glb has invalid bounds');
-      const scale=(1.7*1.45)/rawHeight;
+      const clips=gltf.animations.concat(vgSynthClips(THREE,gltf.animations));
+      const idle=clips.find(a=>a.name==='VG_idle');
+      if(!idle)throw Error('VG_idle could not be synthesized from the current VORGAZHEK GLB');
+      const mixer=new THREE.AnimationMixer(model);
+      mixer.clipAction(inPlaceClip(idle)).play();
+      mixer.setTime(0);
+      model.updateMatrixWorld(true);
+      let head=null,foot=null;
+      model.traverse(o=>{if(o.isBone&&o.name==='head_end')head=o;if(o.isBone&&o.name==='LeftToes')foot=o;});
+      if(!head||!foot)throw Error('current VORGAZHEK rig is missing head_end/LeftToes');
+      const hy=head.getWorldPosition(new THREE.Vector3()).y;
+      const fy=foot.getWorldPosition(new THREE.Vector3()).y;
+      const rawHeight=hy-fy;
+      const scale=2.15/Math.max(.2,rawHeight);
       model.scale.setScalar(scale);
-      model.position.y=-bounds.min.y*scale;
+      model.position.y=-fy*scale;
+      model.updateMatrixWorld(true);
       const bossRoot=new THREE.Group();
-      bossRoot.name='A4LightingABRealBishop';
-      bossRoot.position.set(1.2,0,4.2);
+      bossRoot.name='A4LightingABRealVorgazhek';
+      bossRoot.position.set(1.2,0,3.3);
       bossRoot.add(model);
       q.scene.add(bossRoot);
-      const clip=gltf.animations.find(a=>a.name==='Swim Idle')||gltf.animations[0]||null;
-      let animation=null;
-      if(clip){const mixer=new THREE.AnimationMixer(model);const action=mixer.clipAction(clip);action.play();mixer.setTime(.65);animation=clip.name;}
+      window.__a4BossMixer=mixer;
+      window.__a4BossModel=model;
 
       q.cam.fov=56;
       q.cam.updateProjectionMatrix();
@@ -135,7 +148,7 @@ async function capture(browser,label,baseUrl){
         env,
         metrics,
         lights:q.scene.children.filter(o=>o.isLight).length,
-        model:{source:'Bispo2-lod.glb',rawHeight:+rawHeight.toFixed(4),scaledHeight:+(rawHeight*scale).toFixed(4),animation},
+        model:{source:VG_FILE,rawHeight:+rawHeight.toFixed(4),scaledHeight:2.15,animation:'VG_idle@0'},
         rects:{boss:bossRect,hero:heroRect,water:waterRect,horizon:horizonRect},
         roi:{boss:stats(bossRect),hero:stats(heroRect),water:stats(waterRect),horizon:stats(horizonRect)}
       };
@@ -171,7 +184,7 @@ async function main(){
     assert.equal(b.lights,3);assert.equal(h.lights,3);
     assert.equal(b.metrics.calls,h.metrics.calls,'draw calls must remain unchanged');
     assert.equal(b.metrics.triangles,h.metrics.triangles,'triangle count must remain unchanged');
-    assert.ok(h.roi.boss.mean>b.roi.boss.mean+.5,'real Bispo2 model must become measurably more legible');
+    assert.ok(h.roi.boss.mean>b.roi.boss.mean+.5,'real VORGAZHEK squad model must become measurably more legible');
     assert.ok(h.roi.hero.mean>b.roi.hero.mean-.5,'hero proxy must not become darker');
     assert.ok(Math.abs(h.roi.water.mean-b.roi.water.mean)<1.5,'water brightness must remain stable');
     assert.ok(Math.abs(h.roi.horizon.mean-b.roi.horizon.mean)<1.5,'black horizon must remain stable');
