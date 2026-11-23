@@ -279,7 +279,7 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
 test('fluxo real de conversa entrega as três missões e persiste sem duplicar recompensa', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   const start = runtime.indexOf('function trySideQuestTalk(vendor){');
-  const end = runtime.indexOf('\\nsideReady=true;', start);
+  const end = runtime.indexOf('\nsideReady=true;', start);
   assert.ok(start >= 0 && end > start, 'extrair o roteador de conversa usado pelo jogo');
   const talkSource = runtime.slice(start, end).trim();
 
