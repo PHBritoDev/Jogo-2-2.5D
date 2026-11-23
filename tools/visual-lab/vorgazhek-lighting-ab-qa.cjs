@@ -24,7 +24,7 @@ const report={
   ok:false,
   baseSha:process.env.VISUAL_BASE_SHA||null,
   headSha:process.env.VISUAL_BRANCH_SHA||null,
-  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, fixed camera and t=2000ms',
+  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, runtime-relative actor positions, fixed camera and t=2000ms',
   proxy:'real current VORGAZHEK squad GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
   baseline:null,
   branch:null,
@@ -69,7 +69,7 @@ async function capture(browser,label,baseUrl){
       q.hero.geometry.dispose();
       q.hero.geometry=new THREE.CapsuleGeometry(.32,1.16,6,12);
       q.hero.material.color.set(0xe8e2d0);
-      q.hero.position.set(-1.25,.9,10);
+      q.hero.position.set(0,.9,10);
       q.scene.remove(q.boss);
       q.boss.geometry.dispose();
       q.boss.material.dispose();
@@ -97,7 +97,7 @@ async function capture(browser,label,baseUrl){
       model.updateMatrixWorld(true);
       const bossRoot=new THREE.Group();
       bossRoot.name='A4LightingABRealVorgazhek';
-      bossRoot.position.set(1.2,0,3.3);
+      bossRoot.position.set(-.7,0,7.6);
       bossRoot.add(model);
       q.scene.add(bossRoot);
       window.__a4BossMixer=mixer;
@@ -106,7 +106,7 @@ async function capture(browser,label,baseUrl){
       q.cam.fov=56;
       q.cam.updateProjectionMatrix();
       q.cam.position.set(5,3.5,18);
-      q.cam.lookAt(0,1.2,6.4);
+      q.cam.lookAt(-.35,1.2,8.8);
       const metrics=q.frame(2000);
       q.scene.updateMatrixWorld(true);
       q.cam.updateMatrixWorld(true);
@@ -156,8 +156,8 @@ async function capture(browser,label,baseUrl){
     await page.screenshot({path:path.join(output,label+'-wide.png'),timeout:60000});
     await page.evaluate(()=>{
       const q=window.abyssQA;
-      q.cam.position.set(18,3.4,12);
-      q.cam.lookAt(0,1.1,4);
+      q.cam.position.set(18,3.4,15);
+      q.cam.lookAt(-.35,1.1,8.8);
       q.frame(2000);
     });
     await page.screenshot({path:path.join(output,label+'-side.png'),timeout:60000});
@@ -180,11 +180,12 @@ async function main(){
     assert.equal(b.env.light[1],1.2,'baseline local fill must match main');
     assert.equal(h.env.hemi[2],1.1,'branch hemisphere intensity must match PR');
     assert.equal(h.env.sun[1],.48,'branch directional intensity must match PR');
-    assert.equal(h.env.light[1],12,'branch local fill must match PR');
+    assert.deepEqual(h.env.light,[0xe7e7ec,8,170,[0,8,7]],'branch local fill must match PR');
     assert.equal(b.lights,3);assert.equal(h.lights,3);
     assert.equal(b.metrics.calls,h.metrics.calls,'draw calls must remain unchanged');
     assert.equal(b.metrics.triangles,h.metrics.triangles,'triangle count must remain unchanged');
-    assert.ok(h.roi.boss.mean>b.roi.boss.mean+.5,'real VORGAZHEK squad model must become measurably more legible');
+    assert.ok(h.roi.boss.mean>b.roi.boss.mean+2.5,'real VORGAZHEK squad model must gain a meaningful luminance increase');
+    assert.ok(h.roi.boss.visiblePct>b.roi.boss.visiblePct+5,'more of the real VORGAZHEK squad model must clear the visible-pixel threshold');
     assert.ok(h.roi.hero.mean>b.roi.hero.mean-.5,'hero proxy must not become darker');
     assert.ok(Math.abs(h.roi.water.mean-b.roi.water.mean)<1.5,'water brightness must remain stable');
     assert.ok(Math.abs(h.roi.horizon.mean-b.roi.horizon.mean)<1.5,'black horizon must remain stable');
