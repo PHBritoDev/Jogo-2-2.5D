@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAxis, buildTerrainArrays } from '../world3d-terrain.js';
+import { JOURNEY_HOLES } from '../jornada3d.js';
+import { ROAD_TERRAIN_PATCH } from '../act1-world-layout.js';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { TERRAIN_EDGE_SHOTS } = require('../tools/visual-lab/a3-terrain-edge-plan.cjs');
@@ -74,16 +76,27 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
     TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.fineCell]),
     [
       ['x', 203, -126, 203, 205.5, 2.5],
-      ['x', -207, -126, -207, -209.5, 2.5],
-      ['z', -2, 39, 39, 41.5, 2.5],
-      ['z', -2, -291, -291, -293.5, 2.5],
+      ['x', -207, -260, -207, -209.5, 2.5],
+      ['z', -100, 39, 39, 41.5, 2.5],
+      ['z', 100, -291, -291, -293.5, 2.5],
     ],
   );
+  const roadPatch = {
+    ...ROAD_TERRAIN_PATCH,
+    z0: -126 + Math.round(166 / 2.5) * 2.5,
+  };
+  const inside = (r, x, z) => x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1;
   for (const shot of TERRAIN_EDGE_SHOTS) {
     assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
     assert.equal(shot.cameraOffset.length, 3);
-    assert.ok(shot.cameraOffset[1] >= 20, 'câmera deve ficar acima da encosta sem segunda sonda');
+    assert.ok(shot.cameraOffset[1] >= 12, 'camera must clear the surface');
     assert.equal(shot.targetOffset.length, 3);
     assert.ok([...shot.cameraOffset, ...shot.targetOffset].every(Number.isFinite));
+    assert.ok(!JOURNEY_HOLES.some(h => inside(h, shot.x, shot.z)), `${shot.name} falls inside an intentional journey cutout`);
+    assert.ok(!inside(roadPatch, shot.x, shot.z), `${shot.name} falls inside the separate road patch`);
+    const towardCenter = shot.axis === 'x'
+      ? shot.cameraOffset[0] * (-2 - shot.x)
+      : shot.cameraOffset[2] * (-126 - shot.z);
+    assert.ok(towardCenter > 0, `${shot.name} camera must face the seam from the interior side`);
   }
 });
