@@ -3089,11 +3089,11 @@ function meadowImpact(x,z,radius){
 }
 function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
- voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
+ voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;document.body.classList.toggle('bishop2-battle',key==='bishop2');arena.group.visible=true;
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
  player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
  const abyssEntry=key==='greed';
- if(abyssEntry)camFocusReady=false;
+ if(abyssEntry||key==='bishop2'){camFocusReady=false;lastLookInputAt=0;}
  cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
  moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
  camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
@@ -7312,7 +7312,7 @@ function syncFinalPortal(){
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
 const savedSky={};
 function enterVoid(){enterDimensionArena('greed');}
-function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}document.body.classList.remove('bishop2-battle');voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
@@ -7417,37 +7417,45 @@ function updateUltimateFx(dt){
 // ---------- Câmera em terceira pessoa ----------
 let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
+function portraitBishop2Profile(foeOn,sep){
+ if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>16)return null;
+ return{shoulder:.08,focusBlend:.48,minDistance:Math.min(11.5,Math.max(9.4,8.8+Math.max(0,sep-12)*.28)),idleMs:450,deadZone:.14,turnRate:3.2};
+}
+/** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
- const shoulder=.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
- const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
- // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); durante o golpe do protagonista o enquadramento
- // puxa um pouco mais para o alvo, sem girar a câmera (o jogador mantém o controle).
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
- const engaged=combatStepNow()&&foeOn&&Math.hypot(foe.x-player.position.x,foe.z-player.position.z)<12;
- if(engaged&&!lockOnActive){const k=newHero&&rites.active?.def?.drive?.3:.22;t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const engaged=combatStepNow()&&foeOn&&(sep<12||!!portrait),shoulder=portrait?.shoulder??.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
+ const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
+ // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); em retrato, divide o foco entre os dois atores.
+ if(engaged&&!lockOnActive){const k=portrait?.focusBlend??(newHero&&rites.active?.def?.drive?.3:.22);t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
  else if(lockOnActive&&foeOn){/* lock-on: enquadra os dois — o foco vai ~35 % para o alvo (no máx. 4 m), herói sempre no quadro */const fx=foe.x-player.position.x,fz=foe.z-player.position.z,fd=Math.hypot(fx,fz)||1,k=Math.min(.35,4/fd);t.x+=fx*k;t.z+=fz*k;}
  if(!camFocusReady){camFocus.copy(t);camFocusReady=true;}
  camFocus.x+=(t.x-camFocus.x)*Math.min(1,dt*12);camFocus.z+=(t.z-camFocus.z)*Math.min(1,dt*12);camFocus.y+=(t.y-camFocus.y)*Math.min(1,dt*6);
  return{focus:camFocus,engaged};
 }
-/** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+/** Distância efetiva: afasta um pouco em combate e, só no retrato de VORGAZHEK, impede o duelo de fechar demais. */
+function effectiveCameraDistance(engaged,dt){
+ const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const baseWant=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);
+ const want=portrait&&!riteCinematicView?Math.max(baseWant,portrait.minDistance):baseWant;
+ camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;
+}
 /**
- * Câmera de duelo automática (estilo Genshin / referência 25b05adf: câmera às costas do herói, inimigo no centro), SEM
- * travar nada: em combate (inimigo a ≤ 12 m) e sem o jogador mexer na câmera há 1,2 s, o ângulo desliza até o herói ficar
- * entre a câmera e o inimigo. Zona morta de 20°: se o inimigo já está no quadro, não mexe. Arrastar a câmera manda sempre.
- * Em duelo aproxima a câmera (≈ 4,6 m, abrindo até 7 m com a separação), como a referência e o Genshin em combate.
+ * Câmera de duelo automática: arrastar continua mandando; VORGAZHEK em retrato recentraliza mais cedo e sem deixar o herói sair do quadro.
  */
 let duelPull=0,lastCamEngaged=false;
 function autoDuelCamera(dt,now,engaged){
  const want=engaged&&newHero&&!lockOnActive&&cameraDistance>=1.05?1:0;
- const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z);
- /* referência 25b05adf: em duelo a câmera chega mais perto, às costas do herói (≈ 4,6 m colados, abre até 7 m com a separação), nunca além do zoom do jogador */
+ const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
  duelPull+=((want?Math.min(0,Math.max(3.6,Math.min(7,4.6+Math.max(0,sep-2.2)*.5))-cameraDistance):0)-duelPull)*Math.min(1,dt*2.2);
- if(!want||!userSettings.autoCamera||now-lastLookInputAt<1200||sep<1.2)return false;
- const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=.35;
+ const idleMs=portrait?portrait.idleMs:1200;
+ if(!want||!userSettings.autoCamera||now-lastLookInputAt<idleMs||sep<1.2)return false;
+ const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=portrait?portrait.deadZone:.35;
  if(Math.abs(d)<=dead)return true;
- cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(rites.busy||dashRemaining>0?3.2:2));return true;
+ cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(portrait?portrait.turnRate:(rites.busy||dashRemaining>0?3.2:2)));return true;
 }
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
