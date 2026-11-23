@@ -538,3 +538,13 @@ test('coleta no mundo usa o updater real e restaura contagem do save após recar
   assert.deepEqual(turnInSide(finalReload, 'ervas'), SIDE_QUESTS[0].reward);
   assert.equal(turnInSide(finalReload, 'ervas'), null);
 });
+
+
+test('Pedras que Lembram não atribui parentesco não aprovado a Téo', () => {
+  const quest = SIDE_QUESTS.find(q => q.id === 'abrigos');
+  assert.ok(quest, 'missão de pedras existe');
+  const dialogue = [...quest.offer, ...quest.turnIn].map(line => line.text).join(' ');
+  assert.match(dialogue, /As pedras de abrigo da mata são antigas/);
+  assert.match(dialogue, /Leve isto como agradecimento/);
+  assert.doesNotMatch(dialogue, /meu avô|foi ele quem fez/i);
+});
