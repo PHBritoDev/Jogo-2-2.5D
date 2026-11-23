@@ -52,5 +52,5 @@ test('the fill reuses the arena light rig without adding lights or render passes
   assert.match(source,/return getZarkhaelLighting\(\);/);
   assert.doesNotMatch(source,/new\s+(?:THREE|T)\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\b/);
   assert.doesNotMatch(source,/WebGLRenderTarget|EffectComposer|ShadowMap/);
-  assert.match(arenas,/mushrooms\s*:\s*buildMushroomDimension/);
+  assert.match(arenas,/mushrooms\(THREE,\s*g,\s*spec,\s*ctx\)\s*\{\s*return buildMushroomDimension/);
 });
