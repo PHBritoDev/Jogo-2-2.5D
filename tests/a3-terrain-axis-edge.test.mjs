@@ -86,12 +86,12 @@ test('mobile Eldoria mesh keeps nonzero triangles across all four fine-to-outer 
 
 test('A3 visual sweep targets the four exact mobile terrain seams', () => {
   assert.deepEqual(
-    TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.fineCell]),
+    TERRAIN_EDGE_SHOTS.map(s => [s.axis, s.x, s.z, s.fineEdge, s.firstOuter, s.fineCell, s.edgeSpan]),
     [
-      ['x', 204.25, -126, 203, 205.5, 2.5],
-      ['x', -208.25, -260, -207, -209.5, 2.5],
-      ['z', -100, 40.25, 39, 41.5, 2.5],
-      ['z', 100, -292.25, -291, -293.5, 2.5],
+      ['x', 204.25, -126, 203, 205.5, 2.5, 1.5],
+      ['x', -208.25, -260, -207, -209.5, 2.5, 1.5],
+      ['z', -100, 40.25, 39, 41.5, 2.5, 1.5],
+      ['z', 100, -292.25, -291, -293.5, 2.5, 1.5],
     ],
   );
   const roadPatch = {
@@ -101,6 +101,7 @@ test('A3 visual sweep targets the four exact mobile terrain seams', () => {
   const inside = (r, x, z) => x > r.x0 && x < r.x1 && z > r.z0 && z < r.z1;
   for (const shot of TERRAIN_EDGE_SHOTS) {
     assert.equal(Math.abs(shot.firstOuter - shot.fineEdge), shot.fineCell);
+    assert.equal(shot.edgeSpan, 1.5, 'visual guide must sample both ends of a 3 m seam segment');
     close(shot.axis === 'x' ? shot.x : shot.z, (shot.fineEdge + shot.firstOuter) / 2);
     assert.equal(shot.cameraOffset.length, 3);
     assert.ok(shot.cameraOffset[1] >= 7 && shot.cameraOffset[1] <= 9, 'camera must clear the surface without becoming top-down');
