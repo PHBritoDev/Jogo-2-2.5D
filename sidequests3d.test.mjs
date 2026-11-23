@@ -19,6 +19,8 @@ test('cada missão opcional está ligada a um vendedor real e usa sua identidade
     assert.ok(quest.offer.length > 0 && quest.offer.every(line => line.who === vendor.name));
     assert.ok(quest.turnIn.length > 0 && quest.turnIn.every(line => line.who === vendor.name));
   }
+  assert.equal(questForGiver(state, 'ERVAS'), null, 'giver antigo não deve permanecer órfão');
+  assert.equal(questForGiver(state, 'ARTESANATO'), null, 'giver antigo não deve permanecer órfão');
 });
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
@@ -243,5 +245,5 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
 });
