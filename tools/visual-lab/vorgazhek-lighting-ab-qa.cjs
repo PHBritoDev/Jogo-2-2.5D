@@ -71,7 +71,7 @@ async function capture(browser,label,baseUrl){
       q.hero.geometry.dispose();
       q.hero.geometry=new THREE.CapsuleGeometry(.32,1.16,6,12);
       q.hero.material.color.set(0xe8e2d0);
-      q.hero.position.set(0,.9,10);
+      q.hero.position.set(-3,.9,10);
       q.scene.remove(q.boss);
       q.boss.geometry.dispose();
       q.boss.material.dispose();
@@ -205,6 +205,9 @@ async function main(){
       trianglesDelta:h.metrics.triangles-b.metrics.triangles
     };
     report.ok=true;
+  }catch(err){
+    report.failure={name:err.name||'Error',message:err.message||String(err)};
+    throw err;
   }finally{
     await browser.close();
     fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2)+'\n');
