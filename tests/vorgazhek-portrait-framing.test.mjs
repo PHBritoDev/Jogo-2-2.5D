@@ -35,10 +35,10 @@ test('HUD retrato coloca a barra do Bispo no topo, mantém controles nos cantos 
 
 test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewport sem forçar câmera', () => {
   assert.match(qa, /VISUAL_BASELINE_URL/);
-  assert.match(qa, /setViewportSize\(\{width:393,height:852\}\)/);
+  assert.match(qa, /setViewportSize\(\{\s*width:\s*393,\s*height:\s*852\s*\}\)/);
   assert.doesNotMatch(qa, /SevenSinsDebug3D\.view\(/);
-  assert.match(qa, /03-head-retrato-rotacao/);
-  assert.match(qa, /05-head-retrato-inicial/);
+  assert.match(qa, /runLandscapeThenPortrait\(headUrl,\s*'03-head',\s*true\)/);
+  assert.match(qa, /runFreshPortrait\(headUrl,\s*'05-head'\)/);
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
