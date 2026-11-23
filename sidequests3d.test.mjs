@@ -104,6 +104,21 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
 });
 
 
+test('save available recupera o desbloqueio pelo checkpoint da campanha', () => {
+  const s = createSideState({
+    ervas: { state: 'available', progress: 0 },
+    pingente: { state: 'available', progress: 0 },
+    abrigos: { state: 'available', progress: 0 }
+  });
+  // O checkpoint da campanha é a fonte de verdade para o desbloqueio.
+  refreshSide(s, { questStep: 1, waystones: 0 });
+  assert.equal(s.ervas.state, 'available');
+  assert.equal(s.abrigos.state, 'available');
+  assert.equal(s.pingente.state, 'locked');
+  refreshSide(s, { questStep: 2, waystones: 0 });
+  assert.equal(s.pingente.state, 'available');
+});
+
 test('save inconsistente não permite entregar missão sem progresso comprovado', () => {
   const s = createSideState({
     ervas: { state: 'ready', progress: 1 },
