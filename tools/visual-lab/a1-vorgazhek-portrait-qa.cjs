@@ -109,6 +109,12 @@ async function inspect(page) {
         top: rect('#top'),
         topRight: rect('#top-right'),
         player: rect('#player-hud'),
+        playerHp: rect('#player-hp-track'),
+        cameraToggle: rect('#camera-toggle-3d'),
+        pauseControls: {
+          graphics: (() => { const e=document.querySelector('#graphics-toggle-3d'); return e ? { display:getComputedStyle(e).display, visibility:getComputedStyle(e).visibility } : null; })(),
+          daynight: (() => { const e=document.querySelector('#daynight-toggle-3d'); return e ? { display:getComputedStyle(e).display, visibility:getComputedStyle(e).visibility } : null; })()
+        },
         coins: rect('#coin-pill'),
         hearts: rect('#heart-pill'),
         objective: rect('#objective-arrow')
@@ -147,6 +153,9 @@ function assertPortrait(state, label) {
   assert.ok(!overlaps(h.actions, h.stick), label + ': joystick e ações separados');
   assert.ok(!overlaps(h.enemy, h.actions) && !overlaps(h.enemy, h.stick), label + ': barra não cobre controles');
   assert.ok(!overlaps(h.enemy, h.player), label + ': barra não cobre vida do protagonista');
+  assert.ok(h.cameraToggle && h.cameraToggle.display !== 'none' && h.cameraToggle.visibility !== 'hidden', label + ': alternância 1ª/3ª pessoa acessível');
+  assert.ok(h.pauseControls?.graphics?.display !== 'none' && h.pauseControls?.daynight?.display !== 'none', label + ': ajustes continuam acessíveis no menu de pausa');
+  assert.ok(!overlaps(h.topRight, h.playerHp), label + ': botões do topo não cobrem a barra de vida');
   assert.ok(h.topRight.right <= w + 1, label + ': menu dentro do viewport');
 }
 

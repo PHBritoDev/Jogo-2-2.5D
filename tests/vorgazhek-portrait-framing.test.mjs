@@ -30,7 +30,10 @@ test('HUD retrato coloca a barra do Bispo no topo, mantém controles nos cantos 
   assert.match(css, /body\.bishop2-battle #quest-box[^}]*display:none!important/);
   assert.match(css, /body\.bishop2-battle #actions\{--ctrl-scale:\.88/);
   assert.match(css, /body\.bishop2-battle #stick\{left:calc\(10px \+ var\(--safe-l\)\)/);
-  assert.match(css, /body\.bishop2-battle #graphics-toggle-3d/);
+  assert.match(css, /--hpw:clamp\(112px,28\.8vw,130px\)/);
+  assert.doesNotMatch(css, /body\.bishop2-battle #camera-toggle-3d/);
+  assert.doesNotMatch(css, /body\.bishop2-battle #graphics-toggle-3d/);
+  assert.doesNotMatch(css, /body\.bishop2-battle #daynight-toggle-3d/);
 });
 
 test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewport sem forçar câmera', () => {
