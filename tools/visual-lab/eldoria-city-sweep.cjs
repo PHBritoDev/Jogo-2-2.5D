@@ -50,78 +50,71 @@ const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
      const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
      report.cases.push({preset:preset.name,name:s.name,image:path.relative(output,filename),...actual,drawCalls:data.state?.calls,triangles:data.state?.triangles});
    }
-   // A3: fotografa as quatro costuras em contexto isolado, sem contaminar o vídeo normal.
-   // O fundo magenta de seamMode separa o terreno do céu; o raycast central confirma o ponto exato.
+   // A3: fotografa as quatro costuras na mesma página WebGL do vídeo.
+   // Um segundo contexto Chromium/SwiftShader excedeu 120 s ao montar a mesma cena; reutilizar a página evita duplicar GPU/memória.
    if(preset.mobile) {
-     let edgeContext;
-     try {
-       edgeContext=await browser.newContext({viewport:{width:preset.width,height:preset.height},deviceScaleFactor:1,isMobile:true,hasTouch:true});
-       const edgePage=await edgeContext.newPage();
-       edgePage.on("pageerror",e=>report.errors.push("terrain-edge page: "+e.message.slice(0,350)));
-       edgePage.on("console",m=>{if(m.type()==="error")report.consoleErrors.push("terrain-edge: "+m.text().slice(0,350));});
-       await edgePage.goto(base+"/mundo-3d-prototype.html?debug3d=1&qaEldoria=1",{waitUntil:"domcontentloaded",timeout:35000});
-       const edgeReady=await edgePage.waitForFunction(()=>window.SevenSinsDebug3D?.fly&&window.SevenSinsDebug3D?.pick&&window.SevenSinsDebug3D?.camView&&window.EldoriaLiveCityQA?"ready":false,null,{timeout:120000}).then(h=>h.jsonValue());
-       if(edgeReady!=="ready")throw Error("Terrain edge world did not load: "+edgeReady);
-       const device=await edgePage.evaluate(()=>{
+     const device=await page.evaluate(()=>{
+       const api=window.SevenSinsDebug3D;
+       api.seamMode(true);
+       return {coarsePointer:matchMedia("(pointer: coarse)").matches,innerWidth,innerHeight};
+     });
+     const lowSpec=device.coarsePointer||device.innerWidth<700;
+     report[preset.name].terrainGrid={...device,lowSpec,fineCell:2.5,diagnosticMode:"seamMode",reason:lowSpec?"preset mobile de terreno ativo":"preset mobile de terreno NÃO ativo"};
+     if(!lowSpec)report.errors.push("Android-landscape não ativou terrainLowSpec; costuras 2.5 m não foram comprovadas.");
+     for(const edge of TERRAIN_EDGE_SHOTS) {
+       const data=await page.evaluate(edge=>{
          const api=window.SevenSinsDebug3D;
-         api.freeRoam();
-         api.seamMode(true);
-         return {coarsePointer:matchMedia("(pointer: coarse)").matches,innerWidth,innerHeight};
+         api.teleport(edge.x,edge.z,0);
+         const targetPlayer=api.cineState().player;
+         const target={x:targetPlayer[0],y:targetPlayer[1],z:targetPlayer[2]};
+         const targetState=api.state();
+         const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
+         api.teleport(cameraX,cameraZ,0);
+         const cameraPlayer=api.cineState().player;
+         const cameraGround={x:cameraX,y:cameraPlayer[1],z:cameraZ};
+         const cameraState=api.state();
+         const from=[cameraX,Math.max(target.y,cameraGround.y)+edge.cameraOffset[1],cameraZ];
+         const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
+         api.teleport(-12.2,-44.5,0);
+         const restored=api.state();
+         api.fly(from,to);
+         return {
+           target,cameraGround,from,to,camera:api.cam(),
+           targetState:{walkable:targetState.walkable,edge:targetState.edge},
+           cameraState:{walkable:cameraState.walkable,edge:cameraState.edge},
+           playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1
+         };
+       },edge);
+       await page.waitForTimeout(2600);
+       const verified=await page.evaluate(to=>{
+         const api=window.SevenSinsDebug3D;
+         return {camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};
+       },data.to);
+       const primaryPick=verified.centerPick?.[0]||null;
+       const terrainHit=!!primaryPick&&/terrain-mod186/.test(primaryPick[0]||"");
+       const horizontalMiss=primaryPick?Math.hypot(primaryPick[2]-data.to[0],primaryPick[4]-data.to[2]):null;
+       const targetVisible=!!verified.viewCheck?.onScreen&&!verified.viewCheck?.blocked;
+       const cameraPinned=Array.isArray(verified.camera)&&verified.camera.length===3&&verified.camera.every((v,i)=>Math.abs(v-data.from[i])<.5);
+       const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&cameraPinned&&data.playerRestored&&terrainHit&&horizontalMiss!==null&&horizontalMiss<1.5&&targetVisible;
+       if(!cameraPinned)report.errors.push("Override de câmera não permaneceu ativo na costura "+edge.name);
+       if(!terrainHit||horizontalMiss===null||horizontalMiss>=1.5)report.errors.push("Raio central não atingiu o ponto da malha na costura "+edge.name+": "+JSON.stringify(primaryPick));
+       if(!targetVisible)report.errors.push("Alvo da costura fora do quadro ou obstruído em "+edge.name+": "+JSON.stringify(verified.viewCheck));
+       if(!data.playerRestored)report.errors.push("Jogador não foi restaurado após sondar "+edge.name);
+       const filename=path.join(dir,safe(edge.name)+".png");
+       await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
+       const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\\b\\d{1,3}\\s*FPS\\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
+       report.cases.push({
+         preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,
+         reason:positioned?"alvo central no terreno, visível e sem oclusão; inspecionar PNG":"captura sem enquadramento comprovado",
+         terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,cameraAfter:verified.camera,centerPick:verified.centerPick,viewCheck:verified.viewCheck,horizontalMiss,terrainHit,targetVisible,playerRestored:data.playerRestored}
        });
-       const lowSpec=device.coarsePointer||device.innerWidth<700;
-       report[preset.name].terrainGrid={...device,lowSpec,fineCell:2.5,diagnosticMode:"seamMode",reason:lowSpec?"preset mobile de terreno ativo":"preset mobile de terreno NÃO ativo"};
-       if(!lowSpec)report.errors.push("Android-landscape não ativou terrainLowSpec; costuras 2.5 m não foram comprovadas.");
-       for(const edge of TERRAIN_EDGE_SHOTS) {
-         const data=await edgePage.evaluate(edge=>{
-           const api=window.SevenSinsDebug3D;
-           api.teleport(edge.x,edge.z,0);
-           const targetPlayer=api.cineState().player;
-           const target={x:targetPlayer[0],y:targetPlayer[1],z:targetPlayer[2]};
-           const targetState=api.state();
-           const cameraX=edge.x+edge.cameraOffset[0],cameraZ=edge.z+edge.cameraOffset[2];
-           api.teleport(cameraX,cameraZ,0);
-           const cameraPlayer=api.cineState().player;
-           const cameraGround={x:cameraX,y:cameraPlayer[1],z:cameraZ};
-           const cameraState=api.state();
-           const from=[cameraX,Math.max(target.y,cameraGround.y)+edge.cameraOffset[1],cameraZ];
-           const to=[edge.x+edge.targetOffset[0],target.y+edge.targetOffset[1],edge.z+edge.targetOffset[2]];
-           api.teleport(-12.2,-44.5,0);
-           const restored=api.state();
-           api.fly(from,to);
-           return {
-             target,cameraGround,from,to,camera:api.cam(),
-             targetState:{walkable:targetState.walkable,edge:targetState.edge},
-             cameraState:{walkable:cameraState.walkable,edge:cameraState.edge},
-             playerRestored:Math.hypot(restored.x+12.2,restored.z+44.5)<.1
-           };
-         },edge);
-         await edgePage.waitForTimeout(2600);
-         const verified=await edgePage.evaluate(to=>{
-           const api=window.SevenSinsDebug3D;
-           return {camera:api.cam(),centerPick:api.pick(0,0),viewCheck:api.camView(to)};
-         },data.to);
-         const primaryPick=verified.centerPick?.[0]||null;
-         const terrainHit=!!primaryPick&&/terrain-mod186/.test(primaryPick[0]||"");
-         const horizontalMiss=primaryPick?Math.hypot(primaryPick[2]-data.to[0],primaryPick[4]-data.to[2]):null;
-         const targetVisible=!!verified.viewCheck?.onScreen&&!verified.viewCheck?.blocked;
-         const cameraPinned=Array.isArray(verified.camera)&&verified.camera.length===3&&verified.camera.every((v,i)=>Math.abs(v-data.from[i])<.5);
-         const positioned=Number.isFinite(data.target.y)&&Number.isFinite(data.cameraGround?.y)&&cameraPinned&&data.playerRestored&&terrainHit&&horizontalMiss!==null&&horizontalMiss<1.5&&targetVisible;
-         if(!cameraPinned)report.errors.push("Override de câmera não permaneceu ativo na costura "+edge.name);
-         if(!terrainHit||horizontalMiss===null||horizontalMiss>=1.5)report.errors.push("Raio central não atingiu o ponto da malha na costura "+edge.name+": "+JSON.stringify(primaryPick));
-         if(!targetVisible)report.errors.push("Alvo da costura fora do quadro ou obstruído em "+edge.name+": "+JSON.stringify(verified.viewCheck));
-         if(!data.playerRestored)report.errors.push("Jogador não foi restaurado após sondar "+edge.name);
-         const filename=path.join(dir,safe(edge.name)+".png");
-         await edgePage.screenshot({path:filename,timeout:65000,animations:"disabled"});
-         const actual=await edgePage.evaluate(()=>({fps:document.body.innerText.match(/\\b\\d{1,3}\\s*FPS\\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-         report.cases.push({
-           preset:preset.name,name:edge.name,image:path.relative(output,filename),...actual,positioned,
-           reason:positioned?"alvo central no terreno, visível e sem oclusão; inspecionar PNG":"captura sem enquadramento comprovado",
-           terrainEdge:{axis:edge.axis,fineCell:edge.fineCell,fineEdge:edge.fineEdge,firstOuter:edge.firstOuter,expectedWidth:Math.abs(edge.firstOuter-edge.fineEdge),target:data.target,cameraGround:data.cameraGround,targetState:data.targetState,cameraState:data.cameraState,from:data.from,to:data.to,camera:data.camera,cameraAfter:verified.camera,centerPick:verified.centerPick,viewCheck:verified.viewCheck,horizontalMiss,terrainHit,targetVisible,playerRestored:data.playerRestored}
-         });
-       }
-     } finally {
-       if(edgeContext)await edgeContext.close().catch(()=>{});
      }
+     // seamMode oculta o céu e objetos de fundo; recarregar restaura a cena normal antes do teste de escada/vídeo.
+     await page.reload({waitUntil:"domcontentloaded",timeout:35000});
+     const restoredReady=await page.waitForFunction(()=>window.SevenSinsDebug3D?.fly&&window.EldoriaLiveCityQA?"ready":false,null,{timeout:120000}).then(h=>h.jsonValue());
+     if(restoredReady!=="ready")throw Error("World did not reload after seam diagnostics");
+     await page.evaluate(()=>window.SevenSinsDebug3D.freeRoam());
+     await page.waitForTimeout(1200);
    }
    // Teste funcional reproduzível: subir a escada verdadeira em passos, medindo altura do root.
    const climb=await page.evaluate(async()=>{
