@@ -1,3 +1,4 @@
+import {FLANK_TOWERS} from './sakura-route3d.js';
 // Original vertex-coloured geometry, batched in local coordinates (one opaque
 // draw per building). Positions use metres. No downloaded meshes or textures.
 export function batch(T) {
@@ -120,10 +121,41 @@ function windowPanel(m,x,y,z,h){
  for(let j=1;j<=3;j++){const yy=y+h*j/5;m.tube([x,yy,z-w],[x,yy,z+w],.08,.08,edge);
   for(const s of [-1,1])m.tri([x-.04,yy,z+s*.15],[x-.04,yy+h*.09,z+s*w*.8],[x-.04,yy+h*.16,z+s*.15],0xb2dfec);}
 }
+function westFront(m,far){
+ // Section through the west front. The lower contour is the doorway;
+ // the upper contour carries the steep gable above the nave roofline.
+ const spans=far?16:32,depth=2.4,front=-43.7;
+ const peak=x=>44-1.04*Math.abs(x);
+ const opening=x=>Math.abs(x)<5.6?7.9+9.25*Math.sqrt(1-Math.abs(x)/5.6):7.85;
+ for(let i=0;i<spans;i++){
+  const x=-15.6+31.2*i/spans,xx=-15.6+31.2*(i+1)/spans;
+  const a=[x,opening(x),front],b=[xx,opening(xx),front],
+        c=[xx,peak(xx),front],d=[x,peak(x),front];
+  m.quad(a,b,c,d,i%3?rock:0x50687d);
+  m.quad(a,[x,a[1],front+depth],[xx,b[1],front+depth],b,deep);
+  m.quad(d,c,[xx,c[1],front+depth],[x,d[1],front+depth],snow);
+ }
+ if(far)return;
+ const y=26.4,z=front-.09,r=4.65,n=16;
+ const rose=(angle,radius)=>[Math.cos(angle)*radius,y+Math.sin(angle)*radius,z];
+ for(let j=0;j<n;j++){
+  const a=j*2*Math.PI/n,b=(j+1)*2*Math.PI/n,mid=(a+b)*.5;
+  m.tri([0,y,z],rose(a,r),rose(b,r),j%3?0x477c9a:0x7bb6c8);
+  m.rib([rose(a,r),rose(mid,r),rose(b,r)],.20,edge,6);
+  m.rib([rose(mid,.62),rose(a,r*.50),rose(mid,r*.78),rose(b,r*.50)],.085,0x47677e,5);
+ }
+ for(const sign of [-1,1]){
+  const pts=[[sign*15.7,27.9,front-.2],[sign*8,35.6,front-.2],[0,44.3,front-.2]];
+  m.rib(pts,.34,snow,7);
+  for(let j=0;j<4;j++){const x=sign*(14-j*3.5),h=peak(x);
+   m.tube([x,h,front],[x,h+1.35,front],.32,.035,edge,6);}
+ }
+}
 export function castleBuilding(m){
+ westFront(m,false);
  // Exterior: staggered curtain walls, asymmetric side districts, nave and a soaring crossing.
  for(const s of [-1,1]){
-  for(const [x,z,r,h] of [[45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],[25,-38,5.5,73],[26,58,5,97],[12,70,4.8,112]])
+  for(const [x,z,r,h] of FLANK_TOWERS)
    spire(m,s*x,0,z,r,h);
   // Paired upper lancets stand proud of the taller belfries, with a
   // recessed inner face, a stone mullion and snow on the projecting sill.
@@ -191,8 +223,9 @@ export function distantPagoda(m){
  m.tube([0,27,0],[0,33,0],.38,.02,brass,6);
 }
 export function distantCastle(m){
+ westFront(m,true);
  m.box(0,12,13,55,24,108,rock);
- for(const s of [-1,1]){for(const [x,z,r,h] of [[45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],[25,-38,5.5,73],[12,70,4.8,112]]){
+ for(const s of [-1,1]){for(const [x,z,r,h] of FLANK_TOWERS){
   m.tube([s*x,0,z],[s*x,h*.62,z],r,r*.87,rock,7);
   m.tube([s*x,h*.62,z],[s*x,h,z],r*1.12,.04,0x9faebc,7);}
   m.quad([0,33,-42],[s*28,22,-42],[s*28,22,68],[0,33,68],deep);}

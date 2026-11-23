@@ -8,6 +8,11 @@ const node = (x,z,y) => ({x,z,y});
 export const DOJO = {x:-1040,z:-1610,y:127};
 export const MASTER = {x:DOJO.x+1.8,z:DOJO.z+3.2};
 export const CASTLE = {x:564,z:-254,y:81};
+// Local coordinates of the paired towers, shared by both silhouettes and collision.
+export const FLANK_TOWERS = [
+ [45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],
+ [25,-38,5.5,73],[26,58,5,97],[12,70,4.8,112]
+];
 export const THRONE = {x:CASTLE.x,z:CASTLE.z+60};
 export const SPRING_LAKE = {x:-1260,z:-1450,rx:95,rz:68,y:39};
 export const INLET_BRIDGE = {x:SPRING_LAKE.x+25,z:SPRING_LAKE.z-64,y:SPRING_LAKE.y+.28};
@@ -166,6 +171,12 @@ export function roadBlocked(x,z,p=sampleRoad(x,z)){
  }
  if(z>=-1680&&z<=-1626&&X>2.45&&X<3.15)return true;
  X=Math.abs(x-CASTLE.x);Z=z-CASTLE.z;
+ if(X<85&&Z>-70&&Z<90){
+  if(Math.abs(X-45)<1.35 && Z>=-49.5 && Z<=25.5)return true;
+  for(const [tx,tz,radius] of FLANK_TOWERS){
+   if((X-tx)**2+(Z-tz)**2<(radius*1.1)**2)return true;
+  }
+ }
  if(Z>=-41&&Z<68&&X<28){
   if(X>26.4||Z>66.5||(Z<-39.7&&X>5))return true;
   if(Math.abs(X-13.6)<.8&&Z>=-12&&Z<56)return true;

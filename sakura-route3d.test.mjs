@@ -1,7 +1,8 @@
 import test from 'node:test';
+import {interiorLights} from './sakura-interiors3d.js';
 import {createSakuraWorld} from './sakura-world3d.js';
 import assert from 'node:assert/strict';
-import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
+import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,FLANK_TOWERS,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
 import {CITY2,GATE2} from './jornada3d.js';
 import {DISTRICT_SPOTS} from './act2-flow.js';
 import {migrateProgress} from './act1-flow.js';
@@ -52,4 +53,34 @@ test('névoa da v4 conserva um abrigo conhecido sem revelar antecipadamente o ca
  const state=createMapState(migrateLegacyFog({cells:bytes.toString('base64'),pois:['cinzaria'],waystones:['abrigo-cinzaria']},v));
  assert.ok(isRevealed(state,x,z));assert.ok(!isRevealed(state,CASTLE.x,CASTLE.z));assert.ok(state.waystones.has('abrigo-cinzaria'));
  for(const p of ROUTE){assert.ok(p.x>=MAP_BOUNDS.x0&&p.z>=MAP_BOUNDS.z0&&p.x<MAP_BOUNDS.x0+MAP_BOUNDS.size);}
+});
+
+test('as fontes permanecem nas lanternas, vitrais e trono ao cruzar o interior',()=>{
+ class PointLight {
+  constructor(){this.position={set:(x,y,z)=>Object.assign(this.position,{x,y,z})};}
+ }
+ const lamps=[],update=interiorLights({PointLight},{add:light=>lamps.push(light)});
+ const positions=()=>lamps.map(({position:{x,y,z}})=>[x,y,z]);
+ const original=positions();
+ update(DOJO);
+ assert.equal(lamps.filter(l=>l.visible).length,2);
+ const day=lamps[0].intensity;
+ update({x:DOJO.x+7,z:DOJO.z-5},1);
+ assert.ok(lamps[0].intensity>day);
+ update({x:DOJO.x+17,z:DOJO.z});
+ assert.ok(lamps[0].intensity>0&&lamps[0].intensity<day);
+ update(CASTLE);
+ assert.equal(lamps.filter(l=>l.visible).length,3);
+ update(THRONE);
+ assert.deepEqual(positions(),original);
+ update({x:0,z:0});
+ assert.equal(lamps.filter(l=>l.visible).length,0);
+});
+
+test('torres e panos da muralha detêm o jogador, com o eixo do pórtico livre',()=>{
+ for(const sign of [-1,1]){
+  for(const [x,z] of FLANK_TOWERS)assert.ok(roadBlocked(CASTLE.x+sign*x,CASTLE.z+z));
+  assert.ok(roadBlocked(CASTLE.x+sign*45,CASTLE.z-12));
+ }
+ for(let z=-101;z<=61;z++)assert.equal(roadBlocked(CASTLE.x,CASTLE.z+z),false);
 });

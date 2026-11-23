@@ -2,11 +2,13 @@ const fs=require('node:fs'),path=require('node:path'),{chromium}=require('playwr
 const mode=process.argv[2]||'walk', out=process.env.OUT||path.resolve('qa-output',mode), errors=[];
 fs.mkdirSync(out,{recursive:true});
 (async()=>{const b=await chromium.launch({args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader','--autoplay-policy=no-user-gesture-required']});
+let recordingContext,recording;
 try{
  const mobile=['mobile','portrait'].includes(mode);
  const width=mode==='walk'?640:mode==='portrait'?393:mobile?852:1200, height=mode==='walk'?360:mode==='portrait'?852:mobile?393:675;
  const tier=process.env.GRAPHICS||'low';
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
+ recordingContext=ctx;
  const page=await ctx.newPage(),root=path.resolve(path.dirname(require.resolve('three')),'..');
  page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.stack||e.message);});
  page.on('console',m=>{if(/WebGLProgram: Shader Error|THREE.WebGLShader: Shader couldn't compile/.test(m.text()))errors.push(m.text().slice(0,600));});
@@ -21,11 +23,12 @@ try{
  await page.waitForFunction(()=>window.SevenSinsDebug3D&&document.querySelector('#loading').classList.contains('hidden'),null,{timeout:240000});
  await page.waitForFunction(()=>{const d=window.SevenSinsDebug3D;return d&&d.storyState().q===15&&Math.abs(d.walkState().x+1235.8)<3;},null,{timeout:90000});
 
- const report=[];const video=page.video();
+ const report=[];recording=page.video();
  await page.exposeFunction('recordStop',async(name,metrics,photo=true)=>{
   report.push({name,...metrics});fs.writeFileSync(path.join(out,'metrics.json'),JSON.stringify({mode,width,height,tier,errors,report},null,1));
   if(photo)await page.screenshot({path:path.join(out,name+'.jpg'),quality:84,timeout:90000});
   console.log(name,metrics.seconds||'',metrics.pos?.x,metrics.pos?.z,metrics.render?.calls);
+  if(metrics.framesMs)console.log('FRAME_METRICS',JSON.stringify({name,...metrics}));
  });
  if(mode==='survey'){
   const issues=await page.evaluate(async()=>{
@@ -52,8 +55,16 @@ try{
   });
   fs.writeFileSync(path.join(out,'streaming.json'),JSON.stringify(stream,null,1));
   const button=page.locator('#dialog-continue');
-  await at(-1038.2,-1608.6);await page.waitForFunction(()=>SevenSinsDebug3D.storyState().label==='FALAR COM A MESTRA');
-  await page.evaluate(()=>SevenSinsDebug3D.interact());await button.waitFor({state:'visible'});
+  await at(-1038.2,-1608.6);
+  // The streaming circuit visits the glacial hall without a coat. Finish the
+  // cold warning through the HUD before requesting the master's dialogue.
+  if(await button.isVisible()){
+   const warning=await page.locator('#dialog-text').textContent();
+   if(!/frio|casaco/i.test(warning))throw Error('Diálogo inesperado após a travessia: '+warning);
+   await button.click();
+  }
+  await page.waitForFunction(()=>SevenSinsDebug3D.storyState().label==='FALAR COM A MESTRA');
+  await page.locator('#talk-button').click();await button.waitFor({state:'visible'});
   const first=await page.locator('#dialog-text').textContent();if(!first?.startsWith('Lia,'))throw Error('Fala inesperada da mestra: '+first);
   for(let i=0;i<3;i++)await button.click();
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
@@ -89,14 +100,17 @@ try{
      if(state.dialog || state.story.scene){
       await press([]);const next=state.dialog?'#dialog-continue':state.story.waitingTap?'#cine-continue':null;
       if(next&&await page.locator(next).isVisible())await page.locator(next).click({force:true});
-      if(await page.locator('#choice-no').isVisible())await page.locator('#choice-no').click();
+      if(await page.locator('#choice-card').isVisible())await page.locator('#choice-yes').click();
      }else{
       const dx=point.x-state.pos.x,dz=point.z-state.pos.z,d=Math.hypot(dx,dz);
       if(d<1.4){await press([]);break;}
       if(d<best-.12){best=d;lastProgress=Date.now();}
-      const ix=(dx*Math.cos(state.yaw)-dz*Math.sin(state.yaw))/d;
-      const iz=(dx*Math.sin(state.yaw)+dz*Math.cos(state.yaw))/d;
-      const keys=[];if(Math.abs(ix)>.38)keys.push(ix>0?'d':'a');if(Math.abs(iz)>.38)keys.push(iz>0?'s':'w');
+      // Tangent evasion uses the same WASD controls if a corner arrests movement.
+      const stalled=Date.now()-lastProgress;
+      const sidestep=stalled<4500?0:(Math.floor((stalled-4500)/3200)%2?-.78:.78);
+      const heading=Math.atan2(dx,dz)-state.yaw+sidestep;
+      const ix=Math.sin(heading),iz=Math.cos(heading);
+      const keys=['ShiftLeft'];if(Math.abs(ix)>.38)keys.push(ix>0?'d':'a');if(Math.abs(iz)>.38)keys.push(iz>0?'s':'w');
       await press(keys);
      }
      if(Date.now()-lastProgress>90000)throw Error('Caminhada parou em '+JSON.stringify({point,state}));
@@ -151,6 +165,9 @@ try{
    await page.evaluate(({name,result})=>window.recordStop(name,result),{name,result});
   }
  }
- await ctx.close();fs.renameSync(await video.path(),path.join(out,'jornada-'+mode+'.webm'));
  if(errors.length)throw Error(errors[0]);console.log('OK',mode);
-}finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+}finally{
+ try{if(recordingContext)await recordingContext.close();
+  if(recording){const videoPath=await recording.path();if(fs.existsSync(videoPath))fs.renameSync(videoPath,path.join(out,'jornada-'+mode+'.webm'));}
+ }finally{await b.close();}
+}})().catch(e=>{console.error(e);process.exitCode=1;});

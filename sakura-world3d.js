@@ -248,7 +248,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
    vegetationLOD(part);}
   for(const l of landmarks)l.o.visible=l.reach===Infinity||Math.hypot(l.o.position.x-P.x,l.o.position.z-P.z)<l.reach;
   const cold=snowAt(p.i),blossom=bloomAt(p.i),inside=Math.abs(P.x-DOJO.x)<11&&Math.abs(P.z-DOJO.z)<10||Math.abs(P.x-CASTLE.x)<27&&P.z>CASTLE.z-40&&P.z<CASTLE.z+67;
-  lightHall(P);
+  lightHall(P,nightK);
   animateBasins(now*.001);wind.value=now*.001;air.copy(summer).lerp(winter,cold).lerp(night,nightK*.66);
   if(fog&&w>.01){fog.color.lerp(air,w*.82);fog.near+=(34+22*cold-fog.near)*w;fog.far+=(625-cold*80-fog.far)*w;}
   sky.update(camera,now*.001,cold,blossom,nightK,w,air);

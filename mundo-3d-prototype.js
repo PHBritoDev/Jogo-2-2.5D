@@ -6406,7 +6406,7 @@ function stepGuideRun(dt){
  const s=Math.min(d,dt*r.speed),ya=leaderStep(guide.position,t,dx,dz,d,s,r);if(ya===null)return;guideMoveSpeed=dt>0?s/dt:0;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=ya;
 }
 function act3Label(){
- if(cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
+ if(dialogueOpen||namePromptOpen||cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
  if(!voidMode&&q===ACT3N.road&&act3Npcs.sensei&&d(MASTER,3.9))return 'FALAR COM A MESTRA';
  if(q===ACT3N.road&&!coatOwned&&act3World&&act3World.sellerMet&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';
  if(q>=ACT3N.city&&q<=ACT3N.boss&&!coatOwned&&!act3Void&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';

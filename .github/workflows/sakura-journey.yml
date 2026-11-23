@@ -6,10 +6,12 @@ on:
       - 'sakura-*.js'
       - 'sakura-*.test.mjs'
       - 'tools/qa/sakura-gameplay.cjs'
+      - 'tools/qa/sakura-pranchas.py'
       - '.github/workflows/sakura-journey.yml'
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: sakura-journey-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
@@ -48,25 +50,19 @@ jobs:
           git rev-parse HEAD > evidence/commit.txt
           python3 -m http.server 4432 --bind 127.0.0.1 > /tmp/sakura-http.log 2>&1 &
           node tools/qa/sakura-gameplay.cjs "${{ matrix.mode }}"
+      - name: Preparar comparação com a galeria transferida
+        if: success() && matrix.mode == 'mobile'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14806438904/zip" > "$RUNNER_TEMP/sakura-665.zip.tmp"; then
+            mv "$RUNNER_TEMP/sakura-665.zip.tmp" "$RUNNER_TEMP/sakura-665.zip"
+          fi
       - name: Pranchas dos quadros capturados
         if: always()
-        shell: python
         run: |
-          import base64, io, pathlib
-          from PIL import Image, ImageDraw
-          pics = sorted(pathlib.Path("evidence").glob("*.jpg"))
-          for start in range(0, len(pics), 4):
-              sheet = Image.new("RGB", (720, 464), "#192025")
-              draw = ImageDraw.Draw(sheet)
-              for i, pic in enumerate(pics[start:start+4]):
-                  with Image.open(pic) as frame:
-                      frame.thumbnail((356, 204))
-                      x, y = i % 2 * 360, i // 2 * 232
-                      sheet.paste(frame, (x+(360-frame.width)//2, y))
-                      draw.text((x+5, y+206), pic.stem, fill="white")
-              dest = pathlib.Path("evidence") / f"prancha-{start//4}.jpg"
-              sheet.save(dest, quality=76)
-              print("SAKURA_FRAME", dest.name, base64.b64encode(dest.read_bytes()).decode())
+          python3 -m pip install --disable-pip-version-check --target "$RUNNER_TEMP/sakura-pillow" Pillow==11.3.0
+          PYTHONPATH="$RUNNER_TEMP/sakura-pillow" python3 tools/qa/sakura-pranchas.py evidence "$RUNNER_TEMP/sakura-665.zip"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

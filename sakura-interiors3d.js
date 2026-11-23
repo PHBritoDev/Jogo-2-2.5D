@@ -16,7 +16,11 @@ export function surfaceFinish(T,wood){
   `vec2 block=q*vec2(.56,1.15);block.x+=mod(floor(block.y),2.)*.5;vec2 f=abs(fract(block)-.5);
   float seam=smoothstep(.437,.496,max(f.x,f.y))*(1.-smoothstep(.12,.62,max(fwidth(block.x),fwidth(block.y))));
   diffuseColor.rgb*=(1.-seam*.22)*(.92+.10*a);diffuseColor.rgb+=vec3(.012,.026,.044);
-  `));};
+  `));
+  sh.fragmentShader=sh.fragmentShader.replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n'+(wood?
+   'float fiber=clamp(vColor.g-vColor.b,0.,.50);roughnessFactor=clamp(.52+.31*fiber+.10*a,.45,.90);':
+   'float frost=smoothstep(.20,.55,vColor.b);roughnessFactor=clamp(.86-.38*frost+.09*(a-.5),.32,.92);'));
+ };
  return m;
 }
 export function hallDetails(T,{root,feature,landmarks}){
@@ -88,6 +92,10 @@ export function hallDetails(T,{root,feature,landmarks}){
    m.tube([0,30.45,z],[0,31.42,z],.88,.53,0xa5bcc7,8);
   }
  },177);
+ return interiorLights(T,root);
+}
+
+export function interiorLights(T,root){
  // Each emitter belongs to its architectural source. Distance only fades the
  // room at its threshold; walking across the floor cannot drag the light pool.
  const sources = [
@@ -103,13 +111,13 @@ export function hallDetails(T,{root,feature,landmarks}){
   root.add(lamp);
   return {lamp,room,power};
  });
- return P => {
+ return (P,night=0) => {
   for(const {lamp,room,power} of sources){
    const dojo=room===DOJO;
    const dx=Math.max(0,Math.abs(P.x-room.x)-(dojo?11:27));
    const dz=Math.max(0,room.z-(dojo?11:42)-P.z,P.z-room.z-(dojo?11:67));
    const u=Math.min(1,Math.hypot(dx,dz)/12);
-   lamp.intensity=power*(1-u*u*(3-2*u));
+   lamp.intensity=power*(dojo?1+.4*night:1)*(1-u*u*(3-2*u));
    lamp.visible=lamp.intensity>.01;
   }
  };
