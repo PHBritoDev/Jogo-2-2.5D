@@ -12,7 +12,8 @@ test('Bispo 3 runtime QA launches each skill once and polls read-only state', ()
   const block = runtime.slice(start, end);
   assert.match(block, /const launch=await p\.evaluate\(id=>/);
   assert.match(block, /d\.kitMove\(id\)/);
-  assert.ok(block.indexOf('d.skills()') < block.indexOf('d.kitMove(id)'));
+  const unlock = runtime.indexOf('d.skills()');
+  assert.ok(unlock >= 0 && unlock < start, 'unlock skills before entering the observation loop');
   const pollStart = block.indexOf('p.waitForFunction(id=>');
   const pollEnd = block.indexOf('},id,{timeout:180000,polling:250});', pollStart);
   assert.ok(pollStart >= 0 && pollEnd > pollStart);
@@ -27,7 +28,7 @@ test('six-seals QA launches once and observes the actual aura phase', () => {
   assert.ok(start >= 0 && end > start);
   const block = sixSeals.slice(start, end);
   assert.match(block, /d\.kitMove\('ult'\)/);
-  assert.ok(block.indexOf('d.skills()') < block.indexOf("d.kitMove('ult')"));
+  assert.ok(block.indexOf('d.skills()') >= 0 && block.indexOf('d.skills()') < block.indexOf("d.kitMove('ult')"));
   assert.doesNotMatch(block, /for\s*\(/);
   assert.match(block, /page\.waitForFunction/);
   assert.match(block, /c\?\.phase==='aura'/);
