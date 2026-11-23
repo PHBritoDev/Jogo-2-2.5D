@@ -64,3 +64,15 @@ test('A1: nova captura de pointer lock limpa tecla iniciada sem captura', () => 
   h.lock({});
   assert.equal(h.state.s, false);
 });
+
+
+test('A1: keydown duplicado não transfere uma tecla antiga para o novo contexto', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  // Browser may deliver a duplicate keydown before the pointerlockchange event.
+  h.doc.pointerLockElement = canvasB;
+  h.key('keydown', 'KeyW');
+  h.doc.dispatchEvent(new Event('pointerlockchange'));
+  assert.equal(h.state.w, false, 'a tecla do canvas antigo deve ser liberada');
+});
