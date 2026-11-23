@@ -11,7 +11,7 @@ try{
  await page.route('https://cdn.jsdelivr.net/npm/three@*/**',r=>r.fulfill({path:path.join(root,r.request().url().split(/three@[^/]+\//)[1].split('?')[0]),contentType:'text/javascript'}));
  await page.addInitScript(()=>{
   localStorage.setItem('seven-sins-3d-graphics','low');
-  localStorage.setItem('sevenSins3DCampaignV6',JSON.stringify({version:6,act1Rev:2,questStep:15,act1Sub:0,
+  if(!localStorage.getItem('sevenSins3DCampaignV6'))localStorage.setItem('sevenSins3DCampaignV6',JSON.stringify({version:6,act1Rev:2,questStep:15,act1Sub:0,
    playerName:'Lia',awake:true,awakeningSeen:true,actCardSeen:true,wardenDefeated:true,coins:98,
    bishopsDefeated:2,vhazraelRewardClaimed:true,vorgazhekRewardClaimed:true}));
  });
@@ -36,6 +36,20 @@ try{
     }}
    return issues;
   });fs.writeFileSync(path.join(out,'collision.json'),JSON.stringify(issues,null,1));console.log('SAMPLES',JSON.stringify(issues));if(issues.length)throw Error('Piso ou colisão fora do limite');
+  const at=async(x,z)=>{await page.evaluate(({x,z})=>{const d=SevenSinsDebug3D;d.placeAt(x,d.groundAt(x,z),z);},{x,z});};
+  const button=page.locator('#dialog-continue');
+  await at(-1038.2,-1608.6);await page.waitForFunction(()=>SevenSinsDebug3D.storyState().label==='FALAR COM A MESTRA');
+  await page.evaluate(()=>SevenSinsDebug3D.interact());await button.waitFor({state:'visible'});
+  const first=await page.locator('#dialog-text').innerText();if(!first.includes('Lia'))throw Error('Nome ausente no dojo');
+  for(let i=0;i<3;i++)await button.click();
+  await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.SevenSinsDebug3D?.storyState().sub===1&&Math.abs(SevenSinsDebug3D.walkState().x+1040)<4,null,{timeout:240000});
+  await at(564,-194);for(let i=0;i<9;i++){if(await button.isVisible())await button.click();if(await page.evaluate(()=>SevenSinsDebug3D.storyState().sub===2))break;await page.waitForTimeout(450);}
+  await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===2);await at(150,-40);
+  await page.waitForFunction(()=>SevenSinsDebug3D.storyState().scene==='cidade-neve');await page.evaluate(()=>SevenSinsDebug3D.skipStory());
+  await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q===16);
+  fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,subAfterThrone:2,cityStep:16}));
  }else if(mode==='walk'||mode==='replay'){
   await page.evaluate(async({fast})=>{
    const d=SevenSinsDebug3D,{ROUTE,CITY_ROAD,FROM_CITY,MASTER}=await import('/sakura-route3d.js');

@@ -13,9 +13,9 @@ export function skyVeil(T){
  void main(){vec3 d=normalize(ray);float up=max(.0,d.y);vec2 p=d.xz/(.19+up)*1.45+vec2(clock*.0015,clock*.0008);
  float v=clouds(p),light=clouds(p+vec2(.34,.18));vec3 zen=mix(vec3(.30,.45,.63),vec3(.12,.21,.33),snow);
  vec3 sky=mix(haze,zen,pow(up,.38));vec3 cloud=mix(vec3(.93,.73,.71),vec3(.53,.61,.70),snow);cloud*=.72+.4*light;
- sky=mix(sky,cloud,smoothstep(.34,.68,v)*(.53+.46*snow));vec3 moon=normalize(vec3(.48,.44,-.76));
- float disc=length(d-moon);sky+=vec3(.33,.15,.15)*exp(-disc*8.)*bloom;
- sky=mix(sky,vec3(1.,.84,.80)*(.83+.17*clouds(d.xz*85.)),(1.-smoothstep(.076,.081,disc))*bloom*(1.-smoothstep(.52,.7,v)));
+ sky=mix(sky,cloud,smoothstep(.34,.68,v)*(.53+.46*snow));vec3 moon=normalize(vec3(42.,72.,95.));
+ float disc=length(d-moon);sky+=vec3(.33,.15,.15)*exp(-disc*8.)*bloom*night;
+ sky=mix(sky,vec3(1.,.84,.80)*(.83+.17*clouds(d.xz*85.)),(1.-smoothstep(.076,.081,disc))*bloom*night*(1.-smoothstep(.52,.7,v)));
  sky*=1.-night*.57;gl_FragColor=vec4(sky,opacity);
  #include <colorspace_fragment>
  }`});

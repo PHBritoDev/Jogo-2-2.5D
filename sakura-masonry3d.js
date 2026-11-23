@@ -157,3 +157,22 @@ export function glacierHouse(m,variant=0){
  m.box(0,1.0,-2.81,1.05,2,.11,wood);m.tube([w*.65,h,1],[w*.65,h+3.8,1],.41,.33,rock,4,Math.PI/4);
 }
 export { arch, spire };
+export function distantPagoda(m){
+ for(let j=0;j<4;j++){const s=12-j*2.5,y=j*6.5;
+  m.box(0,y+2.4,0,2*s,4.8,1.85*s,j?0xc984a0:0x855164);
+  for(const a of [-1,1])for(const b of [-1,1])m.box(a*s,y+2.7,b*s*.91,.64,5.4,.64,bark);
+  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+  for(let k=0;k<4;k++){const a=corners[k],b=corners[(k+1)%4];
+   const corner=([x,z])=>[x*(s+3),y+6.7,z*(s+2)],mid=[(a[0]+b[0])*(s+3)/2,y+5.3,(a[1]+b[1])*(s+2)/2],ridge=[0,y+9,0];
+   m.tri(corner(a),mid,ridge,slate);m.tri(mid,corner(b),ridge,slate);m.rib([corner(a),mid,corner(b)],.22,brass,5);}
+ }
+ m.tube([0,27,0],[0,33,0],.38,.02,brass,6);
+}
+export function distantCastle(m){
+ m.box(0,12,13,55,24,108,rock);
+ for(const s of [-1,1]){for(const [x,z,r,h] of [[45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],[25,-38,5.5,73],[12,70,4.8,112]]){
+  m.tube([s*x,0,z],[s*x,h*.62,z],r,r*.87,rock,7);
+  m.tube([s*x,h*.62,z],[s*x,h,z],r*1.12,.04,0x9faebc,7);}
+  m.quad([0,33,-42],[s*28,22,-42],[s*28,22,68],[0,33,68],deep);}
+ m.tube([0,28,41],[0,87,41],8,6.4,rock,8);m.tube([0,87,41],[0,134,41],8.2,.04,ice,8);
+}

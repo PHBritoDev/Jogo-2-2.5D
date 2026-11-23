@@ -298,7 +298,7 @@ var journeyWorld=null,journeyFall={on:false,from:0,cp:null,reached:new Set()};
 // o bairro canônico de Invernália usam a malha anterior nas duas costuras.
 var sakuraWorld=null;
 {const old=terrain3D.height,edge=terrain3D.boundaryDistance,water=terrain3D.waterDepth,walk=terrain3D.walkable;
- terrain3D.height=(x,z)=>{const p=sampleRoad(x,z),w=regionWeight(x,z,p);if(!w)return old(x,z);const h=routeGround(x,z,p);return w===1?h:old(x,z)*(1-w)+h*w;};
+ terrain3D.height=(x,z)=>{const p=sampleRoad(x,z),w=regionWeight(x,z,p);if(!w)return old(x,z);const h=routeGround(x,z,p);return w===1||p.i>=2.5&&(p.kind!=='town'||x>265)?h:old(x,z)*(1-w)+h*w;};
  terrain3D.boundaryDistance=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.02?Math.min(edge(x,z),p.d-119):edge(x,z);};
  terrain3D.walkable=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.15?!roadBlocked(x,z,p)&&p.d<164:walk(x,z);};
  terrain3D.waterDepth=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.12?lakeDepth(x,z):water(x,z);};
@@ -3011,9 +3011,9 @@ function updateAmbientLife(dt,now){
 function updateWorldAudio(dt){
  updateMapDiscovery(performance.now());
  const x=player.position.x,z=player.position.z;
- const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
+ const route=voidMode?null:sampleRoad(x,z),onPath=route&&regionWeight(x,z,route)>.2&&route.d<4||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
+ worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:Math.min(eldoriaFalls.distanceTo(x,z),Math.hypot(x+1684,z+846),Math.hypot(x+1235,z+1513)),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
@@ -4229,8 +4229,8 @@ function updateJourney(dt,now){
  // MOD 323 — ar da jornada: vista longa (serras, ponte e o vulcão a ~1 km), névoa recuada e plano de corte distante
  const jw=voidMode?0:Math.min(1,Math.max(0,(-112-P.x)/80));journeySkyK=jw;
  if(jw>0&&scene.fog){scene.fog.near+=(Math.max(scene.fog.near,70)-scene.fog.near)*jw;scene.fog.far+=(Math.max(scene.fog.far,640)-scene.fog.far)*jw;}
- {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
- journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
+ {const polar=voidMode?null:sampleRoad(P.x,P.z),wantFar=polar&&polar.i>34&&regionWeight(P.x,P.z,polar)>.2?2350:jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
+ journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode||((P.z < -775 || P.x > 318)&&regionWeight(P.x,P.z)>.25),eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
  if(!sakuraWorld&&!voidMode&&sampleRoad(P.x,P.z)&&regionWeight(P.x,P.z)>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
  if(sakuraWorld)sakuraWorld.update(dt,now,P,camera,scene.fog,dayNightState.t,voidMode);

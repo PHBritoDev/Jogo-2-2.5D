@@ -89,3 +89,43 @@ export function treeLibrary(T){
  for(let n=0;n<4;n++)lib.push([pine(n,false),pine(n,true)]);
  return {lib,solid,wind};
 }
+
+// Eight small, original billboard studies of the same families. A single atlas
+// serves all far trees in a sector; the close and middle bands keep 3D branches.
+export function distantGrove(T,focus,limit){
+ const n=128,canvas=document.createElement('canvas');canvas.width=n*4;canvas.height=n*2;
+ const c=canvas.getContext('2d');
+ for(let k=0;k<8;k++){const r=seeded(620+k*73);c.save();c.translate(k%4*n,Math.floor(k/4)*n);c.lineCap='round';c.lineJoin='round';
+  if(k<4){
+   c.strokeStyle='#61454e';c.lineWidth=5;c.beginPath();c.moveTo(64,125);c.bezierCurveTo(70,102,52,83,65,66);c.stroke();
+   const tips=[];for(let i=0;i<15;i++){const a=-2.78+i/14*2.44,R=37+r()*17,x=64+Math.cos(a)*R,y=79+Math.sin(a)*R;
+    c.strokeStyle='#61424b';c.lineWidth=2+r()*2;c.beginPath();c.moveTo(62,94-i%5*3);c.quadraticCurveTo((x+64)*.5,89,x,y);c.stroke();tips.push([x,y]);}
+   for(const [x,y] of tips)for(let i=0;i<53;i++){const a=r()*6.283,d=Math.sqrt(r())*15;
+    c.fillStyle=['#a46c88','#c786a0','#edb3c5','#e7aec6','#f5ced1'][Math.floor(r()*5)];
+    c.beginPath();c.ellipse(x+Math.cos(a)*d,y+Math.sin(a)*d*.68,2+r()*3.7,1.6+r()*3,0,0,6.29);c.fill();}
+  }else{
+   const h=106+r()*12,green=k===7;c.fillStyle='#665b55';c.fillRect(61,124-h,5,h);
+   for(let j=0;j<17;j++){const u=j/17,w=(1-u)**.78*(35+(k%3)*2.1),y=115-u*h;
+    for(const s of [-1,1])for(let i=0;i<8;i++){const b=(.48+r()*.55)*w,xx=64+s*b;
+     c.strokeStyle=green?(i%2?'#738d75':'#466252'):['#9eb4bf','#7c96a3','#cad8dc','#b2c7d1'][i%4];
+     c.lineWidth=1+r()*2.5;c.beginPath();c.moveTo(64,y-9);c.quadraticCurveTo(64+s*b*.55,y-3,xx,y+3+r()*3);c.stroke();
+     for(let f=1;f<6;f++){const x=64+(xx-64)*f/6;c.beginPath();c.moveTo(x,y-9+f*1.5);c.lineTo(x+s*(1+r()*2.6),y+f*1.45+r()*4);c.stroke();}
+    }}
+  }c.restore();
+ }
+ const texture=new T.CanvasTexture(canvas);texture.colorSpace=T.SRGBColorSpace;texture.anisotropy=2;
+ const mat=new T.MeshLambertMaterial({map:texture,alphaTest:.43,side:T.DoubleSide,emissive:0x462b3a,emissiveIntensity:.12});
+ mat.onBeforeCompile=sh=>{sh.uniforms.groveFocus=focus;
+  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 treeBase;uniform vec2 groveFocus;varying float vFar;').replace('#include <begin_vertex>','#include <begin_vertex>\nvFar=step('+limit.toFixed(1)+',length(treeBase-groveFocus));');
+  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vFar;').replace('#include <alphatest_fragment>','#include <alphatest_fragment>\nif(vFar<.5)discard;');};
+ return function make(entries){
+  const p=[],uv=[],anchors=[],norm=[];for(const [type,locations] of entries)for(const [x,y,z,s,rot] of locations){
+   const w=(type<4?7.9:type===7?3.9:4.8)*s,h=(type<4?11.5:type===7?10.3:13.4+(type-4)*2.4)*s,col=type%4,row=Math.floor(type/4);
+   for(let j=0;j<2;j++){let dx=w*Math.cos(rot+j*1.5708),dz=w*Math.sin(rot+j*1.5708);
+    for(const [u,v] of [[0,0],[1,0],[1,1],[0,0],[1,1],[0,1]]){
+     p.push(x+(u*2-1)*dx,y+v*h,z+(u*2-1)*dz);norm.push(0,1,0);uv.push((col+.008+u*.984)/4,(1-row+.008+v*.984)/2);anchors.push(x,z);}
+   }
+  }
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('normal',new T.Float32BufferAttribute(norm,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setAttribute('treeBase',new T.Float32BufferAttribute(anchors,2));g.computeBoundingSphere();return new T.Mesh(g,mat);
+ };
+}
