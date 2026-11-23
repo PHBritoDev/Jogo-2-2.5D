@@ -37,3 +37,31 @@ test('fractional Eldoria X/Z terrain has connected triangles and uniform first o
   for (const index of indices) assert.ok(index >= 0 && index < nx * nz);
   assert.ok(positions.every(Number.isFinite));
 });
+
+test('mobile Eldoria mesh keeps nonzero triangles across all four fine-to-outer seams', () => {
+  const fineCell = 2.5;
+  const outerSteps = 32;
+  const { ax, az, positions, indices, nx, nz } = buildTerrainArrays(
+    { height: () => 0 },
+    { cx: -2, cz: -126, fineHalf: 206, fineHalfZ: 166, fineCell, outerSteps, growth: 1.095 },
+  );
+  const seamX = [outerSteps, outerSteps + 2 * Math.round(206 / fineCell)];
+  const seamZ = [outerSteps, outerSteps + 2 * Math.round(166 / fineCell)];
+  for (const [axis, seams] of [[ax, seamX], [az, seamZ]]) {
+    for (const seam of seams) {
+      close(axis[seam] - axis[seam - 1], fineCell);
+      close(axis[seam + 1] - axis[seam], fineCell);
+    }
+  }
+  // A connected index buffer alone does not rule out collapsed (zero-area) faces.
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = indices[i] * 3, b = indices[i + 1] * 3, c = indices[i + 2] * 3;
+    const twiceArea = Math.abs(
+      (positions[b] - positions[a]) * (positions[c + 2] - positions[a + 2]) -
+      (positions[c] - positions[a]) * (positions[b + 2] - positions[a + 2])
+    );
+    assert.ok(twiceArea > 1e-8, `collapsed terrain triangle ${i / 3}`);
+  }
+  assert.equal(ax.length, nx);
+  assert.equal(az.length, nz);
+});
