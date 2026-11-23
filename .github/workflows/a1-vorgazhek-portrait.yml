@@ -8,7 +8,6 @@ on:
       - 'tests/vorgazhek-portrait-framing.test.mjs'
       - 'tools/visual-lab/a1-vorgazhek-portrait-qa.cjs'
       - '.github/workflows/a1-vorgazhek-portrait.yml'
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
