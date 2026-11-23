@@ -178,7 +178,7 @@ fs.mkdirSync(dir, { recursive: true });
     assert.equal(report.steps.after.projectiles.length, 0, 'as quatro ondas precisam dissipar antes do fim do QA');
     assert.equal(report.steps.after.active, null, 'o rito precisa liberar a ação ao terminar');
     assert.deepEqual(report.errors, [], 'sem exceções WebGL/JS ou respostas HTTP falhas');
-    await page.screenshot({ path: path.join(dir, '06-dissipacao.png), timeout: 120000 });
+    await page.screenshot({ path: path.join(dir, '06-dissipacao.png'), timeout: 120000 });
     await page.evaluate(() => { SevenSinsDebug3D.fly(null); });
     report.ok = true;
   } finally {
