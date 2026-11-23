@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 
 test('cada missão opcional está ligada a um vendedor real e usa sua identidade nas falas', () => {
@@ -272,4 +273,111 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
+});
+
+
+test('fluxo real de conversa entrega as três missões e persiste sem duplicar recompensa', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const start = runtime.indexOf('function trySideQuestTalk(vendor){');
+  const end = runtime.indexOf('\\nsideReady=true;', start);
+  assert.ok(start >= 0 && end > start, 'extrair o roteador de conversa usado pelo jogo');
+  const talkSource = runtime.slice(start, end).trim();
+
+  function harness(state, ctx) {
+    const events = { dialogues: [], refreshes: 0, hudUpdates: 0, progressSaves: 0 };
+    const toast = {
+      textContent: '',
+      classList: {
+        remove(name) { events.toastRemoved = name; },
+        add(name) { events.toastAdded = name; }
+      }
+    };
+    const sandbox = {
+      sideState: state,
+      coins: 0,
+      xp: 0,
+      refreshSideQuests() { refreshSide(state, ctx); events.refreshes++; },
+      questForGiver,
+      acceptSide,
+      turnInSide,
+      showDialogue(lines, onDone) {
+        events.dialogues.push(lines);
+        events.complete = typeof onDone === 'function' ? onDone : null;
+      },
+      saveSide() { events.savedSide = JSON.parse(JSON.stringify(state)); },
+      save3DProgress() {
+        events.progressSaves++;
+        events.savedProgress = { coins: sandbox.coins, xp: sandbox.xp };
+      },
+      gainXp(amount) { sandbox.xp += amount; },
+      showRewardPop(message) { events.reward = message; },
+      updateQuestHud() { events.hudUpdates++; },
+      document: { getElementById(id) { assert.equal(id, 'quest-toast'); return toast; } },
+      setTimeout(callback, delay) { events.toastDelay = delay; callback(); }
+    };
+    const talk = vm.runInNewContext('(' + talkSource + ')', sandbox, { timeout: 1000 });
+    return { talk, events, sandbox };
+  }
+
+  // Bento: oferta, coleta de quatro flores, entrega e restauração sem pagamento repetido.
+  const bentoState = createSideState();
+  const bentoCtx = { questStep: 1, waystones: 0 };
+  const bento = harness(bentoState, bentoCtx);
+  const bentoVendor = { shortName: 'ALIMENTOS', name: 'Bento · Alimentos' };
+  assert.equal(bento.talk(bentoVendor), true);
+  assert.equal(bento.events.dialogues[0], SIDE_QUESTS.find(q => q.id === 'ervas').offer);
+  bento.events.complete();
+  assert.equal(bentoState.ervas.state, 'active');
+  assert.equal(bento.events.savedSide.ervas.state, 'active');
+  for (let i = 0; i < 4; i++) collectSide(bentoState, 'flor');
+  assert.equal(bento.talk(bentoVendor), true);
+  assert.equal(bento.events.dialogues[1], SIDE_QUESTS.find(q => q.id === 'ervas').turnIn);
+  bento.events.complete();
+  bento.events.complete();
+  assert.equal(bentoState.ervas.state, 'done');
+  assert.equal(bento.sandbox.coins, 10);
+  assert.equal(bento.sandbox.xp, 30);
+  assert.equal(bento.events.progressSaves, 1, 'callback repetido não deve pagar duas vezes');
+  const bentoReload = createSideState(bento.events.savedSide);
+  assert.equal(harness(bentoReload, bentoCtx).talk(bentoVendor), false);
+
+  // Téo: a contagem externa real de waystones dirige 2/3, prontidão e recompensa.
+  const teoState = createSideState();
+  const teoCtx = { questStep: 1, waystones: 0 };
+  const teo = harness(teoState, teoCtx);
+  const teoVendor = { shortName: 'PROVISÕES', name: 'Téo · Provisões' };
+  assert.equal(teo.talk(teoVendor), true);
+  assert.equal(teo.events.dialogues[0], SIDE_QUESTS.find(q => q.id === 'abrigos').offer);
+  teo.events.complete();
+  teoCtx.waystones = 2;
+  assert.equal(teo.talk(teoVendor), true);
+  assert.equal(teo.events.dialogues[1][0].text, 'Registre as três pedras de abrigo. (2/3)');
+  teoCtx.waystones = 3;
+  assert.equal(teo.talk(teoVendor), true);
+  assert.equal(teo.events.dialogues[2], SIDE_QUESTS.find(q => q.id === 'abrigos').turnIn);
+  teo.events.complete();
+  assert.equal(teoState.abrigos.state, 'done');
+  assert.equal(teo.sandbox.coins, 12);
+  assert.equal(teo.sandbox.xp, 40);
+  assert.equal(teo.events.savedProgress.coins, 12);
+  assert.equal(harness(createSideState(teo.events.savedSide), teoCtx).talk(teoVendor), false);
+
+  // Lia: permanece bloqueada até a etapa 2, depois entrega o pingente uma única vez.
+  const liaState = createSideState();
+  const liaCtx = { questStep: 1, waystones: 0 };
+  const lia = harness(liaState, liaCtx);
+  const liaVendor = { shortName: 'FRUTAS', name: 'Lia · Frutas' };
+  assert.equal(lia.talk(liaVendor), false);
+  liaCtx.questStep = 2;
+  assert.equal(lia.talk(liaVendor), true);
+  assert.equal(lia.events.dialogues[0], SIDE_QUESTS.find(q => q.id === 'pingente').offer);
+  lia.events.complete();
+  collectSide(liaState, 'pingente');
+  assert.equal(lia.talk(liaVendor), true);
+  assert.equal(lia.events.dialogues[1], SIDE_QUESTS.find(q => q.id === 'pingente').turnIn);
+  lia.events.complete();
+  assert.equal(liaState.pingente.state, 'done');
+  assert.equal(lia.sandbox.coins, 14);
+  assert.equal(lia.sandbox.xp, 35);
+  assert.equal(harness(createSideState(lia.events.savedSide), liaCtx).talk(liaVendor), false);
 });
