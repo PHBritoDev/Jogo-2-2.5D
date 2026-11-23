@@ -71,3 +71,40 @@ for (const fps of [20, 30, 60, 120]) {
     assert.equal(impacts.length, 2, 'nenhum impacto pode ser duplicado');
   });
 }
+
+test('QA multialvo: HP e posição do impacto da onda são independentes por inimigo', () => {
+  const hp = new Map([['left', 198], ['right', 173]]);
+  const impacts = [];
+  const rites = new SwordRites({
+    hit: (amount, id, kind) => {
+      assert.equal(kind, 'energy-side');
+      assert.ok(hp.has(id), 'ID do inimigo deve existir no cenário');
+      hp.set(id, hp.get(id) - amount);
+    },
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+  });
+  const wave = makeEnergy({
+    kind: 'wave', speed: 12, range: 3, radius: 1.2, life: 10, roll: 0, band: .7,
+  }, { x: 0, y: 1, z: 0 }, 0, 0);
+  wave.travel = 2.9;
+  wave.owner = { damage: 24, def: { multiplier: 1 }, targetId: 'primary' };
+  rites.energies.push(wave);
+  const others = [
+    { id: 'left', x: -.2, y: 1, z: 3, radius: .45, height: 1.8, alive: true },
+    { id: 'right', x: .2, y: 1, z: 3, radius: .45, height: 1.8, alive: true },
+  ];
+  rites.update(1 / 30, { from: { x: 0, y: 0, z: 0 }, target: null, others });
+  assert.ok(hp.get('left') < 198 && hp.get('right') < 173, 'ambos os HP devem cair');
+  assert.equal(impacts.length, 2);
+  for (const impact of impacts) {
+    const enemy = others.find(o => o.id === impact.target.id);
+    assert.ok(enemy, 'evento de impacto deve identificar o inimigo correto');
+    assert.ok(Math.abs(impact.p.x - enemy.x) < .001);
+    assert.ok(Math.abs(impact.p.z - (enemy.z - enemy.radius)) < .001,
+      'efeito deve nascer na superfície frontal do inimigo, não na origem da onda');
+  }
+  const after = [...hp];
+  rites.update(1 / 30, { from: { x: 0, y: 0, z: 0 }, target: null, others });
+  assert.deepEqual([...hp], after, 'não pode duplicar dano no quadro seguinte');
+  assert.equal(impacts.length, 2);
+});
