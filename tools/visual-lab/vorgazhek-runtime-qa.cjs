@@ -5,7 +5,7 @@ const base=process.env.VISUAL_BASE_URL||'http://127.0.0.1:4173';
 const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','vorgazhek-runtime');fs.mkdirSync(out,{recursive:true});
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- let context=null;let page=null;
+ let context=null;let page=null;let portraitContext=null;let portraitPage=null;
  const report={ok:false,errors:[],screenshots:[],networkFailures:[],state:null,navigation:null,motion:[],renderer:'Chromium SwiftShader, not mobile FPS'};
  try{
   context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1,recordVideo:{dir:path.join(out,'videos')}});
@@ -41,7 +41,23 @@ async function main(){
   }
   const [forward,backward]=report.motion;
   assert.ok(forward.dx*backward.dx+forward.dz*backward.dz<0,'W/S must move in opposite directions');
-  await page.setViewportSize({width:393,height:852});await page.waitForTimeout(1000);await shot('03-retrato-celular');
+  // Keep the recorded landscape video fixed at 960x540; portrait gets its own non-recording context.
+  portraitContext=await browser.newContext({viewport:{width:393,height:852},deviceScaleFactor:1});
+  portraitPage=await portraitContext.newPage();
+  portraitPage.on('pageerror',err=>report.errors.push(err.message));
+  portraitPage.on('console',msg=>{if(msg.type()==='error'&&/shader|WebGL|compile|INVALID/i.test(msg.text()))report.errors.push(msg.text());});
+  portraitPage.on('response',res=>{if(res.status()>=400&&!res.url().endsWith('favicon.ico'))report.networkFailures.push({status:res.status(),url:res.url()});});
+  await portraitPage.goto(base+'/mundo-3d-prototype.html?testeDimensao=bishop2&debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
+  await portraitPage.waitForFunction(()=>!!window.SevenSinsDebug3D,null,{timeout:180000});
+  await portraitPage.waitForFunction(()=>{const d=window.SevenSinsDebug3D;const s=d?.dimState?.();if(s?.vs)d.vsGo();const n=d?.dimState?.();return !!(n?.battle?.active&&!n.vs&&n.voidMode);},null,{timeout:180000});
+  await portraitPage.evaluate(()=>{SevenSinsDebug3D.god();SevenSinsDebug3D.speed(1);});
+  await portraitPage.waitForTimeout(8000);
+  await portraitPage.evaluate(()=>{SevenSinsDebug3D.fly(null);SevenSinsDebug3D.view(0,.1,8.5);});
+  await portraitPage.waitForTimeout(1800);
+  report.portraitState=await portraitPage.evaluate(()=>({dimension:SevenSinsDebug3D.dimState(),render:SevenSinsDebug3D.rinfo(),state:SevenSinsDebug3D.state()}));
+  assert.equal(report.portraitState.dimension.battle.key,'bishop2','portrait game entered bishop2');
+  await portraitPage.screenshot({path:path.join(out,'03-retrato-celular.png'),timeout:60000});
+  report.screenshots.push('03-retrato-celular.png');
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.networkFailures,[]);report.ok=true;
  }catch(err){
   // A failed movement assertion must be diagnosable from the uploaded JSON,
@@ -50,6 +66,8 @@ async function main(){
   throw err;
  }finally{
   // Finalize video even when an assertion fails; preserve evidence for diagnosis.
+  try{if(portraitPage)await portraitPage.close();}catch(err){report.errors.push('portrait page close: '+err.message);}
+  try{if(portraitContext)await portraitContext.close();}catch(err){report.errors.push('portrait context close: '+err.message);}
   try{if(page){const video=page.video();await page.close();if(video)report.video=await video.path();}}catch(err){report.errors.push('video finalization: '+err.message);}
   try{if(context)await context.close();}catch(err){report.errors.push('context close: '+err.message);}
   fs.writeFileSync(path.join(out,'resultado.json'),JSON.stringify(report,null,2)+'\n');
