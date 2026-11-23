@@ -177,9 +177,9 @@ export function getZarkhaelLighting() {
   return {
     bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
     hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
-    // Lower, stronger fill reaches actor materials instead of only the floor.
-    // 36m covers the 30m combat disc from its center mount while leaving the corridor outside.
-    light:[0xdfe6f2,7.2,36,[0,5.5,4]], exposure:.85
+    // Bias the existing fill toward the darker boss while keeping the player and full combat disc in range.
+    // The 36m cutoff still excludes the distant corridor; no additional light or shadow is introduced.
+    light:[0xdfe6f2,8.2,36,[0,4.5,1.5]], exposure:.85
   };
 }
 export function buildMushroomDimension(THREE,group,spec,ctx) {

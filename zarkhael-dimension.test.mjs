@@ -32,19 +32,22 @@ test('quality limits animation distance, density and target sampling without rem
   assert.ok(q[0].fraction>0);assert.equal(q[2].fraction,1);
 });
 
-test('Zar’khael keeps the black corridor and concentrates the existing fill on both combatants',()=>{
+test('Zar’khael biases the existing fill toward the boss while preserving player coverage and the black corridor',()=>{
   const env=getZarkhaelLighting();
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,7.2,36,[0,5.5,4]]);
-  assert.ok(env.light[1]>=7&&env.light[3][1]<=6,'fill must reach actor height with enough intensity');
+  assert.deepEqual(env.light,[0xdfe6f2,8.2,36,[0,4.5,1.5]]);
+  assert.ok(env.light[1]>=8&&env.light[3][1]<=5,'fill must reach actor height with enough intensity');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
   const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
-  assert.ok(distanceTo(spots.player)<env.light[2],'player spawn must be inside the local fill');
-  assert.ok(distanceTo(spots.boss)<env.light[2],'boss spawn must be inside the local fill');
-  assert.ok(Math.hypot(0,1.7-ly,-30-lz)<env.light[2],'the far edge of the combat disc must remain inside the local fill');
+  const playerDistance=distanceTo(spots.player),bossDistance=distanceTo(spots.boss);
+  assert.ok(playerDistance<env.light[2],'player spawn must remain inside the local fill');
+  assert.ok(bossDistance<env.light[2],'boss spawn must remain inside the local fill');
+  assert.ok(bossDistance+3<playerDistance,'the darker boss must receive the stronger share of the existing fill');
+  const edgeDistances=[[30,0],[-30,0],[0,30],[0,-30]].map(([x,z])=>Math.hypot(x-lx,1.7-ly,z-lz));
+  assert.ok(Math.max(...edgeDistances)<env.light[2],'the full 30m combat disc must remain inside the fill');
   assert.ok(Math.hypot(lx,3.5-ly,-210-lz)>env.light[2],'distant corridor must remain outside the local fill');
 });
 
