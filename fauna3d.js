@@ -15,7 +15,7 @@ export const FAUNA_CELL = 40;
 /** Retry limitado para GLBs de fauna: falha transitória não desativa a espécie até recarregar o jogo. */
 export const FAUNA_LOAD_RETRY = Object.freeze({
   attemptsPerCycle: 3,
-  backoffSeconds: Object.freeze([.75, 2, 5]),
+  backoffSeconds: Object.freeze([.75, 2]),
   cycleCooldownSeconds: 30,
   maxCycles: 2
 });
@@ -71,7 +71,7 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
  */
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, lastLoadError: null, loadMs: [] };
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, lastLoadError: null, loadMs: [] };
   const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
@@ -89,7 +89,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     if (assets[kind]) return Promise.resolve(assets[kind]);
     if (pending[kind]) return pending[kind];
     const state = loadState[kind] || (loadState[kind] = { attempts: 0, cycles: 0, retryAt: 0, permanent: false });
-    if (state.permanent || t < state.retryAt) return Promise.resolve(null);
+    if (state.permanent || state.exhausted || t < state.retryAt) return Promise.resolve(null);
     if (state.attempts >= FAUNA_LOAD_RETRY.attemptsPerCycle) state.attempts = 0;
     const attempt = ++state.attempts, S = FAUNA[kind], t0 = performance.now();
     if (attempt > 1 || state.cycles > 0) stats.loadRetries++;
@@ -116,7 +116,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         state.permanent = true; stats.permanentFailures++;
       } else if (attempt >= FAUNA_LOAD_RETRY.attemptsPerCycle) {
         if (state.cycles + 1 >= FAUNA_LOAD_RETRY.maxCycles) {
-          state.permanent = true; stats.permanentFailures++;
+          state.exhausted = true; stats.retryExhausted++;
         } else {
           state.cycles++;
           state.retryAt = t + FAUNA_LOAD_RETRY.cycleCooldownSeconds;
@@ -183,7 +183,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
       const retry = loadState[kind];
-      if (list.length && !assets[kind] && !loading && (!retry || (!retry.permanent && t >= retry.retryAt))) { loading = load(kind).finally(() => { loading = null; }); }
+      if (list.length && !assets[kind] && !loading && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) { loading = load(kind).finally(() => { loading = null; }); }
     }
     for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
     const population = {};
