@@ -20,6 +20,7 @@ test('energia lateral usa o evento de impacto uma vez, sem duplicar áudio/VFX d
   const sandbox = {
     squadSq: () => ({ actor: () => actor, damageActor: () => { calls.damage++; return 12; } }),
     player: { position: { x: 0, z: 0 } },
+    playerYaw: 0,
     slashVFX: { impact: () => { calls.slash++; } },
     squadRT: { flash: () => { calls.flash++; } },
     worldAudio: { hit: () => { calls.audio++; } },
