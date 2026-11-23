@@ -5,6 +5,7 @@ import { getVorgazhekLighting } from '../vorgazhek-abyss-dimension3d.js';
 
 const source = readFileSync(new URL('../vorgazhek-abyss-dimension3d.js', import.meta.url), 'utf8');
 const preview = readFileSync(new URL('../tools/visual-lab/vorgazhek-abyss-preview.html', import.meta.url), 'utf8');
+const runtimeQA = readFileSync(new URL('../tools/visual-lab/vorgazhek-runtime-qa.cjs', import.meta.url), 'utf8');
 
 test('VORGAZHEK gets a stronger local fill while the abyss and exposure stay dark', () => {
   const env = getVorgazhekLighting(85);
@@ -32,4 +33,11 @@ test('abyss preview consumes the exact production lighting preset', () => {
   assert.match(preview, /new THREE\.DirectionalLight\(\.\.\.e\.sun\)/);
   assert.match(preview, /new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
   assert.doesNotMatch(preview, /new THREE\.PointLight\(0xdadce6,35,180\)/);
+});
+
+
+test('runtime QA records landscape video at fixed size and captures portrait separately', () => {
+  assert.match(runtimeQA, /browser\.newContext\(\{viewport:\{width:393,height:852\},deviceScaleFactor:1\}\)/);
+  assert.doesNotMatch(runtimeQA, /page\.setViewportSize/);
+  assert.match(runtimeQA, /report\.portraitState=/);
 });
