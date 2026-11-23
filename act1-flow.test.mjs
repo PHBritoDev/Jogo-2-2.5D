@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import * as A from './act1-flow.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
@@ -56,6 +57,16 @@ test('cada etapa e sub-etapa tem objetivo; há luta nas etapas 2 a 5', () => {
   assert.match(questPresentation(4, 2).objective, /galerias/);
   for (const s of [2, 3, 4, 5]) assert.equal(combatStep(s), true);
   for (const s of [0, 1, 6, 7, 8]) assert.equal(combatStep(s), false);
+});
+
+test('o desmaio mantém o objetivo atual sem antecipar a pista dos esgotos', () => {
+  const source = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const scene = source.match(/function playFaint\\(\\)\\s*\\{([\\s\\S]*?)\\n\\}/);
+  assert.ok(scene, 'gatilho do desmaio presente no runtime');
+  assert.match(scene[1], /act1Advance\\(4,0\\)/);
+  assert.match(scene[1], /status\\.textContent=questPresentation\\(4,0\\)\\.objective/);
+  assert.doesNotMatch(scene[1], /Bispo anda pelos esgotos/);
+  assert.doesNotMatch(questPresentation(4, 0).objective, /esgoto/i);
 });
 
 test('floresta: 1 Seguidor, depois mais 2 (3 no total), e a chave', () => {
