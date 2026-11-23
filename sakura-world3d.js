@@ -22,14 +22,38 @@ export function createSakuraWorld(T,scene,{ground,low}){
  }
  function model(name,i,fn,reach=310,yaw){const p=ROUTE[i],o=feature(name,p,fn,reach);o.rotation.y=yaw??sampleRoad(p.x,p.z).tangent;return o;}
  function register(x,z,r){landmarkSolids.push({x,z,r});}
- function azimuthMark(m,kind){
-  if(kind==='bell'){
-   for(const a of [-1,1])m.tube([3*a,0,0],[3*a,5,0],.29,.22,0x614147);
-   m.box(0,5.2,0,7.6,.54,1.2,0x4e414b);m.tube([0,4.9,0],[0,4.1,0],.09,.09,0xba9d73);
-   m.tube([0,2.7,0],[0,4.25,0],.9,.46,0x987858,12);m.tube([0,2.6,0],[0,2.78,0],1,.85,0xb09d70,12);
-  }else{for(let j=0;j<4;j++)m.box(0,j*.24,0,4.6-j*.62,.35,3.7-j*.48,0x807574);
-   m.tube([0,.7,0],[0,3.2,0],.64,.51,0x75787b,8);m.tube([0,3.2,0],[0,4.5,0],.85,.045,0x648c9c,6);
-   lantern(m,-2,0,-1,true);lantern(m,2,0,-1,true);}
+ function trailFeature(m,k){
+  const timber=0x594244,stone=0x847b75;
+  if(k===0 || k===4){
+   // A fallen mother tree shelters the root garden; its lone winter sister is split by frost.
+   const frost=k===4, reach=frost?2.7:5;
+   m.rib([[-reach,.4,0],[-1,1.5,.5],[.6,2.8,0],[reach,3.6,-.8]],.47,timber);
+   for(let j=0;j<7;j++){const a=j*2.4,x=(j-3)*.56;
+    m.rib([[x,2.4+x*.42,0],[x+.64,3.3+x*.42,Math.cos(a)],[x+Math.sin(a)*1.8,3.9+x*.42,Math.cos(a)*2]],.13,frost?0xbac6c9:timber,6);}
+   for(let j=0;j<5;j++)m.tube([-reach,.9,0],[-reach+Math.sin(j*2)*1.7,.05,Math.cos(j*2)*1.5],.27,.05,0x79715c,6);
+  }else if(k===2){
+   // A hollow stone basin and a split bamboo spout below the lantern.
+   const n=16;
+   for(let j=0;j<n;j++){const a=j*2*Math.PI/n,b=(j+1)*2*Math.PI/n;
+    const p=(t,r,h)=>[r*Math.cos(t),h,r*Math.sin(t)];
+    m.quad(p(a,1.4,0),p(b,1.4,0),p(b,1.9,1),p(a,1.9,1),stone);
+    m.quad(p(a,1.9,1),p(b,1.9,1),p(b,1.52,.94),p(a,1.52,.94),0xa09b8d);
+    m.tri([0,.74,0],p(a,1.6,.74),p(b,1.6,.74),0x58898a);}
+   m.tube([2.4,0,0],[2.4,1.9,0],.12,.11,0x747b57);
+   m.tube([2.8,1.82,0],[.94,1.53,0],.14,.12,0xaaa177);lantern(m,-2.4,0,-1,true);
+  }else if(k===1 || k===3){
+   // Observation deck and swallow roost both open toward the valley.
+   for(let j=0;j<10;j++)m.box(0,.24,j*.44-2,5,.33,.41,timber);
+   for(const sign of [-1,1]){
+    m.tube([sign*2.4,-.3,-2],[sign*2.4,1.6,-2],.13,.12,timber);
+    m.rib([[sign*2.4,1.5,-2],[sign*2.4,1.5,2]],.11,timber);}
+   if(k===1)m.box(0,.85,1.7,3,.23,.8,stone);
+   else for(let j=0;j<3;j++){m.tube([j-1,0,1],[j-1,3+j*.32,1],.13,.08,timber);m.box(j-1,2.9+j*.32,1,.76,.48,.72,0xa56b56);}
+  }else{
+   for(const side of [-1,1]){m.quad([side*2,0,-2],[0,3,-2],[0,3,2],[side*2,0,2],0x8a9b9c);
+    m.tube([side*2,0,-2],[0,3,-2],.14,.12,timber);}
+   m.box(0,.17,.35,2.4,.22,2.6,timber);lantern(m,2.7,0,-1,true,.72);
+  }
  }
  function bridge(m,len,w,dy,rope){
   const parts=Math.ceil(len/1.1);for(let i=0;i<parts;i++){const z=i*len/parts,y=dy*i/parts;
@@ -45,7 +69,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  for(const [k,d] of DETOURS.entries()){const p=d.points[2],o=feature(d.name,{x:p.x+6,z:p.z+4},m=>{
    if(k===7||k===8){spire(m,0,0,0,3.4,18+k*.7);arch(m,6,0,0,2.7,6,'x',.5);return;}
    if(k===6){for(let j=0;j<15;j++){const a=j*2.4,r=1.5+(j%4)*.57;m.tube([Math.cos(a)*r,-.6,Math.sin(a)*r],[Math.cos(a)*(r+1.2),2+(j%5)*.7,Math.sin(a)*(r+1.2)],.6,.03,j%2?0x8ac9dd:0xa4d7de,6);}return;}
-   azimuthMark(m,k%2?'bell':'shrine');
+   trailFeature(m,k);
   });o.rotation.y=.4*k;register(o.position.x,o.position.z,k>=7?3.2:1.3);}
  function building(name,p,farModel,richModel,wood){
   const haze={value:new T.Color(0xa5b8c9)},mix={value:0},mat=new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide,fog:false});
@@ -224,7 +248,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
    vegetationLOD(part);}
   for(const l of landmarks)l.o.visible=l.reach===Infinity||Math.hypot(l.o.position.x-P.x,l.o.position.z-P.z)<l.reach;
   const cold=snowAt(p.i),blossom=bloomAt(p.i),inside=Math.abs(P.x-DOJO.x)<11&&Math.abs(P.z-DOJO.z)<10||Math.abs(P.x-CASTLE.x)<27&&P.z>CASTLE.z-40&&P.z<CASTLE.z+67;
-  lightHall(P,inside&&Math.abs(P.x-DOJO.x)<11,inside&&Math.abs(P.x-CASTLE.x)<27);
+  lightHall(P);
   animateBasins(now*.001);wind.value=now*.001;air.copy(summer).lerp(winter,cold).lerp(night,nightK*.66);
   if(fog&&w>.01){fog.color.lerp(air,w*.82);fog.near+=(34+22*cold-fog.near)*w;fog.far+=(625-cold*80-fog.far)*w;}
   sky.update(camera,now*.001,cold,blossom,nightK,w,air);

@@ -3,25 +3,27 @@ const mode=process.argv[2]||'walk', out=process.env.OUT||path.resolve('qa-output
 fs.mkdirSync(out,{recursive:true});
 (async()=>{const b=await chromium.launch({args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader','--autoplay-policy=no-user-gesture-required']});
 try{
- const mobile=mode!=='desktop',width=mobile?852:1200,height=mobile?393:675;
+ const mobile=['mobile','portrait'].includes(mode);
+ const width=mode==='portrait'?393:mobile?852:1200, height=mode==='portrait'?852:mobile?393:675;
+ const tier=process.env.GRAPHICS||'low';
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
  const page=await ctx.newPage(),root=path.resolve(path.dirname(require.resolve('three')),'..');
  page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.stack||e.message);});
  page.on('console',m=>{if(/WebGLProgram: Shader Error|THREE.WebGLShader: Shader couldn't compile/.test(m.text()))errors.push(m.text().slice(0,600));});
  await page.route('https://cdn.jsdelivr.net/npm/three@*/**',r=>r.fulfill({path:path.join(root,r.request().url().split(/three@[^/]+\//)[1].split('?')[0]),contentType:'text/javascript'}));
- await page.addInitScript(()=>{
-  localStorage.setItem('seven-sins-3d-graphics','low');
+ await page.addInitScript(tier=>{
+  localStorage.setItem('seven-sins-3d-graphics',tier);
   if(!localStorage.getItem('sevenSins3DCampaignV6'))localStorage.setItem('sevenSins3DCampaignV6',JSON.stringify({version:6,act1Rev:2,questStep:15,act1Sub:0,
    playerName:'Lia',awake:true,awakeningSeen:true,actCardSeen:true,wardenDefeated:true,coins:98,
    bishopsDefeated:2,vhazraelRewardClaimed:true,vorgazhekRewardClaimed:true}));
- });
+ },tier);
  await page.goto((process.env.GAME_URL||'http://localhost:4432')+'/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.SevenSinsDebug3D&&document.querySelector('#loading').classList.contains('hidden'),null,{timeout:240000});
  await page.waitForFunction(()=>{const d=window.SevenSinsDebug3D;return d&&d.storyState().q===15&&Math.abs(d.walkState().x+1235.8)<3;},null,{timeout:90000});
- await page.evaluate(()=>{const d=SevenSinsDebug3D;d.fly();d.speed(1);d.sprint(true);});
+
  const report=[];const video=page.video();
  await page.exposeFunction('recordStop',async(name,metrics,photo=true)=>{
-  report.push({name,...metrics});fs.writeFileSync(path.join(out,'metrics.json'),JSON.stringify({mode,width,height,errors,report},null,1));
+  report.push({name,...metrics});fs.writeFileSync(path.join(out,'metrics.json'),JSON.stringify({mode,width,height,tier,errors,report},null,1));
   if(photo)await page.screenshot({path:path.join(out,name+'.jpg'),quality:84,timeout:90000});
   console.log(name,metrics.seconds||'',metrics.pos?.x,metrics.pos?.z,metrics.render?.calls);
  });
@@ -64,62 +66,69 @@ try{
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().scene==='cidade-neve');await page.evaluate(()=>SevenSinsDebug3D.skipStory());
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q===16);
   fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,galleryFloor:gallery.y,subAfterThrone:2,cityStep:16}));
- }else if(mode==='walk'||mode==='replay'){
-  await page.evaluate(async({fast})=>{
-   const d=SevenSinsDebug3D,{ROUTE,CITY_ROAD,FROM_CITY,MASTER}=await import('/sakura-route3d.js');
-   const next=()=>new Promise(requestAnimationFrame),start=performance.now();let lastInput=0;
-   async function step(x,z,name){
-    let minimum=Infinity,progress=performance.now(),previous=d.walkState(),metres=0,range=0,elapsed=performance.now(),nudge=0,lastFrame=elapsed,lastYaw=NaN;
+ }else if(mode==='walk'){
+  const points=await page.evaluate(async()=>{
+   const {FROM_CITY,ROUTE,MASTER,CITY_ROAD}=await import('/sakura-route3d.js');
+   return [...FROM_CITY.map((p,i)=>({...p,name:'cinzaria-'+i})),
+    ...ROUTE.flatMap((p,i)=>i===23?[{...p,name:'dojo'},{x:MASTER.x,z:MASTER.z-1.5,name:'mestra'}]:[{...p,name:'eixo-'+i}]),
+    ...CITY_ROAD.map((p,i)=>({...p,name:'bairro-'+i}))];
+  });
+  const down=new Set(),start=Date.now();
+  async function press(wanted){
+   for(const k of [...down])if(!wanted.includes(k)){await page.keyboard.up(k);down.delete(k);}
+   for(const k of wanted)if(!down.has(k)){await page.keyboard.down(k);down.add(k);}
+  }
+  try{
+   for(const point of points){
+    let best=Infinity,lastProgress=Date.now();
     while(true){
-     const t=performance.now(),s=d.walkState(),st=d.storyState(),dx=x-s.x,dz=z-s.z,r=Math.hypot(dx,dz);
-     metres+=Math.hypot(s.x-previous.x,s.z-previous.z);previous=s;range=r;
-     if(!document.querySelector('#dialog-panel').classList.contains('hidden')){if(t-lastInput>800){document.querySelector('#dialog-continue').click();lastInput=t;}progress=t;await next();continue;}
-     if(st.scene){if(st.waitingTap)d.tapStory();const choice=document.querySelector('#choice-card');if(choice&&!choice.hidden)document.querySelector('#choice-no').click();progress=t;await next();continue;}
-     if(r<(name.startsWith('cinzaria-')?1.5:1.35))break;
-     if(r<minimum-.15){minimum=r;progress=t;nudge=0;}
-     const stalled=t-progress;if(stalled>50000)throw Error('Passagem bloqueada '+JSON.stringify({name,x,z,s,st:st.label,r}));
-     if(stalled>4500)nudge=(stalled<11500?1:stalled<22000?-1:stalled<32000?1:-1)*(Math.PI*.39);
-     const a=Math.atan2(dx,dz)+nudge,yaw=Math.atan2(-dx,-dz);
-     if(!Number.isFinite(lastYaw)||Math.abs(Math.atan2(Math.sin(yaw-lastYaw),Math.cos(yaw-lastYaw)))>.32){d.viewQA(false,yaw,.13);lastYaw=yaw;}
-     const wall=Math.min(6,(t-lastFrame)/1000),catchUp=fast?Math.min(4,r/7):Math.max(0,wall-.04);
-     // Chromium software may present fewer than 25 frames/s. The shipped game caps a
-     // frame at 40 ms. Replay the elapsed movement in its own 30 Hz QA stepper,
-     // bounded by real elapsed time and distance, with rendering on normal frames.
-     d.walkMove(Math.sin(a),Math.cos(a),Math.min(catchUp+.06,r/6.8));
-     if(catchUp>.034)d.combatStep(Math.min(catchUp,r/6.8),{fps:30,draw:false});
-     lastFrame=t;await next();
+     const state=await page.evaluate(()=>{const d=SevenSinsDebug3D;return {
+      pos:d.walkState(),yaw:d.dashProbe().camYaw,story:d.storyState(),
+      dialog:!document.querySelector('#dialog-panel').classList.contains('hidden')};});
+     if(state.story.q>=16)break;
+     if(state.dialog || state.story.scene){
+      await press([]);const next=state.dialog?'#dialog-continue':state.story.waitingTap?'#story-layer':null;
+      if(next&&await page.locator(next).isVisible())await page.locator(next).click({force:true});
+      if(await page.locator('#choice-no').isVisible())await page.locator('#choice-no').click();
+     }else{
+      const dx=point.x-state.pos.x,dz=point.z-state.pos.z,d=Math.hypot(dx,dz);
+      if(d<1.4){await press([]);break;}
+      if(d<best-.12){best=d;lastProgress=Date.now();}
+      const ix=(dx*Math.cos(state.yaw)-dz*Math.sin(state.yaw))/d;
+      const iz=(dx*Math.sin(state.yaw)+dz*Math.cos(state.yaw))/d;
+      const keys=[];if(Math.abs(ix)>.38)keys.push(ix>0?'d':'a');if(Math.abs(iz)>.38)keys.push(iz>0?'s':'w');
+      await press(keys);
+     }
+     if(Date.now()-lastProgress>90000)throw Error('Caminhada parou em '+JSON.stringify({point,state}));
+     await page.waitForTimeout(110);
     }
-    await window.recordStop(name,{pos:d.walkState(),render:d.squadRender(),metres,seconds:(performance.now()-elapsed)/1000,totalSeconds:(performance.now()-start)/1000},['eixo-5','eixo-13','eixo-22','eixo-32','eixo-41','eixo-56','eixo-62','bairro-12'].includes(name));
+    if(point.name==='mestra'){
+     await page.keyboard.press('e');
+     for(let i=0;i<3;i++)await page.locator('#dialog-continue').click({timeout:12000});
+     await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
+    }
+    const state=await page.evaluate(()=>({pos:SevenSinsDebug3D.walkState(),q:SevenSinsDebug3D.storyState().q}));
+    await page.evaluate(({point,state,seconds})=>window.recordStop(point.name,{...state,seconds},['dojo','eixo-5','eixo-41','eixo-62'].includes(point.name)),{point,state,seconds:(Date.now()-start)/1000});
+    if(state.q>=16)break;
    }
-   for(const [i,p] of FROM_CITY.entries())await step(p.x,p.z,'cinzaria-'+i);
-   for(const [i,p] of ROUTE.entries()){
-    await step(p.x,p.z,'eixo-'+i);
-    if(i===23){await step(MASTER.x,MASTER.z-1.5,'mestra');d.interact();
-     for(let k=0;k<16&&d.storyState().sub!==1;k++){document.querySelector('#dialog-continue').click();await next();}
-     if(d.storyState().sub!==1)throw Error('Objetivo do dojo não avançou');}
-   }
-   if(d.storyState().sub!==2)throw Error('Objetivo do trono não avançou');
-   for(const [i,p] of CITY_ROAD.entries()){await step(p.x,p.z,'bairro-'+i);if(d.storyState().q>=16)break;}
-   for(let i=0;i<1200&&d.storyState().q===15;i++){d.tapStory();await next();}
-   if(d.storyState().q!==16)throw Error('Chegada ao pescador falhou');
-   await window.recordStop('chegada',{pos:d.walkState(),q:d.storyState().q,totalSeconds:(performance.now()-start)/1000});
-  },{fast:mode==='replay'});
+   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q>=16,null,{timeout:45000});
+  }finally{await press([]);}
  }else{
   const shots=[
    ['01-cinzas',-1568,-545,-1690,-660],['02-torii',-1732,-812,-1740,-833],['03-bosque',-1480,-1219,-1484,-1244],
-   ['04-lago',-1368,-1461,-1223,-1464],['05-templo',-1040,-1662,-1040,-1605],
+   ['04-lago',-1368,-1461,-1223,-1464],['04b-pagode-distante',-1190,-1368,-1040,-1610],['05-templo',-1040,-1662,-1040,-1605],
    ['06-dojo',-1040,-1618,-1039,-1604],['07-geada',-607,-1684,-542,-1700],
    ['08-pinhal',-72,-2090,0,-1980],['09-vale',51,-1644,255,-1690],['10-espelho',753,-1847,931,-1730],
-   ['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
+   ['10b-castelo-distante',637,-576,564,-254],['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
    ['14-bairro',145,-37,162,-34]
   ];
-  await page.addStyleTag({content:'body > :not(canvas):not(#loading) { visibility:hidden !important } canvas {visibility:visible !important}'}); // clean eye-level comparison frames
+  // Keep the HUD visible for framing and touch-control inspection.
   for(const [name,x,z,tx,tz] of shots){
    const result=await page.evaluate(async({name,x,z,tx,tz})=>{
     const d=SevenSinsDebug3D;d.placeAt(x,d.groundAt(x,z),z);d.viewQA(true,Math.atan2(x-tx,z-tz),name==='11-cidadela'?-.24:name==='12-nave'?-.20:name==='05-templo'?-.22:0);
     d.viewQA(false,Math.atan2(x-tx,z-tz),.10);
     const y=d.groundAt(x,z),top=name==='11-cidadela'?33:name==='12-nave'?10:name==='13-trono'?6:name==='05-templo'?12:name==='06-dojo'?1.8:2;
-    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?81+top:name==='05-templo'?127+top:d.groundAt(tx,tz)+top,tz]);
+    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?81+top:name==='05-templo'||name==='04b-pagode-distante'?127+top:name==='10b-castelo-distante'?128:d.groundAt(tx,tz)+top,tz]);
     for(let i=0;i<24;i++){if(!document.querySelector('#dialog-panel').classList.contains('hidden'))document.querySelector('#dialog-continue').click();await new Promise(requestAnimationFrame);}
     const ts=[];let prev=performance.now();for(let i=0;i<9;i++){const t=await new Promise(requestAnimationFrame);ts.push(t-prev);prev=t;}
     return {pos:d.walkState(),render:d.squadRender(),framesMs:ts,heapBytes:performance.memory?.usedJSHeapSize};

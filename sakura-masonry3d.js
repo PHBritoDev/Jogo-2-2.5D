@@ -33,15 +33,16 @@ export function torii(m,s=1){
  for(let i=-6;i<6;i++){const f=i/6,g=(i+1)/6;for(const [dy,col,w] of [[0,vermilion,.23],[.27,slate,.28]]){
   m.tube([f*5.1*s,(6+.51*f*f+dy)*s,0],[g*5.1*s,(6+.51*g*g+dy)*s,0],w*s,w*s,col,6);}}
 }
-function roof(m,y,rx,rz,rise){
+function roof(m,y,rx,rz,rise,coarse=false){
  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
  for(let side=0;side<4;side++){const a=corners[side],b=corners[(side+1)%4];
   function pt(u,v){const X=a[0]+(b[0]-a[0])*u,Z=a[1]+(b[1]-a[1])*u;
    return [X*rx*(1-.76*v),y+rise*(v*v*.72+v*.28)+1.15*(1-v)*Math.pow(Math.abs(2*u-1),3),Z*rz*(1-.76*v)];}
-  for(let j=0;j<4;j++)for(let i=0;i<14;i++){const u=i/14,v=j/4;
-   m.quad(pt(u,v),pt((i+1)/14,v),pt((i+1)/14,(j+1)/4),pt(u,(j+1)/4),[0x2f3346,0x414158,0x344455,0x414a60][(i+j)%4]);
-   if(j===0)m.tube(pt(u,0),pt((i+1)/14,0),.17,.15,brass,6);
-   if(i%2===0)m.tube(pt(u,v),pt(u,(j+1)/4),.07,.07,0x5c5463,5);
+  const rows=coarse?2:4,tiles=coarse?6:14;
+  for(let j=0;j<rows;j++)for(let i=0;i<tiles;i++){const u=i/tiles,v=j/rows;
+   m.quad(pt(u,v),pt((i+1)/tiles,v),pt((i+1)/tiles,(j+1)/rows),pt(u,(j+1)/rows),[0x2f3346,0x414158,0x344455,0x414a60][(i+j)%4]);
+   if(j===0)m.tube(pt(u,0),pt((i+1)/tiles,0),.17,.15,brass,6);
+   if(!coarse&&i%2===0)m.tube(pt(u,v),pt(u,(j+1)/rows),.07,.07,0x5c5463,5);
   }
   m.rib([pt(0,1),pt(0,.6),pt(0,.28),pt(0,0)],.22,0x72676d);
  }
@@ -64,6 +65,17 @@ export function dojoBuilding(m){
    shoji(s*w,0,2*d,h,false,y);if(n)shoji(s*w*.5,-d,w,h,true,y);
    else shoji(s*(w+2.6)/2,-d,w-2.6,h,true,y);
    for(const t of [-1,1]){m.tube([s*w,y,t*d],[s*w,y+h,t*d],.36,.30,vermilion,10);m.box(s*w,y+h-.35,t*d,1.38,.4,1.4,brass);}
+  }
+  // Interlocking bracket arms carry the eaves past the corner columns.
+  for(const sx of [-1,1])for(const sz of [-1,1]){
+   const x=sx*w,z=sz*d;
+   for(let level=0;level<3;level++){
+    const lift=y+h-.9+level*.34,reach=.62+level*.47;
+    m.box(x+sx*reach*.48,lift,z,reach+.65,.23,.36,wood);
+    m.box(x,lift+.14,z+sz*reach*.48,.36,.21,reach+.65,vermilion);
+    m.box(x+sx*reach,lift+.16,z,.39,.22,.48,bark);
+    m.box(x,lift+.30,z+sz*reach,.48,.22,.39,bark);
+   }
   }
   m.box(0,y+h,0,2*w+1.6,.38,2*d+1.6,wood);roof(m,y+h+.15,w+3.4,d+3.2,n===3?3.6:2.7);
  }
@@ -113,6 +125,19 @@ export function castleBuilding(m){
  for(const s of [-1,1]){
   for(const [x,z,r,h] of [[45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],[25,-38,5.5,73],[26,58,5,97],[12,70,4.8,112]])
    spire(m,s*x,0,z,r,h);
+  // Paired upper lancets stand proud of the taller belfries, with a
+  // recessed inner face, a stone mullion and snow on the projecting sill.
+  for(const [x,z,r,h] of [[75,-23,6,80],[42,75,8,107],[25,-38,5.5,73]]){
+   const face=z-r*.91;
+   for(const dx of [-r*.32,r*.32]){
+    const cx=s*x+dx,base=h*.39,w=r*.22,peak=h*.139;
+    m.quad([cx-w,base,face],[cx+w,base,face],[cx+w,base+peak*.66,face],[cx-w,base+peak*.66,face],deep);
+    m.tri([cx-w,base+peak*.66,face],[cx+w,base+peak*.66,face],[cx,base+peak,face],deep);
+    arch(m,cx,base,face-.14,w,peak,'x',.17,edge);
+    m.box(cx,base+.1,face-.10,w*2.5,.32,.72,snow);
+    m.tube([cx,base,face-.11],[cx,base+peak*.76,face-.11],.09,.07,edge,6);
+   }
+  }
   m.box(s*45,4,-12,2.4,16,75,rock);
   for(let i=-46;i<=33;i+=7){m.box(s*45,12.9,i,2.75,1.8,3.4,snow);}
   // A pointed peristyle with a real opening on the axis.
@@ -161,10 +186,7 @@ export function distantPagoda(m){
  for(let j=0;j<4;j++){const s=12-j*2.5,y=j*6.5;
   m.box(0,y+2.4,0,2*s,4.8,1.85*s,j?0xc984a0:0x855164);
   for(const a of [-1,1])for(const b of [-1,1])m.box(a*s,y+2.7,b*s*.91,.64,5.4,.64,bark);
-  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
-  for(let k=0;k<4;k++){const a=corners[k],b=corners[(k+1)%4];
-   const corner=([x,z])=>[x*(s+3),y+6.7,z*(s+2)],mid=[(a[0]+b[0])*(s+3)/2,y+5.3,(a[1]+b[1])*(s+2)/2],ridge=[0,y+9,0];
-   m.tri(corner(a),mid,ridge,slate);m.tri(mid,corner(b),ridge,slate);m.rib([corner(a),mid,corner(b)],.22,brass,5);}
+  roof(m,y+(j?4.05:5.95),s+3.15,s+2.55,j===3?3.6:2.7,true);
  }
  m.tube([0,27,0],[0,33,0],.38,.02,brass,6);
 }

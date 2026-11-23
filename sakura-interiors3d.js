@@ -88,10 +88,29 @@ export function hallDetails(T,{root,feature,landmarks}){
    m.tube([0,30.45,z],[0,31.42,z],.88,.53,0xa5bcc7,8);
   }
  },177);
- const light=new T.PointLight(0xffc6b3,0,32,2);root.add(light);
- return (P,dojo,hall)=>{
-  light.visible=dojo||hall;if(!light.visible)return;
-  light.color.set(dojo?0xffd4bd:0xbedfff);light.intensity=dojo?44:67;
-  light.position.set(P.x+1.5,P.y+(dojo?3.1:5.1),P.z+1.8);
+ // Each emitter belongs to its architectural source. Distance only fades the
+ // room at its threshold; walking across the floor cannot drag the light pool.
+ const sources = [
+  [DOJO, -5.6, 2.1, -9.6, 0xffc58b, 36, 16],
+  [DOJO, 9, 2.1, 7, 0xffb0b7, 26, 14],
+  [CASTLE, -24, 13, -14, 0x9eddf2, 135, 36],
+  [CASTLE, 24, 13, 18, 0xa1c9ff, 145, 38],
+  [CASTLE, 0, 8, 61, 0xc6f4ff, 82, 25]
+ ].map(([room,x,y,z,color,power,range]) => {
+  const lamp = new T.PointLight(color, 0, range, 2);
+  lamp.position.set(room.x+x,room.y+y,room.z+z);
+  lamp.visible=false;
+  root.add(lamp);
+  return {lamp,room,power};
+ });
+ return P => {
+  for(const {lamp,room,power} of sources){
+   const dojo=room===DOJO;
+   const dx=Math.max(0,Math.abs(P.x-room.x)-(dojo?11:27));
+   const dz=Math.max(0,room.z-(dojo?11:42)-P.z,P.z-room.z-(dojo?11:67));
+   const u=Math.min(1,Math.hypot(dx,dz)/12);
+   lamp.intensity=power*(1-u*u*(3-2*u));
+   lamp.visible=lamp.intensity>.01;
+  }
  };
 }

@@ -44,10 +44,16 @@ export function treeLibrary(T){
     for(const i of [0,1,2,0,2,3]){pos.push(p[0]+pts[i][0],p[1]+pts[i][1],p[2]+pts[i][2]);uv.push(i===0||i===3?0:1,i<2?0:1);col.push(c.r,c.g,c.b);}
    }
   }
-  const color=barkColors[n],top=[(n-1)*.42,4.7*h,.49];m.rib([[0,0,0],[.32,1.65,-.2],[-.37,3,.28],top],.49*w,color);
+  const color=barkColors[n],lean=[-.8,1.35,-1.5,.48][n],top=[lean,4.7*h,.49];
+  const spine=[[0,-.1,0],[-lean*.42,1.65,-.2],[lean*.34,3,.28],top];
+  for(let j=1;j<spine.length;j++)m.tube(spine[j-1],spine[j],(.83-j*.10)*w,(.73-j*.1)*w,color,far?7:10);
+  if(!far)for(let j=0;j<5;j++){const a=j*Math.PI*.4;
+   const fluting=spine.map(([x,y,z],i)=>[x+(.63-i*.09)*w*Math.cos(a+i*.54),y,z+(.63-i*.09)*w*Math.sin(a+i*.54)]);
+   m.rib(fluting,.083,0x634a4c,5);}
+
   for(let j=0;j<6;j++){const a=j*1.047+r()*.4;m.tube([0,1,0],[Math.cos(a)*1.7,.02,Math.sin(a)*1.7],.34,.06,color,7);}
   for(let j=0;j<(far?6:9);j++){const a=(j+n*.21)*2.4,rise=(j%3)*.9;
-   const A=[top[0]*.5,2.2+rise*.8,0],B=[w*1.8*Math.cos(a),4.1*h+rise,w*1.8*Math.sin(a)],C=[w*3.7*Math.cos(a+.25),5.2*h+rise,w*3.7*Math.sin(a+.25)];
+   const A=[lean*(.10+rise*.32),2.4+rise*.8,.12],B=[w*1.8*Math.cos(a),4.1*h+rise,w*1.8*Math.sin(a)],C=[w*3.7*Math.cos(a+.25),5.2*h+rise,w*3.7*Math.sin(a+.25)];
    m.tube(A,B,.36*w,.21,color,7);m.tube(B,C,.22,.12,color,6);
    for(let k=0;k<(far?2:4);k++){const ang=a+(k-1.5)*.60,reach=(1.05+r()*1.9)*w,D=[C[0]+reach*Math.cos(ang),C[1]+.75+r()*1.5,C[2]+reach*Math.sin(ang)];
     m.tube(C,D,.14,.045,color,5);cluster(D,(far?2.9:2.13)*(.86+r()*.3));
