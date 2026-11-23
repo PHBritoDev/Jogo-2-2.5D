@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
       - name: Rules and source syntax
         run: |
-          node --test dimensions3d.test.mjs vorgazhek-eclipse-sword.test.mjs
+          node --test dimensions3d.test.mjs vorgazhek-eclipse-sword.test.mjs tests/vorgazhek-abyss-lighting.test.mjs
           node --input-type=module --check < vorgazhek-abyss-dimension3d.js
           node --input-type=module --check < dimension-arenas3d.js
           node --check tools/visual-lab/vorgazhek-abyss-qa.cjs
