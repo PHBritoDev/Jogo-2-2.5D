@@ -27,7 +27,7 @@ function harness() {
     doc.pointerLockElement = target;
     doc.dispatchEvent(new Event('pointerlockchange'));
   };
-  return { state, key, lock, doc };
+  return { state, key, lock, doc, win };
 }
 
 test('A1: trocar diretamente o alvo do pointer lock libera WASD antigo', () => {
@@ -105,4 +105,16 @@ test('A1: keydown duplicado depois de fullscreenchange fica bloqueado até keyup
   h.key('keyup', 'KeyW');
   h.key('keydown', 'KeyW');
   assert.equal(h.state.w, true, 'um novo pressionamento após keyup deve funcionar');
+});
+
+
+test('A1: blur limpa quarentena antiga para não perder a próxima tecla após Alt-Tab', () => {
+  const h = harness(), canvasA = {}, canvasB = {};
+  h.lock(canvasA);
+  h.key('keydown', 'KeyW');
+  h.lock(canvasB);
+  assert.equal(h.state.w, false);
+  h.win.dispatchEvent(new Event('blur'));
+  h.key('keydown', 'KeyW');
+  assert.equal(h.state.w, true, 'uma nova pressão após recuperar foco deve responder');
 });

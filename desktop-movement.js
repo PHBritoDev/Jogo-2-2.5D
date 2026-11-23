@@ -24,6 +24,7 @@ export function bindMovementKeys(win, doc) {
   }
   function clear() {
     held.clear();
+    suppressedUntilKeyup.clear();
     for (const key of Object.keys(state)) state[key] = false;
   }
   win.addEventListener('keydown', event => {
