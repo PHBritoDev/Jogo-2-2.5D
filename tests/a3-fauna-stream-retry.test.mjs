@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFauna, FAUNA_LOAD_RETRY } from '../fauna3d.js';
+import { createFauna, FAUNA_LOAD_RETRY, cellCandidate } from '../fauna3d.js';
 
 class Vec3 {
   constructor(x = 0, y = 0, z = 0) { this.set(x, y, z); }
@@ -81,15 +81,17 @@ function loaderFor(results) {
   }
   return { Loader, calls: () => calls };
 }
-function create(loader) {
-  return createFauna({ T, scene: scene(), GLTFLoader: loader, skClone: x => x, base: './', ground, ctx });
+function create(loader, habitat = ctx) {
+  return createFauna({ T, scene: scene(), GLTFLoader: loader, skClone: x => x, base: './', ground, ctx: habitat });
 }
 const tick = (fauna, dt) => fauna.update(dt, { px: 0, pz: 0, hour: 22, camera: null });
 
 test('fauna: retry limitado recupera GLB após falha transitória e respeita o backoff', async () => {
   assert.deepEqual(FAUNA_LOAD_RETRY, {
-    attemptsPerCycle: 3, backoffSeconds: [.75, 2, 5], cycleCooldownSeconds: 30, maxCycles: 2
+    attemptsPerCycle: 3, backoffSeconds: [.75, 2], cycleCooldownSeconds: 30, maxCycles: 2
   });
+  assert.equal(FAUNA_LOAD_RETRY.backoffSeconds.length, FAUNA_LOAD_RETRY.attemptsPerCycle - 1,
+    'um ciclo de três tentativas precisa de exatamente dois intervalos entre tentativas');
   const mock = loaderFor([new Error('network connection reset'), 'ok']);
   const fauna = create(mock.Loader);
   const first = await fauna.load('grilo');
@@ -112,6 +114,29 @@ test('fauna: retry limitado recupera GLB após falha transitória e respeita o b
   fauna.dispose();
 });
 
+
+test('fauna: scanner de produção tenta novamente após o backoff no habitat ativo', async () => {
+  const candidate = cellCandidate('grilo', -1, -1);
+  const habitat = {
+    biome: (x, z) => Math.abs(x - candidate.x) < 1e-6 && Math.abs(z - candidate.z) < 1e-6 ? 'vale' : 'cidade',
+    water: () => -1, road: () => false, lava: () => 0, blocked: () => false
+  };
+  const mock = loaderFor([new Error('network connection reset'), 'ok']);
+  const fauna = create(mock.Loader, habitat);
+  const update = dt => fauna.update(dt, { px: candidate.x, pz: candidate.z, hour: 22, camera: null });
+
+  update(0);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(mock.calls(), 1);
+  assert.equal(fauna.stats.loadFailures, 1);
+
+  update(.8);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(mock.calls(), 2, 'o scanner real agenda a nova tentativa quando o backoff termina');
+  assert.deepEqual(fauna.stats.loaded, ['grilo']);
+  fauna.dispose();
+});
+
 test('fauna: 404 é permanente na sessão e não gera requisições repetidas', async () => {
   const mock = loaderFor([new Error('fetch for Grilo.glb responded with 404: Not Found'), 'ok']);
   const fauna = create(mock.Loader);
@@ -122,6 +147,20 @@ test('fauna: 404 é permanente na sessão e não gera requisições repetidas', 
   await fauna.load('grilo');
   assert.equal(mock.calls(), 1, 'asset ausente não entra em loop de rede');
   assert.equal(fauna.stats.permanentFailures, 1);
+  assert.equal(fauna.stats.retryExhausted, 0);
+  fauna.dispose();
+});
+
+test('fauna: 429 é transitório e continua elegível para retry', async () => {
+  const mock = loaderFor([new Error('fetch for Grilo.glb responded with 429: Too Many Requests'), 'ok']);
+  const fauna = create(mock.Loader);
+  const failure = await fauna.load('grilo');
+  assert.equal(failure.permanent, false);
+  assert.equal(fauna.stats.permanentFailures, 0);
+  tick(fauna, .8);
+  await fauna.load('grilo');
+  assert.equal(mock.calls(), 2);
+  assert.deepEqual(fauna.stats.loaded, ['grilo']);
   fauna.dispose();
 });
 
@@ -137,6 +176,10 @@ test('fauna: falhas transitórias têm teto de seis tentativas por espécie', as
   tick(fauna, 60); await fauna.load('grilo');
   assert.equal(mock.calls(), 6);
   assert.equal(fauna.stats.loadFailures, 6);
-  assert.equal(fauna.stats.permanentFailures, 1);
+  assert.equal(fauna.stats.permanentFailures, 0, 'falha transitória esgotada não é erro HTTP permanente');
+  assert.equal(fauna.stats.retryExhausted, 1);
+  tick(fauna, 60);
+  await fauna.load('grilo');
+  assert.equal(mock.calls(), 6, 'o teto continua bloqueando novas tentativas após esgotar');
   fauna.dispose();
 });
