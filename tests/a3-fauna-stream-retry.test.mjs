@@ -18,6 +18,7 @@ class Object3D {
   add(child) { this.children.push(child); child.parent = this; }
   remove(child) { this.children = this.children.filter(x => x !== child); child.parent = null; }
   updateMatrix() {}
+  dispose() {}
 }
 class InstancedMesh extends Object3D {
   constructor(geometry, material, count) {
