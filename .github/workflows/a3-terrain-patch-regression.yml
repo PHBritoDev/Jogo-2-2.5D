@@ -5,6 +5,9 @@ on:
       - 'world3d-terrain.js'
       - 'tests/a3-terrain-axis-uniform.test.mjs'
       - 'tests/a3-terrain-color-invalid-regions.test.mjs'
+      - 'tests/a3-terrain-axis-edge.test.mjs'
+      - 'tools/visual-lab/a3-terrain-edge-plan.cjs'
+      - 'tools/visual-lab/eldoria-city-sweep.cjs'
       - 'tests/a3-terrain-patch-bounds.test.mjs'
       - 'tests/a3-foothill-route-clearance.test.mjs'
       - 'tests/a3-forest-invalid-boundary.test.mjs'
@@ -23,5 +26,7 @@ jobs:
           node-version: '22'
       - name: Validar sintaxe do terreno
         run: node --check world3d-terrain.js
+      - name: Validar scripts da captura dirigida
+        run: node --check tools/visual-lab/eldoria-city-sweep.cjs && node --check tools/visual-lab/a3-terrain-edge-plan.cjs
       - name: Executar regressões A3 reais do repositório
-        run: node --test tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs tests/a3-forest-invalid-boundary.test.mjs tests/a3-terrain-axis-uniform.test.mjs tests/a3-terrain-color-invalid-regions.test.mjs
+        run: node --test tests/a3-terrain-axis-edge.test.mjs tests/a3-terrain-patch-bounds.test.mjs tests/a3-foothill-route-clearance.test.mjs tests/a3-forest-invalid-boundary.test.mjs tests/a3-terrain-axis-uniform.test.mjs tests/a3-terrain-color-invalid-regions.test.mjs
