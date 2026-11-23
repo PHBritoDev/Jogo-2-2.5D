@@ -7,10 +7,10 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
  const field=new T.Group(),cast=new T.Group();root.add(field,cast);
  const add=(g,m)=>{const o=new T.Mesh(g,m);cast.add(o);return o};
  const glow=(color)=>new T.MeshBasicMaterial({color,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide});
- const R=arena.radius, U={clock:{value:0},pressure:{value:0},front:{value:-100},edge:{value:arena.edge},radius:{value:R},fade:{value:1},arenaFloor:{value:origin.y||0},normal:{value:new T.Vector2(0,1)},source:{value:new T.Vector2()},arenaCenter:{value:new T.Vector2(origin.x||0,origin.z||0)}};
+ const R=arena.radius, U={clock:{value:0},pressure:{value:0},blastFloor:{value:0},front:{value:-100},edge:{value:arena.edge},radius:{value:R},fade:{value:1},arenaFloor:{value:origin.y||0},normal:{value:new T.Vector2(0,1)},source:{value:new T.Vector2()},arenaCenter:{value:new T.Vector2(origin.x||0,origin.z||0)}};
  const floor=add(new T.PlaneGeometry(R*2,R*2),new T.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,
  vertexShader:'varying vec2 p;void main(){p=vec2(position.x,-position.y);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:`varying vec2 p;uniform float clock,pressure,front,edge,radius,fade;
+ fragmentShader:`varying vec2 p;uniform float clock,pressure,front,edge,radius,fade,blastFloor;
  uniform vec2 normal,source;void main(){float d=length(p-source);if(length(p)>radius)discard;
  vec2 q=p-source;float a=atan(q.y,q.x);float seam=exp(-5.*abs(dot(p,normal)-edge));
  if(dot(p,normal)>=edge){gl_FragColor=vec4(vec3(.13,.8,.68),fade*(.06+.8*seam));return;}
@@ -19,8 +19,10 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
  float cut=pow(.5+.5*cos(13.*a+sin(d*1.7)*.22+sin(d*.53)),24.);
  float shock=exp(-abs(d-front)*1.4);float wake=step(0.,front-d)*exp(-max(0.,front-d)*.065);
  vec3 col=mix(vec3(.27,.018,.32),vec3(1.,.43,.09),rune*bands)+vec3(.72,.20,1.)*(shock*2.+cut)+wake*vec3(.52,.055,1.);
- float ray=pow(.5+.5*cos(36.*a+2.4*floor(d/3.8)),10.)*smoothstep(.4,2.,d)*(1.-smoothstep(9.,18.,d))*pressure;col=mix(col,vec3(.84,.19,1.),ray);
- gl_FragColor=vec4(col,fade*clamp(.08+ray*.88+pressure*(.04+bands*.05+rune*.04)+shock*.4+wake*.22+seam,.0,.96));}`}));
+ float ray=pow(.5+.5*cos(36.*a+2.4*floor(d/3.8)),10.)*smoothstep(.4,2.,d)*(1.-smoothstep(9.,18.,d))*pressure*(1.-blastFloor);col=mix(col,vec3(.84,.19,1.),ray);
+ float pool=blastFloor*(1.-smoothstep(front-.9,front+.1,d));
+ col=mix(col,vec3(.23,.015,.84),pool*.84);
+ gl_FragColor=vec4(col,fade*clamp(.08+pool*.53+ray*.88+pressure*(.04+bands*.05+rune*.04)+shock*.4+wake*.22+seam,.0,.96));}`}));
  field.add(floor);floor.rotation.x=-Math.PI/2;floor.position.y=.18;
  const nucleus=add(new T.IcosahedronGeometry(1,1),glow(0xffd6ff));
  const hoops=[];for(let i=0;i<5;i++)hoops.push(add(new T.TorusGeometry(1,.018,5,72,Math.PI*(1.47+i*.09)),glow(i%2?0xffa234:0xbf58ff)));
@@ -63,6 +65,7 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
  const fragments=new T.InstancedMesh(new T.DodecahedronGeometry(1,0),new T.MeshStandardMaterial({color:0x21152e,flatShading:true,roughness:.94,emissive:0x14082a}),lowCount());
  function lowCount(){return quality==='low'?36:quality==='medium'?56:84}
  fragments.frustumCulled=false;cast.add(fragments);
+ const chargeEffects=[nucleus,halo,veil,streams,crown,...hoops];
  const blastVolume=createUsuraBlast(T,cast,U);
  const plasma=createUsuraPlasma(T,cast,U,quality);
  function update(s,t,anchor){
@@ -75,7 +78,7 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
   plasma.update({...s,reach:arena.reach},anchor);
   const p=s.progress,blast=s.phase==='detonate',after=s.phase==='aftermath'||s.phase==='recover';
   const k=s.phase==='announce'?.1*p:s.phase==='bladeCombo'?.045+.11*p:s.phase==='throw'?.29+.22*p:s.phase==='charge'?.34+.66*p:1;
-  U.clock.value=t;U.pressure.value=k;U.front.value=blast?s.front:-100;U.fade.value=after?(s.phase==='recover'?0:1-p):1;
+  U.clock.value=t;U.pressure.value=k;U.blastFloor.value=blast||after?1:0;U.front.value=blast?s.front:after?arena.reach:-100;U.fade.value=after?(s.phase==='recover'?0:1-p):1;
   curtain.visible=blast&&p<.32;const crest=4+10*Math.sin(Math.PI*p);curtain.position.y=crest*.5;curtain.scale.set(Math.max(.01,s.front),crest,Math.max(.01,s.front));
   chain.visible=!after&&!['announce','bladeCombo','throw'].includes(s.phase);fragments.visible=blast||s.phase==='aftermath';
   if(fragments.visible){
@@ -90,7 +93,7 @@ export function createCorona(T,scene,arena,quality,origin={x:0,y:0,z:0}){
    fragments.instanceMatrix.needsUpdate=true;
   }
   const envelope=after?(s.phase==='recover'?0:1-p):1;
-  for(const o of [nucleus,halo,veil,streams,crown,...hoops])o.visible=!blast&&!after;
+  for(const o of chargeEffects)o.visible=!blast&&!after;
   nucleus.position.copy(anchor);nucleus.scale.setScalar(.06+envelope*(blast?2.4*Math.exp(-p*7):k*.38));
   halo.position.copy(anchor);halo.scale.setScalar(envelope*(blast?20:10)*k);
   const pillar=blast?anchor.y+25*Math.sin(Math.PI*p):anchor.y;
