@@ -1,10 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-
-
-
-
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 
 test('cada missão opcional está ligada a um vendedor real e usa sua identidade nas falas', () => {
