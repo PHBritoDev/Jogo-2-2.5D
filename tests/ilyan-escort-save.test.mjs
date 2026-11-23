@@ -28,3 +28,13 @@ test('Ilyan checkpoint is cleared when the player has left the escort stage',()=
  }
  assert.equal(migrateProgress({...progress({ilyanEscortPosition:pos}),version:5}).ilyanEscortPosition,null);
 });
+
+// A migração reinicia o trecho antigo do Ato I: a posição anterior não é mais segura.
+test('obsolete act revision cannot restore Ilyan into a restarted escort', () => {
+ const pos={x:40,z:-48,yaw:1.2};
+ const oldSave=progress({act1Rev:ACT1.rev-1,ilyanEscortPosition:pos});
+ const migrated=migrateProgress(JSON.parse(JSON.stringify(oldSave)));
+ assert.equal(migrated.questStep,5);
+ assert.equal(migrated.ilyanEscortPosition,null);
+ assert.equal(migrated.act1Sub,0);
+});
