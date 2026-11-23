@@ -12,6 +12,23 @@ export const FAUNA = Object.freeze({
 });
 export const FAUNA_CELL = 40;
 
+/** Retry limitado para GLBs de fauna: falha transitória não desativa a espécie até recarregar o jogo. */
+export const FAUNA_LOAD_RETRY = Object.freeze({
+  attemptsPerCycle: 3,
+  backoffSeconds: Object.freeze([.75, 2, 5]),
+  cycleCooldownSeconds: 30,
+  maxCycles: 2
+});
+function assetHttpStatus(error) {
+  const message = String(error && error.message || error);
+  const match = message.match(/(?:\bHTTP\s*|\bresponded with\s*|\bstatus(?:\s+code)?\s*[:=]?\s*)(\d{3})\b/i);
+  return match ? Number(match[1]) : null;
+}
+function isPermanentAssetError(error) {
+  const status = assetHttpStatus(error);
+  return status !== null && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 function hash(a, b, s) { let h = (a * 374761393 + b * 668265263 + s * 974711) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
 const SEED = { coelho:61, montanha:79, lava:97, dourado: 23, grilo: 53 };
 /** Candidato determinístico de uma espécie numa célula (ou null): mesma resposta sempre, sem estado. */
@@ -54,7 +71,7 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
  */
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadMs: [] };
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, lastLoadError: null, loadMs: [] };
   const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
@@ -66,21 +83,49 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         : new Promise((ok, no) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = size; c.getContext('2d').drawImage(im, 0, 0, size, size); ok(c); }; im.onerror = no; im.src = URL.createObjectURL(blob); }));
     }).then(src => { const tx = new T.Texture(src); tx.flipY = false; tx.colorSpace = T.SRGBColorSpace; tx.needsUpdate = true; return tx; });
   } });
-  const pending = {};
+  const pending = {}, loadState = Object.create(null);
   function load(kind) {
     if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
-    if (assets[kind]) return Promise.resolve(assets[kind]); if (pending[kind]) return pending[kind];
-    const S = FAUNA[kind], t0 = performance.now(); stats.loads++;
-    const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
-    return pending[kind] = L.loadAsync(base + S.file).then(g => {
+    if (assets[kind]) return Promise.resolve(assets[kind]);
+    if (pending[kind]) return pending[kind];
+    const state = loadState[kind] || (loadState[kind] = { attempts: 0, cycles: 0, retryAt: 0, permanent: false });
+    if (state.permanent || t < state.retryAt) return Promise.resolve(null);
+    if (state.attempts >= FAUNA_LOAD_RETRY.attemptsPerCycle) state.attempts = 0;
+    const attempt = ++state.attempts, S = FAUNA[kind], t0 = performance.now();
+    if (attempt > 1 || state.cycles > 0) stats.loadRetries++;
+    stats.loads++;
+    const request = Promise.resolve().then(() => {
+      const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
+      return L.loadAsync(base + S.file);
+    });
+    return pending[kind] = request.then(g => {
       let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
       const old = mesh.material, mat = new T.MeshLambertMaterial({ map: old.map || null, color: old.map ? 0xffffff : old.color }); old.dispose();
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
       const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3 };
       if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
       else { A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
-      assets[kind] = A; stats.loaded.push(kind); stats.loadMs.push(Math.round(performance.now() - t0));
-    }).catch(e => { assets[kind] = { failed: String(e && e.message || e) }; }).finally(() => { delete pending[kind]; });
+      assets[kind] = A; delete loadState[kind];
+      stats.loaded.push(kind); stats.loadMs.push(Math.round(performance.now() - t0));
+      return A;
+    }).catch(e => {
+      const message = String(e && e.message || e), status = assetHttpStatus(e);
+      stats.loadFailures++;
+      stats.lastLoadError = { kind, message, status, attempt, cycle: state.cycles + 1 };
+      if (isPermanentAssetError(e)) {
+        state.permanent = true; stats.permanentFailures++;
+      } else if (attempt >= FAUNA_LOAD_RETRY.attemptsPerCycle) {
+        if (state.cycles + 1 >= FAUNA_LOAD_RETRY.maxCycles) {
+          state.permanent = true; stats.permanentFailures++;
+        } else {
+          state.cycles++;
+          state.retryAt = t + FAUNA_LOAD_RETRY.cycleCooldownSeconds;
+        }
+      } else {
+        state.retryAt = t + FAUNA_LOAD_RETRY.backoffSeconds[attempt - 1];
+      }
+      return { failed: message, retryAt: state.retryAt, permanent: state.permanent };
+    }).finally(() => { delete pending[kind]; });
   }
   // Only inspect rendered rocks when a bird is created. Intersect one nearby
   // instance at a time; a ray through the entire instanced world is expensive.
@@ -137,7 +182,8 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       const R = S.near, c0x = Math.floor((px - R) / FAUNA_CELL), c1x = Math.floor((px + R) / FAUNA_CELL), c0z = Math.floor((pz - R) / FAUNA_CELL), c1z = Math.floor((pz + R) / FAUNA_CELL), list = [];
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
-      if (list.length && !assets[kind] && !loading) { loading = load(kind).finally(() => { loading = null; }); }
+      const retry = loadState[kind];
+      if (list.length && !assets[kind] && !loading && (!retry || (!retry.permanent && t >= retry.retryAt))) { loading = load(kind).finally(() => { loading = null; }); }
     }
     for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
     const population = {};
