@@ -175,6 +175,7 @@ export function migrateProgress(raw) {
       ...shared,
       questStep: step,
       act1Sub: clampInt(raw.act1Sub, 0, 9, 0),
+      sakuraRest: Number.isInteger(raw.sakuraRest) && raw.sakuraRest >= 0 && raw.sakuraRest <= 62 ? raw.sakuraRest : -1,
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,

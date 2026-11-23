@@ -9,6 +9,9 @@ import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,w
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
 import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,CITY_PROPS,JOURNEY_HOLES,ROUTE,polyProject} from './jornada3d.js';
+import {ROUTE as SAKURA_ROAD, CITY_ROAD as GLACIAL_ROAD, FROM_CITY, MASTER, THRONE, DOJO, CASTLE, COAT_STALL, sampleRoad, regionWeight, routeGround, roadBlocked, lakeDepth, nextGuide, snowAt} from './sakura-route3d.js';
+import {createSakuraWorld} from './sakura-world3d.js';
+import {batch as sakuraBatch, glacierHouse} from './sakura-masonry3d.js';
 import {createJourneyWorld} from './jornada-world3d.js';
 import {createSkyAtmosphere} from './ceu-atmosfera3d.js';
 import {patchAuroraGround,updateAuroraLight,auroraUniforms} from './aurora-luz3d.js';
@@ -105,7 +108,7 @@ import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, 
 import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
-import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
+import { MAP_STORE_KEY, V4_MAP_BOUNDS, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { caveFloor, caveWall, supported, inBasin, nearestRest, VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
@@ -291,6 +294,14 @@ var journeyWorld=null,journeyFall={on:false,from:0,cp:null,reached:new Set()};
  terrain3D.height=(x,z)=>{if(!inJourney(x,z))return h0(x,z);const j=journeyHeight(x,z),k=mixK(x,z);if(k>=1)return j;const o=hOld(x,z);return o+(j-o)*k;};
  terrain3D.boundaryDistance=(x,z)=>{if(!inJourney(x,z))return b0(x,z);const j=journeyBoundary(x,z),k=mixK(x);return k>=1?j:Math.min(b0(x,z),j+(1-k)*8);};
  terrain3D.waterDepth=(x,z)=>inJourney(x,z)?(journeyRiverDepth(x,z)>0?journeyRiverDepth(x,z):-1):w0(x,z);}
+// A bacia nova só assume a superfície no seu próprio vale. A boca do vulcão e
+// o bairro canônico de Invernália usam a malha anterior nas duas costuras.
+var sakuraWorld=null;
+{const old=terrain3D.height,edge=terrain3D.boundaryDistance,water=terrain3D.waterDepth;
+ terrain3D.height=(x,z)=>{const p=sampleRoad(x,z),w=regionWeight(x,z,p);if(!w)return old(x,z);const h=routeGround(x,z,p);return w===1?h:old(x,z)*(1-w)+h*w;};
+ terrain3D.boundaryDistance=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.02?Math.min(edge(x,z),p.d-119):edge(x,z);};
+ terrain3D.waterDepth=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.12?lakeDepth(x,z):water(x,z);};
+}
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 /* RENASCIMENTO F2 — som do rio: distância à linha d'água (correnteza) e proximidade do vau (marulho nas pedras). */
 function riverAudioAt(x,z){const q=riverQuery.nearest(x,z);if(!q)return{riverDistance:99,fordNear:0};const d=Math.max(0,q.d-2.6);return{riverDistance:d,fordNear:riverBankOpts.fordS!==undefined?fordMask(q,riverBankOpts.fordS)*Math.max(0,1-d/12):0};}
@@ -1602,6 +1613,8 @@ new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
 const PROGRESS_KEY='sevenSins3DCampaignV6';
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){let raw=null;try{raw=JSON.parse(localStorage.getItem(key)||'null');}catch(_){continue;}/* A1-SAVE-FALLBACK-02: slot corrompido não esconde um slot antigo válido */if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
+let sakuraRest=Number.isInteger(saved3DProgress.sakuraRest)?saved3DProgress.sakuraRest:-1;
+let sakuraResume=saved3DProgress.questStep===15;
 let sideReady=false;
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
@@ -1673,7 +1686,7 @@ function warmJourneyPrograms(){
  let p=null;force();try{p=renderer.compileAsync?renderer.compileAsync(scene,camera):null;}catch(e){p=null;}restore();
  if(p)p.then(draw,draw);else draw();
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,sakuraRest,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -2304,6 +2317,8 @@ function blockedAt(x,z,skipRocks=false){
   if((ascKey||inVolcano)&&voidSpec.hazard?.(lx,lz))return inVolcano&&caveWall(lx,player.position.y-voidSpec.y+.8,lz);
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
+ const road=sampleRoad(x,z);
+ if(road&&regionWeight(x,z,road)>.15){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z)||road.d>164;}
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
 /* MOD 321 */ if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;
@@ -2961,7 +2976,7 @@ const faunaCtx={biome:faunaBiome,water:(x,z)=>terrain3D.waterDepth(x,z),road:fau
 const ashFx=createAshDissolve(THREE,scene,{low:terrainLowSpec});
 let fauna=null,faunaInsects=0;
 /* áudio: bioma para os ambientes reais (consulta a cada 0,5 s — faunaBiome varre árvores próximas) */
-let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;audioBiomeV=faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
+let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;const r=sampleRoad(player.position.x,player.position.z);audioBiomeV=r&&regionWeight(player.position.x,player.position.z,r)>.2?(snowAt(r.i)>.55?'neve':r.i>3?'forest':'serra'):faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
 const forestPlaces=buildForestPlaces(THREE,{ground:(x,z)=>groundHeightAt(x,z),obstacles:rockObstacles,lowSpec:terrainLowSpec});scene.add(forestPlaces.group);
 /* MOD 317 — a garganta de origem segue por dias até as terras baixas: depois da curva (ORIGIN_LIMIT) o herói não segue
    (limite narrativo da estrada, sem parede invisível em objeto pequeno). O Anjo chama de volta uma vez. */
@@ -2998,7 +3013,7 @@ function updateWorldAudio(dt){
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
 const MAP_STORE=MAP_STORE_KEY;
-const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
+const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v4=JSON.parse(localStorage.getItem('seven-sins-3d-map-v4')||'null');if(v4)saved=migrateLegacyFog(v4,V4_MAP_BOUNDS);}if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
@@ -3031,6 +3046,7 @@ function buildMapBase(){
  const px=(x)=>(x-MAP_BOUNDS.x0)/MAP_BOUNDS.size*N,pz=(z)=>(z-MAP_BOUNDS.z0)/MAP_BOUNDS.size*N;
  g.fillStyle='rgba(28,52,30,.75)';for(const t of treeSpecs){if(!t.collide)continue;g.beginPath();g.arc(px(t.x),pz(t.z),.9+t.s*.5,0,Math.PI*2);g.fill();}
  g.strokeStyle='#b39a68';g.lineCap='round';g.lineJoin='round';for(const route of trailRoutes){if(route.noMesh)continue;g.lineWidth=route.width/MAP_BOUNDS.size*N*.8;g.beginPath();route.points.forEach((p,k)=>k?g.lineTo(px(p[0]),pz(p[1])):g.moveTo(px(p[0]),pz(p[1])));g.stroke();}
+ g.strokeStyle='#a799a9';g.lineWidth=1;for(const road of [SAKURA_ROAD,GLACIAL_ROAD]){g.beginPath();road.forEach((p,i)=>i?g.lineTo(px(p.x),pz(p.z)):g.moveTo(px(p.x),pz(p.z)));g.stroke();}
  g.fillStyle='#8c7a55';g.beginPath();g.arc(px(VILLAGE_CENTER.x),pz(VILLAGE_CENTER.z),12/MAP_BOUNDS.size*N,0,Math.PI*2);g.fill();
  return c;
 }
@@ -4211,6 +4227,8 @@ function updateJourney(dt,now){
  {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
  journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
+ if(!sakuraWorld&&!voidMode&&questStep>=15&&sampleRoad(P.x,P.z)&&regionWeight(P.x,P.z)>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
+ if(sakuraWorld)sakuraWorld.update(dt,now,P,camera,scene.fog,dayNightState.t,voidMode);
  if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
  if(voidMode)return;
@@ -5984,7 +6002,7 @@ function playAfterVorgazhek(){
  playStory('depois-vorgazhek',afterVorgazhekScene(),{focus:'guide',done:()=>{
   act1Lock=false;act2Abyss=true;guide.visible=false;syncAct2World();if(bishop4Sky){scene.remove(bishop4Sky.holder);bishop4Sky=null;}
   // O Ato III do roteiro (cidade de neve) é o próximo marco; até lá, o jogo segue para o Ato III atual.
-  questStep=15;act1Sub=0;save3DProgress();updateQuestHud();setCineFade(0,1.2,false);status.textContent='O bilhete diz: vá à cidade de neve.';
+  questStep=15;act1Sub=0;save3DProgress();updateQuestHud();setCineFade(0,1.2,false);status.textContent='O bilhete indica Invernália. Siga as pegadas até as costas do vulcão.';
  }});
 }
 /** Ações das cenas do Ato II (passos "do"). */
@@ -6146,7 +6164,8 @@ function buildAct3World(){
  new GLTFLoader().load('./NeveKit.glb?v=mod206',gltf=>{
   const kit={};for(const c of gltf.scene.children)kit[c.name]=c;W.kit=kit;
   const place=(k,x,z,yaw,shadow)=>{const src=kit[k];if(!src)return null;const o=src.clone();o.position.set(x,groundHeightAt(x,z),z);o.rotation.y=yaw||0;o.traverse(m=>{if(m.isMesh){m.castShadow=!!shadow;m.receiveShadow=true;}});scene.add(o);return o;};
-  for(const h of SC.houses){place(h.k,h.x,h.z,h.yaw,true);marketObstacles.push({x:h.x,z:h.z,shape:'circle',radius:h.k==='CasaNeveB'?3.1:3.3,height:4});}
+  const masonry=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}),houseKits=[0,1,2].map(v=>{const m=sakuraBatch(THREE);glacierHouse(m,v);return m.geometry();});
+  let street=0;for(const h of SC.houses){const o=new THREE.Mesh(houseKits[street++%3],masonry);o.position.set(h.x,groundHeightAt(h.x,h.z),h.z);o.rotation.y=h.yaw;o.receiveShadow=true;scene.add(o);marketObstacles.push({x:h.x,z:h.z,shape:'circle',radius:h.k==='CasaNeveB'?3.1:3.3,height:4});}
   const I=SC.inn;place('Estalagem',I.x,I.z,I.yaw,true);marketObstacles.push({x:I.x,z:I.z,shape:'box',halfX:4.4,halfZ:3.4,height:5});
   const G=SC.guillotine;W.guillotine=place('Guilhotina',G.x,G.z,G.yaw,true);W.blade=place('Lamina',G.x,G.z,G.yaw,false);if(W.blade){W.bladeY=W.blade.position.y;W.blade.position.y+=5.0;W.blade.position.z+=.5;}
   marketObstacles.push({x:G.x,z:G.z,shape:'box',halfX:1.8,halfZ:1.3,height:1});
@@ -6158,6 +6177,7 @@ function buildAct3World(){
  // Moradores: vendedor de casacos, pescador, moradora, estalajadeiro e gente de casaco pela cidade.
  npcBase().then(b=>{
   const mk=(key,p,tint,clip,yaw)=>{const v=makeTownsfolk(b,tint,clip);v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=yaw||0;act3Npcs[key]=v;return v;};
+  mk('sensei',MASTER,0x754764,'Agree_Gesture',Math.PI);
   mk('seller',SC.seller,0x7a6a5a,'Agree_Gesture',-Math.PI/2);mk('fisher',SC.fisher,0x5a6a7a,'_01a156a3_6952_769b_94bf_2cf0e9d19b46',SC.fisher.yaw);mk('villager',SC.villager,0x9a7a8a,'Alert',.6);
   const tints=[0x6a5a4a,0x5a4a5a,0x7a6a6a,0x4a5a6a,0x8a7a6a];SC.folk.forEach((p,i)=>{const v=makeTownsfolk(b,tints[i%5],i%2?'Alert':'_01a156a3_6952_769b_94bf_2cf0e9d19b46');v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=Math.random()*6;act3Folk.push({...v,home:p});});
   W.folkReady=true;syncAct3World();
@@ -6167,6 +6187,7 @@ function buildAct3World(){
 function syncAct3World(){
  const W=act3World;if(!W)return;const q=questStep,s=act1Sub;
  const night=(q===16&&s>=2)||q===17;const raid=q===17&&s>=2;
+ if(act3Npcs.sensei)act3Npcs.sensei.holder.visible=q>=15&&!voidMode;
  for(const f of W.fires)f.visible=raid||(q===17&&s>=3)||(q>=18&&q<=19);
  if(act3Npcs.seller)act3Npcs.seller.holder.visible=q>=15&&q<=19&&!act3Void;
  if(act3Npcs.fisher)act3Npcs.fisher.holder.visible=q>=15&&!night&&q<17&&!act3Void;
@@ -6223,7 +6244,8 @@ function coatHpBonus(){return typeof coatOn!=='undefined'&&coatOn?COAT.hp*HERO_H
 function act3SpeedMul(){return act3Climate.speed;}
 function act3ManaMul(){return act3Climate.mana;}
 function updateClimate(dt){
- const inCity=!voidMode&&inSnowCity(player.position.x,player.position.z)&&questStep>=ACT3N.road;
+ const P=player.position,road=sampleRoad(P.x,P.z);
+ const inCity=!voidMode&&questStep>=ACT3N.road&&(inSnowCity(P.x,P.z)||(road&&regionWeight(P.x,P.z,road)>.5&&snowAt(road.i)>.95));
  act3Climate=climate(inCity,coatOn&&questStep>=ACT3N.road);
  const chip=document.getElementById('cold-chip');if(chip)chip.hidden=!act3Climate.cold||cineActive||dialogueOpen;
  if(act3Climate.cold&&playerHP>1&&!cineActive){act3ColdAcc+=dt*act3Climate.dps;if(act3ColdAcc>=1){const k=Math.floor(act3ColdAcc);act3ColdAcc-=k;playerHP=Math.max(1,playerHP-k);updatePlayerHud();}}
@@ -6282,9 +6304,19 @@ function updateAct3(dt,now){updateCaveWalk(dt);
  }
  const q=questStep,s=act1Sub;
  if(q===ACT3N.road){
+  if(sakuraResume&&!act1Busy()&&player.userData.ready){sakuraResume=false;
+   const safe=SAKURA_ROAD[sakuraRest]||(s>=2?THRONE:s===1?DOJO:FROM_CITY[0]);player.position.set(safe.x,groundHeightAt(safe.x,safe.z),safe.z);checkpointX=safe.x;checkpointZ=safe.z;return;}
+  if(!voidMode&&grounded&&!act1Busy()){
+   // Sparse milestones persist geographic progress without writing storage every frame.
+   const p=sampleRoad(px,pz),i=p?Math.round(p.i):-1;
+   if(i>=0&&i<SAKURA_ROAD.length&&(i%3===0||i===22||i===61)&&i!==sakuraRest&&near(SAKURA_ROAD[i],6)){
+    sakuraRest=i;checkpointX=SAKURA_ROAD[i].x;checkpointZ=SAKURA_ROAD[i].z;save3DProgress();}
+  }
   if(!coatOwned&&!act3World.sellerMet){if(near(SC.seller,7)&&!act1Busy()){act3World.sellerMet=true;offerCoat();return;}}
-  mark(near(SC.seller,40)&&!coatOwned&&!act3World.sellerMet?SC.seller:SC.plaza);
-  if(near(SC.plaza,30)&&!act1Busy()){act1Lock=true;playStory('cidade-neve',snowArrivalScene(),{focus:'hero',done:()=>{act1Lock=false;act1Advance(ACT3N.city,0);syncAct3World();status.textContent='Pergunte pelo Anjo na cidade.';}});}
+  const guidepost=nextGuide(px,pz,s);
+  mark(s===0&&near(MASTER,24)?MASTER:s===1&&near(THRONE,28)?THRONE:guidepost);
+  if(s===1&&near(THRONE,4.2)&&!act1Busy()){sakuraRest=62;act1Advance(15,2);status.textContent='As marcas no gelo seguem até o bairro dos pescadores.';}
+  if(s>=2&&near(SC.plaza,30)&&!act1Busy()){act1Lock=true;playStory('cidade-neve',snowArrivalScene(),{focus:'hero',done:()=>{act1Lock=false;act1Advance(ACT3N.city,0);syncAct3World();status.textContent='Pergunte pelo Anjo na cidade.';}});}
   return;
  }
  if(q===ACT3N.city){
@@ -6340,6 +6372,7 @@ function stepGuideRun(dt){
 }
 function act3Label(){
  if(cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
+ if(!voidMode&&q===ACT3N.road&&act3Npcs.sensei&&d(MASTER,3.9))return 'FALAR COM A MESTRA';
  if(q===ACT3N.road&&!coatOwned&&act3World&&act3World.sellerMet&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';
  if(q>=ACT3N.city&&q<=ACT3N.boss&&!coatOwned&&!act3Void&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';
  if(!act3Void){
@@ -6358,6 +6391,15 @@ function act3Label(){
 }
 function act3Interact(){
  const l=act3Label();if(!l)return false;
+ if(l==='FALAR COM A MESTRA'){
+  if(act1Busy()||!act3Npcs.sensei)return false;
+  const h=act3Npcs.sensei.holder;faceTo(h,player.position);faceTo(player,h.position);moveVX=moveVZ=0;act1Lock=true;
+  const name=playerName||'Viajante';showDialogue([
+   {who:'Mestra do Dojo',text:name+', antes da neve havia uma cerejeira à porta do castelo. Neste inverno ela não floresceu.'},
+   {who:name,text:'Procuro alguém que passou por estas montanhas. Ainda existe um caminho?'},
+   {who:'Mestra do Dojo',text:'Atravesse o pinhal e o lago pelas marcas no gelo. As torres de Invernália surgem além da vigia. Suba ao salão do trono. Quem deixa pegadas também pode deixar saudade.'}
+  ],()=>{act1Lock=false;if(act1Sub===0){sakuraRest=23;act1Advance(15,1);}});return true;
+ }
  if(l==='COMPRAR CASACO'){offerCoat();return true;}
  if(l==='ENTRAR NA ESTALAGEM'){travelVeil(()=>enterAct3Void('estalagem',INN.spawn.hall));return true;}
  if(l==='SAIR'){travelVeil(()=>leaveAct3Void({x:SC.inn.door.x,z:SC.inn.door.z-1.5}));return true;}
@@ -9008,7 +9050,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:SC.plaza.x,z:SC.plaza.z});guideRun=null;guidePinned=false;act3Raid=false;
   questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(2,bishopsDefeated);vhazraelRewardClaimed=true;vorgazhekRewardClaimed=true;save3DProgress();updateQuestHud();if(!act2World)buildAct2World();syncAct2World();buildAct3World();if(act3World){act3World.sellerMet=false;act3World.distStarted=false;act3World.angelAsked=false;}syncAct3World();setGameHour(step===16&&sub>=2||step===17?22:11);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
-  if(step===15)go(SC.seller.x-12,SC.seller.z);else if(step===16&&sub<=1)go(SC.plaza.x,SC.plaza.z+4);else if(step===16)go(SC.inn.door.x,SC.inn.door.z-3);
+  if(step===15){sakuraResume=false;const p=sub===0?FROM_CITY[0]:sub===1?DOJO:THRONE;go(p.x,p.z);}else if(step===16&&sub<=1)go(SC.plaza.x,SC.plaza.z+4);else if(step===16)go(SC.inn.door.x,SC.inn.door.z-3);
   else if(step===17&&sub<=1){enterAct3Void('estalagem',INN.spawn.cellar);}else if(step===17)go(SC.plaza.x,SC.plaza.z+8);
   else if(step===18&&sub<=1){go(SC.cave.x-4,SC.cave.z+4);}else if(step===18){enterAct3Void('distorcida',DISTORTED.spawn);}
   else if(step===19){go(SC.plaza.x+6,SC.plaza.z+6);}

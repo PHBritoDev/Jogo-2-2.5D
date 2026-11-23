@@ -1,3 +1,4 @@
+import { POIS as SAKURA_POIS, SHELTERS } from './sakura-route3d.js';
 import { JOURNEY_POIS } from './jornada3d.js';
 /**
  * MOD 186 — Mapa com névoa de guerra e abrigos de viagem rápida (regras puras, testadas em map3d.test.mjs).
@@ -7,11 +8,12 @@ import { JOURNEY_POIS } from './jornada3d.js';
 /* Mod 321 — o mapa cobre a jornada a oeste (vale, serra, ponte, terras de cinza, Cinzária e o vulcão). A névoa antiga
    (v3: 80×80 sobre 430 m) é convertida célula a célula para a grade nova (migrateLegacyFog), sem perder o que foi visto. */
 export const LEGACY_MAP_BOUNDS = Object.freeze({ x0: -215, z0: -290, size: 430, cells: 80 });
-export const MAP_BOUNDS = { x0: -1760, z0: -1090, size: 1980 };
+export const V4_MAP_BOUNDS = Object.freeze({x0:-1760,z0:-1090,size:1980,cells:220});
+export const MAP_BOUNDS = { x0:-2080, z0:-2290, size:3360 };
 /** Chave de armazenamento da névoa: muda quando os limites do mapa mudam (Mod 195). */
-export const MAP_STORE_KEY = 'seven-sins-3d-map-v4';
+export const MAP_STORE_KEY = 'seven-sins-3d-map-v5';
 export const LEGACY_MAP_STORE_KEY = 'seven-sins-3d-map-v3';
-export const FOG_CELLS = 220;
+export const FOG_CELLS = 374;
 export const REVEAL_RADIUS = 24;
 
 export const MAP_POIS = [
@@ -26,7 +28,7 @@ export const MAP_POIS = [
   { id: 'portal', name: 'Portal de VHAZRAEL', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
   { id: 'garganta', name: 'Garganta da Dívida', x: -72, z: -60, kind: 'danger' },
   // Mod 321 — a jornada substitui o antigo Distrito/Mina/Canal (ver POI_ALIASES)
-  ...JOURNEY_POIS,
+  ...JOURNEY_POIS, ...SAKURA_POIS,
   { id: 'incenso', name: 'Passagem do Incenso', x: 96, z: -32, kind: 'danger' },
   { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
   { id: 'serra', name: 'Torre de VÉRAXION', x: -36, z: -238, kind: 'village', revealRadius: 26 }, // MOD 207
@@ -39,6 +41,7 @@ export const MAP_POIS = [
    da Mata Funda (redundante): saves que o tinham registrado ganham o da Mata (WAYSTONE_ALIASES), sem perder progresso.
    Abrigos são viagem rápida/retorno; checkpoints de história e de chefe continuam separados. */
 export const WAYSTONES = [
+  ...SHELTERS,
   { id: 'abrigo-vila', name: 'Abrigo da Vila', x: -4.6, z: -36.5 },
   { id: 'abrigo-mata', name: 'Abrigo da Mata Funda', x: 6.5, z: -79 },
   { id: 'abrigo-caverna', name: 'Abrigo da Fronteira', x: -40, z: -219 },
