@@ -414,4 +414,31 @@ test('occlusion cache expires when a dynamic obstacle opens',()=>{
  wall=false;
  for(let i=0;i<8;i++)rites.update(1/120,ctx);
  assert.deepEqual(hits,['side'],'a wall that opens must be observed after the short cache TTL');
+});\n
+test('boss hit bridge rejects zero damage but still finalizes a pending death',async()=>{
+ const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
+ const start=source.indexOf('function hurtEnemy('),end=source.indexOf('\\n/** Executa um poder',start);
+ assert.ok(start>=0&&end>start,'production boss damage bridge must exist');
+ const fn=source.slice(start,end).replace('function hurtEnemy','globalThis.hurtEnemy=function hurtEnemy');
+ const calls={damage:0,animations:[],timers:[],advance:0};
+ const sandbox={
+  combatStepNow:()=>true,enemy:{visible:true,position:{clone:()=>({y:0})}},enemyAlive:true,enemyHP:100,enemyHasDeathClip:true,
+  document:{getElementById:()=>({style:{}})},
+  damageNumber:()=>{},hitStop:()=>{},cameraShake:()=>{},onEnemyDamaged:()=>calls.damage++,
+  playEnemyAnimation:(kind)=>{calls.animations.push(kind);return true;},
+  setTimeout:(fn,ms)=>calls.timers.push(ms),advanceAfterEnemyDefeat:()=>calls.advance++,
+  zarkSword:null,zarkUlt:null,vxSwords:null,cySkill:null
+ };
+ runInNewContext(fn,sandbox);
+ assert.equal(sandbox.hurtEnemy(0,false,false,false),false,'zero damage must not be reported as a successful hit');
+ assert.equal(sandbox.enemyHP,100);
+ assert.equal(calls.damage,0,'zero damage must not trigger hit feedback');
+ assert.deepEqual(calls.animations,[]);
+ assert.equal(sandbox.hurtEnemy(15,false,false,true),true,'positive accepted damage must still be reported');
+ assert.equal(sandbox.enemyHP,85);
+ sandbox.enemyHP=0;sandbox.enemyAlive=true;
+ assert.equal(sandbox.hurtEnemy(0,false,true,true),false,'death finalization is not a new damaging hit');
+ assert.equal(sandbox.enemyAlive,false,'the zero-damage pending-death finalizer must remain functional');
+ assert.deepEqual(calls.animations,['death']);
+ assert.deepEqual(calls.timers,[850]);
 });
