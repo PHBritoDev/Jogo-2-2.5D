@@ -10,7 +10,7 @@ fs.mkdirSync(out,{recursive:true});
 const modes={portrait:{width:393,height:852},landscape:{width:852,height:480}};
 const wanted=(process.env.ZARK_U_QA_SIZES||"portrait,landscape").split(",").map(x=>x.trim()).filter(Boolean);
 async function main(){
- const report={build:process.env.GITHUB_SHA||"local",date:new Date().toISOString(),modes:{},ok:false};
+ const report={build:process.env.PR_HEAD_SHA||process.env.GITHUB_SHA||"local",workflowSha:process.env.GITHUB_SHA||null,date:new Date().toISOString(),modes:{},ok:false};
  const browser=await chromium.launch({headless:true,args:["--no-sandbox","--disable-dev-shm-usage","--enable-webgl","--ignore-gpu-blocklist","--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
  try{
   for(const mode of wanted){

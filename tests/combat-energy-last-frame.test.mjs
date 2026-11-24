@@ -7,6 +7,7 @@ import { makeEnergy } from '../combat-energy3d.js';
 import { swordImpactCue } from '../sword-rites-vfx3d.js';
 
 const worldSource = await readFile(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+const combatWorkflow = await readFile(new URL('../.github/workflows/combat315.yml', import.meta.url), 'utf8');
 
 test('impacto secundário do Eclipse tem assinatura VFX mais legível sem alterar o primário', () => {
   assert.deepEqual(swordImpactCue({ secondary: true }), { burst: 24, scale: .82, life: .28, secondScale: .48, secondLife: .22 });
@@ -296,3 +297,12 @@ test('golpe físico secundário respeita parede e não emite dano nem VFX atrás
   const result = physicalBladeSideScenario({ fps: 60, wall: true });
   assert.deepEqual(result.hits.map(h => h.id), ['left']);
   assert.deepEqual(result.impacts.map(e => e.target.id), ['left']);});
+
+
+test('Combat315 captura e testes usam o HEAD exato da PR', () => {
+  const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
+  assert.equal(combatWorkflow.split(ref).length - 1, 2);
+  assert.equal(combatWorkflow.split('Verify exact PR head').length - 1, 2);
+  assert.ok(combatWorkflow.includes('run: test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"'));
+  assert.ok(combatWorkflow.includes('name: combat315-${{ github.event.pull_request.head.sha || github.sha }}'));
+});

@@ -54,3 +54,12 @@ test('Bispo 3 workflow executes the dedicated cinematic QA after runtime QA', ()
   assert.match(workflow, /tools\/visual-lab\/zarkhael-six-seals-qa\.cjs/);
   assert.match(workflow, /node tools\/visual-lab\/zarkhael-six-seals-qa\.cjs/);
 });
+
+
+test('Bispo 3 workflow valida e identifica o SHA exato da PR', () => {
+  assert.ok(workflow.includes('ref: ${{ github.event.pull_request.head.sha || github.sha }}'));
+  assert.ok(workflow.includes("PR_HEAD_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'"));
+  assert.ok(workflow.includes('run: test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"'));
+  assert.ok(workflow.includes('name: bispo3-dimension-${{ github.event.pull_request.head.sha || github.sha }}'));
+  assert.ok(sixSeals.includes('build:process.env.PR_HEAD_SHA||process.env.GITHUB_SHA'));
+});
