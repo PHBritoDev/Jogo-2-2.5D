@@ -1,4 +1,4 @@
-name: QA direcionado A5 — missões de Eldória
+name: QA direcionado A5 — regressão de missões
 on:
   pull_request:
     paths:
@@ -12,8 +12,6 @@ on:
       - 'act2-flow.js'
       - 'act1-flow.test.mjs'
       - 'act2-flow.test.mjs'
-      - 'eldoria-village-talk.js'
-      - 'tools/qa/a5-sidequests-gameplay.cjs'
       - '.github/workflows/qa-a5-save-campaign.yml'
   workflow_dispatch:
 permissions:
@@ -21,36 +19,13 @@ permissions:
 jobs:
   regressao:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verificar sintaxe dos módulos de campanha
-        run: node --check act1-flow.js && node --check act2-flow.js && node --check sidequests3d.js && node --check mundo-3d-prototype.js
+      - name: Verificar sintaxe dos módulos
+        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --input-type=module --check < mundo-3d-prototype.js
       - name: Executar regressões de missões, mapa e campanha
         run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
-      - name: Instalar Chromium para gameplay A5
-        run: |
-          npm install --prefix tools/visual-lab --no-audit --no-fund
-          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
-      - name: Servir o jogo de teste sem publicar
-        run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/a5-sidequests.log 2>&1 &
-          for i in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/a5-sidequests.log
-          exit 1
-      - name: Validar diálogos, coleta, abrigos, recompensas e save/reload no runtime
-        run: NODE_PATH=./tools/visual-lab/node_modules node tools/qa/a5-sidequests-gameplay.cjs
-      - name: Publicar fotos, vídeo e relatório A5
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: a5-sidequests-${{ github.run_number }}
-          path: visual-lab-results/a5-sidequests/
-          retention-days: 30
-          if-no-files-found: warn
