@@ -443,6 +443,21 @@ test('golpe físico para de consultar paredes após o foco já receber seu únic
     'sem alvos restantes, o swing não deve continuar amostrando colisão em cada substep');
 });
 
+test('impacto físico/energético secundário mantém áudio sem duplicar o VFX legado', () => {
+  const start = worldSource.indexOf('function protaSideHit(');
+  const end = worldSource.indexOf('function riteReady()', start);
+  assert.ok(start >= 0 && end > start, 'bridge de dano secundário precisa existir no mundo integrado');
+  const body = worldSource.slice(start, end);
+  const flash = body.indexOf('squadRT.flash?.(a.id);');
+  const audio = body.indexOf('worldAudio.hit();');
+  assert.ok(body.includes("if(!x?.energy&&!x?.wave&&x?.by!=='blade')"),
+    'o VFX genérico continua reservado ao fallback legado');
+  assert.ok(flash >= 0 && audio > flash,
+    'o som deve tocar depois do dano/flash, fora do guard que evita VFX duplicado');
+  assert.equal((body.match(/worldAudio\.hit\(\)/g) || []).length, 1,
+    'cada dano secundário bem-sucedido tem exatamente um ponto de áudio');
+});
+
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
   const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   assert.equal(combatWorkflow.split(ref).length - 1, 2);
