@@ -368,16 +368,24 @@ for (const fps of [20, 30, 60, 120]) {
   });
 }
 
-test('golpe físico primário ainda acerta antes da parede', () => {
+test('golpe físico primário ainda acerta antes da parede e posiciona o impacto no contato', () => {
   const result = primaryBladeWallScenario({ fps: 60, targetX: .3, wall: true });
   assert.deepEqual(result.hits.map(h => h.id), ['focus']);
   assert.deepEqual(result.impacts.map(e => e.target.id), ['focus']);
+  const p = result.impacts[0].p;
+  assert.ok(Math.abs(Math.hypot(p.x - .3, p.y - 1, p.z + .5) - .45) < .02,
+    'VFX primário precisa nascer na superfície do alvo');
+  assert.ok(p.x < .45, 'impacto do alvo antes da parede não pode aparecer depois dela');
 });
 
-test('golpe físico primário acerta no corredor sem obstrução', () => {
+test('golpe físico primário acerta no corredor sem obstrução e usa a superfície do alvo', () => {
   const result = primaryBladeWallScenario({ fps: 60, targetX: 1.2, wall: false });
   assert.deepEqual(result.hits.map(h => h.id), ['focus']);
   assert.deepEqual(result.impacts.map(e => e.target.id), ['focus']);
+  const p = result.impacts[0].p;
+  assert.ok(Math.abs(Math.hypot(p.x - 1.2, p.y - 1, p.z + .5) - .45) < .02,
+    'VFX primário precisa nascer na superfície do alvo');
+  assert.ok(p.x < 1.2, 'impacto deve ficar na face voltada à lâmina');
 });
 
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
