@@ -4070,7 +4070,7 @@ function updateVillagers(dt){
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
 function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
-function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)?{coins:saved.coins,xp:saved.xp,sideRewardClaims:Array.isArray(saved.sideRewardClaims)?saved.sideRewardClaims:[]}:null;}catch(_){return null;}}
+function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&typeof saved==='object'&&!Array.isArray(saved)?{coins:saved.coins,xp:saved.xp,sideRewardClaims:Array.isArray(saved.sideRewardClaims)?saved.sideRewardClaims:[]}:null;}catch(_){return null;}}
 function settlePendingSideReward(){
  const result=settleSideReward(sideState,savedCampaignProgress(),pending=>{
   if(!pending.appliedInMemory){
