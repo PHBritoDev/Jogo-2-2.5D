@@ -19,7 +19,9 @@ test('VORGAZHEK A/B uses the current squad rig, fixed camera/time and untouched 
   assert.match(qa, /bossP95Delta/);
   assert.match(qa, /bossVisiblePctDelta/);
   assert.match(qa, /waterMeanDelta/);
-  assert.match(qa, /horizonMeanDelta/);
+  assert.match(qa, /obliqueWaterMeanDelta/);
+  assert.match(qa, /obliqueWaterP95Delta/);
+  assert.match(qa, /obliqueHorizonMeanDelta/);
   assert.match(workflow, /github\.event\.pull_request\.base\.sha/);
   assert.match(workflow, /vorgazhek-lighting-ab-qa\.cjs/);
   assert.match(workflow, /RUN_RUNTIME/);
