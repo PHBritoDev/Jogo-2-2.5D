@@ -42,9 +42,21 @@ let context;
 let page;
 let fatal = null;
 let requestCount = 0;
-let expectedAbortConsolePending = false;
-let expectedAbortConsoleDeadline = 0;
 let videoHandle = null;
+
+function classifyExpectedAbortConsole() {
+  const expectedAbort = report.firstAttemptAborted &&
+    report.requestFailures.length === 1 &&
+    report.requestFailures[0].url.endsWith('/Coelhinho.glb') &&
+    /ERR_FAILED/.test(report.requestFailures[0].error) &&
+    report.responses.some(response => response.status === 200) &&
+    report.unexpectedRequestFailures.length === 0;
+  if (!expectedAbort) return;
+  // Chromium pode emitir o erro de console depois do requestfailed. Correlacionar
+  // após fechar o contexto evita uma janela temporal arbitrária de 1 segundo.
+  const index = report.consoleErrors.findIndex(message => /Failed to load resource: net::ERR_FAILED/i.test(message));
+  if (index >= 0) report.expectedConsoleErrors.push(report.consoleErrors.splice(index, 1)[0]);
+}
 
 function commitSha() {
   try { return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(); }
@@ -78,14 +90,7 @@ async function main() {
   page.setDefaultTimeout(30000);
   page.on('pageerror', e => report.pageErrors.push(String(e.message || e).slice(0, 500)));
   page.on('console', m => {
-    if (m.type() !== 'error') return;
-    const message = m.text().slice(0, 500);
-    if (expectedAbortConsolePending && Date.now() <= expectedAbortConsoleDeadline && /net::ERR_FAILED/i.test(message)) {
-      expectedAbortConsolePending = false;
-      report.expectedConsoleErrors.push(message);
-      return;
-    }
-    report.consoleErrors.push(message);
+    if (m.type() === 'error') report.consoleErrors.push(m.text().slice(0, 500));
   });
   page.on('requestfailed', r => {
     const failure = { url: r.url(), error: (r.failure() || {}).errorText || 'request failed' };
@@ -101,8 +106,6 @@ async function main() {
     report.requests.push({ attempt: requestCount, url: route.request().url() });
     if (requestCount === 1) {
       report.firstAttemptAborted = true;
-      expectedAbortConsolePending = true;
-      expectedAbortConsoleDeadline = Date.now() + 1000;
       await route.abort('failed');
     } else {
       await route.continue();
@@ -215,7 +218,6 @@ async function main() {
   assert.ok(finalState.list.some(a => a.kind === 'coelho' && !a.qa), 'o coelho natural deve permanecer vivo após a captura');
   report.finalState = finalState;
   assert.deepEqual(report.pageErrors, [], 'não pode haver exceção no runtime');
-  assert.deepEqual(report.consoleErrors, [], 'não pode haver erro inesperado no console');
   assert.deepEqual(report.unexpectedRequestFailures, [], 'não pode haver falha de rede além do abort deliberado do Coelhinho.glb');
   report.status = 'PASS';
 }
@@ -242,6 +244,11 @@ async function main() {
           report.videoError = String(e.message || e);
         }
       }
+    }
+    classifyExpectedAbortConsole();
+    if (!fatal && report.consoleErrors.length) {
+      fatal = 'não pode haver erro inesperado no console\\n' + report.consoleErrors.join('\\n');
+      report.status = 'FAIL';
     }
     await browser?.close().catch(() => {});
     report.requestCount = requestCount;
