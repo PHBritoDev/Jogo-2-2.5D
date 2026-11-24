@@ -39,11 +39,13 @@ function verifyBaselinePreset() {
   const preset=fs.readFileSync(path.join(root,'zarkhael-dimension3d.js'),'utf8');
   const world=fs.readFileSync(path.join(root,'mundo-3d-prototype.js'),'utf8');
   const budget=fs.readFileSync(path.join(root,'light-budget3d.js'),'utf8');
-  assert.match(preset,/light:\\s*\\[\\s*0xffefdf\\s*,\\s*3\\.5\\s*,\\s*110\\s*,\\s*\\[\\s*0\\s*,\\s*18\\s*,\\s*4\\s*\\]\\s*\\]\\s*,\\s*exposure:\\s*\\.85/,
+  assert.ok(preset.includes('light:[0xffefdf,3.5,110,[0,18,4]],exposure:.85'),
     'the exact main worktree must contain its original warm fill preset');
-  assert.match(world,/dimLight\\.color\\.setHex\\(e\\.light\\[0\\]\\);dimLight\\.intensity=e\\.light\\[1\\].*?dimLight\\.distance=e\\.light\\[2\\].*?dimLight\\.position\\.set\\(voidSpec\\.x\\+e\\.light\\[3\\]\\[0\\],voidSpec\\.y\\+e\\.light\\[3\\]\\[1\\],voidSpec\\.z\\+e\\.light\\[3\\]\\[2\\]\\)/s,
+  assert.ok(world.includes('dimLight.color.setHex(e.light[0]);dimLight.intensity=e.light[1]')&&
+    world.includes('dimLight.distance=e.light[2]')&&
+    world.includes('dimLight.position.set(voidSpec.x+e.light[3][0],voidSpec.y+e.light[3][1],voidSpec.z+e.light[3][2])'),
     'main must apply the environment preset to the shared dimension PointLight');
-  assert.doesNotMatch(budget,/activeDetails:/,'main intentionally has the legacy light-budget telemetry');
+  assert.ok(!budget.includes('activeDetails:'),'main intentionally has the legacy light-budget telemetry');
   return {baselineSourceVerified:true,baselineTelemetry:'legacy-main-no-activeDetails'};
 }
 async function capture(label,url,browser){
@@ -134,7 +136,7 @@ async function capture(label,url,browser){
       // location through the legacy debug API; do not demand candidate-only fields.
       const baselineSource=verifyBaselinePreset();
       const nearby=await page.evaluate(()=>window.SevenSinsDebug3D.objectsNear(1200,4,1));
-      const scenePointLight=nearby.find(item=>/^PointLight @1200(?:\\.0)?,4(?:\\.0)?/.test(item));
+      const scenePointLight=nearby.find(item=>item.includes('PointLight @1200.0,4.0'));
       assert.ok(scenePointLight,label+': original main dimension PointLight is missing at the expected world X/Z');
       assert.ok(Array.isArray(lighting.lights?.active)&&lighting.lights.active.includes('luz'),
         label+': no unnamed dimension fill is reported among selected legacy light sources');

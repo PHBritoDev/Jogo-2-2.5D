@@ -240,12 +240,13 @@ test('A/B resolves arena-local light offsets into the dimension world floor',()=
 test('A/B supports main legacy light telemetry and verifies the baseline worktree separately',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const workflow=readFileSync(new URL('./.github/workflows/bispo3-lighting-ab-qa.yml',import.meta.url),'utf8');
-  assert.match(workflow,/A4_BASELINE_ROOT:\\s*'\\/tmp\\/bispo3-baseline'/);
-  assert.match(qa,/function verifyBaselinePreset\\(\\)/);
-  assert.match(qa,/A4_BASELINE_ROOT/);
-  assert.match(qa,/if\\(label==='01-main'\\)/);
-  assert.match(qa,/objectsNear\\(1200,4,1\\)/);
-  assert.match(qa,/baselineSourceVerified:true/);
-  assert.match(qa,/telemetry:'legacy-main-no-activeDetails'/);
-  assert.match(qa,/if\\(label==='01-main'\\)[\\s\\S]*?activeDetails/);
+  assert.ok(workflow.includes("A4_BASELINE_ROOT: '/tmp/bispo3-baseline'"));
+  assert.ok(qa.includes('function verifyBaselinePreset()'));
+  assert.ok(qa.includes('A4_BASELINE_ROOT'));
+  assert.ok(qa.includes("if(label==='01-main')"));
+  assert.ok(qa.includes('objectsNear(1200,4,1)'));
+  assert.ok(qa.includes('baselineSourceVerified:true'));
+  assert.ok(qa.includes("baselineTelemetry:'legacy-main-no-activeDetails'"));
+  assert.ok(qa.includes('source.slotWorldPosition?.length===3'));
+  assert.ok(qa.includes('source.slotWorldPosition.every((value,i)=>Math.abs(value-expectedFill.position[i])<.5)'));
 });
