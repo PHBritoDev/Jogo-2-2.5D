@@ -61,8 +61,8 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
-const BLADE_COLLISION_CACHE_TTL=.05;
-/** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
+const BLADE_COLLISION_CACHE_TTL=1/60-.001;
+/** Cache only occluded LOS rays for less than one 60Hz frame; never cache a clear collision result. */
 function bladeOcclusionCached(a,target,from,now){
  const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
  if(!entry)return false;
@@ -94,7 +94,7 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
    if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
   }
   // A thin wall may contain the hilt at the first pose while later samples are already outside it.
-  if(blocked(base)||segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
+  if(segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
   previous={base,tip};frames.push(previous);
  }
  return{frames,blocked:false};
@@ -123,6 +123,23 @@ function bladeContactPoint(frames,target,hitRadius=.48,origin=null){
  }
  const surfaceRadius=target.radius||.48;
  return{x:bestAxisPoint.x+nx/len*surfaceRadius,y:bestAxisPoint.y+ny/len*surfaceRadius,z:bestAxisPoint.z+nz/len*surfaceRadius};
+}
+/** On a stationary pose, resolve contact + damage LOS before the expensive blade rails.
+ * A cached blocked LOS is conservative; a clear LOS always performs the full blade/wall sweep.
+ */
+function stationaryBladeVisibility(a,base,tip,candidates,origin,blocked,now){
+ const frames=[{base,tip}],occluded=new Set(),visible=new Set();
+ if(!origin||!Number.isFinite(origin.x)||!Number.isFinite(origin.y)||!Number.isFinite(origin.z))
+  return{frames,occluded,visible,needsSweep:true};
+ for(const item of candidates){
+  const target=item.target;
+  if(!bladeContactPoint(frames,target,item.hitRadius,origin))continue;
+  if(bladeOcclusionCached(a,target,origin,now)){occluded.add(target);continue;}
+  if(segmentBlocked(origin,target,blocked,ENERGY_OCCLUSION_STEP)){
+   rememberBladeOcclusion(a,target,origin,now);occluded.add(target);
+  }else visible.add(target);
+ }
+ return{frames,occluded,visible,needsSweep:visible.size>0};
 }
 /** Horizontal aim only. Assist is bounded by range, cone, floor and line of sight. */
 export function swordAim(from,yaw,target,blocked=()=>false,{assist=true,range=18,cone=.55}={}){
@@ -220,13 +237,12 @@ export class SwordRites {
    if(blade){if(live)this.api.event('blade',{a,blade});
     if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
     if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48)-.2);}
-    // Build one wall-clipped sweep for every physical swing. The primary target must
-    // obey the same first-wall cutoff as side targets; checking only the final blade pose
-    // allowed a fast swing to tunnel through a wall between two animation samples.
+    // Moving blades and stationary contacts with clear LOS still use the full wall-clipped sweep.
+    // A stationary contact already hidden by an occluded LOS cannot damage, so its five rails are unnecessary.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
     const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
     const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
-    let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[];
+    let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[],stationaryOcclusion=null;
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
      const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
@@ -243,14 +259,32 @@ export class SwordRites {
      }
      // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
      if(primarySweepCandidate||sideSweepCandidates.length){
-      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
-      if(physicalSweep.blocked)a.bladeBlocked=true;
+      if(a.bladeBlocked)physicalSweep={frames:[],blocked:true};
+      else{
+       const stationary=prev.base.x===blade.base.x&&prev.base.y===blade.base.y&&prev.base.z===blade.base.z&&
+        prevTip.x===currentTip.x&&prevTip.y===currentTip.y&&prevTip.z===currentTip.z;
+       if(stationary){
+        const contacts=[];
+        if(primarySweepCandidate)contacts.push({target,hitRadius:(target.radius||.48)+(a.def.drive?.2:.12)});
+        for(const other of sideSweepCandidates)contacts.push({target:other,hitRadius:(other.radius||.48)+.12});
+        stationaryOcclusion=stationaryBladeVisibility(a,blade.base,currentTip,contacts,ctx.from,this.api.blocked,this.time);
+        if(stationaryOcclusion.needsSweep){
+         physicalSweep=bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+         if(physicalSweep.blocked)a.bladeBlocked=true;
+        }else physicalSweep=stationaryOcclusion;
+       }else{
+        physicalSweep=bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+        if(physicalSweep.blocked)a.bladeBlocked=true;
+       }
+      }
      }
     }
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
-     if(contact&&!bladeOcclusionCached(a,target,ctx.from,this.time)){
-      if(segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
+     const precheckedOccluded=stationaryOcclusion?.occluded.has(target)===true;
+     const precheckedVisible=stationaryOcclusion?.visible.has(target)===true;
+     if(contact&&!precheckedOccluded&&(precheckedVisible||!bladeOcclusionCached(a,target,ctx.from,this.time))){
+      if(!precheckedVisible&&segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
       else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});}
      }
     }
@@ -261,8 +295,10 @@ export class SwordRites {
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
       if(!contact)continue;
-      if(bladeOcclusionCached(a,other,ctx.from,this.time))continue;
-      if(segmentBlocked(ctx.from,other,this.api.blocked,.008)){rememberBladeOcclusion(a,other,ctx.from,this.time);continue;}
+      const precheckedOccluded=stationaryOcclusion?.occluded.has(other)===true;
+      const precheckedVisible=stationaryOcclusion?.visible.has(other)===true;
+      if(precheckedOccluded||(!precheckedVisible&&bladeOcclusionCached(a,other,ctx.from,this.time)))continue;
+      if(!precheckedVisible&&segmentBlocked(ctx.from,other,this.api.blocked,.008)){rememberBladeOcclusion(a,other,ctx.from,this.time);continue;}
       a.bladeOcclusion?.delete(other.id);
       a.bladeSideHits.add(other.id);
       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
