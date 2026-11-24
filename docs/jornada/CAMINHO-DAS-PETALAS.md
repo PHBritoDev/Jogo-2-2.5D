@@ -38,10 +38,10 @@ A gravação abaixo parte de um save no início da ponte. Mostra a corrida pelo 
 
 ## Capturas e percurso verificados
 
-O ensaio da revisão `04a1d7d` começou no save pós-vulcão, passou pela mestra e pelo trono e chegou ao bairro após 6.044 segundos de relógio em Chromium com renderização por software. A gravação integral e os dados por marco estão no artefato da ação. [Caminhada integral](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45323985574/artifacts/14913072863)
+Na revisão `75c6e73`, a caminhada por teclado começou no save pós-vulcão, passou pelo dojo e pelo trono e chegou ao bairro dos pescadores. O percurso contínuo levou 2 h 01 min 20 s de relógio no executor com renderização por software. A ação registrou os marcos da campanha e o vídeo integral. [Marcos da caminhada](evidencias-ato3/caminhada.jpg) · [Gravação e dados](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45433982830/artifacts/14958158873)
 
 As pranchas comparam os enquadramentos da transferência com os da PR #673. O bosque ganhou troncos ramificados, o pagode tem varandas sob os beirais e a nave conserva um eixo livre até o trono. O desenho do castelo segue a escadaria frontal e a silhueta de agulhas da referência. A correspondência artística final depende da revisão do criador. [Bosque](evidencias-ato3/bosque-antes-depois.jpg) · [Pagode](evidencias-ato3/pagode-antes-depois.jpg) · [Nave](evidencias-ato3/nave-antes-depois.jpg)
 
 [Castelo no PC](evidencias-ato3/castelo-pc.jpg) · [Dojo em retrato](evidencias-ato3/retrato-dojo.jpg) · [Inverno em paisagem](evidencias-ato3/inverno-paisagem.jpg)
 
-Na revisão de física, o mesmo ensaio passou por teclado e por toque simultâneo no direcional e no botão de pulo. No Mirante da Lua, os pés ficaram em 93,456 m no tablado e 94,016 m no banco. Após a descida voltaram a 93,456 m. No dojo, a caminhada parou em z = −1599,73 m e a esquiva manteve essa posição contra a parede. [Vídeo do ensaio com toque](evidencias-ato3/fisica-toque.mp4)
+Na revisão de física, o mesmo ensaio passou por teclado e por toque simultâneo no direcional e no botão de pulo. No Mirante da Lua, os pés ficaram em 93,456 m no tablado e 94,016 m no banco. Após a descida voltaram a 93,456 m. No dojo, a caminhada parou em z = −1599,73 m e a esquiva manteve essa posição contra a parede. [Vídeo em terceira pessoa](evidencias-ato3/fisica-mirante.mp4) · [Ensaio final por toque, com gravação e coordenadas](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45433982830/artifacts/14943604471)
