@@ -49,15 +49,30 @@ async function waitForWorld() {
   }, null, { timeout: 240000 });
 }
 
+async function hideQaAdminOverlay() {
+  // ?debug3d=1 injeta um atalho ADM de teleporte que cobre o botão de mapa no viewport mobile.
+  // Ele não pertence à UI do jogador; removê-lo do hit-testing mantém o toque real no botão de mapa.
+  await page.addStyleTag({
+    content: '#adm-tp-vulcao-ato2-quick { display: none !important; }'
+  });
+}
+
 async function captureMap(label) {
   const toggle = page.locator('#map-toggle-3d');
   await toggle.waitFor({ state: 'visible' });
+  const hitTarget = await toggle.evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return hit?.id || hit?.parentElement?.id || hit?.tagName || null;
+  });
+  assert.equal(hitTarget, 'map-toggle-3d', 'o botão real do mapa precisa ser o alvo de toque após isolar controles ADM de QA');
   await toggle.tap();
   const panel = page.locator('#world-map');
   await panel.waitFor({ state: 'visible' });
   const canvas = page.locator('#world-map-canvas');
   await canvas.waitFor({ state: 'visible' });
   const dimensions = await canvas.evaluate(element => ({ width: element.width, height: element.height }));
+  assert.ok(dimensions.width > 0 && dimensions.height > 0, 'o canvas do mapa precisa ter dimensões reais');
   await page.screenshot({ path: path.join(out, `map-${label}.png`), fullPage: true });
   await page.locator('#world-map-close').tap();
   await panel.waitFor({ state: 'hidden' });
@@ -142,6 +157,7 @@ async function main() {
     timeout: 60000
   });
   await waitForWorld();
+  await hideQaAdminOverlay();
   await page.waitForFunction(({ eventsKey }) => {
     const events = JSON.parse(sessionStorage.getItem(eventsKey) || '[]');
     return events.some(event => event.outcome === 'quota') &&
@@ -161,6 +177,7 @@ async function main() {
 
   await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
   await waitForWorld();
+  await hideQaAdminOverlay();
   report.afterReload = await page.evaluate(({ mapKey, eventsKey }) => ({
     events: JSON.parse(sessionStorage.getItem(eventsKey) || '[]'),
     snapshot: JSON.parse(localStorage.getItem(mapKey) || 'null')
@@ -170,6 +187,8 @@ async function main() {
   assert.ok(report.afterReload.snapshot?.cells?.length > 0, 'a névoa deve continuar após recarregar o mundo');
   report.afterReload.mapCanvas = await captureMap('after-reload');
   assert.deepEqual(report.pageErrors, [], 'o runtime não pode lançar exceções');
+  assert.deepEqual(report.consoleErrors, [], 'o runtime não pode emitir erros no console');
+  assert.deepEqual(report.requestFailures, [], 'o runtime não pode falhar requisições');
   report.visualEvidence = ['map-before-reload.png', 'map-after-reload.png'];
   report.status = 'PASS';
 }
