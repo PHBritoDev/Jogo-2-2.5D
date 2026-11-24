@@ -7419,7 +7419,7 @@ let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vecto
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
  if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>16)return null;
- return{shoulder:.08,focusBlend:.48,minDistance:Math.min(11.5,Math.max(9.4,8.8+Math.max(0,sep-12)*.28)),idleMs:450,deadZone:.14,turnRate:3.2};
+ return{shoulder:.08,focusBlend:.48,minDistance:Math.min(11.5,Math.max(9.4,8.8+Math.max(0,sep-12)*.28)),idleMs:450,deadZone:.05,parallaxBias:.22,turnRate:3.2};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
@@ -7453,7 +7453,7 @@ function autoDuelCamera(dt,now,engaged){
  duelPull+=((want?Math.min(0,Math.max(3.6,Math.min(7,4.6+Math.max(0,sep-2.2)*.5))-cameraDistance):0)-duelPull)*Math.min(1,dt*2.2);
  const idleMs=portrait?portrait.idleMs:1200;
  if(!want||!userSettings.autoCamera||now-lastLookInputAt<idleMs||sep<1.2)return false;
- const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=portrait?portrait.deadZone:.35;
+ const yawToFoe=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),yawWant=yawToFoe+(portrait?.parallaxBias??0),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=portrait?portrait.deadZone:.35;
  if(Math.abs(d)<=dead)return true;
  cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(portrait?portrait.turnRate:(rites.busy||dashRemaining>0?3.2:2)));return true;
 }

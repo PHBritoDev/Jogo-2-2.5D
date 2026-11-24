@@ -70,7 +70,7 @@ async function openBattle(browser, url, stage, viewport) {
       SevenSinsDebug3D.speed(1);
     });
     await page.waitForTimeout(7600);
-    await page.addStyleTag({ content: '#dim-test-panel,#admin-panel,#adm-panel{display:none!important}' });
+    await page.addStyleTag({ content: '#dim-test-panel,#admin-panel,#adm-panel,[id^="adm-"],[id^="admin-"]{display:none!important}' });
     return { context, page };
   } catch (err) {
     try { await page.close(); } catch (_) {}
@@ -160,11 +160,13 @@ function assertPortrait(state, label) {
   assert.ok(h.stick.left >= 0 && h.stick.right <= w && h.stick.top >= height * .70 && h.stick.bottom <= height + 1, label + ': joystick dentro da borda inferior esquerda');
   assert.ok(!overlaps(h.actions, h.stick), label + ': joystick e ações separados');
   assert.ok(!overlaps(h.enemy, h.actions) && !overlaps(h.enemy, h.stick), label + ': barra não cobre controles');
+  assert.ok(!overlaps(h.enemy, h.topRight), label + ': barra do Bispo não cobre controles superiores');
   assert.ok(!overlaps(h.enemy, h.player), label + ': barra não cobre vida do protagonista');
   assert.ok(h.cameraToggle && h.cameraToggle.display !== 'none' && h.cameraToggle.visibility !== 'hidden', label + ': alternância 1ª/3ª pessoa acessível');
   assert.ok(h.pauseControls?.graphics?.display !== 'none' && h.pauseControls?.daynight?.display !== 'none', label + ': ajustes continuam acessíveis no menu de pausa');
   assert.ok(!overlaps(h.topRight, h.playerHp), label + ': botões do topo não cobrem a barra de vida');
   assert.ok(h.topRight.right <= w + 1, label + ': menu dentro do viewport');
+  assert.ok(Array.isArray(state.camera) && Number.isFinite(state.player?.x) && Math.abs(state.camera[0] - state.player.x) >= 1.1, label + ': câmera oblíqua separa os atores em retrato');
 }
 
 async function finish(context, page) {
@@ -227,6 +229,8 @@ async function main() {
     report.head.freshPortrait = await runFreshPortrait(browser, headUrl, '05-head');
     assert.deepEqual(report.errors.head, [], 'sem erros JS/WebGL no HEAD');
     assert.deepEqual(report.networkFailures.head, [], 'sem falhas de rede no HEAD');
+    assert.deepEqual(report.errors.baseline, [], 'sem erros JS/WebGL na base');
+    assert.deepEqual(report.networkFailures.baseline, [], 'sem falhas de rede na base');
     report.ok = true;
   } catch (err) {
     report.failure = { name: err.name || 'Error', message: err.message || String(err), stack: err.stack || null };

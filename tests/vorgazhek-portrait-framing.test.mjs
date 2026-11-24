@@ -16,6 +16,7 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /sep<12\|\|!!portrait/);
   assert.match(world, /Math\.max\(baseWant,portrait\.minDistance\)/);
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
+  assert.match(world, /deadZone:\.05,parallaxBias:\.22,turnRate:3\.2/);
 });
 
 test('entrada reinicia o foco antigo e saída remove o escopo visual da dimensão', () => {
