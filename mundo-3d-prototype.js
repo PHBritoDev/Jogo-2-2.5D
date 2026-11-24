@@ -7548,7 +7548,9 @@ function updateBossUltimates(dt,now){
  tickTransientFx(dt);
  // MOD 238: na esquadra Enemy1/Enemy2 o ultimate genérico do kit antigo ("Ritual"/"Furacão Infernal") disparava pelos
  // limiares de vida do procurador do foco, junto com os poderes novos. A esquadra usa só o próprio kit.
- if(squadOn){if(bossUlt.kind)endBossUlt();return;}
+ // Enemy1/Enemy2 squads keep their own kit; ZAR'KHAEL's bespoke six-seals ultimate must still tick.
+ const squadZarkUlt=bossUlt.kind==='zarkhael6'&&!!zarkUlt&&isZarkhaelProfile(encounterProfile);
+ if(squadOn&&!squadZarkUlt){if(bossUlt.kind)endBossUlt();return;}
  if(meleeOnlyProfile(encounterProfile)){if(bossUlt.kind)endBossUlt();return;}
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
