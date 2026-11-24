@@ -60,14 +60,14 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
-const BLADE_OCCLUSION_CACHE_TTL=.05;
+const BLADE_COLLISION_CACHE_TTL=.05;
 /** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
 function bladeOcclusionCached(a,target,from,now){
  const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
  if(!entry)return false;
  const same=from&&entry.from.x===from.x&&entry.from.y===from.y&&entry.from.z===from.z&&
   entry.target.x===target.x&&entry.target.y===target.y&&entry.target.z===target.z;
- if(same&&now-entry.time<BLADE_OCCLUSION_CACHE_TTL)return true;
+ if(same&&now-entry.time<BLADE_COLLISION_CACHE_TTL)return true;
  cache.delete(target.id);return false;
 }
 function rememberBladeOcclusion(a,target,from,now){
@@ -84,9 +84,12 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
   const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
   // Trace five rails through the moving blade between poses; coarse 6cm pose samples
   // alone can tunnel through a 1cm wall even when each endpoint pose is clear.
+  if(previous&&base.x===previous.base.x&&base.y===previous.base.y&&base.z===previous.base.z&&
+   tip.x===previous.tip.x&&tip.y===previous.tip.y&&tip.z===previous.tip.z)continue;
   if(previous)for(const rail of BLADE_SWEEP_RAILS){
    const from={x:previous.base.x+(previous.tip.x-previous.base.x)*rail,y:previous.base.y+(previous.tip.y-previous.base.y)*rail,z:previous.base.z+(previous.tip.z-previous.base.z)*rail};
    const to={x:base.x+(tip.x-base.x)*rail,y:base.y+(tip.y-base.y)*rail,z:base.z+(tip.z-base.z)*rail};
+   if(from.x===to.x&&from.y===to.y&&from.z===to.z)continue;
    if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
   }
   // A thin wall may contain the hilt at the first pose while later samples are already outside it.
@@ -94,6 +97,17 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
   previous={base,tip};frames.push(previous);
  }
  return{frames,blocked:false};
+}
+const samePoint3=(a,b)=>!!a&&!!b&&a.x===b.x&&a.y===b.y&&a.z===b.z;
+/** Reuse an identical sweep briefly; moving poses or a changed blocker always force a fresh wall check. */
+function bladeSweepCached(a,fromBase,fromTip,toBase,toTip,blocked,now){
+ const old=a.bladeSweepCache;
+ if(old&&old.blocked===blocked&&now-old.time<BLADE_COLLISION_CACHE_TTL&&
+  samePoint3(old.fromBase,fromBase)&&samePoint3(old.fromTip,fromTip)&&
+  samePoint3(old.toBase,toBase)&&samePoint3(old.toTip,toTip))return old.result;
+ const result=bladeSweepFrames(fromBase,fromTip,toBase,toTip,blocked);
+ a.bladeSweepCache={fromBase:copy(fromBase),fromTip:copy(fromTip),toBase:copy(toBase),toTip:copy(toTip),blocked,time:now,result};
+ return result;
 }
 /** Returns the capsule-surface point at first contact, only before the first wall crossed. */
 function bladeContactPoint(frames,target,hitRadius=.48,origin=null){
@@ -239,7 +253,7 @@ export class SwordRites {
      }
      // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
      if(primarySweepCandidate||sideSweepCandidates.length){
-      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepCached(a,prev.base,prevTip,blade.base,currentTip,this.api.blocked,this.time);
       if(physicalSweep.blocked)a.bladeBlocked=true;
      }
     }
