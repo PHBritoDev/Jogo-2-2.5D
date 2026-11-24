@@ -47,13 +47,34 @@ export function dressBasins(T,{feature,ground,lib,root,landmarks,register}){
   }
   for(let j=0;j<5;j++)crag(m,-22+j*11,-59,11,11,14,54+j*.9,j+2);
  },750);
- feature('Galeria das raízes',ROUTE[9],m=>{
-  for(let k=0;k<5;k++){const z=k*10-6;for(const sx of [-1,1]){
-   const x=sx*(5.7+(k%3)*.7),a=[x,0,z],b=[x+sx*.65,3.3,z+.3],c=[x*.72,6.8,z+.7],d=[x*.21,9.2-.55*(k%2),z+1.4];
-   m.tube(a,b,.77,.57,0x60434b);m.tube(b,c,.57,.3,0x684850);m.tube(c,d,.31,.08,0x785360);
-   m.rib([[x*.55,.04,z-1.3],[x*.83,.34,z-.62],b],.23,0x70565c,6);
-  }}
- },230).rotation.y=Math.atan2(ROUTE[10].x-ROUTE[9].x,ROUTE[10].z-ROUTE[9].z);
+ // Old cherries flank the bend itself. Each foot follows its own bank and
+ // the paired crowns lean together; the ordinary footpath stays clear.
+ const bend=ROUTE[9],trees=[[],[],[]];
+ const orientation=new T.Object3D();
+ for(const [index,offset] of [-25,-13,0,13,26].entries()){
+  const end=offset<0?ROUTE[8]:ROUTE[10];
+  const length=Math.hypot(end.x-bend.x,end.z-bend.z),sgn=offset<0?-1:1;
+  const dx=sgn*(end.x-bend.x)/length,dz=sgn*(end.z-bend.z)/length;
+  for(const side of [-1,1]){
+   const distance=side*(6.6+.6*Math.cos(index*1.7+side));
+   const x=bend.x+dx*offset+dz*distance,z=bend.z+dz*offset-dx*distance;
+   const y=ground(x,z),family=(index+(side<0?1:0))%trees.length;
+   orientation.position.set(x,y-.18,z);
+   orientation.rotation.set(0,Math.atan2(dx,dz),side*(.24+.065*Math.cos(index+side)),'YXZ');
+   orientation.scale.set(1.06+.09*index,1.38+.09*(index%3),1.18);
+   orientation.updateMatrix();trees[family].push(orientation.matrix.clone());
+   register(x,z,.68);
+  }
+ }
+ for(const [family,poses] of trees.entries())for(const [geometry,material] of lib[family][0]){
+  const grove=new T.InstancedMesh(geometry,material,poses.length);
+  grove.name='Cerejeiras antigas da galeria';grove.position.set(bend.x,0,bend.z);
+  for(const [index,pose] of poses.entries()){
+   const local=pose.clone();local.elements[12]-=bend.x;local.elements[14]-=bend.z;
+   grove.setMatrixAt(index,local);
+  }
+  grove.computeBoundingSphere();root.add(grove);landmarks.push({o:grove,reach:170});
+ }
  const ancient=DETOURS[0].points[2];
  for(const [g,mat] of lib[1][0]){const o=new T.Mesh(g,mat);o.position.set(ancient.x+14,ground(ancient.x+14,ancient.z),ancient.z);o.rotation.y=.93;o.scale.set(2.1,1.86,2.3);root.add(o);landmarks.push({o,reach:540});}
  register(ancient.x+14,ancient.z,1.4);
