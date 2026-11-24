@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
@@ -86,6 +87,8 @@ test('secondary sector knockback radiates from its origin; blade remains melee',
   {x:2,z:3,kind:'spell'});
  assert.deepEqual(swordSideHitContext({by:'blade',target},target,fallback),
   {x:90,z:-40,kind:'melee'});
+ assert.deepEqual(swordSideHitContext({kind:'spell',by:'judgment'},target,fallback),
+  {x:90,z:-40,kind:'spell'});
 });
 
 test('real squad knockback follows a travelling wave instead of the moved hero',()=>{
@@ -190,4 +193,79 @@ test('rejected Eclipse wave secondary contact does not emit a false impact',()=>
   speed:12,range:3.2,damage:20,hits:new Set(),n:0,age:0,serial:1});
  rites.update(1/60,{from:{x:0,y:0,z:0},target:null,others:[enemy('side',0,3)]});
  assert.equal(impacts.length,0,'Eclipse rejeitado pelo receptor não deve gerar impacto visual');
+});
+
+test('production primary squad bridge returns actual damage and keeps the proxy synchronized',async()=>{
+ const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
+ const start=source.indexOf('function protaPrimaryRiteHit('),end=source.indexOf('\\nfunction riteReady',start);
+ assert.ok(start>=0&&end>start,'primary bridge must exist in the world controller');
+ const bridge=source.slice(start,end);
+ assert.match(bridge,/swordSideHitContext\\(hitMeta,a,player\\.position\\)/);
+ assert.match(bridge,/sq\\.damageActor\\(a,amount,\\{\\.\\.\\.source,by:'hero'\\}\\)/);
+ assert.match(bridge,/squadProxy\\.hp=a\\.hp/);
+ assert.match(bridge,/return dealt>0/);
+ const hitStart=source.indexOf("hit:(damage,id,kind,x)=>{"),hitEnd=source.indexOf("event:(type,e)=>",hitStart);
+ assert.ok(hitStart>=0&&hitEnd>hitStart);
+ assert.match(source.slice(hitStart,hitEnd),/return protaPrimaryRiteHit\\(damage,id,kind,x\\)/);
+ const squad=new Enemy1Squad({seed:21}),[actor]=squad.spawn([{x:0,z:3}]),flashes=[];
+ const sandbox={squadOn:true,squadFocus:actor,squadSq:()=>squad,player:{position:{x:0,z:0}},
+  swordSideHitContext,VZ_HERO_DMG:1,enemyHP:actor.hp,squadProxy:{hp:actor.hp},enemyAlive:true,siegeEpoch:99,
+  squadRT:{flash:id=>flashes.push(id)},squadAreaRadius:()=>0,squadAlive:()=>[actor],squadHitFx:()=>{},
+  damageNumber:()=>{},THREE:{Vector3:class{constructor(x,y,z){Object.assign(this,{x,y,z});}}}};
+ const executable=source.slice(start,end).replace('function protaPrimaryRiteHit','globalThis.protaPrimaryRiteHit=function protaPrimaryRiteHit');
+ runInNewContext(executable,sandbox);
+ actor.act={iframes:true};
+ assert.equal(sandbox.protaPrimaryRiteHit(20,99,'basic',{by:'blade'}),false);
+ assert.equal(actor.hp,actor.maxHp,'i-frames must reject the primary hit');
+ assert.equal(sandbox.enemyHP,actor.hp);
+ actor.act=null;
+ let received=null;const realDamageActor=squad.damageActor.bind(squad);
+ squad.damageActor=(...args)=>{received=args[2];return realDamageActor(...args);};
+ assert.equal(sandbox.protaPrimaryRiteHit(20,99,'basic',{energy:{kind:'wave',x:0,z:0,yaw:0},by:'energy'}),true);
+ assert.equal(received.kind,'spell','primary energy must keep its spell damage class');
+ assert.equal(received.x,0);assert.equal(received.z,actor.z-1);
+ assert.equal(sandbox.enemyHP,actor.hp);
+ assert.equal(sandbox.squadProxy.hp,actor.hp,'proxy HP must match actor HP to prevent a second delta hit');
+ assert.equal(flashes.length,2);
+});
+
+test('primary physical, judgment, generic-energy and Eclipse impacts require accepted damage',()=>{
+ const target=enemy('primary',0,3),from={x:0,y:0,z:0};
+ let physicalCalls=0;const physicalImpacts=[];
+ const physical=new SwordRites({pose:()=>({base:{x:-1,y:1,z:2.6},tip:{x:1,y:1,z:3.4}}),
+  hit:()=>{physicalCalls++;return 0;},event:(type,data)=>{if(type==='impact')physicalImpacts.push(data);}});
+ assert.equal(physical.attack('prota',{target}),true);
+ for(let i=0;i<90;i++)physical.update(1/120,{from,target,sword:'prota'});
+ assert.equal(physicalCalls,1);assert.equal(physicalImpacts.length,0);
+
+ let judgmentCalls=0;const judgmentEvents=[];
+ const judgment=new SwordRites({hit:()=>{judgmentCalls++;return 0;},event:(type,data)=>{if(type==='judgment')judgmentEvents.push(data);}});
+ assert.equal(judgment.cast('prota',{mana:100,from,target}).ok,true);
+ for(let i=0;i<240;i++)judgment.update(1/120,{from,target,sword:'prota'});
+ assert.equal(judgmentCalls,16);assert.equal(judgmentEvents.length,0);
+
+ let genericEnergyCalls=0;const genericEnergyImpacts=[];
+ const genericEnergy=new SwordRites({hit:()=>{genericEnergyCalls++;return 0;},event:(type,data)=>{if(type==='impact')genericEnergyImpacts.push(data);}});
+ const e=makeEnergy({kind:'wave',speed:12,range:3,radius:1.2,life:10,roll:0,band:.7},{x:0,y:1,z:0},0,0);
+ e.travel=2.9;e.owner={damage:24,def:{multiplier:1},targetId:target.id};
+ genericEnergy.energies.push(e);
+ genericEnergy.update(1/60,{from,target,others:[],sword:'prota'});
+ assert.equal(genericEnergyCalls,1);assert.equal(genericEnergyImpacts.length,0);
+
+ let eclipseCalls=0;const eclipseImpacts=[];
+ const eclipse=new SwordRites({hit:()=>{eclipseCalls++;return 0;},event:(type,data)=>{if(type==='impact')eclipseImpacts.push(data);}});
+ eclipse.waves.push({p:{x:0,y:1,z:2.9},origin:{x:0,y:1,z:0},direction:{x:0,y:0,z:1},
+  previous:{x:0,y:1,z:2.9},yaw:0,roll:0,maxRadius:1.55,radius:1.55,travel:2.9,
+  speed:12,range:3.2,damage:20,hits:new Set(),n:0,age:0,serial:1});
+ eclipse.update(1/60,{from,target,others:[],sword:'aurora'});
+ assert.equal(eclipseCalls,1);assert.equal(eclipseImpacts.length,0);
+});
+
+test('legacy primary hit callbacks returning undefined remain accepted',()=>{
+ const target=enemy('legacy',0,3),impacts=[];
+ const rites=new SwordRites({pose:()=>({base:{x:-1,y:1,z:2.6},tip:{x:1,y:1,z:3.4}}),
+  hit:()=>undefined,event:(type,data)=>{if(type==='impact')impacts.push(data);}});
+ assert.equal(rites.attack('prota',{target}),true);
+ for(let i=0;i<90;i++)rites.update(1/120,{from:{x:0,y:0,z:0},target,sword:'prota'});
+ assert.equal(impacts.length,1,'legacy adapters without a return value must preserve their impact cue');
 });
