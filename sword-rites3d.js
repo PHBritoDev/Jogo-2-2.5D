@@ -94,7 +94,7 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
    if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
   }
   // A thin wall may contain the hilt at the first pose while later samples are already outside it.
-  if(blocked(base)||segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
+  if(segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
   previous={base,tip};frames.push(previous);
  }
  return{frames,blocked:false};
