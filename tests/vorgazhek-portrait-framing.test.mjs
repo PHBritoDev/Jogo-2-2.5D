@@ -52,7 +52,7 @@ test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewpo
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
-  assert.match(html, /hud3d\.css\?v=mod356-vorgazhek-portrait/);
+  assert.match(html, /hud3d\.css\?v=mod356-vorgazhek-portrait-compact-controls-v2/);
   assert.match(world, /function portraitBishop2Profile/);
 });
 test('QA inicia a apresentação uma vez e mantém a espera da batalha somente leitura', () => {
