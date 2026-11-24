@@ -5,6 +5,7 @@ on:
       - 'zarkhael-dimension*'
       - 'dimension-arenas3d.js'
       - 'tools/visual-lab/bispo3-*'
+      - 'tools/visual-lab/zarkhael-six-seals-qa.cjs'
       - '.github/workflows/bispo3-dimension-qa.yml'
   workflow_dispatch:
 permissions:
@@ -39,6 +40,7 @@ jobs:
           python3 -m http.server 4173 > /tmp/bispo3-http.log 2>&1 &
           node tools/visual-lab/bispo3-dimension-qa.cjs
           node tools/visual-lab/bispo3-runtime-qa.cjs
+          node tools/visual-lab/zarkhael-six-seals-qa.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
