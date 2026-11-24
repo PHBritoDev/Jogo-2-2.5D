@@ -37,8 +37,12 @@ test('VORGAZHEK lighting remains a fixed three-source setup without new lights o
 test('water adds a camera-local grazing reflection without allocating another scene light', () => {
   assert.ok(source.includes('uCamera:{value:new T.Vector3(0,8,12)}'));
   assert.ok(source.includes('uniform vec3 uCamera;'));
-  assert.ok(source.includes('float viewDistance=max(length(vec3(uCamera.xy-p,uCamera.z)),.001);'));
-  assert.ok(source.includes('float fresnel=pow(1.0-viewCos,3.0);'));
+  assert.ok(source.includes('vec3 viewDelta=vec3(uCamera.xy-p,uCamera.z);'));
+  assert.ok(source.includes('float invViewDistance=inversesqrt(max(dot(viewDelta,viewDelta),.000001));'));
+  assert.ok(source.includes('float viewCos=clamp(abs(uCamera.z)*invViewDistance,0.0,1.0);'));
+  assert.ok(source.includes('float fresnel=grazing*grazing*grazing;'));
+  assert.doesNotMatch(source, /float viewDistance=max\(length\(vec3\(uCamera\.xy-p,uCamera\.z\)\),\.001\)/);
+  assert.doesNotMatch(source, /pow\(1\.0-viewCos,3\.0\)/);
   assert.ok(source.includes('float glancingReflection=fresnel*(.02+ribbons*.1375+silverPatch*.0625+gleam*.20);'));
   assert.ok(source.includes('water.uniforms.uCamera.value.set(cameraPos.x,-cameraPos.z,cameraPos.y)'));
   assert.doesNotMatch(source, /new T\.(?:PointLight|DirectionalLight|HemisphereLight)/);
@@ -68,4 +72,25 @@ test('runtime QA records landscape video at fixed size and captures portrait sep
   assert.match(runtimeQA, /browser\.newContext\(\{viewport:\{width:393,height:852\},deviceScaleFactor:1\}\)/);
   assert.doesNotMatch(runtimeQA, /page\.setViewportSize/);
   assert.match(runtimeQA, /report\.portraitState=/);
+});
+
+test('mobile Fresnel arithmetic preserves the previous angle response', () => {
+  const reference = (x,y,z) => {
+    const distance = Math.max(Math.hypot(x,y,z), .001);
+    const cosine = Math.max(0, Math.min(1, Math.abs(z) / distance));
+    return Math.pow(1 - cosine, 3);
+  };
+  const optimized = (x,y,z) => {
+    const inverseDistance = 1 / Math.sqrt(Math.max(x*x + y*y + z*z, .000001));
+    const cosine = Math.max(0, Math.min(1, Math.abs(z) * inverseDistance));
+    const grazing = 1 - cosine;
+    return grazing * grazing * grazing;
+  };
+  for (const x of [-110,-50,-5,0,5,50,110]) {
+    for (const y of [-110,-25,0,25,110]) {
+      for (const z of [.001,3.5,8,30]) {
+        assert.ok(Math.abs(reference(x,y,z)-optimized(x,y,z)) < 1e-12);
+      }
+    }
+  }
 });

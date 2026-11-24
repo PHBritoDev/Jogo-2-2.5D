@@ -46,9 +46,12 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    // A low-frequency liquid gleam distinguishes water from a static patterned floor.
    float gleam=pow(max(0.0,sin(q.x*.095+q.y*.032+t*.21)*.5+.5),7.0)*.065;
    // Camera-local Fresnel: a restrained silver sheen appears only at grazing angles.
-   float viewDistance=max(length(vec3(uCamera.xy-p,uCamera.z)),.001);
-   float viewCos=clamp(abs(uCamera.z)/viewDistance,0.0,1.0);
-   float fresnel=pow(1.0-viewCos,3.0);
+   // Mobile-friendly equivalent: one inverse square root and three multiplies in the fragment path.
+   vec3 viewDelta=vec3(uCamera.xy-p,uCamera.z);
+   float invViewDistance=inversesqrt(max(dot(viewDelta,viewDelta),.000001));
+   float viewCos=clamp(abs(uCamera.z)*invViewDistance,0.0,1.0);
+   float grazing=1.0-viewCos;
+   float fresnel=grazing*grazing*grazing;
    float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
    // Keep the arena abyssal, but make foot contact readable without adding a light or pass.
    // Only the existing localized ripple receives the extra silver reflection.
