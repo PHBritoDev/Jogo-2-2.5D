@@ -346,6 +346,20 @@ test('checkpoints não escalares não liberam missões após restauração', () 
   assert.equal(restored.pingente.state, 'available', 'save legado com etapa numérica continua válido');
 });
 
+test('checkpoint textual aceita apenas inteiro decimal, sem coerção hexadecimal ou exponencial', () => {
+  const state = createSideState({
+    ervas: { state: 'available', progress: 0 },
+    pingente: { state: 'locked', progress: 0 }
+  });
+  for (const invalid of ['0x10', '0X10', '1e2', '2e0', '+2', '2.0', '0b10', '0o2']) {
+    refreshSide(state, { questStep: invalid });
+    assert.equal(state.ervas.state, 'available', 'checkpoint textual inválido não pode relockar missão');
+    assert.equal(state.pingente.state, 'locked', 'checkpoint textual inválido não pode desbloquear missão');
+  }
+  refreshSide(state, { questStep: '2' });
+  assert.equal(state.pingente.state, 'available', 'inteiro decimal legado continua compatível');
+});
+
 test('save com contadores não escalares não fabrica entregas nem recompensas', () => {
   for (const invalid of [[4], [1], true, false, {}, { valueOf: () => 4 }, null, ' ']) {
     const state = createSideState({ ervas: { state: 'ready', progress: invalid } });
