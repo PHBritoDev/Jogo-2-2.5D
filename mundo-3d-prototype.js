@@ -1,4 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
+import { computePortraitCameraFit } from './portrait-camera-fit.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {createVillagerBrain,createVillagerDriver,measureWalkSpeed,VILLAGER_PROFILES} from './eldoria-npc-life.js';
 import {createSeatPose} from './seated-pose3d.js';
@@ -2255,6 +2256,8 @@ function syncCameraToggle3D(){
 }
 if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
  cameraDistance=cameraDistance<1.05?8.5:.72;
+  // O retorno à terceira pessoa reativa o fit automático do duelo em retrato.
+  portraitZoomOverride=false;
  cameraPitch=THREE.MathUtils.clamp(cameraPitch,-1.05,1.05);
  syncCameraToggle3D();
  const status=document.getElementById('status');
@@ -2275,7 +2278,7 @@ function tapLock(x,y){
  if(!lockOnActive)toggleLockOn();else worldAudio.lockOn();return true;
 }
 lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType!=='mouse')touchTapStart.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{const r2=lookArea.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{});}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
-lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
+lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){const next=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
 if(mouseLocked&&e.pointerType==='mouse')return; // com o ponteiro travado o olhar vem do movementX/Y (sem limite da borda da tela)
 lookDelta(dx,dy);});
 /* CLAUDE combate/câmera — PC: antes o olhar era "arrastar" e parava na borda da janela (yaw limitado pela tela).
@@ -2287,7 +2290,7 @@ document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerL
 document.addEventListener('mousemove',e=>{if(!mouseLocked)return;if(cineActive||dialogueOpen||namePromptOpen||gamePaused||menuGate){try{document.exitPointerLock();}catch(_){}return;}const dx=Math.max(-240,Math.min(240,e.movementX||0)),dy=Math.max(-240,Math.min(240,e.movementY||0));lookDelta(dx,dy);});
 function endLook(e){const tap=touchTapStart.get(e.pointerId);touchTapStart.delete(e.pointerId);if(tap&&e.type==='pointerup'&&lookPointers.size<=1&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<14&&e.timeStamp-tap.t<320)tapLock(e.clientX,e.clientY);const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
-lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
+lookArea.addEventListener('wheel',e=>{const next=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();},{passive:true});
 function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
 addEventListener('blur',resetInterruptedControls);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
@@ -3089,11 +3092,11 @@ function meadowImpact(x,z,radius){
 }
 function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
- voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
+ voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;document.body.classList.toggle('bishop2-battle',key==='bishop2');arena.group.visible=true;
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
  player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
  const abyssEntry=key==='greed';
- if(abyssEntry)camFocusReady=false;
+ if(abyssEntry||key==='bishop2'){camFocusReady=false;lastLookInputAt=0;if(key==='bishop2')portraitZoomOverride=false;}
  cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
  moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
  camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
@@ -3111,7 +3114,7 @@ function openVsCard(key,onGo){
  vsGoCallback=onGo||null;vsKey=key;
  const card=vsCard(key,playerName),panel=document.getElementById('vs-panel'),go=document.getElementById('vs-go');
  if(!card||!panel||!go){if(vsGoCallback){const cb=vsGoCallback;vsGoCallback=null;cb();}else beginDimensionFight();return;}
- const heroImg=document.getElementById('vs-hero-img'),src=(document.getElementById('hero-portrait-img')||{}).src;
+ const heroImg=document.getElementById('vs-hero-img'),src=heroVsPortraitSrc||(document.getElementById('hero-portrait-img')||{}).src;
  if(src)heroImg.src=src;else heroImg.removeAttribute('src');
  document.getElementById('vs-boss-img').src=card.bishopImage;
  document.getElementById('vs-hero-name').textContent=card.playerName;
@@ -3425,21 +3428,37 @@ function updateFpsBadge(now){fpsFrames++;if(now-fpsSince<1000)return;const fps=M
   const close=document.createElement('button');close.type='button';close.className='panel-close';close.textContent='FECHAR';panel.appendChild(close);bindInstantTap(close,()=>{panel.hidden=true;});
  }
 })();
-// Retrato: renderiza uma vez o próprio Protagonista.glb (rosto/capuz) num alvo pequeno, sem afetar a cena.
-let heroPortraitDone=false;
+// Retrato: mantém o avatar quadrado do HUD e gera um enquadramento 2:3 próprio para o cartão VS.
+let heroPortraitDone=false,heroVsPortraitSrc='';
 function renderHeroPortrait(){
  if(heroPortraitDone||!model)return;heroPortraitDone=true;
  try{
-  const S=160,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
+  const S=160,VS_W=480,VS_H=720,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),vsRt=new THREE.WebGLRenderTarget(VS_W,VS_H,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
   const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
   ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
-  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),size=box.getSize(new THREE.Vector3()),top=box.max.y;
-  const cam=new THREE.PerspectiveCamera(28,1,.01,50),headY=top-size.y*.12;cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
-  const prevTarget=renderer.getRenderTarget();renderer.setRenderTarget(rt);renderer.render(ps,cam);
-  const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);renderer.setRenderTarget(prevTarget);rt.dispose();
-  const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),img=g.createImageData(S,S);
-  for(let y=0;y<S;y++)img.data.set(px.subarray((S-1-y)*S*4,(S-y)*S*4),y*S*4);g.putImageData(img,0,0);
-  const el=document.getElementById('hero-portrait-img');if(el)el.src=c.toDataURL('image/png');
+  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),center=box.getCenter(new THREE.Vector3());
+  // O GLB pode ter a origem deslocada: centraliza os dois retratos sem mover o modelo de gameplay.
+  clone.position.x-=center.x;clone.position.z-=center.z;clone.updateMatrixWorld(true);
+  const centered=measureModelBounds(clone),size=centered.getSize(new THREE.Vector3()),top=centered.max.y,headY=top-size.y*.12;
+  const cam=new THREE.PerspectiveCamera(28,1,.01,50);cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
+  // Preserva o mesmo FOV horizontal do avatar quadrado; o cartão 2:3 deixa de cortar as laterais.
+  const vsFov=2*Math.atan(Math.tan(28*Math.PI/360)/(VS_W/VS_H))*180/Math.PI;
+  const vsCam=new THREE.PerspectiveCamera(vsFov,VS_W/VS_H,.01,50);vsCam.position.set(0,headY,size.y*.62);vsCam.lookAt(0,headY-size.y*.02,0);
+  const toDataUrl=(pixels,width,height)=>{
+   const c=document.createElement('canvas');c.width=width;c.height=height;
+   const g=c.getContext('2d'),img=g.createImageData(width,height);
+   for(let y=0;y<height;y++)img.data.set(pixels.subarray((height-1-y)*width*4,(height-y)*width*4),y*width*4);
+   g.putImageData(img,0,0);return c.toDataURL('image/png');
+  };
+  const prevTarget=renderer.getRenderTarget();
+  try{
+   renderer.setRenderTarget(rt);renderer.render(ps,cam);
+   const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);
+   const el=document.getElementById('hero-portrait-img');if(el)el.src=toDataUrl(px,S,S);
+   renderer.setRenderTarget(vsRt);renderer.render(ps,vsCam);
+   const vsPx=new Uint8Array(VS_W*VS_H*4);renderer.readRenderTargetPixels(vsRt,0,0,VS_W,VS_H,vsPx);
+   heroVsPortraitSrc=toDataUrl(vsPx,VS_W,VS_H);
+  }finally{renderer.setRenderTarget(prevTarget);rt.dispose();vsRt.dispose();}
  }catch(err){console.warn('Retrato do herói indisponível.',err);}
 }
 /* MOD 188 — Loja Central: prédio de pedra clara com pórtico, telhado de ardósia e uma estrela dourada
@@ -7312,7 +7331,7 @@ function syncFinalPortal(){
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
 const savedSky={};
 function enterVoid(){enterDimensionArena('greed');}
-function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}document.body.classList.remove('bishop2-battle');portraitZoomOverride=false;voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
@@ -7415,39 +7434,50 @@ function updateUltimateFx(dt){
 }
 /* ===================== MOD 199 — CÂMERA, PRIMEIRA PESSOA, COMBO E PODERES DOS BISPOS ===================== */
 // ---------- Câmera em terceira pessoa ----------
-let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false;
+let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false,portraitZoomOverride=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
+function portraitBishop2Profile(foeOn,sep){
+ // Mantém o fit até 28 m e libera progressivamente entre 22–28 m, sem perder o enquadramento de uma vez.
+ if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>28)return null;
+ const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov,cameraPitch);
+ return{shoulder:fit.shoulder,focusBlend:fit.focusBlend,minDistance:fit.minDistance,release:fit.release,idleMs:fit.idleMs,deadZone:fit.deadZone,parallaxBias:fit.parallaxBias,turnRate:fit.turnRate};
+}
+/** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
- const shoulder=.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
- const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
- // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); durante o golpe do protagonista o enquadramento
- // puxa um pouco mais para o alvo, sem girar a câmera (o jogador mantém o controle).
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
- const engaged=combatStepNow()&&foeOn&&Math.hypot(foe.x-player.position.x,foe.z-player.position.z)<12;
- if(engaged&&!lockOnActive){const k=newHero&&rites.active?.def?.drive?.3:.22;t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const engaged=combatStepNow()&&foeOn&&(sep<12||!!portrait),shoulder=portrait?.shoulder??.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
+ const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
+ // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); em retrato, divide o foco entre os dois atores.
+ if(engaged&&!lockOnActive){const k=portrait?.focusBlend??(newHero&&rites.active?.def?.drive?.3:.22);t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
  else if(lockOnActive&&foeOn){/* lock-on: enquadra os dois — o foco vai ~35 % para o alvo (no máx. 4 m), herói sempre no quadro */const fx=foe.x-player.position.x,fz=foe.z-player.position.z,fd=Math.hypot(fx,fz)||1,k=Math.min(.35,4/fd);t.x+=fx*k;t.z+=fz*k;}
  if(!camFocusReady){camFocus.copy(t);camFocusReady=true;}
  camFocus.x+=(t.x-camFocus.x)*Math.min(1,dt*12);camFocus.z+=(t.z-camFocus.z)*Math.min(1,dt*12);camFocus.y+=(t.y-camFocus.y)*Math.min(1,dt*6);
  return{focus:camFocus,engaged};
 }
-/** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+/** Distância efetiva: afasta um pouco em combate e, só no retrato de VORGAZHEK, impede o duelo de fechar demais. */
+function effectiveCameraDistance(engaged,dt){
+ const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const baseWant=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);
+ const fittedWant=Math.max(baseWant,portrait?.minDistance??baseWant);
+ const want=portrait&&!riteCinematicView?(portraitZoomOverride?cameraDistance:baseWant+(fittedWant-baseWant)*(portrait.release??1)):baseWant;
+ camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;
+}
 /**
- * Câmera de duelo automática (estilo Genshin / referência 25b05adf: câmera às costas do herói, inimigo no centro), SEM
- * travar nada: em combate (inimigo a ≤ 12 m) e sem o jogador mexer na câmera há 1,2 s, o ângulo desliza até o herói ficar
- * entre a câmera e o inimigo. Zona morta de 20°: se o inimigo já está no quadro, não mexe. Arrastar a câmera manda sempre.
- * Em duelo aproxima a câmera (≈ 4,6 m, abrindo até 7 m com a separação), como a referência e o Genshin em combate.
+ * Câmera de duelo automática: arrastar continua mandando; VORGAZHEK em retrato recentraliza mais cedo e sem deixar o herói sair do quadro.
  */
 let duelPull=0,lastCamEngaged=false;
 function autoDuelCamera(dt,now,engaged){
  const want=engaged&&newHero&&!lockOnActive&&cameraDistance>=1.05?1:0;
- const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z);
- /* referência 25b05adf: em duelo a câmera chega mais perto, às costas do herói (≈ 4,6 m colados, abre até 7 m com a separação), nunca além do zoom do jogador */
+ const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
  duelPull+=((want?Math.min(0,Math.max(3.6,Math.min(7,4.6+Math.max(0,sep-2.2)*.5))-cameraDistance):0)-duelPull)*Math.min(1,dt*2.2);
- if(!want||!userSettings.autoCamera||now-lastLookInputAt<1200||sep<1.2)return false;
- const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=.35;
+ const idleMs=portrait?portrait.idleMs:1200;
+ if(!want||!userSettings.autoCamera||now-lastLookInputAt<idleMs||sep<1.2)return false;
+ const yawToFoe=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),yawWant=yawToFoe+(portrait?.parallaxBias??0),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=portrait?portrait.deadZone:.35;
  if(Math.abs(d)<=dead)return true;
- cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(rites.busy||dashRemaining>0?3.2:2));return true;
+ cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(portrait?portrait.turnRate:(rites.busy||dashRemaining>0?3.2:2)));return true;
 }
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
@@ -8833,6 +8863,33 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
+ actorScreen(){
+  const focusActor=newHero&&squadOn&&squadFocus?.alive?squadFocus:null;
+  const focusBody=focusActor?squadRT?.body?.(focusActor.id):null;
+  const target=focusBody?.holder||enemy,targetHeight=focusBody?.height||2;
+  if(focusBody?.holder)focusBody.holder.updateMatrixWorld(true);
+  player.updateMatrixWorld(true);target.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+  const project=v=>{v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
+  const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;return project(v);};
+  const headPoint=()=>{const v=new THREE.Vector3();if(focusBody?.head?.getWorldPosition)focusBody.head.getWorldPosition(v);else{target.getWorldPosition(v);v.y+=targetHeight*.9;}return project(v);};
+  let meshCount=0,visibleMeshes=0;
+  if(focusBody?.model?.traverse){
+   focusBody.model.traverse(o=>{
+    if(!o.isMesh)return;
+    meshCount++;
+    let shown=o.visible!==false;
+    for(let p=o.parent;p&&shown;p=p.parent)if(p.visible===false)shown=false;
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    if(!materials.some(m=>m&&m.visible!==false&&(m.opacity??1)>.05))shown=false;
+    if(shown)visibleMeshes++;
+   });
+  }
+  let holderVisible=!!(focusBody?.holder&&focusBody.holder.parent);
+  for(let p=focusBody?.holder;p&&holderVisible;p=p.parent)if(p.visible===false)holderVisible=false;
+  const visible=focusBody?!!(holderVisible&&focusBody.model?.visible&&visibleMeshes>0):!!enemy.visible;
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride,cameraPitch:+cameraPitch.toFixed(3)};
+ },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
  villagers(){return villageNpcs.map((c,i)=>{const h=c.holder,d=villageDrivers.find(v=>v.c===c);let acc=[];h.traverse(o=>{if(o!==h&&o.name&&/Cabelo|Barba|Couro|saco|balde/i.test(o.name))acc.push(o.name);});return{i,id:d?d.id:(cityPorter&&cityPorter.c===c?'carregador':c.role),sex:c.sex||null,file:c.file,x:+h.position.x.toFixed(2),y:+h.position.y.toFixed(2),z:+h.position.z.toFixed(2),yaw:+h.rotation.y.toFixed(2),visible:h.visible,state:d?d.drv.brain.state:null,acc};});},
@@ -9171,7 +9228,7 @@ const ultLight=new THREE.PointLight(0xffe0a0,0,30,1.2);ultLight.castShadow=false
 animate();
 /* CLAUDE combate/câmera: antes o buffer só mudava quando a densidade de pixels mudava — ao redimensionar/zoom/girar,
    o canvas ficava do tamanho antigo e aparecia uma faixa do fundo (#101b1c) embaixo/ao lado. */
-function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);}
+function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),nextAspect=w/h,wasPortrait=camera.aspect<.78;camera.aspect=nextAspect;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);if(!wasPortrait&&nextAspect<.78&&dimKey==='bishop2'&&dimBattle?.active&&newHero&&cameraDistance>=1.05&&lookPointers.size===0&&performance.now()-lastLookInputAt>500)lastLookInputAt=0;}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,120));if(window.visualViewport)visualViewport.addEventListener('resize',resize);
 
 
