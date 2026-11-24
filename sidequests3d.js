@@ -66,11 +66,13 @@ function normalizePendingReward(value, quests) {
 
 // Progresso salvo/em memória acima da meta é corrupção, não uma missão concluída.
 function safeSideProgress(value, max) {
-  // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
-  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n > max) return 0;
-  return Math.max(0, Math.floor(n));
+  // Saves antigos podem guardar números como texto, mas só inteiros decimais são contadores válidos.
+  let n;
+  if (typeof value === 'number') n = value;
+  else if (typeof value === 'string' && /^\d+$/.test(value.trim())) n = Number(value.trim());
+  else return 0;
+  if (!Number.isSafeInteger(n) || n < 0 || n > max) return 0;
+  return n;
 }
 
 export function createSideState(saved) {

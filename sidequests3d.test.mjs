@@ -154,6 +154,25 @@ test('pending reward inválido ou sem missão done é descartado', () => {
   assert.equal(active.pendingReward, null);
 });
 
+test('contadores de missão rejeitam frações e coerções numéricas não decimais', () => {
+  for (const invalid of ['0x4', '0X4', '4e0', '4.0', '4.5', 4.5, Number.MAX_SAFE_INTEGER + 1, -1]) {
+    const state = createSideState({ ervas: { state: 'ready', progress: invalid } });
+    assert.equal(state.ervas.progress, 0, 'contador inválido não pode ser arredondado: ' + String(invalid));
+    assert.equal(state.ervas.state, 'active', 'contador inválido não mantém missão pronta');
+    assert.equal(turnInSide(state, 'ervas'), null, 'contador inválido não pode pagar Flores de Vigília');
+  }
+  for (const invalid of ['0x3', '3e0', '3.0', '3.5', 3.5]) {
+    const state = createSideState({ abrigos: { state: 'ready', progress: invalid } });
+    assert.equal(state.abrigos.progress, 0, 'contador inválido não pode completar Pedras que Lembram: ' + String(invalid));
+    assert.equal(state.abrigos.state, 'active');
+    assert.equal(turnInSide(state, 'abrigos'), null);
+  }
+  const legacy = createSideState({ abrigos: { state: 'ready', progress: ' 03 ' } });
+  assert.equal(legacy.abrigos.progress, 3, 'inteiro decimal legado com espaços continua válido');
+  assert.equal(legacy.abrigos.state, 'ready');
+  assert.deepEqual(turnInSide(legacy, 'abrigos'), SIDE_QUESTS.find(q => q.id === 'abrigos').reward);
+});
+
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 0 });
