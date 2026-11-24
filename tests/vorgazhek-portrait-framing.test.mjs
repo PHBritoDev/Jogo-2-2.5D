@@ -60,9 +60,9 @@ test('QA inicia a apresentação uma vez e mantém a espera da batalha somente l
   const end = qa.indexOf('async function inspect', start);
   assert.ok(start >= 0 && end > start, 'openBattle delimitado');
   const block = qa.slice(start, end);
-  const calls = block.match(/\\.vsGo\\(/g) || [];
+  const calls = block.match(/\.vsGo\(/g) || [];
   assert.equal(calls.length, 1, 'vsGo chamado exatamente uma vez fora do polling');
-  assert.match(block, /await page\\.evaluate\\(\\(\\) => window\\.SevenSinsDebug3D\\.vsGo\\(\\)\\)/);
-  assert.match(block, /querySelector\\('#vs-go'\\)/);
-  assert.doesNotMatch(block, /waitForFunction\\([\\s\\S]*?\\.vsGo\\(/);
+  assert.match(block, /await page\.evaluate\(\(\) => window\.SevenSinsDebug3D\.vsGo\(\)\)/);
+  assert.match(block, /querySelector\('#vs-go'\)/);
+  assert.doesNotMatch(block, /waitForFunction\([\s\S]*?\.vsGo\(/);
 });
