@@ -105,6 +105,7 @@ async function inspect(page) {
       dimension: d && d.dimState ? d.dimState() : null,
       player: d && d.state ? d.state() : null,
       camera: d && d.cam ? d.cam() : null,
+      actors: d && d.actorScreen ? d.actorScreen() : null,
       bossName: document.querySelector('#enemy-name')?.textContent?.trim() || null,
       hud: {
         enemy: rect('#enemy-hud'),
@@ -188,6 +189,9 @@ function assertPortrait(state, label) {
   assert.ok(!overlaps(h.topRight, h.playerHp), label + ': botões do topo não cobrem a barra de vida');
   assert.ok(h.topRight.right <= w + 1, label + ': menu dentro do viewport');
   assert.ok(Array.isArray(state.camera) && Number.isFinite(state.player?.x) && Math.abs(state.camera[0] - state.player.x) >= 1.1, label + ': câmera oblíqua separa os atores em retrato');
+  assert.ok(state.actors?.player?.center?.onScreen && state.actors?.enemy?.center?.onScreen, label + ': ambos os combatentes dentro do quadro');
+  assert.ok(state.actors.player.head.onScreen && state.actors.enemy.head.onScreen, label + ': cabeças dos dois combatentes dentro do quadro');
+  assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= .22, label + ': herói e Bispo separados horizontalmente no quadro');
 }
 
 async function finish(context, page) {

@@ -7419,7 +7419,7 @@ let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vecto
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
  if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>16)return null;
- return{shoulder:.08,focusBlend:.48,minDistance:Math.min(11.5,Math.max(9.4,8.8+Math.max(0,sep-12)*.28)),idleMs:450,deadZone:.05,parallaxBias:.22,turnRate:3.2};
+ return{shoulder:.08,focusBlend:.5,minDistance:Math.min(12.5,Math.max(10.8,9.8+Math.max(0,sep-12)*.3)),idleMs:450,deadZone:.04,parallaxBias:.38,turnRate:3.2};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
@@ -8816,6 +8816,12 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
+ actorScreen(){
+  camera.updateMatrixWorld(true);
+  const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(enemy,1),head:point(enemy,2)},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2)};
+ },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
  villagers(){return villageNpcs.map((c,i)=>{const h=c.holder,d=villageDrivers.find(v=>v.c===c);let acc=[];h.traverse(o=>{if(o!==h&&o.name&&/Cabelo|Barba|Couro|saco|balde/i.test(o.name))acc.push(o.name);});return{i,id:d?d.id:(cityPorter&&cityPorter.c===c?'carregador':c.role),sex:c.sex||null,file:c.file,x:+h.position.x.toFixed(2),y:+h.position.y.toFixed(2),z:+h.position.z.toFixed(2),yaw:+h.rotation.y.toFixed(2),visible:h.visible,state:d?d.drv.brain.state:null,acc};});},

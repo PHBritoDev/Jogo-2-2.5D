@@ -11,12 +11,13 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /function portraitBishop2Profile\(foeOn,sep\)/);
   assert.match(world, /dimKey!=='bishop2'/);
   assert.match(world, /camera\.aspect>=\.78/);
-  assert.match(world, /focusBlend:\.48/);
-  assert.match(world, /minDistance:Math\.min\(11\.5,Math\.max\(9\.4/);
+  assert.match(world, /focusBlend:\.5/);
+  assert.match(world, /minDistance:Math\.min\(12\.5,Math\.max\(10\.8/);
   assert.match(world, /sep<12\|\|!!portrait/);
   assert.match(world, /Math\.max\(baseWant,portrait\.minDistance\)/);
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
-  assert.match(world, /deadZone:\.05,parallaxBias:\.22,turnRate:3\.2/);
+  assert.match(world, /deadZone:\.04,parallaxBias:\.38,turnRate:3\.2/);
+  assert.match(world, /actorScreen\(\)\{\s*camera\.updateMatrixWorld\(true\)/);
 });
 
 test('entrada reinicia o foco antigo e saída remove o escopo visual da dimensão', () => {
@@ -79,4 +80,12 @@ test('controles do retrato compacto afastam escudo, corrida e mira do joystick',
   assert.match(qa, /!overlaps\(visibleButtons\.shield, h\.stick\)/);
   assert.match(qa, /!overlaps\(visibleButtons\.run, h\.stick\)/);
   assert.match(qa, /state\.hud\.stick\.width <= 92/);
+});
+
+
+test('QA verifica projeção e separação dos dois combatentes, não apenas deslocamento da câmera', () => {
+  assert.match(qa, /actors: d && d\.actorScreen \? d\.actorScreen\(\) : null/);
+  assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
+  assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
+  assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= \.22/);
 });
