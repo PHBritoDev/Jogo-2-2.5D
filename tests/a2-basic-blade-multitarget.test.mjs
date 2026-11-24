@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { SwordRites, segmentBlocked, swordSideHitContext } from '../sword-rites3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
+import { swordImpactYaw } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -661,4 +662,30 @@ test('cache de linha de visão invalida quando a origem viva do herói se desloc
  assert(blockedCalls>before,'mudar a origem deve invalidar a LOS cacheada e reconsultar a parede');
  assert.equal(newOriginProbe,true,'a nova origem precisa produzir uma consulta de colisão');
  assert.deepEqual(hits,[],'a linha de visão continua obstruída na nova origem');
+});
+
+ 
+test('impact cut follows the connected blade or energy heading, not the global clock',()=>{
+ const near=(actual,expected)=>assert.ok(Math.abs(Math.atan2(Math.sin(actual-expected),Math.cos(actual-expected)))<1e-9,'angle mismatch: '+actual+' vs '+expected);
+ near(swordImpactYaw({yaw:Math.PI/2}),Math.PI/2);
+ near(swordImpactYaw({energy:{kind:'wave',yaw:-Math.PI/3}}),-Math.PI/3);
+ near(swordImpactYaw({energy:{kind:'sector',x:2,z:3,yaw:0},target:{x:4,z:3}}),Math.PI/2);
+ near(swordImpactYaw({energy:{direction:{x:0,z:1}}}),0);
+ near(swordImpactYaw({wave:{direction:{x:-1,z:0}}}),-Math.PI/2);
+ near(swordImpactYaw({energy:{kind:'sector',x:2,z:3,yaw:.4},target:{x:2,z:3}}),.4);
+ near(swordImpactYaw({energy:{direction:{x:NaN,z:0},yaw:Infinity}}),0);
+});
+
+test('production blade impacts forward their yaw and both impact cuts use the resolved heading',async()=>{
+ const source=await readFile(new URL('../sword-rites3d.js',import.meta.url),'utf8');
+ const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.match(source,/by:'blade',p:contact,yaw:a\.yaw,hitstop:/);
+ assert.match(source,/by:'blade',secondary:true,p:contact,yaw:a\.yaw,hitstop:0/);
+ const start=vfx.indexOf("else if(type==='impact')"),end=vfx.indexOf("\n  else if(type==='start')",start);
+ assert.ok(start>=0&&end>start,'production impact handler must be present');
+ const branch=vfx.slice(start,end);
+ assert.match(branch,/const cue=swordImpactCue\(e\),yaw=swordImpactYaw\(e\)/);
+ assert.match(branch,/cut\(p,e\.sword,cue\.scale,Math\.PI\*\.5,yaw,cue\.life\)/);
+ assert.match(branch,/cut\(p,e\.sword,cue\.secondScale,-Math\.PI\*\.5,yaw\+Math\.PI\/2,cue\.secondLife\)/);
+ assert.doesNotMatch(branch,/time\*3/,'impact orientation must not depend on global elapsed time');
 });
