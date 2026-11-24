@@ -14,7 +14,8 @@ const report = {
   agent: 'A3',
   scenario: 'runtime-real / Coelhinho.glb',
   renderer: 'Chromium headless + SwiftShader (CPU); não representa FPS Android',
-  requestedSha: process.env.GITHUB_SHA || null,
+  requestedSha: process.env.PR_HEAD_SHA || process.env.GITHUB_SHA || null,
+  workflowSha: process.env.GITHUB_SHA || null,
   branch: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || null,
   testedSha: null,
   viewport,
@@ -23,6 +24,8 @@ const report = {
   requestFailures: [],
   pageErrors: [],
   consoleErrors: [],
+  expectedConsoleErrors: [],
+  triggerCandidate: null,
   firstAttemptAborted: false,
   firstFailureState: null,
   retryState: null,
@@ -63,11 +66,22 @@ async function main() {
     recordVideo: { dir: path.join(out, 'videos'), size: viewport }
   });
   page = await context.newPage();
+  await page.addInitScript(() => {
+    localStorage.setItem('seven-sins-3d-prologo-ceu', '1');
+    localStorage.setItem('seven-sins-3d-graphics', 'low');
+    localStorage.setItem('sevenSins3DCampaignV6', JSON.stringify({ version: 6, act1Rev: 2, questStep: 1, awakeningSeen: true, playerName: 'A3 QA', actCardSeen: true }));
+  });
   videoHandle = page.video();
   page.setDefaultTimeout(30000);
   page.on('pageerror', e => report.pageErrors.push(String(e.message || e).slice(0, 500)));
   page.on('console', m => {
-    if (m.type() === 'error') report.consoleErrors.push(m.text().slice(0, 500));
+    if (m.type() !== 'error') return;
+    const message = m.text().slice(0, 500);
+    if (report.firstAttemptAborted && /net::ERR_FAILED/i.test(message)) {
+      report.expectedConsoleErrors.push(message);
+      return;
+    }
+    report.consoleErrors.push(message);
   });
   page.on('requestfailed', r => {
     if (r.url().endsWith('/Coelhinho.glb')) report.requestFailures.push({
@@ -97,81 +111,85 @@ async function main() {
     const D = window.SevenSinsDebug3D;
     return D && typeof D.faunaState === 'function' && typeof D.faunaSpawn === 'function' &&
       typeof D.faunaBiome === 'function' && typeof D.teleport === 'function' &&
-      typeof D.freeze === 'function' && D.faunaState();
+      typeof D.camFix === 'function' && typeof D.groundAt === 'function' &&
+      typeof D.speed === 'function' && typeof D.setHour === 'function' &&
+      typeof D.freeRoam === 'function' && D.faunaState();
   }, null, { timeout: 240000 });
 
-  // Freeze the simulation clock while the first request is deliberately failed.
-  await page.evaluate(() => {
+  // Find a real coelho cell. Trigger the first failure once, then leave the player near it
+  // so the production proximity scanner—not a second debug call—performs the retry and spawn.
+  const trigger = await page.evaluate(async () => {
     const D = window.SevenSinsDebug3D;
+    const { FAUNA, cellCandidate, FAUNA_CELL } = await import('./fauna3d.js');
     D.freeRoam();
-    D.setHour(10); // coelho ativo
-    D.freeze(true);
-    D.teleport(-14, -105, 0);
-  });
+    D.speed(3);
+    D.setHour(5.5); // coelho ativo; demais aves diurnas e grilos inativos
 
-  let state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
-  if (!state.loaded.includes('coelho') && state.loadFailures === 0) {
-    await page.evaluate(async () => {
-      const D = window.SevenSinsDebug3D;
-      await D.faunaSpawn('coelho', -14, -105, 0);
-    });
-    await page.waitForFunction(() => {
-      const s = window.SevenSinsDebug3D?.faunaState?.();
-      return s && s.loadFailures >= 1;
-    }, null, { timeout: 30000 });
-  }
+    const candidates = [];
+    const c0x = Math.floor(-1460 / FAUNA_CELL), c1x = Math.floor(-160 / FAUNA_CELL);
+    const c0z = Math.floor(-165 / FAUNA_CELL), c1z = Math.floor(50 / FAUNA_CELL);
+    for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) {
+      const c = cellCandidate('coelho', cx, cz);
+      if (c && FAUNA.coelho.biomes.includes(D.faunaBiome(c.x, c.z))) candidates.push(c);
+    }
 
-  state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
-  report.firstFailureState = state;
-  assert.ok(report.firstAttemptAborted, 'a primeira requisição real do GLB precisa ter sido abortada');
-  assert.ok(state.loadFailures >= 1, 'a falha precisa chegar ao catch de produção');
-  assert.ok(!state.loaded.includes('coelho'), 'o GLB não pode aparecer como carregado após a falha');
+    for (const c of candidates) {
+      const px = c.x, pz = c.z - 11, y = D.groundAt(px, pz) + 1.5;
+      D.teleport(px, pz);
+      D.camFix([px, y, pz], [px, y, pz - 2]); // candidato fica atrás da câmera, a 11 m
+      for (let i = 0; i < 12; i++) await new Promise(requestAnimationFrame);
 
-  // Restore real time. The next load must respect retryAt, then recover through the same GLTFLoader path.
-  await page.evaluate(() => window.SevenSinsDebug3D.realtime());
-  let retrySpawn = false;
-  for (let i = 0; i < 14; i++) {
-    await page.waitForTimeout(400);
-    state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
-    if (state.loaded.includes('coelho')) break;
-    retrySpawn = await page.evaluate(async () => {
-      const D = window.SevenSinsDebug3D;
-      return D.faunaSpawn('coelho', -14, -105, 0);
-    });
-  }
-  await page.waitForFunction(() => {
-    const s = window.SevenSinsDebug3D?.faunaState?.();
-    return s && s.loaded.includes('coelho');
-  }, null, { timeout: 30000 });
+      let state = D.faunaState();
+      if (state.loaded.includes('coelho')) return { candidate: c, state, alreadyLoaded: true };
+      if (state.loadFailures > 0 && state.lastLoadError?.kind === 'coelho') {
+        return { candidate: c, state, waitingForRetry: true };
+      }
 
-  state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
-  report.retryState = state;
-  assert.ok(state.loadRetries >= 1, 'a segunda tentativa precisa ser contabilizada como retry');
-  assert.ok(state.loadFailures >= 1, 'a falha inicial deve permanecer no diagnóstico');
-  assert.ok(report.responses.some(r => r.status === 200), 'a segunda requisição precisa receber HTTP 200');
-  assert.ok(requestCount >= 2, 'deve existir ao menos uma requisição após a falha inicial');
+      const beforeLoads = state.loads;
+      await D.faunaSpawn('coelho', c.x, c.z, 0);
+      state = D.faunaState();
+      if (state.loadFailures > 0 && state.lastLoadError?.kind === 'coelho') return { candidate: c, state };
+      if (state.loaded.includes('coelho')) return { candidate: c, state, alreadyLoaded: true };
 
-  // The real model is loaded. Find a safe meadow/forest point and use the existing QA spawn hook.
-  const spawn = await page.evaluate(async () => {
-    const D = window.SevenSinsDebug3D;
-    const anchors = [[-14, -105], [-30, -120], [-20, -135], [-42, -105]];
-    const offsets = [0, 3, -3, 6, -6, 9, -9, 12, -12];
-    for (const [ax, az] of anchors) {
-      for (const dx of offsets) for (const dz of offsets) {
-        const x = ax + dx, z = az + dz;
-        const biome = D.faunaBiome(x, z);
-        if (!['prado', 'floresta', 'vale'].includes(biome)) continue;
-        const ok = await D.faunaSpawn('coelho', x, z, 0);
-        if (!ok) continue;
-        const animal = D.faunaState().list.find(a => a.kind === 'coelho' && a.qa);
-        if (animal) return { biome, animal };
+      if (state.loads > beforeLoads) {
+        for (let i = 0; i < 90; i++) {
+          await new Promise(requestAnimationFrame);
+          state = D.faunaState();
+          if (state.loadFailures > 0 && state.lastLoadError?.kind === 'coelho') return { candidate: c, state };
+          if (state.loaded.includes('coelho')) return { candidate: c, state, alreadyLoaded: true };
+        }
       }
     }
     return null;
   });
-  assert.ok(spawn?.animal, 'o Coelhinho.glb carregado precisa gerar uma entidade viva em habitat válido');
-  report.spawnedAnimal = { biome: spawn.biome, ...spawn.animal };
-  assert.ok(report.spawnedAnimal.qa, 'a entidade capturada deve ser o spawn de QA identificado');
+
+  assert.ok(trigger?.candidate, 'o QA precisa encontrar um candidato real de coelho em habitat');
+  report.triggerCandidate = trigger.candidate;
+  let state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
+  report.firstFailureState = state;
+  assert.ok(report.firstAttemptAborted, 'a primeira requisição real do GLB precisa ter sido abortada');
+  assert.ok(state.loadFailures >= 1, 'a falha precisa chegar ao catch de produção');
+  assert.ok(!state.loaded.includes('coelho'), 'o GLB não pode aparecer como carregado após a falha');
+  assert.equal(requestCount, 1, 'somente a tentativa inicial deve ter ocorrido antes do retry');
+
+  // Keep the player at the same valid cell; update()/scan() must retry automatically after backoff.
+  await page.waitForFunction(() => {
+    const s = window.SevenSinsDebug3D?.faunaState?.();
+    return s && s.loaded.includes('coelho') && s.loadRetries >= 1 &&
+      s.list.some(a => a.kind === 'coelho' && !a.qa);
+  }, null, { timeout: 30000 });
+
+  state = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
+  report.retryState = state;
+  assert.ok(state.loadRetries >= 1, 'o scanner precisa contabilizar o retry');
+  assert.ok(state.lastLoadRecovery?.kind === 'coelho', 'a recuperação precisa ser identificada no diagnóstico');
+  assert.ok(report.responses.some(r => r.status === 200), 'a segunda requisição precisa receber HTTP 200');
+  assert.equal(requestCount, 2, 'o retry deve ser a segunda e única requisição adicional');
+  assert.equal(report.requestFailures.length, 1, 'somente a falha deliberada deve ocorrer');
+  const animal = state.list.find(a => a.kind === 'coelho' && !a.qa);
+  assert.ok(animal, 'o scanner de proximidade deve criar um coelho natural após recuperar o GLB');
+  report.spawnedAnimal = { biome: await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.faunaBiome(x, z), animal), ...animal };
+  assert.equal(report.spawnedAnimal.qa, false, 'o animal capturado precisa vir do scanner normal, não do spawn forçado de QA');
 
   await page.addStyleTag({
     content: 'body *{visibility:hidden!important}canvas#scene{visibility:visible!important}'
@@ -188,8 +206,10 @@ async function main() {
   await page.waitForTimeout(4000);
 
   const finalState = await page.evaluate(() => window.SevenSinsDebug3D.faunaState());
-  assert.ok(finalState.list.some(a => a.kind === 'coelho'), 'o coelho deve permanecer vivo após a captura');
+  assert.ok(finalState.list.some(a => a.kind === 'coelho' && !a.qa), 'o coelho natural deve permanecer vivo após a captura');
   report.finalState = finalState;
+  assert.deepEqual(report.pageErrors, [], 'não pode haver exceção no runtime');
+  assert.deepEqual(report.consoleErrors, [], 'não pode haver erro inesperado no console');
   report.status = 'PASS';
 }
 
@@ -208,7 +228,7 @@ async function main() {
           const src = await videoHandle.path();
           const dest = path.join(out, 'videos', 'a3-fauna-retry.webm');
           if (fs.existsSync(src)) {
-            if (path.resolve(src) !== path.resolve(dest)) fs.copyFileSync(src, dest);
+            if (path.resolve(src) !== path.resolve(dest)) fs.renameSync(src, dest);
             report.video = path.relative(out, dest);
           }
         } catch (e) {

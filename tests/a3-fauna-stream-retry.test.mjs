@@ -111,6 +111,11 @@ test('fauna: retry limitado recupera GLB após falha transitória e respeita o b
   assert.deepEqual(fauna.stats.loaded, ['grilo']);
   assert.equal(fauna.stats.loadRetries, 1);
   assert.equal(fauna.stats.loadFailures, 1);
+  assert.deepEqual(
+    { kind: fauna.stats.lastLoadRecovery?.kind, attempt: fauna.stats.lastLoadRecovery?.attempt, cycle: fauna.stats.lastLoadRecovery?.cycle },
+    { kind: 'grilo', attempt: 2, cycle: 1 }
+  );
+  assert.ok(fauna.stats.lastLoadRecovery.loadMs >= 0);
   fauna.dispose();
 });
 
@@ -134,6 +139,33 @@ test('fauna: scanner de produção tenta novamente após o backoff no habitat at
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(mock.calls(), 2, 'o scanner real agenda a nova tentativa quando o backoff termina');
   assert.deepEqual(fauna.stats.loaded, ['grilo']);
+  fauna.dispose();
+});
+
+test('fauna: recupera no segundo ciclo depois do cooldown de 30 s', async () => {
+  const mock = loaderFor([
+    new Error('network reset 1'),
+    new Error('network reset 2'),
+    new Error('network reset 3'),
+    'ok'
+  ]);
+  const fauna = create(mock.Loader);
+
+  await fauna.load('grilo');
+  tick(fauna, .8); await fauna.load('grilo');
+  tick(fauna, 2.1); await fauna.load('grilo');
+  assert.equal(mock.calls(), 3);
+
+  tick(fauna, 29.9); await fauna.load('grilo');
+  assert.equal(mock.calls(), 3, 'o segundo ciclo não começa antes dos 30 s');
+
+  tick(fauna, .2); await fauna.load('grilo');
+  assert.equal(mock.calls(), 4);
+  assert.deepEqual(fauna.stats.loaded, ['grilo']);
+  assert.deepEqual(
+    { kind: fauna.stats.lastLoadRecovery?.kind, attempt: fauna.stats.lastLoadRecovery?.attempt, cycle: fauna.stats.lastLoadRecovery?.cycle },
+    { kind: 'grilo', attempt: 1, cycle: 2 }
+  );
   fauna.dispose();
 });
 

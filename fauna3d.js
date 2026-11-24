@@ -71,7 +71,7 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
  */
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, lastLoadError: null, loadMs: [] };
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
   const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
@@ -106,7 +106,9 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
       else { A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
       assets[kind] = A; delete loadState[kind];
-      stats.loaded.push(kind); stats.loadMs.push(Math.round(performance.now() - t0));
+      const loadMs = Math.round(performance.now() - t0);
+      if (attempt > 1 || state.cycles > 0) stats.lastLoadRecovery = { kind, attempt, cycle: state.cycles + 1, loadMs };
+      stats.loaded.push(kind); stats.loadMs.push(loadMs);
       return A;
     }).catch(e => {
       const message = String(e && e.message || e), status = assetHttpStatus(e);
