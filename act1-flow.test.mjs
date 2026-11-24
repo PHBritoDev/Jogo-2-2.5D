@@ -227,3 +227,17 @@ test('HUD não avança etapas por subetapa inválida restaurada de save', () => 
   assert.match(questPresentation(1, 1).objective, /vendedor de frutas/);
   assert.match(questPresentation(3, 2).objective, /luta terminou/);
 });
+
+test('descanso, recibos e progresso da campanha sobrevivem juntos ao reload e à migração', () => {
+  const receipt = 'side:ervas:v2';
+  const progress = {version: 6, act1Rev: 2, questStep: 15, act1Sub: 1, sakuraRest: 23,
+    sideRewardClaims: [receipt, receipt, 123, 'broken'], coins: 98, xp: 40, playerName: 'Lia'};
+  const loaded = migrateProgress(JSON.parse(JSON.stringify(progress)));
+  assert.deepEqual(loaded.sideRewardClaims, [receipt]);
+  assert.deepEqual([loaded.sakuraRest, loaded.questStep, loaded.act1Sub, loaded.coins, loaded.xp, loaded.playerName],
+    [23, 15, 1, 98, 40, 'Lia']);
+  assert.deepEqual(migrateProgress(JSON.parse(JSON.stringify(loaded))), loaded);
+  const legacy = migrateProgress({version: 5, questStep: 2, coins: 12});
+  assert.deepEqual([legacy.sakuraRest, legacy.sideRewardClaims, legacy.coins], [-1, [], 12]);
+  assert.deepEqual(migrateProgress({...progress, sakuraRest: 100}).sideRewardClaims, [receipt]);
+});

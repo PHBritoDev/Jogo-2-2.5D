@@ -17,7 +17,7 @@ try{
   localStorage.setItem('seven-sins-3d-graphics',tier);
   if(!localStorage.getItem('sevenSins3DCampaignV6'))localStorage.setItem('sevenSins3DCampaignV6',JSON.stringify({version:6,act1Rev:2,questStep:15,act1Sub:0,
    playerName:'Lia',awake:true,awakeningSeen:true,actCardSeen:true,wardenDefeated:true,coins:98,
-   bishopsDefeated:2,vhazraelRewardClaimed:true,vorgazhekRewardClaimed:true}));
+   bishopsDefeated:2,vhazraelRewardClaimed:true,vorgazhekRewardClaimed:true,sideRewardClaims:['side:ervas:v2']}));
  },tier);
  await page.goto((process.env.GAME_URL||'http://localhost:4432')+'/mundo-3d-prototype.html?debug3d=1',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.SevenSinsDebug3D&&document.querySelector('#loading').classList.contains('hidden'),null,{timeout:240000});
@@ -72,13 +72,18 @@ try{
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===1);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.storyState().sub===1&&Math.abs(SevenSinsDebug3D.walkState().x+1040)<4,null,{timeout:240000});
+  const sharedSave=await page.evaluate(()=>JSON.parse(localStorage.getItem('sevenSins3DCampaignV6')));
+  if(sharedSave.sakuraRest!==23||sharedSave.sideRewardClaims?.join(',')!=='side:ervas:v2'||
+     sharedSave.playerName!=='Lia'||sharedSave.coins!==98||sharedSave.questStep!==15){
+   throw Error('Snapshot V6 após recarregar o dojo: '+JSON.stringify(sharedSave));
+  }
   await at(583,-236);const gallery=await page.evaluate(()=>SevenSinsDebug3D.walkState());
   if(Math.abs(gallery.y-88)>.65)throw Error('Galeria sem apoio físico '+gallery.y);
   await at(564,-197);for(let i=0;i<9;i++){if(await button.isVisible())await button.click();if(await page.evaluate(()=>SevenSinsDebug3D.storyState().sub===2))break;await page.waitForTimeout(450);}
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===2);await at(150,-40);
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().scene==='cidade-neve');await page.evaluate(()=>SevenSinsDebug3D.skipStory());
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q===16);
-  fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,galleryFloor:gallery.y,subAfterThrone:2,cityStep:16}));
+  fs.writeFileSync(path.join(out,'campaign.json'),JSON.stringify({first,subAfterDialogue:1,restoredDojo:true,sharedSave,galleryFloor:gallery.y,subAfterThrone:2,cityStep:16}));
  }else if(mode==='walk'){
   const points=await page.evaluate(async()=>{
    const {FROM_CITY,ROUTE,MASTER,CITY_ROAD}=await import('/sakura-route3d.js');
