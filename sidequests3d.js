@@ -5,16 +5,16 @@
  */
 export const SIDE_QUESTS = [
   {
-    id: 'ervas', giver: 'ALIMENTOS', title: 'Flores de Vigília', minStep: 1,
+    id: 'ervas', giver: 'ERVAS', title: 'Flores de Vigília', minStep: 1,
     goal: { type: 'collect', item: 'flor', count: 4 },
     reward: { coins: 10, xp: 30 },
     offer: [
-      { who: 'Bento · Alimentos', text: 'Há uma flor que só abre quando o medo está acordado. Flor de Vigília. Faz chá para quem não dorme desde que as crianças sumiram.' },
-      { who: 'Bento · Alimentos', text: 'Elas brilham entre as árvores, longe da trilha. Traz quatro e eu te pago com o pouco que tenho.' }
+      { who: 'Mara · Ervas', text: 'Há uma flor que só abre quando o medo está acordado. Flor de Vigília. Faz chá para quem não dorme desde que as crianças sumiram.' },
+      { who: 'Mara · Ervas', text: 'Elas brilham entre as árvores, longe da trilha. Traz quatro e eu te pago com o pouco que tenho.' }
     ],
     progressLine: 'Encontre Flores de Vigília (brilham entre as árvores)',
     turnIn: [
-      { who: 'Bento · Alimentos', text: 'Quatro… e ainda frescas. Hoje alguém nesta vila vai fechar os olhos sem ouvir unhas na porta.' }
+      { who: 'Mara · Ervas', text: 'Quatro… e ainda frescas. Hoje alguém nesta vila vai fechar os olhos sem ouvir unhas na porta.' }
     ]
   },
   {
@@ -22,26 +22,26 @@ export const SIDE_QUESTS = [
     goal: { type: 'collect', item: 'pingente', count: 1 },
     reward: { coins: 14, xp: 35 },
     offer: [
-      { who: 'Lia · Frutas', text: 'Meu filho estava entre os que levaram para a mata. Quando correram com ele, meu pingente caiu perto do Lago Escuro.' },
-      { who: 'Lia · Frutas', text: 'Não é ouro. Eu o usava desde antes de ele nascer. Se você passar por lá…' }
+      { who: 'Lia · Frutas', text: 'Meu filho estava entre os que levaram para a mata. Quando correram com ele, o pingente da mãe dele caiu perto do lago escuro.' },
+      { who: 'Lia · Frutas', text: 'Não é ouro. É a única coisa dela que sobrou. Se você passar por lá…' }
     ],
     progressLine: 'Procure o pingente perto do Lago Escuro',
     turnIn: [
-      { who: 'Lia · Frutas', text: 'É ele. Gravei o nome dele atrás, para que ninguém pudesse dizer que ele era de outra pessoa.' },
+      { who: 'Lia · Frutas', text: 'É ele. Ela gravou o nome dele atrás, para que ninguém pudesse dizer que ele era de outra pessoa.' },
       { who: 'Lia · Frutas', text: 'Toma. Não é pagamento — é o que se faz quando alguém devolve um nome.' }
     ]
   },
   {
-    id: 'abrigos', giver: 'PROVISÕES', title: 'Pedras que Lembram', minStep: 1,
+    id: 'abrigos', giver: 'ARTESANATO', title: 'Pedras que Lembram', minStep: 1,
     goal: { type: 'waystones', count: 3 },
     reward: { coins: 12, xp: 40 },
     offer: [
-      { who: 'Téo · Provisões', text: 'Meu avô talhou as pedras de abrigo da mata. Diziam que quem as tocasse nunca se perderia.' },
-      { who: 'Téo · Provisões', text: 'Registre as três e me conte. Quero saber se ainda reconhecem um viajante honesto.' }
+      { who: 'Nara · Artesanato', text: 'Meu avô talhou as pedras de abrigo da mata. Diziam que quem as tocasse nunca se perderia.' },
+      { who: 'Nara · Artesanato', text: 'Registre as três e me conte. Quero saber se ainda reconhecem um viajante honesto.' }
     ],
     progressLine: 'Registre as três pedras de abrigo',
     turnIn: [
-      { who: 'Téo · Provisões', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto — foi ele quem fez.' }
+      { who: 'Nara · Artesanato', text: 'As três acenderam? Então a mata ainda lembra quem é bem-vindo. Leve isto — foi ele quem fez.' }
     ]
   }
 ];
