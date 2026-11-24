@@ -162,14 +162,17 @@ export class SwordRites {
     // Build one wall-clipped sweep for every physical swing. The primary target must
     // obey the same first-wall cutoff as side targets; checking only the final blade pose
     // allowed a fast swing to tunnel through a wall between two animation samples.
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
+    const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
+    const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
     let physicalSweep=null;
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live){
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
      const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,extend(prev),blade.base,extend(blade),this.api.blocked);
      if(physicalSweep.blocked)a.bladeBlocked=true;
     }
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsPrimarySweep){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
      if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked)){
       a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
@@ -177,8 +180,7 @@ export class SwordRites {
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
     // A per-swing set prevents repeated damage from 120 Hz substeps.
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&ctx.others?.length){
-     a.bladeSideHits=a.bladeSideHits||new Set();
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsSideSweep){
      for(const other of ctx.others){
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
