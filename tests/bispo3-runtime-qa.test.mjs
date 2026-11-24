@@ -63,3 +63,16 @@ test('Bispo 3 workflow valida e identifica o SHA exato da PR', () => {
   assert.ok(workflow.includes('name: bispo3-dimension-${{ github.event.pull_request.head.sha || github.sha }}'));
   assert.ok(sixSeals.includes('build:process.env.PR_HEAD_SHA||process.env.GITHUB_SHA'));
 });
+
+
+test('six-seals QA não aprova a cinematográfica sem WebM finalizado e válido', () => {
+  const start = sixSeals.indexOf('const video=page.video();');
+  const end = sixSeals.indexOf('report.ok=wanted.every', start);
+  assert.ok(start >= 0 && end > start, 'finalização do vídeo precisa ocorrer antes do resultado do modo');
+  const finalizer = sixSeals.slice(start, end);
+  assert.match(finalizer, /if\(!video\)throw new Error/);
+  assert.match(finalizer, /header!=="1a45dfa3"/);
+  assert.match(finalizer, /data\.video=\{available:false,error:message\}/);
+  assert.match(finalizer, /data\.status="failed"/);
+  assert.match(sixSeals, /report\.ok=wanted\.every\(m=>report\.modes\[m\]\.status==="approved"\)/);
+});
