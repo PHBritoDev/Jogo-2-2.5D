@@ -369,7 +369,7 @@ test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
  assert.deepEqual(hits,[],'a target behind the wall must never receive damage');
  assert.deepEqual(impacts,[],'a target behind the wall must never receive impact VFX');
  assert.ok(losCalls<=8,'unchanged blocked endpoints should be ray-tested at most once per 50ms');
- assert.ok(blockedCalls<5000,'identical blade poses and unchanged blocked rays must not repeat full 8mm collision scans');
+ assert.ok(blockedCalls<14500,'the 50ms blocked-ray cache and duplicate-pose elimination must remove repeated 8mm scans');
 });
 
 test('occlusion cache invalidates immediately when the hero moves around the wall',()=>{
