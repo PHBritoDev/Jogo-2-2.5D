@@ -226,17 +226,32 @@ async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
   return result;
 }
 
+async function assertManualZoom(page, label) {
+  const before = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  const box = await page.locator('#look-area').boundingBox();
+  assert.ok(box && box.width > 100 && box.height > 100, label + ': área real de câmera disponível');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 600);
+  await page.waitForTimeout(1500);
+  const after = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.equal(after.manualZoomOverride, true, label + ': zoom manual ativa override do duelo');
+  assert.ok(after.requestedDistance >= before.requestedDistance + 4.5, label + ': roda altera distância solicitada');
+  assert.ok(after.distance >= before.distance + 1.6, label + ': câmera real acompanha o zoom após a interpolação');
+  return { before, after };
+}
+
 async function runFreshPortrait(browser, url, stage) {
   const { context, page } = await openBattle(browser, url, stage, { width: 393, height: 852 });
-  let portrait = null, videoPath = null;
+  let portrait = null, videoPath = null, manualZoom = null;
   try {
     portrait = await inspect(page);
     await shot(page, stage + '-retrato-inicial');
     assertPortrait(portrait, stage + ' retrato inicial');
+    manualZoom = await assertManualZoom(page, stage + ' zoom manual');
   } finally {
     videoPath = await finish(context, page);
   }
-  return { portrait, videoPath };
+  return { portrait, manualZoom, videoPath };
 }
 
 async function main() {
