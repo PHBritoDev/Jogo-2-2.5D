@@ -208,3 +208,14 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
   assert.match(compactFn[0], /assertPortrait\(portrait, stage \+ ' retrato compacto'\)/);
   assert.match(compactFn[0], /return \{ portrait, vsCard, videoPath \};/);
 });
+
+test('cartão VS usa render 2:3 separado e preserva o avatar quadrado do HUD', () => {
+  assert.match(world, /let heroPortraitDone=false,heroVsPortraitSrc=''/);
+  assert.match(world, /const S=160,VS_W=160,VS_H=240/);
+  assert.match(world, /new THREE\.PerspectiveCamera\(vsFov,VS_W\/VS_H/);
+  assert.match(world, /heroVsPortraitSrc=toDataUrl\(vsPx,VS_W,VS_H\)/);
+  assert.match(world, /src=heroVsPortraitSrc\|\|/);
+  assert.match(qa, /hudHero: image\('#hero-portrait-img'\)/);
+  assert.match(qa, /state\.images\.hero\.aspect - 2 \/ 3/);
+  assert.match(qa, /state\.images\.hudHero\.aspect - 1/);
+});

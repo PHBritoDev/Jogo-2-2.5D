@@ -112,7 +112,7 @@ async function inspectVsCard(page) {
     };
     const image = selector => {
       const el = document.querySelector(selector);
-      return el ? { complete: el.complete, naturalWidth: el.naturalWidth, naturalHeight: el.naturalHeight } : null;
+      return el ? { complete: el.complete, naturalWidth: el.naturalWidth, naturalHeight: el.naturalHeight, aspect: el.naturalHeight ? +(el.naturalWidth / el.naturalHeight).toFixed(3) : 0 } : null;
     };
     const panel = document.querySelector('#vs-panel');
     const stage = document.querySelector('.vs-stage');
@@ -123,7 +123,7 @@ async function inspectVsCard(page) {
       hero: rect('.vs-hero'), heroFrame: rect('.vs-hero .vs-frame'), heroCaption: rect('.vs-hero figcaption'),
       boss: rect('.vs-boss'), bossFrame: rect('.vs-boss .vs-frame'), bossCaption: rect('.vs-boss figcaption'),
       mark: rect('.vs-mark'), line: rect('#vs-line'), go: rect('#vs-go'),
-      images: { hero: image('#vs-hero-img'), boss: image('#vs-boss-img') },
+      images: { hero: image('#vs-hero-img'), boss: image('#vs-boss-img'), hudHero: image('#hero-portrait-img') },
       overflow: {
         panelScrollWidth: panel?.scrollWidth ?? 0, panelClientWidth: panel?.clientWidth ?? 0,
         stageScrollWidth: stage?.scrollWidth ?? 0, stageClientWidth: stage?.clientWidth ?? 0
@@ -140,8 +140,11 @@ function assertVsPortrait(state, label) {
   for (const key of ['panel','kicker','stage','hero','heroFrame','heroCaption','boss','bossFrame','bossCaption','mark','line','go']) {
     assert.ok(within(state[key]), label + ': ' + key + ' inteiro dentro do viewport');
   }
-  assert.ok(state.images.hero?.complete && state.images.hero.naturalWidth > 0, label + ': retrato do protagonista carregado');
+  assert.ok(state.images.hero?.complete && state.images.hero.naturalWidth > 0, label + ': retrato 2:3 do protagonista carregado');
   assert.ok(state.images.boss?.complete && state.images.boss.naturalWidth > 0, label + ': arte do Bispo carregada');
+  assert.ok(Math.abs(state.images.hero.aspect - 2 / 3) < .005, label + ': retrato VS usa proporção nativa 2:3, sem corte lateral por cover');
+  assert.ok(state.images.hudHero?.complete && state.images.hudHero.naturalWidth > 0, label + ': avatar do HUD continua carregado');
+  assert.ok(Math.abs(state.images.hudHero.aspect - 1) < .005, label + ': avatar circular do HUD continua quadrado');
   assert.ok(state.overflow.panelScrollWidth <= state.overflow.panelClientWidth + 1, label + ': painel sem overflow horizontal');
   assert.ok(state.overflow.stageScrollWidth <= state.overflow.stageClientWidth + 1, label + ': cartões sem overflow horizontal');
   assert.ok(state.hero.right <= state.mark.left + 1, label + ': protagonista antes do VS');

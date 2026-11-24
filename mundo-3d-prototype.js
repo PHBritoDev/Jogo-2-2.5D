@@ -3114,7 +3114,7 @@ function openVsCard(key,onGo){
  vsGoCallback=onGo||null;vsKey=key;
  const card=vsCard(key,playerName),panel=document.getElementById('vs-panel'),go=document.getElementById('vs-go');
  if(!card||!panel||!go){if(vsGoCallback){const cb=vsGoCallback;vsGoCallback=null;cb();}else beginDimensionFight();return;}
- const heroImg=document.getElementById('vs-hero-img'),src=(document.getElementById('hero-portrait-img')||{}).src;
+ const heroImg=document.getElementById('vs-hero-img'),src=heroVsPortraitSrc||(document.getElementById('hero-portrait-img')||{}).src;
  if(src)heroImg.src=src;else heroImg.removeAttribute('src');
  document.getElementById('vs-boss-img').src=card.bishopImage;
  document.getElementById('vs-hero-name').textContent=card.playerName;
@@ -3428,24 +3428,37 @@ function updateFpsBadge(now){fpsFrames++;if(now-fpsSince<1000)return;const fps=M
   const close=document.createElement('button');close.type='button';close.className='panel-close';close.textContent='FECHAR';panel.appendChild(close);bindInstantTap(close,()=>{panel.hidden=true;});
  }
 })();
-// Retrato: renderiza uma vez o próprio Protagonista.glb (rosto/capuz) num alvo pequeno, sem afetar a cena.
-let heroPortraitDone=false;
+// Retrato: mantém o avatar quadrado do HUD e gera um enquadramento 2:3 próprio para o cartão VS.
+let heroPortraitDone=false,heroVsPortraitSrc='';
 function renderHeroPortrait(){
  if(heroPortraitDone||!model)return;heroPortraitDone=true;
  try{
-  const S=160,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
+  const S=160,VS_W=160,VS_H=240,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),vsRt=new THREE.WebGLRenderTarget(VS_W,VS_H,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
   const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
   ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
   clone.updateMatrixWorld(true);const box=measureModelBounds(clone),center=box.getCenter(new THREE.Vector3());
-  // O GLB pode ter a origem deslocada: centraliza o retrato sem mover o modelo de gameplay.
+  // O GLB pode ter a origem deslocada: centraliza os dois retratos sem mover o modelo de gameplay.
   clone.position.x-=center.x;clone.position.z-=center.z;clone.updateMatrixWorld(true);
-  const centered=measureModelBounds(clone),size=centered.getSize(new THREE.Vector3()),top=centered.max.y;
-  const cam=new THREE.PerspectiveCamera(28,1,.01,50),headY=top-size.y*.12;cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
-  const prevTarget=renderer.getRenderTarget();renderer.setRenderTarget(rt);renderer.render(ps,cam);
-  const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);renderer.setRenderTarget(prevTarget);rt.dispose();
-  const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),img=g.createImageData(S,S);
-  for(let y=0;y<S;y++)img.data.set(px.subarray((S-1-y)*S*4,(S-y)*S*4),y*S*4);g.putImageData(img,0,0);
-  const el=document.getElementById('hero-portrait-img');if(el)el.src=c.toDataURL('image/png');
+  const centered=measureModelBounds(clone),size=centered.getSize(new THREE.Vector3()),top=centered.max.y,headY=top-size.y*.12;
+  const cam=new THREE.PerspectiveCamera(28,1,.01,50);cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
+  // Preserva o mesmo FOV horizontal do avatar quadrado; o cartão 2:3 deixa de cortar as laterais.
+  const vsFov=2*Math.atan(Math.tan(28*Math.PI/360)/(VS_W/VS_H))*180/Math.PI;
+  const vsCam=new THREE.PerspectiveCamera(vsFov,VS_W/VS_H,.01,50);vsCam.position.set(0,headY,size.y*.62);vsCam.lookAt(0,headY-size.y*.02,0);
+  const toDataUrl=(pixels,width,height)=>{
+   const c=document.createElement('canvas');c.width=width;c.height=height;
+   const g=c.getContext('2d'),img=g.createImageData(width,height);
+   for(let y=0;y<height;y++)img.data.set(pixels.subarray((height-1-y)*width*4,(height-y)*width*4),y*width*4);
+   g.putImageData(img,0,0);return c.toDataURL('image/png');
+  };
+  const prevTarget=renderer.getRenderTarget();
+  try{
+   renderer.setRenderTarget(rt);renderer.render(ps,cam);
+   const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);
+   const el=document.getElementById('hero-portrait-img');if(el)el.src=toDataUrl(px,S,S);
+   renderer.setRenderTarget(vsRt);renderer.render(ps,vsCam);
+   const vsPx=new Uint8Array(VS_W*VS_H*4);renderer.readRenderTargetPixels(vsRt,0,0,VS_W,VS_H,vsPx);
+   heroVsPortraitSrc=toDataUrl(vsPx,VS_W,VS_H);
+  }finally{renderer.setRenderTarget(prevTarget);rt.dispose();vsRt.dispose();}
  }catch(err){console.warn('Retrato do herói indisponível.',err);}
 }
 /* MOD 188 — Loja Central: prédio de pedra clara com pórtico, telhado de ardósia e uma estrela dourada
