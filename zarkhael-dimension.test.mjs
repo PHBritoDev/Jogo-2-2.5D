@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mushroomLayout,capPoint,blinkOpen,MUSHROOM_QUALITY} from './zarkhael-dimension3d.js';
+import {mushroomLayout,capPoint,blinkOpen,MUSHROOM_QUALITY,getZarkhaelLighting} from './zarkhael-dimension3d.js';
+import {DIMENSIONS,arenaSpots,arenaSpec,DIM_FLOOR_Y} from './dimensions3d.js';
+import {readFileSync} from 'node:fs';
+import {createLightBudget} from './light-budget3d.js';
 
 test('mushroom stems preserve the entire original 30m combat disc',()=>{
   const items=mushroomLayout(30);assert.deepEqual(items,mushroomLayout(30));assert.equal(items.length,24);
@@ -28,4 +31,224 @@ test('quality limits animation distance, density and target sampling without rem
   const q=Object.values(MUSHROOM_QUALITY);
   for(let i=0;i<2;i++)for(const key of ['distance','fraction','hz'])assert.ok(q[i][key]<q[i+1][key]);
   assert.ok(q[0].fraction>0);assert.equal(q[2].fraction,1);
+});
+
+test('Zar’khael balances a raised camera-side fill across both combatants without washing the corridor',()=>{
+  const env=getZarkhaelLighting();
+  assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
+  assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
+  assert.deepEqual(env.sun,[0xffe8dc,1.0]);
+  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,8,2]]);
+  assert.ok(env.light[1]>=16&&env.light[3][1]>=7.5&&env.light[3][1]<=8.5,'fill must stay elevated to reduce the checker-floor hotspot');
+  assert.equal(env.exposure,.85);
+  const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
+  const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
+  const playerDistance=distanceTo(spots.player),bossDistance=distanceTo(spots.boss);
+  assert.ok(playerDistance<11,'player spawn must stay in the near field of the existing fill');
+  assert.ok(bossDistance<8,'boss spawn must remain inside the brighter core');
+  assert.ok(bossDistance<playerDistance,'the boss keeps a modest geometric priority over the player');
+  assert.ok(playerDistance/bossDistance>1.3&&playerDistance/bossDistance<1.4,'the fill must favor the boss modestly while keeping both actors readable');
+  const edgeDistances=[[30,0],[-30,0],[0,30],[0,-30]].map(([x,z])=>Math.hypot(x-lx,1.7-ly,z-lz));
+  assert.ok(Math.max(...edgeDistances)<env.light[2],'the full 30m combat disc must remain inside the fill');
+  assert.ok(Math.hypot(lx,3.5-ly,-210-lz)>env.light[2],'distant corridor must remain outside the local fill');
+});
+
+test('the fill reuses the arena light rig without adding lights or render passes',()=>{
+  const source=readFileSync(new URL('./zarkhael-dimension3d.js',import.meta.url),'utf8');
+  const arenas=readFileSync(new URL('./dimension-arenas3d.js',import.meta.url),'utf8');
+  assert.match(source,/return getZarkhaelLighting\(\);/);
+  assert.doesNotMatch(source,/new\s+(?:THREE|T)\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\b/);
+  assert.doesNotMatch(source,/WebGLRenderTarget|EffectComposer|ShadowMap/);
+  assert.match(arenas,/mushrooms\(THREE,\s*g,\s*spec,\s*ctx\)\s*\{\s*return buildMushroomDimension/);
+  assert.match(arenas,/zarkhael-dimension3d\.js\?v=a4-zarkhael-fill-5/,'standalone preview must not reuse the stale Mod 296 module URL');
+});
+
+test('production runtime and preview consume the exact Zar’khael preset through existing lights',()=>{
+  const world=readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
+  const preview=readFileSync(new URL('./tools/visual-lab/bispo3-dimension-preview.html',import.meta.url),'utf8');
+  const start=world.indexOf('function updateVoid(dt,now){');
+  const end=world.indexOf('// ---------- Etapas ----------',start);
+  const updateVoidSource=start>=0&&end>start?world.slice(start,end):'';
+  assert.ok(updateVoidSource,'production updateVoid function must be present');
+  assert.match(updateVoidSource,/const e=arena\.env/);
+  assert.match(updateVoidSource,/hemiLight\.intensity=e\.hemi\[2\]/);
+  assert.match(updateVoidSource,/sunLight\.intensity=e\.sun\[1\]/);
+  assert.match(updateVoidSource,/dimLight\.intensity=e\.light\[1\][\s\S]*?dimLight\.distance=e\.light\[2\]/);
+  assert.match(updateVoidSource,/else dimLight\.position\.set\(voidSpec\.x\+e\.light\[3\]\[0\],voidSpec\.y\+e\.light\[3\]\[1\],voidSpec\.z\+e\.light\[3\]\[2\]\)/);
+  assert.match(preview,/const e=arena\.env/);
+  assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
+});
+
+test('A/B identifies the exact Zar’khael fill by world position and source parameters',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
+  assert.match(qa,/const lighting=await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.perfProbe\(1\)\)/);
+  assert.match(qa,/lighting\.lights\?\.slots,4/);
+  assert.match(qa,/lighting\.lights\?\.activeDetails\?\.find/);
+  assert.match(qa,/source\.positionSpace==='world'/);
+  assert.match(qa,/source\.worldPosition\?\.length===3/);
+  assert.match(qa,/Math\.abs\(source\.worldPosition\[0\]-expectedFill\.position\[0\]\)/);
+  assert.match(qa,/Math\.abs\(source\.distance-expectedFill\.distance\)<\.01/);
+  assert.match(qa,/Math\.abs\(source\.intensity-expectedFill\.intensity\)<=expectedFill\.intensity\*\.051/);
+  assert.match(qa,/fill\.slotIntensity>expectedFill\.minSlotIntensity/);
+  assert.doesNotMatch(qa,/active\?\.includes\('luz'\)/);
+  assert.match(budget,/activeDetails: selected\.map/);
+});
+test('light-budget telemetry reports the real selected source, world position and shader-slot intensity',()=>{
+  class Obj {
+    constructor(){this.children=[];this.parent=null;this.isObject3D=true;this.visible=true;this.matrixWorld={elements:new Array(16).fill(0)};this.matrixWorld.elements[15]=1;}
+    add(...objects){for(const o of objects){if(o.parent){const i=o.parent.children.indexOf(o);if(i>=0)o.parent.children.splice(i,1);}this.children.push(o);o.parent=this;}return this;}
+    remove(...objects){for(const o of objects){const i=this.children.indexOf(o);if(i>=0){this.children.splice(i,1);o.parent=null;}}return this;}
+    traverse(fn){fn(this);for(const child of this.children)child.traverse(fn);}
+    getWorldPosition(out){const e=this.matrixWorld.elements;out.x=e[12];out.y=e[13];out.z=e[14];return out;}
+  }
+  class Point extends Obj {
+    constructor(){super();this.isPointLight=true;this.userData={};this.castShadow=false;this.layers={mask:1,set(i){this.mask=1<<i;}};
+      const owner=this;this.position={setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];owner.matrixWorld.elements[12]=this.x;owner.matrixWorld.elements[13]=this.y;owner.matrixWorld.elements[14]=this.z;}};
+      this.color={r:.737910,g:.791298,b:.887923,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}};
+      this.intensity=0;this.distance=0;this.decay=2;}
+  }
+  class Vec {
+    constructor(){this.x=this.y=this.z=0;}
+    setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];return this;}
+    distanceTo(v){return Math.hypot(this.x-v.x,this.y-v.y,this.z-v.z);}
+  }
+  const T={Object3D:Obj,PointLight:Point,Vector3:Vec},scene=new Obj(),fill=new Point();
+  fill.name='zarkhael-dimension-fill';fill.intensity=16;fill.distance=36;fill.decay=2;
+  fill.matrixWorld.elements[12]=1200;fill.matrixWorld.elements[13]=7;fill.matrixWorld.elements[14]=0;
+  scene.add(fill);
+  const budget=createLightBudget(T,scene,{slots:4,rescanEvery:1});
+  const camera={getWorldPosition(out){out.x=1200;out.y=7;out.z=0;}};
+  for(let i=0;i<60;i++)budget.update(camera,1/60);
+  const details=budget.stats().activeDetails;
+  assert.equal(details.length,1);
+  assert.deepEqual(details[0].position,[1200,7,0]);
+  assert.deepEqual(details[0].worldPosition,[1200,7,0]);
+  assert.deepEqual(details[0].slotWorldPosition,[1200,7,0]);
+  assert.equal(details[0].positionSpace,'world');
+  assert.equal(details[0].name,'zarkhael-dimension-fill');
+  assert.equal(details[0].intensity,16);
+  assert.equal(details[0].distance,36);
+  assert.deepEqual(details[0].slotColor,[.737910,.791298,.887923]);
+  assert.equal(details[0].slotDistance,36);
+  assert.equal(details[0].slotDecay,2);
+  assert.ok(details[0].slotIntensity>15);
+});
+
+test('A/B harness freezes boss automation, waits for VS readiness and performs one trusted start click',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const apiReady=qa.indexOf('await page.waitForFunction(()=>window.SevenSinsDebug3D');
+  const manualGate=qa.indexOf('window.__qaManualBossSkills=true;',apiReady);
+  const waitStart=qa.indexOf('await page.waitForFunction(()=>{',apiReady);
+  const preStart=qa.indexOf('const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());',waitStart);
+  const readyStart=qa.indexOf("const button=document.querySelector('#vs-go');",preStart);
+  const clickToken="await page.locator('#vs-go').click({timeout:15000});";
+  const clickStart=qa.indexOf(clickToken,readyStart);
+  const battleWait=qa.indexOf('await page.waitForFunction(()=>{',clickStart);
+  assert.ok(apiReady>=0&&manualGate>apiReady&&manualGate<waitStart,'automatic boss skills must be disabled before the VS transition');
+  assert.ok(waitStart>=0&&preStart>waitStart,'the harness must first observe the VS panel');
+  assert.ok(readyStart>preStart&&clickStart>readyStart&&battleWait>clickStart,'the trusted click must happen once, only after the VS button is enabled');
+  assert.ok(qa.includes('return !!button&&!button.disabled;'),'the start button must be enabled before the click');
+  assert.equal(qa.split(clickToken).length-1,1,'exactly one real VS click is allowed');
+  assert.equal(qa.includes('.vsGo('),false,'do not bypass the real start control with a synthetic debug call');
+  assert.ok(qa.includes('window.__qaManualBossSkills=true;window.SevenSinsDebug3D.god()'),'comparison must suppress automatic boss skills and enable god mode before combat');
+});
+
+test('A/B restores the production camera after motionQA freezes the loop and accepts the dimLight pulse',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const placed=qa.indexOf("d.motionQA({x:1200,z:10,enemyDistance:12,sword:'prota'});");
+  const resumed=qa.indexOf('d.realtime();',placed);
+  const cameraWait=qa.indexOf('await page.waitForFunction(()=>{',resumed);
+  const lightProbe=qa.indexOf('const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));',cameraWait);
+  assert.ok(placed>=0&&resumed>placed&&cameraWait>resumed&&lightProbe>cameraWait,
+    'resume the real frame loop and let the production camera follow the actors before measuring light slots');
+  assert.match(qa,/Math\.abs\(source\.intensity-expectedFill\.intensity\)<=expectedFill\.intensity\*\.051/,
+    'the production dimLight has a deliberate ±5% pulse, not a constant 16.00');
+  assert.match(qa,/state\.hero\?\.visible/,'the candidate frame must retain the protagonist');
+  assert.match(qa,/Math\.hypot\(c\[0\]-s\.x,c\[1\]-s\.y,c\[2\]-s\.z\)<14/,
+    'the measured camera must be near the protagonist in full 3D');
+  assert.match(qa,/actorFrame\.hero\.camToHero<=14/);
+});
+test('A/B rejects captures where either combatant is outside the camera viewport',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.match(qa,/hero:d\.camView\(\)/,'the production camera must project the protagonist');
+  assert.match(qa,/boss:d\.projectBoss\(\)/,'the production target selector must project the boss');
+  assert.match(qa,/assert\.equal\(actorFrame\.hero\?\.onScreen,true/);
+  assert.match(qa,/actorFrame\.boss\[0\]>=0/);
+  assert.match(qa,/actorFrame\.boss\[1\]>=0/);
+  assert.match(qa,/actorFrame,lightingCheck,screenshot:path\.basename\(screenshot\)/,
+    'the report must retain actor projection, lighting measurements and screenshot path');
+});
+test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.match(qa,/function expectedFillFor\(label,arenaOrigin\)/);
+  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,8,2\]/);
+  assert.match(qa,/arenaOrigin\.y \+ localOffset\[1\]/);
+  assert.match(qa,/position, localOffset, intensity:3\.5, distance:110/);
+  assert.match(qa,/position, localOffset, intensity:16, distance:36/);
+  assert.match(qa,/expectedFillFor\(label,arenaOrigin\)/);
+  assert.match(qa,/source\.worldPosition/);
+  assert.match(qa,/expectedFill\.position\[1\]/,'world height must distinguish the original high fill from the lower candidate fill');
+  assert.match(qa,/expectedFill\.intensity\*\.051/,'both production breathing pulses need the same relative tolerance');
+  assert.match(qa,/expectedFill\.minSlotIntensity/,'each side must prove its own light reaches the shader slot');
+  assert.match(qa,/lightingCheck=\{expected:expectedFill,observed:/,'the A/B report must retain the expected and observed source');
+  assert.match(qa,/actorFrame,lightingCheck,screenshot:/);
+});
+
+
+test('A/B rejects a camera that is horizontally near but vertically far from the protagonist',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.ok(qa.includes('Math.hypot(c[0]-s.x,c[1]-s.y,c[2]-s.z)<14'),
+    'camera follow must be measured in 3D, not only on the ground plane');
+  assert.ok(qa.includes('actorFrame.hero.camToHero<=14')&&qa.includes('Number.isFinite(actorFrame.hero?.camToHero)'),
+    'the production camera-to-hero distance must reject tiny distant actors');
+  assert.ok(qa.includes('Math.hypot(state.camera[0]-state.game.x,state.camera[1]-state.game.y,state.camera[2]-state.game.z)<14'));
+});
+
+
+test('A/B verifies source color and decay before accepting the active shader slot',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.ok(qa.includes('color:[1,.863157,.737910]'),'main baseline color must remain warm');
+  assert.ok(qa.includes('color:[.737910,.791298,.887923]'),'candidate fill must remain cool white');
+  assert.ok(qa.includes('Math.abs(source.decay-expectedFill.decay)<.001'));
+  assert.ok(qa.includes('source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
+  assert.ok(qa.includes('source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
+  assert.ok(qa.includes('Math.abs(source.slotDistance-expectedFill.distance)<.01'));
+  assert.ok(qa.includes('Math.abs(source.slotDecay-expectedFill.decay)<.001'));
+  assert.ok(qa.includes('color:fill.color,')&&qa.includes('slotWorldPosition:fill.slotWorldPosition'));
+  assert.ok(qa.includes('source.slotWorldPosition?.length===3'));
+  assert.ok(qa.includes('source.slotWorldPosition.every((value,i)=>Math.abs(value-expectedFill.position[i])<.5)'));
+});
+
+
+test('A/B resolves arena-local light offsets into the dimension world floor',()=>{
+  const env=getZarkhaelLighting(),spec=arenaSpec('bishop3');
+  assert.equal(DIM_FLOOR_Y,-2000);
+  const candidate=[spec.x+env.light[3][0],spec.y+env.light[3][1],spec.z+env.light[3][2]];
+  const baseline=[spec.x,spec.y+18,spec.z+4];
+  assert.deepEqual(candidate,[1200,-1992,2]);
+  assert.deepEqual(baseline,[1200,-1982,4]);
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
+  assert.match(qa,/const arenaOrigin=\{x:state\.game\.x,y:state\.game\.y,z:state\.game\.z-10\}/);
+  assert.match(qa,/Math\.abs\(arenaOrigin\.y\+2000\)<\.5/);
+  assert.match(qa,/positionSpace==='world'/);
+  assert.match(budget,/positionSpace: 'world'/);
+  assert.match(budget,/worldPosition,/);
+});
+
+test('A/B supports main legacy light telemetry and verifies the baseline worktree separately',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const workflow=readFileSync(new URL('./.github/workflows/bispo3-lighting-ab-qa.yml',import.meta.url),'utf8');
+  assert.ok(workflow.includes("A4_BASELINE_ROOT: '/tmp/bispo3-baseline'"));
+  assert.ok(qa.includes('function verifyBaselinePreset()'));
+  assert.ok(qa.includes('A4_BASELINE_ROOT'));
+  assert.ok(qa.includes("if(label==='01-main')"));
+  assert.ok(qa.includes('objectsNear(1200,4,1)'));
+  assert.ok(qa.includes("item.endsWith('@1200.0,4.0')"));
+  assert.ok(qa.includes("item.startsWith('orcamento-luz-')"));
+  assert.ok(qa.includes('baselineSourceVerified:true'));
+  assert.ok(qa.includes("baselineTelemetry:'legacy-main-no-activeDetails'"));
+  assert.ok(qa.includes('source.slotWorldPosition?.length===3'));
+  assert.ok(qa.includes('source.slotWorldPosition.every((value,i)=>Math.abs(value-expectedFill.position[i])<.5)'));
 });
