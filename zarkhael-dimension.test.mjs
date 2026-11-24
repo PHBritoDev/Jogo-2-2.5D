@@ -104,7 +104,7 @@ test('light-budget telemetry reports the real selected source, world position an
   }
   class Point extends Obj {
     constructor(){super();this.isPointLight=true;this.userData={};this.castShadow=false;this.layers={mask:1,set(i){this.mask=1<<i;}};
-      this.position={setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];}};
+      const owner=this;this.position={setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];owner.matrixWorld.elements[12]=this.x;owner.matrixWorld.elements[13]=this.y;owner.matrixWorld.elements[14]=this.z;}};
       this.color={r:.737910,g:.791298,b:.887923,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}};
       this.intensity=0;this.distance=0;this.decay=2;}
   }
@@ -124,6 +124,7 @@ test('light-budget telemetry reports the real selected source, world position an
   assert.equal(details.length,1);
   assert.deepEqual(details[0].position,[1200,7,0]);
   assert.deepEqual(details[0].worldPosition,[1200,7,0]);
+  assert.deepEqual(details[0].slotWorldPosition,[1200,7,0]);
   assert.equal(details[0].positionSpace,'world');
   assert.equal(details[0].name,'zarkhael-dimension-fill');
   assert.equal(details[0].intensity,16);
@@ -214,7 +215,9 @@ test('A/B verifies source color and decay before accepting the active shader slo
   assert.ok(qa.includes('source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
   assert.ok(qa.includes('Math.abs(source.slotDistance-expectedFill.distance)<.01'));
   assert.ok(qa.includes('Math.abs(source.slotDecay-expectedFill.decay)<.001'));
-  assert.ok(qa.includes('color:fill.color,slotIntensity:fill.slotIntensity'));
+  assert.ok(qa.includes('color:fill.color,')&&qa.includes('slotWorldPosition:fill.slotWorldPosition'));
+  assert.ok(qa.includes('source.slotWorldPosition?.length===3'));
+  assert.ok(qa.includes('source.slotWorldPosition.every((value,i)=>Math.abs(value-expectedFill.position[i])<.5)'));
 });
 
 
@@ -232,4 +235,17 @@ test('A/B resolves arena-local light offsets into the dimension world floor',()=
   assert.match(qa,/positionSpace==='world'/);
   assert.match(budget,/positionSpace: 'world'/);
   assert.match(budget,/worldPosition,/);
+});
+
+test('A/B supports main legacy light telemetry and verifies the baseline worktree separately',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const workflow=readFileSync(new URL('./.github/workflows/bispo3-lighting-ab-qa.yml',import.meta.url),'utf8');
+  assert.match(workflow,/A4_BASELINE_ROOT:\\s*'\\/tmp\\/bispo3-baseline'/);
+  assert.match(qa,/function verifyBaselinePreset\\(\\)/);
+  assert.match(qa,/A4_BASELINE_ROOT/);
+  assert.match(qa,/if\\(label==='01-main'\\)/);
+  assert.match(qa,/objectsNear\\(1200,4,1\\)/);
+  assert.match(qa,/baselineSourceVerified:true/);
+  assert.match(qa,/telemetry:'legacy-main-no-activeDetails'/);
+  assert.match(qa,/if\\(label==='01-main'\\)[\\s\\S]*?activeDetails/);
 });

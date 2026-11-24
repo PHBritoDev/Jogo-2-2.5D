@@ -194,10 +194,12 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       activeDetails: selected.map(p => {
         const s = p.src;
         const worldPosition = activePosition(s);
+        const slotWorldPosition = activePosition(p.light);
         return {
           name: s.name || 'luz',
           positionSpace: 'world',
           worldPosition,
+          slotWorldPosition,
           intensity: s.intensity,
           distance: s.distance,
           decay: s.decay,

@@ -33,6 +33,19 @@ function expectedFillFor(label,arenaOrigin) {
     color:[.737910,.791298,.887923], minSlotIntensity:15
   };
 }
+function verifyBaselinePreset() {
+  const root=process.env.A4_BASELINE_ROOT;
+  assert.ok(root,'A4_BASELINE_ROOT must point to the exact main worktree');
+  const preset=fs.readFileSync(path.join(root,'zarkhael-dimension3d.js'),'utf8');
+  const world=fs.readFileSync(path.join(root,'mundo-3d-prototype.js'),'utf8');
+  const budget=fs.readFileSync(path.join(root,'light-budget3d.js'),'utf8');
+  assert.match(preset,/light:\\s*\\[\\s*0xffefdf\\s*,\\s*3\\.5\\s*,\\s*110\\s*,\\s*\\[\\s*0\\s*,\\s*18\\s*,\\s*4\\s*\\]\\s*\\]\\s*,\\s*exposure:\\s*\\.85/,
+    'the exact main worktree must contain its original warm fill preset');
+  assert.match(world,/dimLight\\.color\\.setHex\\(e\\.light\\[0\\]\\);dimLight\\.intensity=e\\.light\\[1\\].*?dimLight\\.distance=e\\.light\\[2\\].*?dimLight\\.position\\.set\\(voidSpec\\.x\\+e\\.light\\[3\\]\\[0\\],voidSpec\\.y\\+e\\.light\\[3\\]\\[1\\],voidSpec\\.z\\+e\\.light\\[3\\]\\[2\\]\\)/s,
+    'main must apply the environment preset to the shared dimension PointLight');
+  assert.doesNotMatch(budget,/activeDetails:/,'main intentionally has the legacy light-budget telemetry');
+  return {baselineSourceVerified:true,baselineTelemetry:'legacy-main-no-activeDetails'};
+}
 async function capture(label,url,browser){
   const context=await browser.newContext({
     viewport:{width:852,height:480},deviceScaleFactor:1,hasTouch:true,isMobile:true,
@@ -114,24 +127,43 @@ async function capture(label,url,browser){
     assert.ok(Number.isFinite(arenaOrigin.y)&&Math.abs(arenaOrigin.y+2000)<.5,
       label+': player is not on the known dimension floor; world-space fill cannot be compared');
     const expectedFill=expectedFillFor(label,arenaOrigin);
-    const fill=lighting.lights?.activeDetails?.find(source=>
-      source.positionSpace==='world'&&source.worldPosition?.length===3&&
-      Math.abs(source.worldPosition[0]-expectedFill.position[0])<.5&&
-      Math.abs(source.worldPosition[1]-expectedFill.position[1])<.5&&
-      Math.abs(source.worldPosition[2]-expectedFill.position[2])<.5&&
-      Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
-      Math.abs(source.distance-expectedFill.distance)<.01&&
-      Math.abs(source.decay-expectedFill.decay)<.001&&
-      source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
-      source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
-      Math.abs(source.slotDistance-expectedFill.distance)<.01&&
-      Math.abs(source.slotDecay-expectedFill.decay)<.001);
-    assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
-    assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
-    const lightingCheck={expected:expectedFill,observed:{
-      name:fill.name,positionSpace:fill.positionSpace,position:fill.worldPosition,intensity:fill.intensity,distance:fill.distance,
-      localOffset:expectedFill.localOffset,color:fill.color,slotIntensity:fill.slotIntensity,slotColor:fill.slotColor,slotDistance:fill.slotDistance,slotDecay:fill.slotDecay
-    }};
+    let lightingCheck;
+    if(label==='01-main'){
+      // The baseline predates A4's activeDetails telemetry. Verify its exact
+      // source preset from the fetched main worktree and its live PointLight
+      // location through the legacy debug API; do not demand candidate-only fields.
+      const baselineSource=verifyBaselinePreset();
+      const nearby=await page.evaluate(()=>window.SevenSinsDebug3D.objectsNear(1200,4,1));
+      const scenePointLight=nearby.find(item=>/^PointLight @1200(?:\\.0)?,4(?:\\.0)?/.test(item));
+      assert.ok(scenePointLight,label+': original main dimension PointLight is missing at the expected world X/Z');
+      assert.ok(Array.isArray(lighting.lights?.active)&&lighting.lights.active.includes('luz'),
+        label+': no unnamed dimension fill is reported among selected legacy light sources');
+      lightingCheck={expected:expectedFill,observed:{
+        ...baselineSource,scenePointLight,activeSources:lighting.lights.active,
+        shaderPointLights:lighting.shaderPointLights,localOffset:expectedFill.localOffset
+      }};
+    }else{
+      const fill=lighting.lights?.activeDetails?.find(source=>
+        source.positionSpace==='world'&&source.worldPosition?.length===3&&
+        Math.abs(source.worldPosition[0]-expectedFill.position[0])<.5&&
+        Math.abs(source.worldPosition[1]-expectedFill.position[1])<.5&&
+        Math.abs(source.worldPosition[2]-expectedFill.position[2])<.5&&
+        source.slotWorldPosition?.length===3&&source.slotWorldPosition.every((value,i)=>Math.abs(value-expectedFill.position[i])<.5)&&
+        Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
+        Math.abs(source.distance-expectedFill.distance)<.01&&
+        Math.abs(source.decay-expectedFill.decay)<.001&&
+        source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
+        source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
+        Math.abs(source.slotDistance-expectedFill.distance)<.01&&
+        Math.abs(source.slotDecay-expectedFill.decay)<.001);
+      assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
+      assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
+      lightingCheck={expected:expectedFill,observed:{
+        name:fill.name,positionSpace:fill.positionSpace,position:fill.worldPosition,slotWorldPosition:fill.slotWorldPosition,
+        intensity:fill.intensity,distance:fill.distance,localOffset:expectedFill.localOffset,color:fill.color,
+        slotIntensity:fill.slotIntensity,slotColor:fill.slotColor,slotDistance:fill.slotDistance,slotDecay:fill.slotDecay
+      }};
+    }
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
     assert.equal(state.dim.battle?.active,true,label+': battle inactive');

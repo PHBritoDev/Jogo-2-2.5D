@@ -42,6 +42,7 @@ jobs:
           VISUAL_BASELINE_URL: 'http://127.0.0.1:4174'
           VISUAL_CANDIDATE_URL: 'http://127.0.0.1:4173'
           A4_CANDIDATE_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
+          A4_BASELINE_ROOT: '/tmp/bispo3-baseline'
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo3-candidate-http.log 2>&1 &
           python3 -m http.server 4174 --directory /tmp/bispo3-baseline > /tmp/bispo3-baseline-http.log 2>&1 &
