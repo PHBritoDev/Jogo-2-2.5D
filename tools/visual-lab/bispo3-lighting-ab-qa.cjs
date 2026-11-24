@@ -64,6 +64,12 @@ async function capture(label,url,browser){
       const d=window.SevenSinsDebug3D;
       return {game:d.state(),dim:d.dimState(),visual:d.dimensionVisualState(),camera:d.cam(),renderer:d.rinfo()};
     });
+    // Confirm the production PointLight is not merely configured: the shared
+    // four-slot mobile budget must actually select the dimension fill for this camera.
+    const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));
+    assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
+    assert.ok(lighting.lights?.active?.includes('luz'),label+': existing dimension fill is absent from active light slots');
+    assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
     assert.equal(state.dim.battle?.active,true,label+': battle inactive');
     assert.equal(state.dim.profile,'zarkhael',label+': wrong boss profile');
@@ -77,7 +83,7 @@ async function capture(label,url,browser){
     await page.waitForTimeout(1600);
     const videoPath=await page.video().path();
     await context.close();
-    return {state,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
+    return {state,lighting,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
   }catch(error){
     await context.close().catch(()=>{});
     throw error;
