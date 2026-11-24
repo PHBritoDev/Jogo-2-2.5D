@@ -60,7 +60,7 @@ const report = {
   errors: [],
   consoleErrors: [],
   httpErrors: [],
-  input: { joystickPointerTypes: [], joystickPointerMoves: [], interactionPointerTypes: [] },
+  input: { joystickPointerTypes: [], joystickPointerMoves: [], joystickLifecycle: [], interactionPointerTypes: [] },
   routes: []
 };
 
@@ -139,13 +139,21 @@ async function beginJoystick() {
   await page.evaluate(() => {
     window.__a5JoystickPointerType = null;
     window.__a5JoystickPointerMoves = [];
+    window.__a5JoystickLifecycle = [];
+    window.__a5EndingJoystick = false;
     const stick = document.getElementById('stick');
-    stick.addEventListener('pointerdown', e => {
-      window.__a5JoystickPointerType = e.pointerType;
-    }, { once: true });
-    stick.addEventListener('pointermove', e => {
-      if (e.pointerType === 'touch') window.__a5JoystickPointerMoves.push({ x: e.clientX, y: e.clientY });
-    });
+    if (!window.__a5JoystickLifecycleInstalled) {
+      const record = e => window.__a5JoystickLifecycle.push({
+        type: e.type, pointerType: e.pointerType, pointerId: e.pointerId,
+        ending: !!window.__a5EndingJoystick, at: +performance.now().toFixed(1)
+      });
+      stick.addEventListener('pointerdown', e => { window.__a5JoystickPointerType = e.pointerType; record(e); });
+      stick.addEventListener('pointermove', e => {
+        if (e.pointerType === 'touch') window.__a5JoystickPointerMoves.push({ x: e.clientX, y: e.clientY });
+      });
+      for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) stick.addEventListener(type, record);
+      window.__a5JoystickLifecycleInstalled = true;
+    }
   });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
   await page.waitForFunction(() => window.__a5JoystickPointerType === 'touch', null, { timeout: 5000 });
@@ -159,13 +167,23 @@ async function beginJoystick() {
     last: window.__a5JoystickPointerMoves.at(-1),
     transform: document.getElementById('knob')?.style.transform || ''
   }));
-  assert.match(movement.transform, /translate\([^,]+,\s*-\d/, 'toque não deslocou o knob do joystick para frente: ' + movement.transform);
+  assert.match(movement.transform, /translate\\([^,]+,\\s*-\\d/, 'toque não deslocou o knob do joystick para frente: ' + movement.transform);
   report.input.joystickPointerMoves.push(movement);
   return { x, y, forwardY };
 }
 async function endJoystick() {
-  if (!cdp) return;
-  try { await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); } catch (_) {}
+  if (!cdp || !page) return;
+  try {
+    await page.evaluate(() => { window.__a5EndingJoystick = true; });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await wait(60);
+    const lifecycle = await page.evaluate(() => ({
+      events: (window.__a5JoystickLifecycle || []).slice(),
+      knob: document.getElementById('knob')?.style.transform || ''
+    }));
+    report.input.joystickLifecycle.push(lifecycle);
+    await page.evaluate(() => { window.__a5EndingJoystick = false; });
+  } catch (_) {}
 }
 async function aimJoystick(dx, dz, offset) {
   const yaw = Math.atan2(-dx, -dz) + offset;
@@ -187,7 +205,7 @@ async function findWalkPath(start, target, stone) {
     const cache = new Map();
     let sampled = 0;
     const blocked = (x, z) => {
-      const key = Math.round(x * 4) + ':' + Math.round(z * 4);
+      const key = Math.round(x * 20) + ':' + Math.round(z * 20);
       if (cache.has(key)) return cache.get(key);
       const why = api.whyBlocked(x, z);
       const rock = (catalog.rocks || []).some(r => r.h > .55 && Math.hypot(x - r.x, z - r.z) < r.r + .42);
@@ -264,15 +282,8 @@ async function findWalkPath(start, target, stone) {
     if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled };
     nodes.reverse();
     const raw = [{ x: start.x, z: start.z }, ...nodes];
-    const clearLine = (a, b) => {
-      const distance = Math.hypot(b.x - a.x, b.z - a.z);
-      const count = Math.ceil(distance / .32);
-      for (let i = 1; i < count; i++) {
-        const t = i / count;
-        if (blocked(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false;
-      }
-      return true;
-    };
+    // O controlador de produção testa X e depois Z; uma reta só é válida se ambos os passos forem livres.
+    const clearLine = (a, b) => window.__a5AxisSeparatedSegmentClear(a, b, blocked, .12);
     const points = [];
     let at = 0;
     while (at < raw.length - 1) {
@@ -283,7 +294,7 @@ async function findWalkPath(start, target, stone) {
       points.push(raw[far]); at = far;
     }
     return {
-      ok: true, points, explored, sampled, step,
+      ok: true, points, rawPoints: raw.length, explored, sampled, step,
       goal: goal.p, goalDistance: +goal.d.toFixed(3), goalRadius: +goalRadius.toFixed(3),
       catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 }
     };
@@ -306,7 +317,7 @@ async function walkTo(stone, label) {
   }
   if (!selected) throw new Error(label + ': nenhum acesso caminhável ao abrigo; tentativas=' + JSON.stringify(rejected));
   report.routes.push({
-    label, target: selected.target, points: selected.plan.points,
+    label, target: selected.target, points: selected.plan.points, rawPoints: selected.plan.rawPoints,
     explored: selected.plan.explored, sampled: selected.plan.sampled,
     goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
   });
@@ -340,14 +351,28 @@ async function walkTo(stone, label) {
           control: 'touch #stick'
         });
         if (progress.stalledMs >= 9000) {
-          const diagnostics = await page.evaluate(({ x, z, dx, dz }) => ({
-            current: window.SevenSinsDebug3D.whyBlocked(x, z),
-            ahead: [0.25, 0.5, 0.9, 1.4].map(d => ({ d, why: window.SevenSinsDebug3D.whyBlocked(x + dx * d, z + dz * d) }))
-          }), { x: after.x, z: after.z, dx: waypoint.x - after.x, dz: waypoint.z - after.z });
+          await shot(label + '-stalled');
+          const diagnostics = await page.evaluate(({ x, z, dx, dz }) => {
+            const api = window.SevenSinsDebug3D;
+            const length = Math.hypot(dx, dz) || 1, ux = dx / length, uz = dz / length;
+            const distances = [.06, .12, .18, .24, .36, .5, .75, 1, 1.5, 2];
+            return {
+              current: api.whyBlocked(x, z),
+              axisSweep: distances.map(d => ({
+                d, xFirst: api.whyBlocked(x + ux * d, z),
+                zAfterX: api.whyBlocked(x + ux * d, z + uz * d),
+                zOnly: api.whyBlocked(x, z + uz * d)
+              })),
+              joystick: {
+                knob: document.getElementById('knob')?.style.transform || '',
+                events: (window.__a5JoystickLifecycle || []).slice(-12)
+              }
+            };
+          }, { x: after.x, z: after.z, dx: waypoint.x - after.x, dz: waypoint.z - after.z });
           const controls = await controlState();
           throw new Error(label + ': sem progresso acumulado por ' + (progress.stalledMs / 1000).toFixed(1) +
             's no waypoint ' + waypointIndex + '; distância=' + nextDistance.toFixed(2) +
-            '; nenhum bloqueio de colisão presumido; diagnóstico=' + JSON.stringify({ diagnostics, controls }));
+            '; diagnóstico do passo X→Z=' + JSON.stringify({ diagnostics, controls }));
         }
       }
       const afterWaypoint = await playerState();
@@ -467,6 +492,10 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
+    await page.evaluate(async () => {
+      const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
+      window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
+    });
     await wait(2200);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(900);
@@ -546,6 +575,9 @@ async function registerStone(stone, expectedProgress, mapKey) {
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
     assert.equal(report.input.joystickPointerMoves.length, 3, 'três percursos precisam mover o knob pelo pointermove touch');
     assert.ok(report.input.joystickPointerMoves.every(move => move.count > 0), 'joystick não recebeu pointermove touch');
+    assert.equal(report.input.joystickLifecycle.length, 3, 'três ciclos de joystick precisam ter diagnóstico de captura');
+    assert.ok(report.input.joystickLifecycle.every(s => s.events.some(e => e.type === 'pointerdown' && e.pointerType === 'touch')), 'um percurso não começou com pointerdown touch');
+    assert.ok(report.input.joystickLifecycle.every(s => s.events.filter(e => ['pointerup', 'pointercancel', 'lostpointercapture'].includes(e.type)).every(e => e.ending)), 'captura do joystick foi perdida antes do touchEnd intencional');
     assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');
     assert.ok(report.input.interactionPointerTypes.every(type => type === 'touch'), 'botão de registro não recebeu toque real');
     const criticalConsole = report.consoleErrors.filter(e => !/KHR_parallel|PropertyBinding/i.test(e));
