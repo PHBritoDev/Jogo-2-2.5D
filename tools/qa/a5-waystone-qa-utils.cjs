@@ -19,4 +19,18 @@ function hasCompletedTouchLifecycle(events) {
   );
 }
 
-module.exports = { isRuntimeAssetUrl, hasCompletedTouchLifecycle };
+function waypointStepBudget(distance, {
+  metersPerSample = 0.16,
+  minimum = 180,
+  margin = 32,
+  maximum = 1400
+} = {}) {
+  if (!Number.isFinite(distance) || distance < 0 ||
+      !Number.isFinite(metersPerSample) || metersPerSample <= 0 ||
+      !Number.isSafeInteger(minimum) || minimum < 1 ||
+      !Number.isSafeInteger(margin) || margin < 0 ||
+      !Number.isSafeInteger(maximum) || maximum < minimum) return 0;
+  return Math.min(maximum, Math.max(minimum, Math.ceil(distance / metersPerSample) + margin));
+}
+
+module.exports = { isRuntimeAssetUrl, hasCompletedTouchLifecycle, waypointStepBudget };
