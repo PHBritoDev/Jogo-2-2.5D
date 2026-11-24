@@ -175,7 +175,8 @@ test('fit geométrico respeita a inclinação vertical da câmera', () => {
   assert.ok(nearNdc <= .721, 'ator próximo permanece dentro da margem segura em pitch alto');
   assert.match(world, /cameraPitch:\+cameraPitch\.toFixed\(3\)/);
   assert.match(qa, /afterTilt\.cameraPitch/);
-  assert.match(qa, /fire\('pointermove', 103/);
+  assert.match(qa, /pointerId:\s*103/);
+  assert.match(qa, /fire\('pointermove', endY\)/);
 });
 
 test('probe do alvo exige malha realmente visível e helper compatível com loader de blob', () => {
