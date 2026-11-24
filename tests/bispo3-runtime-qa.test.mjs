@@ -74,5 +74,10 @@ test('six-seals QA não aprova a cinematográfica sem WebM finalizado e válido'
   assert.match(finalizer, /header!=="1a45dfa3"/);
   assert.match(finalizer, /data\.video=\{available:false,error:message\}/);
   assert.match(finalizer, /data\.status="failed"/);
+  const videoSaved = finalizer.indexOf('data.video={file:"ultimate-bispo3-281.webm"');
+  const approved = finalizer.indexOf('data.status="approved"');
+  assert.ok(videoSaved >= 0 && approved > videoSaved, 'aprovação só ocorre depois de validar e salvar o WebM');
+  assert.doesNotMatch(sixSeals.slice(0, start), /data.status="approved"/,
+    'nenhum modo pode ser aprovado antes de finalizar a gravação');
   assert.match(sixSeals, /report\.ok=wanted\.every\(m=>report\.modes\[m\]\.status==="approved"\)/);
 });
