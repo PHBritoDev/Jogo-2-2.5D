@@ -44,7 +44,7 @@ float grain(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(mix(hash31(i),hash31(i+vec3(1,0,0)),f.x),mix(hash31(i+vec3(0,1,0)),hash31(i+vec3(1,1,0)),f.x),f.y),
  mix(mix(hash31(i+vec3(0,0,1)),hash31(i+vec3(1,0,1)),f.x),mix(hash31(i+vec3(0,1,1)),hash31(i+vec3(1,1,1)),f.x),f.y),f.z);}
 float tissue(vec3 p){return grain(p*2.)*.5+grain(p*7.)*.3+grain(p*24.)*.2;}
-vec3 flesh(vec3 p){float n=tissue(p);float v=pow(abs(sin(p.x*8.+p.z*11.+n*13.)),14.);
+vec3 flesh(vec3 p,float n){float v=pow(abs(sin(p.x*8.+p.z*11.+n*13.)),14.);
  return mix(vec3(.045,.0025,.006),vec3(.29,.024,.032),n)*(.64+.36*v);}
 float opening(float t,float seed){float b=mod(t+seed*17.,3.3+seed*4.7);return b<.10?1.-b/.10:b<.28?(b-.10)/.18:1.;}
 `;
@@ -76,7 +76,7 @@ function surfaceMaterial(THREE, kind, uniforms) {
       transformed+=aOut*(dome*.26*vOpen+lidRidge);` : ''}
     `);
     shader.fragmentShader = vary + (eye ? 'varying vec2 vGaze; varying float vOpen; varying float vSeed;' : '') + common + shader.fragmentShader;
-    const color = kind === 'cap' ? `float n=tissue(vOrganic*.85);diffuseColor.rgb=flesh(vOrganic*.85);`
+    const color = kind === 'cap' ? `float n=tissue(vOrganic*.85);diffuseColor.rgb=flesh(vOrganic*.85,n);`
       : kind === 'stem' ? `float n=tissue(vOrganic*vec3(20.,7.,20.));float fibre=pow(abs(sin(atan(vOrganic.z,vOrganic.x)*47.+n*5.+vOrganic.y*6.)),9.);
         diffuseColor.rgb=mix(vec3(.12,.10,.075),vec3(.58,.51,.39),n)*(.56+.44*fibre);`
       : kind === 'floor' ? `vec2 tile=vOrganic.xz/2.;vec2 f=fract(tile);float checker=mod(floor(tile.x)+floor(tile.y),2.);
@@ -97,7 +97,7 @@ function surfaceMaterial(THREE, kind, uniforms) {
         // A tiny corneal catchlight, shaded together with the PBR specular.
         eyeball*=.6+.4*sqrt(max(.05,1.-dot(p*.82,p*.82)));
         vec2 glint=(irisP-vec2(-.10,.12))*vec2(1.,1.5);eyeball+=vec3(.65)*exp(-dot(glint,glint)*650.);
-        diffuseColor.rgb=mix(eyeball,flesh(vOrganic*.85),lid);
+        diffuseColor.rgb=mix(eyeball,flesh(vOrganic*.85,n),lid);
         diffuseColor.rgb*=mix(.38,1.,smoothstep(0.,.09,abs(abs(p.y)-gap)));`;
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + color);
     shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>

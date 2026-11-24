@@ -27,6 +27,28 @@ test('cap profile stays finite, continuous at seam and asymmetric',()=>{
   }
   assert.notDeepEqual(capPoint(1,1),capPoint(1,2));
 });
+test('mushroom caps and embedded eyes reuse one tissue field per fragment',()=>{
+  const source=readFileSync(new URL('./zarkhael-dimension3d.js',import.meta.url),'utf8');
+  const helperStart=source.indexOf('vec3 flesh(vec3 p,float n){');
+  const helperEnd=source.indexOf('}',helperStart);
+  assert.ok(helperStart>=0&&helperEnd>helperStart,'flesh helper must receive the already computed tissue value');
+  const helper=source.slice(helperStart,helperEnd);
+  assert.doesNotMatch(helper,/tissue\(/,'the helper must not repeat the three-octave tissue noise');
+  const capStart=source.indexOf("const color = kind === 'cap' ?");
+  const stemStart=source.indexOf(": kind === 'stem'",capStart);
+  assert.ok(capStart>=0&&stemStart>capStart,'cap material branch must remain present');
+  const cap=source.slice(capStart,stemStart);
+  assert.equal((cap.match(/tissue\(/g)||[]).length,1,'each cap fragment should evaluate tissue noise once');
+  assert.match(cap,/diffuseColor\.rgb=flesh\(vOrganic\*\.85,n\)/,'cap shading must reuse its computed tissue value');
+  const eyeStart=source.lastIndexOf('float n=tissue(vOrganic*.85);');
+  const eyeEnd=source.indexOf('diffuseColor.rgb*=mix(.38',eyeStart);
+  assert.ok(eyeStart>=0&&eyeEnd>eyeStart,'embedded-eye material branch must remain present');
+  const eye=source.slice(eyeStart,eyeEnd);
+  assert.equal((eye.match(/tissue\(/g)||[]).length,1,'each eye fragment should evaluate tissue noise once');
+  assert.match(eye,/flesh\(vOrganic\*\.85,n\)/,'eye shading must reuse its computed tissue value');
+  assert.equal((source.match(/flesh\(/g)||[]).length,3,'the helper and its cap/eye calls must remain paired');
+});
+
 test('quality limits animation distance, density and target sampling without removing eyes',()=>{
   const q=Object.values(MUSHROOM_QUALITY);
   for(let i=0;i<2;i++)for(const key of ['distance','fraction','hz'])assert.ok(q[i][key]<q[i+1][key]);
