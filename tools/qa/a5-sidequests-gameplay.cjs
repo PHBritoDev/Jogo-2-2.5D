@@ -46,6 +46,7 @@ async function talkTo(shortName) {
     const b = document.getElementById('talk-button');
     return b && !b.classList.contains('hidden') && b.textContent.includes(name);
   }, firstName, { timeout: 30000 });
+  await wait(850);
   await page.locator('#talk-button').click();
   await page.waitForSelector('#dialog-panel:not(.hidden)', { timeout: 20000 });
   return vendor;
@@ -249,11 +250,17 @@ async function collectPendant() {
       await page.locator('#talk-button').click();
       await page.waitForSelector('#dialog-panel:not(.hidden)', { timeout: 20000 });
       const firstText = (await page.locator('#dialog-text').textContent() || '').trim();
-      assert.ok(!/Flores de Vigília|Pedras que Lembram|Pingente de Lia/.test(firstText), q.id + ': missão concluída reapareceu para entrega');
-      await readDialogue();
+      const who = (await page.locator('#dialog-who').textContent() || '').trim();
+      assert.equal(who, vendor.name, q.id + ': conversa pós-reload com falante incorreto');
+      assert.ok(!q.turnIn.some(line => line.text === firstText), q.id + ': diálogo de entrega reapareceu após conclusão');
       const afterTalk = await qaState();
       assert.equal(afterTalk.coins, beforeReload.coins, q.id + ': recompensa duplicada após reload');
       assert.equal(afterTalk.side[q.id].state, 'done');
+      await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
+      await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready && window.SevenSinsDebug3D?.sideQuestQA, null, { timeout: 240000 });
+      const reloaded = await qaState();
+      assert.equal(reloaded.side[q.id].state, 'done', q.id + ': estado mudou após nova recarga');
+      assert.equal(reloaded.coins, beforeReload.coins, q.id + ': moedas mudaram após nova recarga');
     }
     await shot('sem-recompensa-duplicada');
     report.final = await qaState();
