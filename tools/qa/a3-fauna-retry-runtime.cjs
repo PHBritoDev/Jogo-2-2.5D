@@ -22,6 +22,7 @@ const report = {
   requests: [],
   responses: [],
   requestFailures: [],
+  unexpectedRequestFailures: [],
   pageErrors: [],
   consoleErrors: [],
   expectedConsoleErrors: [],
@@ -41,6 +42,8 @@ let context;
 let page;
 let fatal = null;
 let requestCount = 0;
+let expectedAbortConsolePending = false;
+let expectedAbortConsoleDeadline = 0;
 let videoHandle = null;
 
 function commitSha() {
@@ -77,16 +80,17 @@ async function main() {
   page.on('console', m => {
     if (m.type() !== 'error') return;
     const message = m.text().slice(0, 500);
-    if (report.firstAttemptAborted && /net::ERR_FAILED/i.test(message)) {
+    if (expectedAbortConsolePending && Date.now() <= expectedAbortConsoleDeadline && /net::ERR_FAILED/i.test(message)) {
+      expectedAbortConsolePending = false;
       report.expectedConsoleErrors.push(message);
       return;
     }
     report.consoleErrors.push(message);
   });
   page.on('requestfailed', r => {
-    if (r.url().endsWith('/Coelhinho.glb')) report.requestFailures.push({
-      url: r.url(), error: (r.failure() || {}).errorText || 'request failed'
-    });
+    const failure = { url: r.url(), error: (r.failure() || {}).errorText || 'request failed' };
+    if (r.url().endsWith('/Coelhinho.glb') && report.firstAttemptAborted && requestCount === 1) report.requestFailures.push(failure);
+    else report.unexpectedRequestFailures.push(failure);
   });
   page.on('response', r => {
     if (r.url().endsWith('/Coelhinho.glb')) report.responses.push({ status: r.status(), url: r.url() });
@@ -97,6 +101,8 @@ async function main() {
     report.requests.push({ attempt: requestCount, url: route.request().url() });
     if (requestCount === 1) {
       report.firstAttemptAborted = true;
+      expectedAbortConsolePending = true;
+      expectedAbortConsoleDeadline = Date.now() + 1000;
       await route.abort('failed');
     } else {
       await route.continue();
@@ -210,6 +216,7 @@ async function main() {
   report.finalState = finalState;
   assert.deepEqual(report.pageErrors, [], 'não pode haver exceção no runtime');
   assert.deepEqual(report.consoleErrors, [], 'não pode haver erro inesperado no console');
+  assert.deepEqual(report.unexpectedRequestFailures, [], 'não pode haver falha de rede além do abort deliberado do Coelhinho.glb');
   report.status = 'PASS';
 }
 
