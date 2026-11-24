@@ -181,11 +181,46 @@ async function main() {
     return toast?.textContent?.includes('LOCAL DESCOBERTO') &&
       toast.textContent.includes('VILA DA CLAREIRA');
   }, null, { timeout: 45000 });
+  // A interação exige estar sobre o piso superior do abrigo, não no terreno sob a plataforma.
+  // teleport(x,z) posiciona os pés no terreno; a plataforma tem dois degraus caminháveis de 0,22 m.
+  const platformPlacement = await page.evaluate(() => {
+    const api = window.SevenSinsDebug3D;
+    if (!api || typeof api.navCatalog !== 'function' || typeof api.placeAt !== 'function') {
+      throw new Error('APIs QA de superfície caminhável indisponíveis');
+    }
+    const surfaces = api.navCatalog(-4.6, -36.5, 6).surfaces;
+    const top = surfaces.find(surface => surface.n === 'abrigo-degrau2' &&
+      Math.hypot(surface.x + 4.6, surface.z + 36.5) < .2);
+    if (!top || !Number.isFinite(top.y)) {
+      throw new Error('Piso superior do Abrigo da Vila não encontrado: ' +
+        JSON.stringify(surfaces.filter(surface => String(surface.n).startsWith('abrigo-'))));
+    }
+    const walkState = api.placeAt(-4.6, top.y, -36.5, Math.PI);
+    return { surface: top, walkState };
+  });
+  assert.equal(platformPlacement.walkState.surface, 'abrigo-degrau2',
+    'o herói precisa apoiar os pés no anel superior real do abrigo');
+  assert.ok(Math.abs(platformPlacement.walkState.y - platformPlacement.walkState.surfaceY) < .01,
+    'os pés precisam coincidir com a altura da superfície caminhável');
+  assert.ok(platformPlacement.walkState.y > platformPlacement.walkState.terrain,
+    'o herói precisa estar acima do terreno, sobre a plataforma elevada');
+  report.platformPlacement = platformPlacement;
+
   await page.waitForFunction(() => {
     const button = document.getElementById('talk-button');
     return button && !button.classList.contains('hidden') &&
       button.textContent.includes('REGISTRAR ESTE ABRIGO');
   }, null, { timeout: 30000 });
+  report.registrationProbe = await page.evaluate(() => {
+    const button = document.getElementById('talk-button');
+    const api = window.SevenSinsDebug3D;
+    return {
+      label: button?.textContent || null,
+      hidden: !!button?.classList.contains('hidden'),
+      state: api.state(),
+      walkState: api.walkState()
+    };
+  });
   const registrationLabel = await page.locator('#talk-button').innerText();
   await page.locator('#talk-button').tap();
   await page.waitForFunction(() => {
