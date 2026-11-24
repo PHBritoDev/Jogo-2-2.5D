@@ -282,7 +282,66 @@ Deus não oferece um prêmio automático. O jogador escolhe o que fazer com a id
 
 **Pendente:** definir se existe um antagonista acima dos sete Pecados. Não inventar um “oitavo pecado” ou uma entidade final sem decisão do criador. A própria rede de correntes pode ser o sistema final, mas isso ainda é hipótese.
 
-## 13. Regras de escrita e ritmo
+## 13. Diálogo de referência (rascunho, não final)
+
+As falas abaixo definem intenção e voz. Não são texto aprovado nem devem ser copiadas para o runtime antes da revisão.
+
+### Prólogo
+- **Deus:** “As asas que você perde não são sua dignidade. São a certeza de que todos devem te obedecer.”
+- **Protagonista:** “E se eu não for suficiente?”
+- **Deus:** “Então aprende com quem ainda tem medo.”
+- **Anjo-Guia:** “No mundo material, eu só posso usar uma parte do que sou. Você vai ter que escolher por si.”
+
+### Ganância — VHAZRAEL e VORGAZHEK
+- **VHAZRAEL:** “Uma vida não desaparece. Ela muda de dono.”
+- **Protagonista:** “Então eu vou devolver cada nome ao seu dono.”
+- **VORGAZHEK:** “Todo mundo assinou.”
+- **Protagonista:** “Alguns não sabiam ler.”
+- **VORGAZHEK:** “A dívida não exige compreensão. Só garantia.”
+
+### Invernália — ZAR'KHAEL e o Anjo
+- **ZAR'KHAEL:** “Você chama de anjo o que ainda lembra o corpo de um homem.”
+- **Anjo-Guia:** “Eu te escondi a verdade porque achei que a missão te protegeria. Não protegi.”
+
+### Torre — VÉRAXION
+- **VÉRAXION:** “Eu pedi justiça. O mundo me vendeu silêncio.”
+- **Protagonista:** “A dor explica sua escolha. Não a torna justa.”
+
+### Sandra
+- **Sandra:** “Não me chame de aliada. Eu ainda quero a queda dele. Não sei se quero que você sobreviva a ela.”
+
+### Ganância
+- **Ganância:** “Eu não roubei nada. Todos entregaram o que precisavam para continuar respirando.”
+- **Protagonista:** “Uma escolha feita com uma faca no pescoço não é acordo.”
+
+### Inveja
+- **Inveja:** “Você não quer o que tem. Quer que todos vejam que poderia ter sido outro.”
+
+### Preguiça
+- **Preguiça:** “Se ninguém se move, ninguém sofre.”
+- **Protagonista:** “E ninguém vive.”
+
+### Soberba
+- **Soberba:** “Você voltou a ter asas. Vai usá-las para subir ou para erguer alguém?”
+- **Protagonista:** “Se eu precisar ficar acima deles para me sentir inteiro, ainda estou quebrado.”
+
+### Gula
+- **Gula:** “A fome nunca acaba. Só muda de boca.”
+- **Protagonista:** “Então pare de alimentar o que devora os outros.”
+
+### Ira
+- **Ira:** “Perdão é o nome que os vencedores dão ao silêncio.”
+- **Protagonista:** “Não. É a escolha de não entregar o futuro à mesma dor.”
+
+### Luxúria
+- **Luxúria:** “Eu posso devolver tudo exatamente como era.”
+- **Protagonista:** “Se for perfeito, não é verdade.”
+
+### Encerramento
+- **Deus:** “O que você trouxe de volta?”
+- **Protagonista:** “Não trouxe as pessoas que perdi. Trouxe a chance de que as próximas escolham.”
+
+## 14. Regras de escrita e ritmo
 
 1. Cada cena deve mudar pelo menos uma coisa: informação, relação, objetivo, perigo ou estado do mundo.
 2. Cada mistério deve ter pelo menos duas pistas observáveis antes da resposta. Segredo sem pista vira confusão, não curiosidade.
@@ -295,7 +354,7 @@ Deus não oferece um prêmio automático. O jogador escolhe o que fazer com a id
 9. Alternar tensão, exploração, conversa curta e recuperação. Não manter o jogador em cutscene longa nem em combate sem pausa.
 10. Em mobile, manter falas curtas, objetivo legível e retomada clara após interrupção.
 
-## 14. Pesquisa — o que ela sustenta e o que não sustenta
+## 15. Pesquisa — o que ela sustenta e o que não sustenta
 
 - Loewenstein (1994), curiosidade: modelo teórico de lacuna de informação. Aplicação: perguntas específicas e pistas, não mistério arbitrário.
 - Lehne & Koelsch (2015), suspense: modelo psicológico teórico. Aplicação: conflito, instabilidade, incerteza e consequência emocional.
@@ -320,7 +379,7 @@ https://doi.org/10.1177/15554120251380423
 https://doi.org/10.1027/1864-1105/a000323  
 https://doi.org/10.1145/3772363.3799339
 
-## 15. Decisões que precisam de aprovação
+## 16. Decisões que precisam de aprovação
 
 1. Confirmar a substituição de Avareza por Preguiça no mundo 3.
 2. Confirmar Aethraziel/Vaelthar ou escolher um nome definitivo para o Anjo-Guia.
@@ -333,6 +392,6 @@ https://doi.org/10.1145/3772363.3799339
 9. Definir se há antagonista final acima dos sete Pecados.
 10. Aprovar os NPCs e missões opcionais de Eldória; nenhum nome provisório vira canon por estar no código.
 
-## 16. Regra de implementação
+## 17. Regra de implementação
 
 Este documento é apenas candidato. Depois da revisão, cada ato deve virar uma entrega pequena: roteiro aprovado, matriz de estado, implementação, testes de transição/save, gameplay WebGL, inspeção de fotos/vídeo e validação mobile quando disponível. Não mudar o save V6, IDs de cena, nomes de NPC ou menu de galáxias antes da decisão do criador.
