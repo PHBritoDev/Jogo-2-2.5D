@@ -77,15 +77,19 @@ test('production runtime and preview consume the exact Zar’khael preset throug
   assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
 });
 
-test('A/B harness freezes boss automation before the VS transition and starts it once',()=>{
+test('A/B harness freezes boss automation, waits for VS readiness and performs one trusted start click',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const apiReady=qa.indexOf('await page.waitForFunction(()=>window.SevenSinsDebug3D');
   const manualGate=qa.indexOf('window.__qaManualBossSkills=true;',apiReady);
   const waitStart=qa.indexOf('await page.waitForFunction(()=>{',apiReady);
   const preStart=qa.indexOf('const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());',waitStart);
+  const readyStart=qa.indexOf("await page.waitForFunction(()=>{\\n        const button=document.querySelector('#vs-go');",preStart);
+  const clickStart=qa.indexOf("await page.locator('#vs-go').click({timeout:15000});",readyStart);
+  const battleWait=qa.indexOf('await page.waitForFunction(()=>{',clickStart);
   assert.ok(apiReady>=0&&manualGate>apiReady&&manualGate<waitStart,'automatic boss skills must be disabled before the VS transition');
-  assert.ok(waitStart>=0&&preStart>waitStart,'battle readiness wait must be separate from the VS action');
-  assert.doesNotMatch(qa.slice(waitStart,preStart),/vsGo\(\)/,'polling must not repeat the VS transition');
-  assert.match(qa,/if\(pre\.vs\)await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.vsGo\(\)\)/,'VS transition must be issued once');
-  assert.match(qa,/window\.__qaManualBossSkills=true;window\.SevenSinsDebug3D\.god\(\)/,'comparison must suppress automatic boss skills and enable god mode before combat');
+  assert.ok(waitStart>=0&&preStart>waitStart,'the harness must first observe the VS panel');
+  assert.ok(readyStart>preStart&&clickStart>readyStart&&battleWait>clickStart,'the trusted click must happen once, only after the VS button is enabled');
+  assert.equal((qa.match(/locator\\('#vs-go'\\)\\.click\\(/g)||[]).length,1,'exactly one real VS click is allowed');
+  assert.doesNotMatch(qa,/\\.vsGo\\(/,'do not bypass the real start control with a synthetic debug call');
+  assert.match(qa,/window\\.__qaManualBossSkills=true;window\\.SevenSinsDebug3D\\.god\\(\\)/,'comparison must suppress automatic boss skills and enable god mode before combat');
 });
