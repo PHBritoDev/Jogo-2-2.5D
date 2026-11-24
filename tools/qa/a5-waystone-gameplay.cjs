@@ -50,6 +50,14 @@ async function playerState() {
 async function walkState() {
   return page.evaluate(() => window.SevenSinsDebug3D.walkState());
 }
+async function controlState() {
+  return page.evaluate(() => ({
+    state: window.SevenSinsDebug3D.state(),
+    story: window.SevenSinsDebug3D.storyState(),
+    rite: window.SevenSinsDebug3D.riteState(),
+    regression: window.SevenSinsDebug3D.regressionState()
+  }));
+}
 async function mapSave(mapKey) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), mapKey);
 }
@@ -276,9 +284,13 @@ async function walkTo(stone, label) {
         if (nextDistance < distance - .045) stalled = 0;
         else stalled++;
         if (stalled >= 8) {
-          const reason = await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.whyBlocked(x, z), waypoint);
+          const diagnostics = await page.evaluate(({ x, z, dx, dz }) => ({
+            current: window.SevenSinsDebug3D.whyBlocked(x, z),
+            ahead: [0.25, 0.5, 0.9, 1.4].map(d => ({ d, why: window.SevenSinsDebug3D.whyBlocked(x + dx * d, z + dz * d) }))
+          }), { x: after.x, z: after.z, dx: waypoint.x - after.x, dz: waypoint.z - after.z });
+          const controls = await controlState();
           throw new Error(label + ': rota bloqueada no waypoint ' + waypointIndex +
-            '; distância=' + nextDistance.toFixed(2) + '; diagnóstico=' + JSON.stringify(reason));
+            '; distância=' + nextDistance.toFixed(2) + '; diagnóstico=' + JSON.stringify({ diagnostics, controls }));
         }
       }
       const afterWaypoint = await playerState();
@@ -383,14 +395,18 @@ async function registerStone(stone, expectedProgress, mapKey) {
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
     await wait(2200);
-    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 0); });
+    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(900);
     let initial = await qa();
     assert.equal(initial.questStep, 1, 'campanha não ficou no passo inicial seguro');
     assert.equal(initial.side.abrigos.state, 'active', 'fixture da missão não foi carregado');
     assert.equal(initial.side.abrigos.progress, 0);
     assert.equal(initial.registeredWaystones.length, 0);
-    report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp };
+    const initialControl = await controlState();
+    assert.equal(initialControl.story.sub, 1, 'fixture deve começar após a chegada à vila, sem a cinemática de chegada');
+    assert.equal(initialControl.story.scene, null, 'cena de história bloqueia a caminhada');
+    assert.equal(initialControl.regression.busy, false, 'controle do protagonista ainda está bloqueado pela história');
+    report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp, control: initialControl };
     await shot('00-initial-active');
 
     await page.waitForFunction(ids => {
@@ -416,9 +432,12 @@ async function registerStone(stone, expectedProgress, mapKey) {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
     await wait(1800);
-    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 0); });
+    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(700);
     const afterReload = await qa();
+    const reloadControl = await controlState();
+    assert.equal(reloadControl.story.sub, 1, 'reload não restaurou a etapa de vila sem cinemática');
+    assert.equal(reloadControl.regression.busy, false, 'reload deixou o movimento bloqueado');
     assert.equal(afterReload.side.abrigos.progress, 2, 'progresso dos dois abrigos não foi reconstruído após reload');
     assert.equal(afterReload.side.abrigos.state, 'active');
     for (const id of SIDE_QUEST_WAYSTONES.slice(0, 2)) assert.ok(afterReload.registeredWaystones.includes(id), 'abrigo perdido no reload: ' + id);
