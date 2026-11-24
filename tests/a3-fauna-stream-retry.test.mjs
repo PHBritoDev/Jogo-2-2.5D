@@ -160,16 +160,23 @@ test('fauna: uma requisição lenta não bloqueia outras espécies e respeita o 
     water: () => -1, road: () => false, lava: () => 0, blocked: () => false
   };
   const requests = [];
+  const fetchImpl = (url, { signal }) => {
+    requests.push(url);
+    if (url.endsWith('Coelhinho.glb') || url.endsWith('PassaroLava.glb')) {
+      return new Promise((_, reject) => {
+        const abort = () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        if (signal.aborted) abort();
+        else signal.addEventListener('abort', abort, { once: true });
+      });
+    }
+    return Promise.resolve({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) });
+  };
   class Loader {
     register() {}
-    loadAsync(url) {
-      requests.push(url);
-      if (url.endsWith('Coelhinho.glb')) return new Promise(() => {});
-      return Promise.resolve({ scene: fakeScene() });
-    }
+    parseAsync() { return Promise.resolve({ scene: fakeScene() }); }
   }
 
-  const fauna = create(Loader, habitat);
+  const fauna = create(Loader, habitat, { fetchImpl });
   const update = dt => fauna.update(dt, { px: coelho.x, pz: coelho.z, hour: 12, camera: null });
   update(0);
   await new Promise(resolve => setImmediate(resolve));
@@ -187,6 +194,8 @@ test('fauna: uma requisição lenta não bloqueia outras espécies e respeita o 
   assert.equal(fauna.stats.activeLoads, 2);
   assert.equal(fauna.stats.peakActiveLoads, FAUNA_MAX_CONCURRENT_LOADS);
   fauna.dispose();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.activeLoads, 0, 'dispose aborta as duas requisições que ainda ocupavam vagas');
 });
 
 test('fauna: recupera no segundo ciclo depois do cooldown de 30 s', async () => {
