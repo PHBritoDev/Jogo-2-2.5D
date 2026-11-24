@@ -56,7 +56,7 @@ const report = {
   walks: [],
   registrations: [],
   interactionChecks: [],
-  screenshots: [];
+  screenshots: [],
   errors: [],
   consoleErrors: [],
   httpErrors: [],
