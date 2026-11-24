@@ -167,7 +167,7 @@ async function beginJoystick() {
     last: window.__a5JoystickPointerMoves.at(-1),
     transform: document.getElementById('knob')?.style.transform || ''
   }));
-  assert.match(movement.transform, /translate\\([^,]+,\\s*-\\d/, 'toque não deslocou o knob do joystick para frente: ' + movement.transform);
+  assert.match(movement.transform, /translate\([^,]+,\s*-\d/, 'toque não deslocou o knob do joystick para frente: ' + movement.transform);
   report.input.joystickPointerMoves.push(movement);
   return { x, y, forwardY };
 }
