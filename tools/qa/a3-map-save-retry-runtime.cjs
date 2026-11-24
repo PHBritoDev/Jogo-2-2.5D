@@ -111,8 +111,8 @@ async function main() {
     if (!localStorage.getItem(mapKey)) {
       originalSetItem.call(localStorage, mapKey, JSON.stringify({
         cells: '',
-        pois: ['vila'],
-        waystones: ['abrigo-vila']
+        pois: [],
+        waystones: []
       }));
     }
     originalSetItem.call(localStorage, 'seven-sins-3d-prologo-ceu', '1');
@@ -129,9 +129,9 @@ async function main() {
     Storage.prototype.setItem = function(key, value) {
       if (this === localStorage && key === mapKey) {
         const events = JSON.parse(sessionStorage.getItem(eventsKey) || '[]');
-        if (sessionStorage.getItem(failKey) !== '1') {
+        if (sessionStorage.getItem(failKey) === 'armed') {
           originalSetItem.call(sessionStorage, failKey, '1');
-          events.push({ attempt: events.length + 1, outcome: 'quota', key });
+          events.push({ attempt: events.length + 1, outcome: 'quota', key, phase: 'after-gameplay-setup' });
           originalSetItem.call(sessionStorage, eventsKey, JSON.stringify(events));
           throw new DOMException('A3 injected quota failure', 'QuotaExceededError');
         }
@@ -158,18 +158,69 @@ async function main() {
   });
   await waitForWorld();
   await hideQaAdminOverlay();
-  await page.waitForFunction(({ eventsKey }) => {
-    const events = JSON.parse(sessionStorage.getItem(eventsKey) || '[]');
+
+  const initialMap = await page.evaluate(({ mapKey }) => {
+    const snapshot = JSON.parse(localStorage.getItem(mapKey) || 'null');
+    return { pois: snapshot?.pois || [], waystones: snapshot?.waystones || [] };
+  }, { mapKey });
+  assert.ok(!initialMap.pois.includes('vila'), 'o POI não pode estar pré-semeado pelo harness');
+  assert.ok(!initialMap.waystones.includes('abrigo-vila'), 'o abrigo não pode estar pré-semeado pelo harness');
+  const preArmEventCount = await page.evaluate(({ eventsKey }) =>
+    JSON.parse(sessionStorage.getItem(eventsKey) || '[]').length, { eventsKey });
+
+  // A falha é armada somente depois do carregamento inicial. O mapa começa vazio:
+  // a vila precisa ser descoberta e o abrigo registrado pelo fluxo real do jogo.
+  await page.evaluate(({ failKey }) => sessionStorage.setItem(failKey, 'armed'), { failKey });
+  await page.evaluate(() => {
+    const api = window.SevenSinsDebug3D;
+    if (!api || typeof api.teleport !== 'function') throw new Error('API QA teleport indisponível');
+    api.teleport(-4.6, -36.5, Math.PI);
+  });
+  await page.waitForFunction(() => {
+    const toast = document.getElementById('quest-toast');
+    return toast?.textContent?.includes('LOCAL DESCOBERTO') &&
+      toast.textContent.includes('VILA DA CLAREIRA');
+  }, null, { timeout: 45000 });
+  await page.waitForFunction(() => {
+    const button = document.getElementById('talk-button');
+    return button && !button.classList.contains('hidden') &&
+      button.textContent.includes('REGISTRAR ESTE ABRIGO');
+  }, null, { timeout: 30000 });
+  const registrationLabel = await page.locator('#talk-button').innerText();
+  await page.locator('#talk-button').tap();
+  await page.waitForFunction(() => {
+    const toast = document.getElementById('quest-toast');
+    return toast?.textContent?.includes('ABRIGO REGISTRADO') &&
+      toast.textContent.includes('ABRIGO DA VILA');
+  }, null, { timeout: 15000 });
+  report.gameplayInteraction = {
+    initialMap,
+    preArmEventCount,
+    teleportedTo: [-4.6, -36.5],
+    discoveredPoi: 'vila',
+    registrationLabel,
+    registeredWaystone: 'abrigo-vila'
+  };
+
+  await page.waitForFunction(({ eventsKey, preArmEventCount }) => {
+    const events = JSON.parse(sessionStorage.getItem(eventsKey) || '[]').slice(preArmEventCount);
     return events.some(event => event.outcome === 'quota') &&
-      events.some(event => event.outcome === 'stored');
-  }, { eventsKey }, { timeout: 45000 });
+      events.some(event => event.outcome === 'stored' &&
+        event.pois?.includes('vila') &&
+        event.waystones?.includes('abrigo-vila') &&
+        event.cellsLength > 0);
+  }, { eventsKey, preArmEventCount }, { timeout: 45000 });
 
   report.firstPage = await page.evaluate(({ mapKey, eventsKey }) => ({
     events: JSON.parse(sessionStorage.getItem(eventsKey) || '[]'),
     snapshot: JSON.parse(localStorage.getItem(mapKey) || 'null')
   }), { mapKey, eventsKey });
-  assert.equal(report.firstPage.events[0]?.outcome, 'quota', 'a primeira escrita deve falhar por quota');
-  assert.ok(report.firstPage.events.some(event => event.outcome === 'stored'), 'a tentativa periódica seguinte deve gravar');
+  const postArmEvents = report.firstPage.events.slice(report.gameplayInteraction.preArmEventCount);
+  assert.equal(postArmEvents[0]?.outcome, 'quota', 'a primeira escrita após armar a falha deve falhar por quota');
+  assert.ok(postArmEvents.some(event => event.outcome === 'stored' &&
+    event.pois?.includes('vila') &&
+    event.waystones?.includes('abrigo-vila') &&
+    event.cellsLength > 0), 'o retry precisa persistir POI, abrigo e névoa descobertos no gameplay');
   assert.ok(report.firstPage.snapshot?.pois?.includes('vila'), 'o POI precisa permanecer no snapshot');
   assert.ok(report.firstPage.snapshot?.waystones?.includes('abrigo-vila'), 'o abrigo precisa permanecer no snapshot');
   assert.ok(report.firstPage.snapshot?.cells?.length > 0, 'a névoa revelada precisa ser persistida');
