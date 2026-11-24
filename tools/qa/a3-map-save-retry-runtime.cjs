@@ -8,7 +8,10 @@ const { chromium } = require('playwright');
 
 const base = (process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const out = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results', 'a3-map-save-retry');
-const mapKey = 'seven-sins-3d-map-v4';
+const mapSource = fs.readFileSync(path.resolve(__dirname, '../../map3d.js'), 'utf8');
+const mapKeyMatch = mapSource.match(/export const MAP_STORE_KEY\\s*=\\s*['"]([^'"]+)['"]/);
+assert.ok(mapKeyMatch, 'map3d.js precisa expor MAP_STORE_KEY');
+const mapKey = mapKeyMatch[1];
 const eventsKey = '__a3_map_save_events';
 const failKey = '__a3_map_save_fail_once';
 const viewport = { width: 393, height: 852 };
@@ -22,6 +25,7 @@ const report = {
   branch: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || null,
   testedSha: null,
   viewport,
+  mapStoreKey: mapKey,
   firstPage: null,
   afterReload: null,
   pageErrors: [],
