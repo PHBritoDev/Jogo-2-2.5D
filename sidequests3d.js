@@ -56,7 +56,7 @@ export const SIDE_QUEST_WAYSTONES = Object.freeze([
 function normalizePendingReward(value, quests) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const q = SIDE_QUESTS.find(item => item.id === value.questId);
-  if (!q || quests[q.id]?.state !== 'done' || quests[q.id]?.progress !== q.goal.count || value.claimId !== 'side:' + q.id + ':v1') return null;
+  if (!q || quests[q.id]?.state !== 'done' || quests[q.id]?.progress !== q.goal.count || value.claimId !== 'side:' + q.id + ':v2') return null;
   const { coins, xp, beforeCoins, afterCoins, beforeXp, afterXp } = value;
   if (![coins, xp, beforeCoins, afterCoins, beforeXp, afterXp].every(Number.isSafeInteger)) return null;
   if (coins !== q.reward.coins || xp !== q.reward.xp || coins < 0 || xp <= 0 || beforeCoins < 0 || beforeXp < 0) return null;
@@ -91,18 +91,19 @@ export function createSideState(saved) {
 export function settleSideReward(state, persistedCampaign, applyReward) {
   const pending = state && state.pendingReward;
   if (!pending) return 'none';
-  // XP isolado não comprova a transação: moedas e XP são gravados no mesmo snapshot V6.
-  const includesReward = snapshot =>
-    snapshot && Number.isFinite(snapshot.coins) && Number.isFinite(snapshot.xp) &&
-    snapshot.coins >= pending.afterCoins && snapshot.xp >= pending.afterXp;
-  if (includesReward(persistedCampaign)) {
+  // Saldos são fungíveis: vitórias/loja podem elevá-los e compras podem reduzi-los.
+  // Só o claimId gravado no mesmo snapshot V6 de moedas/XP prova esta transação.
+  const hasClaim = snapshot =>
+    !!pending.claimId && Array.isArray(snapshot?.sideRewardClaims) &&
+    snapshot.sideRewardClaims.includes(pending.claimId);
+  if (hasClaim(persistedCampaign)) {
     state.pendingReward = null;
     return 'already-applied';
   }
   if (typeof applyReward !== 'function') return 'pending';
   let nextCampaign = null;
   try { nextCampaign = applyReward(pending); } catch (_) { return 'pending'; }
-  if (includesReward(nextCampaign)) {
+  if (hasClaim(nextCampaign)) {
     state.pendingReward = null;
     return 'applied';
   }
