@@ -114,6 +114,7 @@ test('map save: falha ao serializar também preserva dirty para uma tentativa fu
 test('map save runtime QA positions the hero on the real upper shelter ring before registration', () => {
   assert.match(shelterSource, /walk\.addRing\(x, z, 0, S\.r2, y \+ S\.step \* 2, 'abrigo-degrau2'\)/);
   assert.match(worldSource, /player\.position\.y>v\.shelter\.center\.y-\.25/);
+  assert.match(runtimeSource, /act1Sub:\s*1/);
   assert.match(runtimeSource, /navCatalog\(-4\.6, -36\.5, 6\)/);
   assert.match(runtimeSource, /placeAt\(-4\.6, top\.y, -36\.5, Math\.PI\)/);
   assert.match(runtimeSource, /walkState\.surface, 'abrigo-degrau2'/);

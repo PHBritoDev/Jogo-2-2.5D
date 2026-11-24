@@ -121,6 +121,7 @@ async function main() {
       version: 6,
       act1Rev: 2,
       questStep: 1,
+      act1Sub: 1,
       awakeningSeen: true,
       playerName: 'A3 QA',
       actCardSeen: true
@@ -205,6 +206,25 @@ async function main() {
   assert.ok(platformPlacement.walkState.y > platformPlacement.walkState.terrain,
     'o herói precisa estar acima do terreno, sobre a plataforma elevada');
   report.platformPlacement = platformPlacement;
+  // Sub 1 representa a chegada à vila já concluída; sub 0 dispara a cutscene de chegada
+  // ao entrar no raio da praça e mantém o botão contextual oculto.
+  await page.waitForTimeout(250);
+  report.registrationProbe = await page.evaluate(() => {
+    const button = document.getElementById('talk-button');
+    const api = window.SevenSinsDebug3D;
+    let campaign = null;
+    try { campaign = JSON.parse(localStorage.getItem('sevenSins3DCampaignV6') || 'null'); } catch (_) {}
+    return {
+      label: button?.textContent || null,
+      hidden: !!button?.classList.contains('hidden'),
+      state: api.state(),
+      walkState: api.walkState(),
+      campaign,
+      cineSkipHidden: !!document.getElementById('cine-skip')?.hidden,
+      cineSayHidden: !!document.getElementById('cine-say')?.hidden,
+      dialogueHidden: !!document.getElementById('dialog-panel')?.classList.contains('hidden')
+    };
+  });
 
   await page.waitForFunction(() => {
     const button = document.getElementById('talk-button');
