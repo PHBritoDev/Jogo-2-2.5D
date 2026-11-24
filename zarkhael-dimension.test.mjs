@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mushroomLayout,capPoint,blinkOpen,MUSHROOM_QUALITY,getZarkhaelLighting} from './zarkhael-dimension3d.js';
-import {DIMENSIONS,arenaSpots} from './dimensions3d.js';
+import {DIMENSIONS,arenaSpots,arenaSpec,DIM_FLOOR_Y} from './dimensions3d.js';
 import {readFileSync} from 'node:fs';
 import {createLightBudget} from './light-budget3d.js';
 
@@ -85,7 +85,9 @@ test('A/B identifies the exact Zar’khael fill by world position and source par
   assert.match(qa,/const lighting=await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.perfProbe\(1\)\)/);
   assert.match(qa,/lighting\.lights\?\.slots,4/);
   assert.match(qa,/lighting\.lights\?\.activeDetails\?\.find/);
-  assert.match(qa,/Math\.abs\(source\.position\[0\]-expectedFill\.position\[0\]\)/);
+  assert.match(qa,/source\.positionSpace==='world'/);
+  assert.match(qa,/source\.worldPosition\?\.length===3/);
+  assert.match(qa,/Math\.abs\(source\.worldPosition\[0\]-expectedFill\.position\[0\]\)/);
   assert.match(qa,/Math\.abs\(source\.distance-expectedFill\.distance\)<\.01/);
   assert.match(qa,/Math\.abs\(source\.intensity-expectedFill\.intensity\)<=expectedFill\.intensity\*\.051/);
   assert.match(qa,/fill\.slotIntensity>expectedFill\.minSlotIntensity/);
@@ -121,6 +123,8 @@ test('light-budget telemetry reports the real selected source, world position an
   const details=budget.stats().activeDetails;
   assert.equal(details.length,1);
   assert.deepEqual(details[0].position,[1200,7,0]);
+  assert.deepEqual(details[0].worldPosition,[1200,7,0]);
+  assert.equal(details[0].positionSpace,'world');
   assert.equal(details[0].name,'zarkhael-dimension-fill');
   assert.equal(details[0].intensity,16);
   assert.equal(details[0].distance,36);
@@ -176,9 +180,13 @@ test('A/B rejects captures where either combatant is outside the camera viewport
 });
 test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
-  assert.match(qa,/function expectedFillFor\(label\)/);
-  assert.match(qa,/label === '01-main'[\s\S]*?position:\[1200,18,4\], intensity:3\.5, distance:110/);
-  assert.match(qa,/position:\[1200,7,0\], intensity:16, distance:36/);
+  assert.match(qa,/function expectedFillFor\(label,arenaOrigin\)/);
+  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,7,0\]/);
+  assert.match(qa,/arenaOrigin\.y \+ localOffset\[1\]/);
+  assert.match(qa,/position, localOffset, intensity:3\.5, distance:110/);
+  assert.match(qa,/position, localOffset, intensity:16, distance:36/);
+  assert.match(qa,/expectedFillFor\(label,arenaOrigin\)/);
+  assert.match(qa,/source\.worldPosition/);
   assert.match(qa,/expectedFill\.position\[1\]/,'world height must distinguish the original high fill from the lower candidate fill');
   assert.match(qa,/expectedFill\.intensity\*\.051/,'both production breathing pulses need the same relative tolerance');
   assert.match(qa,/expectedFill\.minSlotIntensity/,'each side must prove its own light reaches the shader slot');
@@ -207,4 +215,21 @@ test('A/B verifies source color and decay before accepting the active shader slo
   assert.ok(qa.includes('Math.abs(source.slotDistance-expectedFill.distance)<.01'));
   assert.ok(qa.includes('Math.abs(source.slotDecay-expectedFill.decay)<.001'));
   assert.ok(qa.includes('color:fill.color,slotIntensity:fill.slotIntensity'));
+});
+
+
+test('A/B resolves arena-local light offsets into the dimension world floor',()=>{
+  const env=getZarkhaelLighting(),spec=arenaSpec('bishop3');
+  assert.equal(DIM_FLOOR_Y,-2000);
+  const candidate=[spec.x+env.light[3][0],spec.y+env.light[3][1],spec.z+env.light[3][2]];
+  const baseline=[spec.x,spec.y+18,spec.z+4];
+  assert.deepEqual(candidate,[1200,-1993,0]);
+  assert.deepEqual(baseline,[1200,-1982,4]);
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
+  assert.match(qa,/const arenaOrigin=\{x:state\.game\.x,y:state\.game\.y,z:state\.game\.z-10\}/);
+  assert.match(qa,/Math\.abs\(arenaOrigin\.y\+2000\)<\.5/);
+  assert.match(qa,/positionSpace==='world'/);
+  assert.match(budget,/positionSpace: 'world'/);
+  assert.match(budget,/worldPosition,/);
 });
