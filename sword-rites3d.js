@@ -39,7 +39,7 @@ export function swordSideHitContext(meta,target,fallback){
 }
 export function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
 /** Includes the spawn segment: a blade reaching past a thin wall cannot emit behind it. */
-export function segmentBlocked(a,b,blocked){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.06));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
+export function segmentBlocked(a,b,blocked,maxStep=.06){const step=Number.isFinite(maxStep)&&maxStep>0?maxStep:.06,n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/step));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
 /** Sweep the true blade, interpolating both endpoints, against a vertical capsule. */
 export function bladeContact(a,b,c,d,target,radius=.48){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06));
@@ -58,7 +58,7 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
  for(let i=0;i<=n;i++){
   const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
   // A thin wall may contain the hilt at the first pose while later samples are already outside it.
-  if(blocked(base)||segmentBlocked(base,tip,blocked))return{frames,blocked:true};
+  if(blocked(base)||segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
   frames.push({base,tip});
  }
  return{frames,blocked:false};
@@ -199,7 +199,7 @@ export class SwordRites {
     }
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsPrimarySweep){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
-     if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked)){
+     if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked,.008)){
       a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }
@@ -209,7 +209,7 @@ export class SwordRites {
      for(const other of ctx.others){
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
-      if(!contact||segmentBlocked(ctx.from,other,this.api.blocked))continue;
+      if(!contact||segmentBlocked(ctx.from,other,this.api.blocked,.008))continue;
       a.bladeSideHits.add(other.id);
       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
       const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
