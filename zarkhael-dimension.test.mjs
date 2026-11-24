@@ -78,6 +78,14 @@ test('production runtime and preview consume the exact Zar’khael preset throug
   assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
 });
 
+test('A/B harness records the live four-slot light budget and requires the dimension fill to be selected',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.match(qa,/const lighting=await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.perfProbe\(1\)\)/);
+  assert.match(qa,/lighting\.lights\?\.slots,4/);
+  assert.match(qa,/lighting\.lights\?\.active\?\.includes\('luz'\)/);
+  assert.match(qa,/lighting\.shaderPointLights,4/);
+});
+
 test('A/B harness freezes boss automation, waits for VS readiness and performs one trusted start click',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const apiReady=qa.indexOf('await page.waitForFunction(()=>window.SevenSinsDebug3D');
