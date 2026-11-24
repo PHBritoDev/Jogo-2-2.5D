@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, settleSideReward, questForGiver, activeSideLines } from './sidequests3d.js';
 import { WAYSTONES, createMapState, serializeMapState } from './map3d.js';
 
@@ -400,6 +401,68 @@ test('recuperação de recompensa usa moedas e XP do mesmo snapshot V6', () => {
   assert.ok(runtime.includes('settleSideReward(sideState,savedCampaignProgress(),pending=>{'));
   assert.ok(runtime.includes('save3DProgress();return savedCampaignProgress();'));
   assert.ok(!runtime.includes('function savedCampaignXp(){'));
+});
+
+test('recuperação real da campanha faz retry após falha e não duplica após crash', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const begin = runtime.indexOf('function savedCampaignProgress(){');
+  const end = runtime.indexOf('\\nconst sideRewardRecovery', begin);
+  assert.ok(begin >= 0 && end > begin, 'bloco de recuperação transacional não foi localizado');
+  const recovery = runtime.slice(begin, end);
+  const pending = pendingFor('ervas');
+  const storage = new Map([['sevenSins3DCampaignV6', JSON.stringify({ coins: 100, xp: 50 })]]);
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pending
+  });
+  const context = {
+    PROGRESS_KEY: 'sevenSins3DCampaignV6',
+    localStorage: {
+      getItem(key) { return storage.get(key) || null; },
+      setItem(key, value) { storage.set(key, value); }
+    },
+    settleSideReward,
+    sideState: state,
+    coins: 100,
+    playerXp: 50,
+    allowSave: false,
+    saveCount: 0,
+    sideSaveCount: 0
+  };
+  context.gainXp = amount => { context.playerXp += amount; };
+  context.save3DProgress = () => {
+    context.saveCount++;
+    if (context.allowSave) storage.set(context.PROGRESS_KEY, JSON.stringify({ coins: context.coins, xp: context.playerXp }));
+  };
+  context.saveSide = () => { context.sideSaveCount++; return true; };
+  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', context);
+
+  assert.equal(context.__settle(), 'pending', 'falha do primeiro save mantém o recibo');
+  assert.equal(context.coins, pending.afterCoins, 'moedas são aplicadas em memória antes do save');
+  assert.equal(context.playerXp, pending.afterXp, 'XP é aplicado em memória antes do save');
+  assert.ok(state.pendingReward);
+
+  context.allowSave = true;
+  assert.equal(context.__settle(), 'applied', 'retry persiste os saldos já aplicados em memória');
+  assert.equal(context.coins, pending.afterCoins, 'retry não duplica moedas');
+  assert.equal(context.playerXp, pending.afterXp, 'retry não duplica XP');
+  assert.equal(context.saveCount, 2);
+  assert.equal(context.sideSaveCount, 1);
+  assert.equal(state.pendingReward, null);
+
+  // Simula crash depois do save da campanha e antes de limpar o recibo do save da vila.
+  const reloaded = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pending
+  });
+  const recoveryAfterCrash = { ...context, sideState: reloaded, allowSave: false, saveCount: 0, sideSaveCount: 0 };
+  delete recoveryAfterCrash.__settle;
+  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', recoveryAfterCrash);
+  assert.equal(recoveryAfterCrash.__settle(), 'already-applied');
+  assert.equal(reloaded.pendingReward, null);
+  assert.equal(recoveryAfterCrash.coins, pending.afterCoins);
+  assert.equal(recoveryAfterCrash.playerXp, pending.afterXp);
+  assert.equal(recoveryAfterCrash.saveCount, 0, 'crash recovery não grava/credita novamente a campanha');
 });
 
 test('runtime fornece o Set de IDs registrados, não a contagem global', () => {
