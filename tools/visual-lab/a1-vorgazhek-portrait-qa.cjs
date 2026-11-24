@@ -357,6 +357,19 @@ async function runFreshPortrait(browser, url, stage) {
   return { portrait, vsCard, manualZoom, videoPath };
 }
 
+async function runCompactVsPortrait(browser, url, stage) {
+  const { context, page, vsCard } = await openBattle(browser, url, stage, { width: 320, height: 852 });
+  let portrait = null, videoPath = null;
+  try {
+    portrait = await inspect(page);
+    await shot(page, stage + '-retrato-compacto');
+    assertPortrait(portrait, stage + ' retrato compacto');
+  } finally {
+    videoPath = await finish(context, page);
+  }
+  return { portrait, vsCard, videoPath };
+}
+
 async function main() {
   const browser = await chromium.launch({
     headless: true,
@@ -370,6 +383,7 @@ async function main() {
     report.head = {};
     report.head = await runLandscapeThenPortrait(browser, headUrl, '03-head', true);
     report.head.freshPortrait = await runFreshPortrait(browser, headUrl, '05-head');
+    report.head.compactVsPortrait = await runCompactVsPortrait(browser, headUrl, '06-head');
     assert.deepEqual(report.errors.head, [], 'sem erros JS/WebGL no HEAD');
     assert.deepEqual(report.networkFailures.head, [], 'sem falhas de rede no HEAD');
     assert.deepEqual(report.errors.baseline, [], 'sem erros JS/WebGL na base');
