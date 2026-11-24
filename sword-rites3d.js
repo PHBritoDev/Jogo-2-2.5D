@@ -28,7 +28,7 @@ export function swordSideHitContext(meta,target,fallback){
   if(len>1e-5)return{x:target.x-direction.x/len,z:target.z-direction.z/len,kind:'spell'};
  }
  // Degenerate/missing wave vectors still have a deterministic travel heading.
- if(energy.kind==='wave'&&Number.isFinite(energy.yaw)){
+ if((meta?.wave||energy.kind==='wave')&&Number.isFinite(energy.yaw)){
   return{x:target.x-Math.sin(energy.yaw),z:target.z-Math.cos(energy.yaw),kind:'spell'};
  }
  if(Number.isFinite(energy.x)&&Number.isFinite(energy.z)){
