@@ -52,6 +52,18 @@ export const SIDE_QUEST_WAYSTONES = Object.freeze([
   'abrigo-caverna'
 ]);
 
+// Uma entrega cruza dois saves (campanha e vila); o pending evita perder ou pagar duas vezes em crash.
+function normalizePendingReward(value, quests) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const q = SIDE_QUESTS.find(item => item.id === value.questId);
+  if (!q || quests[q.id]?.state !== 'done' || value.claimId !== 'side:' + q.id + ':v1') return null;
+  const { coins, xp, beforeCoins, afterCoins, beforeXp, afterXp } = value;
+  if (![coins, xp, beforeCoins, afterCoins, beforeXp, afterXp].every(Number.isSafeInteger)) return null;
+  if (coins !== q.reward.coins || xp !== q.reward.xp || coins < 0 || xp <= 0 || beforeCoins < 0 || beforeXp < 0) return null;
+  if (afterCoins !== beforeCoins + coins || afterXp !== beforeXp + xp) return null;
+  return { claimId: value.claimId, questId: q.id, coins, xp, beforeCoins, afterCoins, beforeXp, afterXp };
+}
+
 // Progresso salvo/em memória acima da meta é corrupção, não uma missão concluída.
 function safeSideProgress(value, max) {
   // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
@@ -72,7 +84,26 @@ export function createSideState(saved) {
     // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
     out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };
   }
+  out.pendingReward = normalizePendingReward(saved && saved.pendingReward, out);
   return out;
+}
+
+export function settleSideReward(state, persistedXp, applyReward) {
+  const pending = state && state.pendingReward;
+  if (!pending) return 'none';
+  // XP só cresce no save da campanha; ele confirma que moedas + XP já foram persistidos juntos.
+  if (Number.isFinite(persistedXp) && persistedXp >= pending.afterXp) {
+    state.pendingReward = null;
+    return 'already-applied';
+  }
+  if (typeof applyReward !== 'function') return 'pending';
+  let nextXp = null;
+  try { nextXp = applyReward(pending); } catch (_) { return 'pending'; }
+  if (Number.isFinite(nextXp) && nextXp >= pending.afterXp) {
+    state.pendingReward = null;
+    return 'applied';
+  }
+  return 'pending';
 }
 
 /** Atualiza disponibilidade e prontidão. ctx.waystones aceita Set/array de IDs registrados. */

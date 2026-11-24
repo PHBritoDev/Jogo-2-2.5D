@@ -102,7 +102,7 @@ import { iconSvg } from './shop-icons3d.js';
 import { DIMENSIONS, dimensionForProfile, arenaSpec, vsCard, arenaSpots } from './dimensions3d.js';
 import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.js';
 import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, MISSION_PROLOGUE, GUIDE_NAME, GUIDE_PUBLIC_NAME } from './prologue-flow.js';
-import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, settleSideReward, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
@@ -4068,7 +4068,22 @@ function updateVillagers(dt){
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
-function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));}catch(_){}}
+function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
+function savedCampaignXp(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.xp)?saved.xp:null;}catch(_){return null;}}
+function settlePendingSideReward(){
+ const result=settleSideReward(sideState,savedCampaignXp(),pending=>{
+  if(!pending.appliedInMemory){
+   coins=Math.max(coins,pending.afterCoins);
+   const delta=Math.max(0,pending.afterXp-playerXp);if(delta>0)gainXp(delta);
+   pending.appliedInMemory=true;
+  }
+  save3DProgress();return savedCampaignXp();
+ });
+ if(result!=='pending'&&result!=='none')saveSide();
+ return result;
+}
+const sideRewardRecovery=settlePendingSideReward();
+if(sideRewardRecovery==='pending')status.textContent='Uma recompensa está em recuperação; ela será salva antes de outra entrega.';
 const SIDE_ITEMS=[];
 {
  const petal=new THREE.MeshStandardMaterial({color:0xcfe8ff,emissive:0x7fb8ff,emissiveIntensity:1.6,roughness:.5}),stem=mat(0x3d5a2e);
@@ -4094,9 +4109,20 @@ function updateSideItems(dt,now){
 }
 /** Conversa nas bancas: oferta, lembrete ou entrega da missão opcional daquele vendedor. */
 function trySideQuestTalk(vendor){
+ if(sideState.pendingReward&&settlePendingSideReward()==='pending'){status.textContent='A recompensa anterior ainda está sendo salva. Tente novamente antes de entregar outra missão.';return true;}
  refreshSideQuests();const q=questForGiver(sideState,vendor.shortName);if(!q)return false;const s=sideState[q.id];
  if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
- if(s.state==='ready'){showDialogue(q.turnIn,()=>{const r=turnInSide(sideState,q.id);if(r){coins+=r.coins;gainXp(r.xp);showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');save3DProgress();updateQuestHud();}saveSide();refreshSideQuests();});return true;}
+ if(s.state==='ready'){showDialogue(q.turnIn,()=>{
+  const r=turnInSide(sideState,q.id);if(r){
+   sideState.pendingReward={claimId:'side:'+q.id+':v1',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
+   if(!saveSide()){sideState[q.id].state='ready';sideState.pendingReward=null;status.textContent='Não foi possível salvar a entrega. Tente novamente.';refreshSideQuests();return;}
+   const settled=settlePendingSideReward();
+   if(settled==='pending')status.textContent='Recompensa registrada; a persistência será recuperada antes de outra entrega.';
+   else showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');
+   updateQuestHud();
+  }
+  saveSide();refreshSideQuests();
+ });return true;}
  showDialogue([{who:vendor.name,text:q.progressLine+'. ('+s.progress+'/'+q.goal.count+')'}]);return true;
 }
 sideReady=true;refreshSideQuests();

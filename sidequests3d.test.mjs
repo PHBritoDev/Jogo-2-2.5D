@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, settleSideReward, questForGiver, activeSideLines } from './sidequests3d.js';
 import { WAYSTONES, createMapState, serializeMapState } from './map3d.js';
 
 const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
+const pendingFor = (id, beforeCoins = 100, beforeXp = 50) => {
+  const q = SIDE_QUESTS.find(item => item.id === id);
+  return {
+    claimId: 'side:' + id + ':v1', questId: id,
+    coins: q.reward.coins, xp: q.reward.xp,
+    beforeCoins, afterCoins: beforeCoins + q.reward.coins,
+    beforeXp, afterXp: beforeXp + q.reward.xp
+  };
+};
 
 test('desbloqueio e aceite nunca herdam progresso anterior', () => {
   const unlocked = createSideState();
@@ -22,6 +31,61 @@ test('desbloqueio e aceite nunca herdam progresso anterior', () => {
   collectSide(accepted, 'flor');
   assert.equal(accepted.ervas.progress, 1, 'só a coleta após o aceite conta');
   assert.equal(accepted.ervas.state, 'active');
+});
+
+test('recompensa pendente sobrevive reload e recupera crash antes do save da campanha', () => {
+  const state = createSideState();
+  refreshSide(state, { questStep: 1 });
+  assert.equal(acceptSide(state, 'ervas'), true);
+  for (let i = 0; i < 4; i++) collectSide(state, 'flor');
+  assert.deepEqual(turnInSide(state, 'ervas'), SIDE_QUESTS[0].reward);
+  state.pendingReward = pendingFor('ervas');
+  const restored = createSideState(JSON.parse(JSON.stringify(state)));
+  assert.equal(restored.ervas.state, 'done');
+  assert.deepEqual(restored.pendingReward, state.pendingReward);
+  let applied = 0;
+  assert.equal(settleSideReward(restored, 50, pending => { applied++; return pending.afterXp; }), 'applied');
+  assert.equal(applied, 1);
+  assert.equal(restored.pendingReward, null);
+  assert.equal(turnInSide(restored, 'ervas'), null);
+});
+
+test('recompensa já persistida limpa pendência sem creditar novamente', () => {
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pendingFor('ervas')
+  });
+  let applied = 0;
+  assert.equal(settleSideReward(state, 80, () => { applied++; return 80; }), 'already-applied');
+  assert.equal(applied, 0);
+  assert.equal(state.pendingReward, null);
+});
+
+test('falha temporária do save mantém transação pendente e permite retry', () => {
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pendingFor('ervas')
+  });
+  assert.equal(settleSideReward(state, 50, () => 50), 'pending');
+  assert.ok(state.pendingReward);
+  assert.equal(settleSideReward(state, 50, pending => pending.afterXp), 'applied');
+  assert.equal(state.pendingReward, null);
+});
+
+test('pending reward inválido ou sem missão done é descartado', () => {
+  const valid = pendingFor('ervas');
+  const invalid = [
+    { ...valid, claimId: 'side:ervas:v2' },
+    { ...valid, afterXp: valid.afterXp - 1 },
+    { ...valid, coins: valid.coins + 1 },
+    { ...valid, afterCoins: valid.afterCoins + 1 }
+  ];
+  for (const pendingReward of invalid) {
+    const state = createSideState({ ervas: { state: 'done', progress: 4 }, pendingReward });
+    assert.equal(state.pendingReward, null);
+  }
+  const active = createSideState({ ervas: { state: 'active', progress: 4 }, pendingReward: valid });
+  assert.equal(active.pendingReward, null);
 });
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
