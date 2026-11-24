@@ -75,8 +75,8 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
  */
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false, fetchImpl = (url, options) => fetch(url, options), loadTimeoutMs = FAUNA_LOAD_TIMEOUT_MS }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, loadTimeouts: 0, activeLoads: 0, peakActiveLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
-  const mx = new T.Object3D(), forward = new T.Vector3(); let activeLoads = 0, scanT = 0, t = 0;
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, loadTimeouts: 0, activeLoads: 0, orphanedLoads: 0, peakActiveLoads: 0, peakConcurrentLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
+  const mx = new T.Object3D(), forward = new T.Vector3(); let activeLoads = 0, orphanedLoads = 0, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
     if (index !== baseIdx) return Promise.resolve(null);              // normal/rugosidade 2048²: não decodifica
@@ -117,12 +117,38 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   async function loadGLB(loader, url) {
     if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB load'), { name: 'AbortError' });
     const controller = new AbortController();
-    let timer = null, timedOut = false, abandoned = false, settled = false, cancelLoad = null;
-    // GLTFLoader.parseAsync não é cancelável. Separar o cancelamento do controlador
-    // da interrupção do fetch permite liberar a vaga imediatamente durante o parse.
+    let timer = null, timedOut = false, abandoned = false, cancelLoad = null;
+    let operationSettled = false, operationValue = null, raceSettled = false, raceRejected = false;
+    let orphanCounted = false, orphanReleased = false;
+    const markAbandoned = () => {
+      abandoned = true;
+      // parseAsync/loadAsync não são canceláveis. Uma operação órfã continua ocupando
+      // orçamento real até resolver; sem isso, retries após timeout criam parses ilimitados.
+      if (!operationSettled && !orphanCounted) {
+        orphanCounted = true;
+        orphanedLoads++;
+        stats.orphanedLoads = orphanedLoads;
+        stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
+      }
+    };
+    const releaseAbandonedResult = () => {
+      if (orphanReleased || !operationValue) return;
+      orphanReleased = true;
+      releaseGltf(operationValue);
+    };
+    const settleOperation = gltf => {
+      operationSettled = true;
+      operationValue = gltf || null;
+      if (orphanCounted) {
+        orphanCounted = false;
+        orphanedLoads = Math.max(0, orphanedLoads - 1);
+        stats.orphanedLoads = orphanedLoads;
+      }
+      if (abandoned && raceSettled && raceRejected && operationValue) releaseAbandonedResult();
+    };
     const cancelled = new Promise((_, reject) => {
       cancelLoad = () => {
-        abandoned = true;
+        markAbandoned();
         reject(Object.assign(new Error('fauna GLB load aborted because controller was disposed'), { name: 'AbortError' }));
       };
     });
@@ -131,7 +157,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => {
         timedOut = true;
-        abandoned = true;
+        markAbandoned();
         const error = new Error(`fauna GLB load timed out after ${requestTimeoutMs} ms: ${url}`);
         error.code = 'FAUNA_LOAD_TIMEOUT';
         reject(error);
@@ -153,14 +179,15 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       if (timedOut || disposed) throw Object.assign(new Error('fauna GLB load aborted before parsing'), { name: 'AbortError' });
       return loader.parseAsync(data, base);
     });
-    // Se timeout/dispose vencerem a corrida, parseAsync/loadAsync pode terminar depois.
-    // O resultado órfão só é liberado aqui quando o cancelamento já chegou ao chamador;
-    // se a operação vencer a corrida, load() cuida do dispose sem dupla liberação.
-    operation.then(gltf => { if (abandoned && settled) releaseGltf(gltf); }, () => {});
+    operation.then(gltf => settleOperation(gltf), () => settleOperation(null));
     try {
       return await Promise.race([operation, timeout, cancelled]);
+    } catch (error) {
+      raceRejected = true;
+      throw error;
     } finally {
-      settled = true;
+      raceSettled = true;
+      if (abandoned && raceRejected && operationSettled && operationValue) releaseAbandonedResult();
       if (timer !== null) clearTimeout(timer);
       activeControllers.delete(active);
     }
@@ -169,7 +196,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     if (disposed || !FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
     if (assets[kind]) return Promise.resolve(assets[kind]);
     if (pending[kind]) return pending[kind];
-    if (activeLoads >= FAUNA_MAX_CONCURRENT_LOADS) return Promise.resolve(null);
+    if (activeLoads + orphanedLoads >= FAUNA_MAX_CONCURRENT_LOADS) return Promise.resolve(null);
     const state = loadState[kind] || (loadState[kind] = { attempts: 0, cycles: 0, retryAt: 0, permanent: false });
     if (state.permanent || state.exhausted || t < state.retryAt) return Promise.resolve(null);
     if (state.attempts >= FAUNA_LOAD_RETRY.attemptsPerCycle) state.attempts = 0;
@@ -179,6 +206,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     activeLoads++;
     stats.activeLoads = activeLoads;
     stats.peakActiveLoads = Math.max(stats.peakActiveLoads, activeLoads);
+    stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
     const request = Promise.resolve().then(() => {
       const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
       return loadGLB(L, base + S.file);
@@ -277,7 +305,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
       const retry = loadState[kind];
-      if (list.length && !assets[kind] && !pending[kind] && activeLoads < FAUNA_MAX_CONCURRENT_LOADS && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) load(kind);
+      if (list.length && !assets[kind] && !pending[kind] && activeLoads + orphanedLoads < FAUNA_MAX_CONCURRENT_LOADS && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) load(kind);
     }
     for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
     const population = {};
