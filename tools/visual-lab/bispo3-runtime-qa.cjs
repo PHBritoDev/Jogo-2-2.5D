@@ -15,7 +15,10 @@ async function main(){
   async function active(){
    await p.waitForFunction(()=>{const s=SevenSinsDebug3D.dimState();return s.vs||s.battle?.active;},null,{timeout:180000});
    const pre=await p.evaluate(()=>SevenSinsDebug3D.dimState());
-   if(pre.vs)await p.evaluate(()=>SevenSinsDebug3D.vsGo());
+   if(pre.vs){
+    await p.waitForFunction(()=>{const button=document.querySelector('#vs-go');return !!button&&!button.disabled;},null,{timeout:180000,polling:125});
+    report.vs=await p.evaluate(()=>({label:SevenSinsDebug3D.vsGo(),buttonDisabled:document.querySelector('#vs-go')?.disabled??null}));
+   }
    await p.waitForFunction(()=>{const d=SevenSinsDebug3D,s=d.dimState();return s.battle?.active&&!s.vs&&s.voidMode&&d.dimensionVisualState()?.visible&&!s.cineActive&&!s.menuGate&&!s.paused;},null,{timeout:180000,polling:125});
    await p.waitForFunction(()=>!document.querySelector('#portal-veil').classList.contains('on'),null,{timeout:30000});
   }
