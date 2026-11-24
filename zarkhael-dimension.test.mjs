@@ -169,5 +169,5 @@ test('A/B rejects captures where either combatant is outside the camera viewport
   assert.match(qa,/assert\.equal\(actorFrame\.hero\?\.onScreen,true/);
   assert.match(qa,/actorFrame\.boss\[0\]>=0/);
   assert.match(qa,/actorFrame\.boss\[1\]>=0/);
-  assert.match(qa,/actorFrame, screenshot:path\.basename\(screenshot\)/,'the report must retain the frame projection');
+  assert.match(qa,/actorFrame,screenshot:path\.basename\(screenshot\)/,'the report must retain the frame projection');
 });
