@@ -19,10 +19,12 @@ const report={
 function expectedFillFor(label) {
   // Main keeps the pre-A4 warm/wide fill; the candidate must prove the new local/cool fill.
   if (label === '01-main') return {
-    position:[1200,18,4], intensity:3.5, distance:110, minSlotIntensity:3.1
+    position:[1200,18,4], intensity:3.5, distance:110, decay:1.1,
+    color:[1,.863157,.737910], minSlotIntensity:3.1
   };
   return {
-    position:[1200,7,0], intensity:16, distance:36, minSlotIntensity:15
+    position:[1200,7,0], intensity:16, distance:36, decay:1.1,
+    color:[.737910,.791298,.887923], minSlotIntensity:15
   };
 }
 async function capture(label,url,browser){
@@ -107,7 +109,9 @@ async function capture(label,url,browser){
       Math.abs(source.position[1]-expectedFill.position[1])<.5&&
       Math.abs(source.position[2]-expectedFill.position[2])<.5&&
       Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
-      Math.abs(source.distance-expectedFill.distance)<.01);
+      Math.abs(source.distance-expectedFill.distance)<.01&&
+      Math.abs(source.decay-expectedFill.decay)<.001&&
+      source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012));
     assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
     assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
     const lightingCheck={expected:expectedFill,observed:{
