@@ -86,7 +86,7 @@ test('QA inicia a apresentação uma vez e mantém a espera da batalha somente l
   assert.match(block, /await page\.evaluate\(\(\) => window\.SevenSinsDebug3D\.vsGo\(\)\)/);
   assert.match(block, /querySelector\('#vs-go'\)/);
   const pollBodies = [...block.matchAll(/await page\.waitForFunction\(\(\) => \{([\s\S]*?)\}, null,/g)].map(match => match[1]);
-  assert.equal(pollBodies.length, 2, 'estado da apresentação e imagens observados sem side effects');
+  assert.equal(pollBodies.length, 3, 'cartão, imagens e batalha observados sem side effects');
   assert.ok(pollBodies.every(body => !body.includes('.vsGo(')), 'polling permanece somente leitura');
 });
 
