@@ -193,3 +193,13 @@ test('A/B rejects a camera that is horizontally near but vertically far from the
     'the production camera-to-hero distance must reject tiny distant actors');
   assert.ok(qa.includes('Math.hypot(state.camera[0]-state.game.x,state.camera[1]-state.game.y,state.camera[2]-state.game.z)<14'));
 });
+
+
+test('A/B verifies source color and decay before accepting the active shader slot',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.ok(qa.includes('color:[1,.863157,.737910]'),'main baseline color must remain warm');
+  assert.ok(qa.includes('color:[.737910,.791298,.887923]'),'candidate fill must remain cool white');
+  assert.ok(qa.includes('Math.abs(source.decay-expectedFill.decay)<.001'));
+  assert.ok(qa.includes('source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
+  assert.ok(qa.includes('color:fill.color,slotIntensity:fill.slotIntensity'));
+});
