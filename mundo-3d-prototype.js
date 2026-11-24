@@ -2275,7 +2275,7 @@ function tapLock(x,y){
  if(!lockOnActive)toggleLockOn();else worldAudio.lockOn();return true;
 }
 lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType!=='mouse')touchTapStart.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{const r2=lookArea.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{});}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
-lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
+lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){const next=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);if(next!==cameraDistance){cameraDistance=next;if(dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
 if(mouseLocked&&e.pointerType==='mouse')return; // com o ponteiro travado o olhar vem do movementX/Y (sem limite da borda da tela)
 lookDelta(dx,dy);});
 /* CLAUDE combate/câmera — PC: antes o olhar era "arrastar" e parava na borda da janela (yaw limitado pela tela).
@@ -2287,7 +2287,7 @@ document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerL
 document.addEventListener('mousemove',e=>{if(!mouseLocked)return;if(cineActive||dialogueOpen||namePromptOpen||gamePaused||menuGate){try{document.exitPointerLock();}catch(_){}return;}const dx=Math.max(-240,Math.min(240,e.movementX||0)),dy=Math.max(-240,Math.min(240,e.movementY||0));lookDelta(dx,dy);});
 function endLook(e){const tap=touchTapStart.get(e.pointerId);touchTapStart.delete(e.pointerId);if(tap&&e.type==='pointerup'&&lookPointers.size<=1&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<14&&e.timeStamp-tap.t<320)tapLock(e.clientX,e.clientY);const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
-lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D();},{passive:true});
+lookArea.addEventListener('wheel',e=>{const next=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);if(next!==cameraDistance){cameraDistance=next;if(dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();},{passive:true});
 function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
 addEventListener('blur',resetInterruptedControls);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
@@ -3093,7 +3093,7 @@ function enterDimensionArena(key){
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
  player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
  const abyssEntry=key==='greed';
- if(abyssEntry||key==='bishop2'){camFocusReady=false;lastLookInputAt=0;}
+ if(abyssEntry||key==='bishop2'){camFocusReady=false;lastLookInputAt=0;if(key==='bishop2')portraitZoomOverride=false;}
  cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
  moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
  camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
@@ -7312,7 +7312,7 @@ function syncFinalPortal(){
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
 const savedSky={};
 function enterVoid(){enterDimensionArena('greed');}
-function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}document.body.classList.remove('bishop2-battle');voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}document.body.classList.remove('bishop2-battle');portraitZoomOverride=false;voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
@@ -7415,7 +7415,7 @@ function updateUltimateFx(dt){
 }
 /* ===================== MOD 199 — CÂMERA, PRIMEIRA PESSOA, COMBO E PODERES DOS BISPOS ===================== */
 // ---------- Câmera em terceira pessoa ----------
-let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false;
+let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false,portraitZoomOverride=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
  if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>16)return null;
@@ -7439,7 +7439,7 @@ function effectiveCameraDistance(engaged,dt){
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
  const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
  const baseWant=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);
- const want=portrait&&!riteCinematicView?Math.max(baseWant,portrait.minDistance):baseWant;
+ const want=portrait&&!riteCinematicView?(portraitZoomOverride?cameraDistance:Math.max(baseWant,portrait.minDistance)):baseWant;
  camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;
 }
 /**
@@ -8820,7 +8820,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  actorScreen(){
   camera.updateMatrixWorld(true);
   const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
-  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(enemy,1),head:point(enemy,2)},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2)};
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(enemy,1),head:point(enemy,2)},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
  },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
