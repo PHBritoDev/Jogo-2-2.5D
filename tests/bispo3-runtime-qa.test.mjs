@@ -82,3 +82,11 @@ test('six-seals QA não aprova a cinematográfica sem WebM finalizado e válido'
     'nenhum modo pode ser aprovado antes de finalizar a gravação');
   assert.match(sixSeals, /report\.ok=wanted\.every\(m=>report\.modes\[m\]\.status==="approved"\)/);
 });
+test('six-seals QA diagnostica em até 12 s uma ultimate criada mas sem relógio ativo', () => {
+  assert.match(sixSeals, /diagnostics:\{bossUltKind:s\.bossUltKind,bossUltTime:s\.bossUltTime/);
+  assert.match(sixSeals, /squad:s\.squad,dtScale:s\.dtScale,paused:s\.paused,cineActive:s\.cineActive/);
+  assert.match(sixSeals, /launch\.diagnostics\.bossUltKind!=="zarkhael6"/);
+  assert.match(sixSeals, /s\.cinematic\?\.t>.08&&s\.bossUltKind==="zarkhael6"&&s\.bossUltTime>.08/);
+  assert.match(sixSeals, /timeout:12000,polling:125/);
+  assert.match(sixSeals, /data\.firstTick=await firstTick\.jsonValue\(\)/);
+});
