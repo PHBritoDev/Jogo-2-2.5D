@@ -3433,7 +3433,7 @@ let heroPortraitDone=false,heroVsPortraitSrc='';
 function renderHeroPortrait(){
  if(heroPortraitDone||!model)return;heroPortraitDone=true;
  try{
-  const S=160,VS_W=160,VS_H=240,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),vsRt=new THREE.WebGLRenderTarget(VS_W,VS_H,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
+  const S=160,VS_W=480,VS_H=720,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),vsRt=new THREE.WebGLRenderTarget(VS_W,VS_H,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
   const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
   ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
   clone.updateMatrixWorld(true);const box=measureModelBounds(clone),center=box.getCenter(new THREE.Vector3());

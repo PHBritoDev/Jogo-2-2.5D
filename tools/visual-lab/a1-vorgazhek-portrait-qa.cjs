@@ -143,7 +143,7 @@ function assertVsPortrait(state, label) {
   for (const key of ['panel','kicker','stage','hero','heroFrame','heroCaption','boss','bossFrame','bossCaption','mark','line','go']) {
     assert.ok(within(state[key]), label + ': ' + key + ' inteiro dentro do viewport');
   }
-  assert.ok(state.images.hero?.complete && state.images.hero.naturalWidth > 0, label + ': retrato 2:3 do protagonista carregado');
+  assert.ok(state.images.hero?.complete && state.images.hero.naturalWidth >= 480 && state.images.hero.naturalHeight >= 720, label + ': retrato VS do protagonista em alta resolução 480×720');
   assert.ok(state.images.boss?.complete && state.images.boss.naturalWidth > 0, label + ': arte do Bispo carregada');
   assert.ok(Math.abs(state.images.hero.aspect - 2 / 3) < .005, label + ': retrato VS usa proporção nativa 2:3, sem corte lateral por cover');
   assert.ok(state.images.hudHero?.complete && state.images.hudHero.naturalWidth > 0, label + ': avatar do HUD continua carregado');

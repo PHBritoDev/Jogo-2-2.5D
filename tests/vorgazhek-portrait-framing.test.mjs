@@ -226,7 +226,7 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
 
 test('cartão VS usa render 2:3 separado e preserva o avatar quadrado do HUD', () => {
   assert.match(world, /let heroPortraitDone=false,heroVsPortraitSrc=''/);
-  assert.match(world, /const S=160,VS_W=160,VS_H=240/);
+  assert.match(world, /const S=160,VS_W=480,VS_H=720/);
   assert.match(world, /new THREE\.PerspectiveCamera\(vsFov,VS_W\/VS_H/);
   assert.match(world, /heroVsPortraitSrc=toDataUrl\(vsPx,VS_W,VS_H\)/);
   assert.match(world, /src=heroVsPortraitSrc\|\|/);
