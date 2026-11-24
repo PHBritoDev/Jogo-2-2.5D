@@ -45,6 +45,7 @@ jobs:
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo3-candidate-http.log 2>&1 &
           python3 -m http.server 4174 --directory /tmp/bispo3-baseline > /tmp/bispo3-baseline-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
           node tools/visual-lab/bispo3-lighting-ab-qa.cjs
       - uses: actions/upload-artifact@v4
         if: always()
