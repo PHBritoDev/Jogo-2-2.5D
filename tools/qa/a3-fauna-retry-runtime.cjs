@@ -48,6 +48,7 @@ function commitSha() {
 async function main() {
   fs.mkdirSync(path.join(out, 'videos'), { recursive: true });
   report.testedSha = commitSha();
+  assert.equal(report.testedSha, report.requestedSha, 'o artifact precisa corresponder ao SHA solicitado pelo evento PR');
 
   browser = await chromium.launch({
     headless: true,
