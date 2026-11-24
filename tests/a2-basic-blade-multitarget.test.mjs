@@ -349,7 +349,7 @@ test('physical sweep skips obstacle sampling when every living target is outside
  assert.equal(blockedCalls,0,'distant living actors must not trigger the expensive 8 mm/five-rail wall sweep');
 });
 
-test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
+test('occluded side target reuses the exact-endpoint LOS result for less than one 60Hz frame',()=>{
  const focus=enemy('far-focus',40,40),side=enemy('occluded',0,3),hits=[],impacts=[];
  let blockedCalls=0,losCalls=0;
  const blocked=p=>{
@@ -368,8 +368,8 @@ test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
  for(let i=0;i<48;i++)rites.update(1/120,ctx);
  assert.deepEqual(hits,[],'a target behind the wall must never receive damage');
  assert.deepEqual(impacts,[],'a target behind the wall must never receive impact VFX');
- assert.ok(losCalls<=8,'unchanged blocked endpoints should be ray-tested at most once per 50ms');
- assert.ok(blockedCalls<14500,'the 50ms blocked-ray cache and duplicate-pose elimination must remove repeated 8mm scans');
+ assert.ok(losCalls<=24,'unchanged blocked endpoints should be ray-tested at most once per 60Hz frame');
+ assert.ok(blockedCalls<6000,'the short blocked-ray cache and duplicate-pose elimination must remove repeated 8mm scans');
 });
 
 test('occlusion cache invalidates immediately when the hero moves around the wall',()=>{
@@ -395,7 +395,7 @@ test('occlusion cache invalidates immediately when the hero moves around the wal
  assert.equal(losCalls,1,'the clear ray must not reuse the old blocked result');
 });
  
-test('occlusion cache expires when a dynamic obstacle opens',()=>{
+test('occlusion cache notices a dynamic obstacle opening within one 60Hz frame',()=>{
  const focus=enemy('far-focus',40,40),side=enemy('side',0,3),hits=[];
  let wall=true,losCalls=0;
  const blocked=p=>{
@@ -412,8 +412,8 @@ test('occlusion cache expires when a dynamic obstacle opens',()=>{
  for(let i=0;i<4;i++)rites.update(1/120,ctx);
  assert.equal(losCalls,1);
  wall=false;
- for(let i=0;i<8;i++)rites.update(1/120,ctx);
- assert.deepEqual(hits,['side'],'a wall that opens must be observed after the short cache TTL');
+ for(let i=0;i<2;i++)rites.update(1/120,ctx);
+ assert.deepEqual(hits,['side'],'a wall that opens must be observed within one 60Hz frame');
 });
 
 test('boss hit bridge rejects zero damage but still finalizes a pending death',async()=>{
