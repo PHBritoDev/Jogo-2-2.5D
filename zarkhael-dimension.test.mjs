@@ -189,7 +189,7 @@ test('A/B rejects a camera that is horizontally near but vertically far from the
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   assert.ok(qa.includes('Math.hypot(c[0]-s.x,c[1]-s.y,c[2]-s.z)<14'),
     'camera follow must be measured in 3D, not only on the ground plane');
-  assert.ok(qa.includes('actorFrame.hero?.camToHero<=14'),
+  assert.ok(qa.includes('actorFrame.hero.camToHero<=14')&&qa.includes('Number.isFinite(actorFrame.hero?.camToHero)'),
     'the production camera-to-hero distance must reject tiny distant actors');
   assert.ok(qa.includes('Math.hypot(state.camera[0]-state.game.x,state.camera[1]-state.game.y,state.camera[2]-state.game.z)<14'));
 });
