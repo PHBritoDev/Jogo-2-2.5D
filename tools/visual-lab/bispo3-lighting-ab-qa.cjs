@@ -30,15 +30,20 @@ async function capture(label,url,browser){
     await page.goto(url.replace(/\/$/,'')+'/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.SevenSinsDebug3D,null,{timeout:180000});
     await page.waitForFunction(()=>{
+      const s=window.SevenSinsDebug3D.dimState();
+      return s.vs||s.battle?.active;
+    },null,{timeout:180000,polling:250});
+    const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());
+    if(pre.vs)await page.evaluate(()=>window.SevenSinsDebug3D.vsGo());
+    await page.waitForFunction(()=>{
       const d=window.SevenSinsDebug3D,s=d.dimState();
-      if(s.vs)d.vsGo();
-      const next=d.dimState();
-      return next.battle?.active&&!next.vs&&next.voidMode&&d.dimensionVisualState()?.visible;
+      return s.battle?.active&&!s.vs&&s.voidMode&&d.dimensionVisualState()?.visible&&!s.cineActive&&!s.menuGate&&!s.paused;
     },null,{timeout:180000,polling:250});
     await page.waitForFunction(()=>!document.querySelector('#portal-veil').classList.contains('on'),null,{timeout:30000});
     await page.evaluate(()=>{
       const d=window.SevenSinsDebug3D;
-      d.god();
+      window.__qaManualBossSkills=true;
+      d.god(true);
       const quality=document.querySelector('#graphics-profile-3d');
       if(quality){quality.value='low';quality.dispatchEvent(new Event('change'));}
       d.motionQA({x:1200,z:10,enemyDistance:12,sword:'prota'});
@@ -51,9 +56,10 @@ async function capture(label,url,browser){
     });
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
     assert.equal(state.dim.battle?.active,true,label+': battle inactive');
+    assert.equal(state.dim.profile,'zarkhael',label+': wrong boss profile');
     assert.equal(state.dim.voidMode,true,label+': arena inactive');
     assert.equal(state.visual?.visible,true,label+': arena visual missing');
-    assert.equal(state.game.enemy.visible,true,label+': boss missing');
+    assert.ok(state.game.enemy.visible,label+': boss missing');
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const screenshot=path.join(out,label+'.png');
     const bytes=await page.screenshot({path:screenshot,timeout:60000});

@@ -76,3 +76,13 @@ test('production runtime and preview consume the exact Zar’khael preset throug
   assert.match(preview,/const e=arena\.env/);
   assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
 });
+
+test('A/B harness starts the VS transition once and freezes boss automation for comparable frames',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const waitStart=qa.indexOf('await page.waitForFunction(()=>{');
+  const preStart=qa.indexOf('const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());',waitStart);
+  assert.ok(waitStart>=0&&preStart>waitStart,'battle readiness wait must be separate from the VS action');
+  assert.doesNotMatch(qa.slice(waitStart,preStart),/vsGo\(\)/,'polling must not repeat the VS transition');
+  assert.match(qa,/if\(pre\.vs\)await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.vsGo\(\)\)/,'VS transition must be issued once');
+  assert.match(qa,/window\.__qaManualBossSkills=true;[\s\S]*?d\.god\(true\)/,'comparison must suppress automatic boss skills and enable god mode explicitly');
+});
