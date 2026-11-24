@@ -40,7 +40,7 @@ test('mushroom caps and embedded eyes reuse one tissue field per fragment',()=>{
   const cap=source.slice(capStart,stemStart);
   assert.equal((cap.match(/tissue\(/g)||[]).length,1,'each cap fragment should evaluate tissue noise once');
   assert.match(cap,/diffuseColor\.rgb=flesh\(vOrganic\*\.85,n\)/,'cap shading must reuse its computed tissue value');
-  const eyeStart=source.indexOf('vec2 p=vEyeUV*2.-1;float n=tissue(vOrganic*.85);');
+  const eyeStart=source.lastIndexOf('float n=tissue(vOrganic*.85);');
   const eyeEnd=source.indexOf('diffuseColor.rgb*=mix(.38',eyeStart);
   assert.ok(eyeStart>=0&&eyeEnd>eyeStart,'embedded-eye material branch must remain present');
   const eye=source.slice(eyeStart,eyeEnd);
