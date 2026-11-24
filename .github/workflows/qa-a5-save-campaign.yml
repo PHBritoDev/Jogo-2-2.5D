@@ -10,6 +10,7 @@ on:
       - 'tools/qa/a5-waystone-gameplay.cjs'
       - 'tools/qa/a5-waystone-qa-utils.cjs'
       - 'tools/qa/a5-waystone-qa-utils.test.cjs'
+      - 'tools/qa/a5-waystone-pathfinding.mjs'
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
       - 'act2-flow.js'
@@ -29,7 +30,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar sintaxe dos módulos
-        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --check tools/qa/a5-waystone-gameplay.cjs && node --check tools/qa/a5-waystone-qa-utils.cjs && node --input-type=module --check < mundo-3d-prototype.js
+        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --check tools/qa/a5-waystone-gameplay.cjs && node --check tools/qa/a5-waystone-qa-utils.cjs && node --check tools/qa/a5-waystone-pathfinding.mjs && node --input-type=module --check < mundo-3d-prototype.js
       - name: Executar regressões de missões, mapa e campanha
         run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs tools/qa/a5-waystone-qa-utils.test.cjs
       - name: Instalar Chromium e Three para QA de gameplay
