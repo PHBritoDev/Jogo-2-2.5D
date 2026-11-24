@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SwordRites } from '../sword-rites3d.js';
+import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -68,4 +68,19 @@ test('squad bridge applies HP loss and impact reaction to two nearby living acto
  for(const id of [1,2,4]){assert(hp.get(id)<120,`actor ${id} must lose HP`);assert.equal(reactions.get(id),1,`actor ${id} must react once`);}
  assert.equal(hp.get(3),120);
  assert.equal(reactions.has(3),false);
+});
+
+test('secondary energy knockback follows the wave after the hero has moved',()=>{
+ const target={x:10,z:20},fallback={x:90,z:-40};
+ assert.deepEqual(swordSideHitContext({wave:{direction:{x:1,y:0,z:0}}},target,fallback),
+  {x:9,z:20,kind:'spell'});
+ assert.deepEqual(swordSideHitContext({energy:{kind:'wave',yaw:0,x:-2,z:-3}},target,fallback),
+  {x:10,z:19,kind:'spell'});
+});
+test('secondary sector knockback radiates from its origin; blade remains melee',()=>{
+ const target={x:10,z:20},fallback={x:90,z:-40};
+ assert.deepEqual(swordSideHitContext({energy:{kind:'sector',x:2,z:3}},target,fallback),
+  {x:2,z:3,kind:'spell'});
+ assert.deepEqual(swordSideHitContext({by:'blade',target},target,fallback),
+  {x:90,z:-40,kind:'melee'});
 });
