@@ -7439,7 +7439,7 @@ let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vecto
 function portraitBishop2Profile(foeOn,sep){
  // Mantém o fit até 28 m e libera progressivamente entre 22–28 m, sem perder o enquadramento de uma vez.
  if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>28)return null;
- const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov);
+ const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov,cameraPitch);
  return{shoulder:fit.shoulder,focusBlend:fit.focusBlend,minDistance:fit.minDistance,release:fit.release,idleMs:fit.idleMs,deadZone:fit.deadZone,parallaxBias:fit.parallaxBias,turnRate:fit.turnRate};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
@@ -8888,7 +8888,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   let holderVisible=!!(focusBody?.holder&&focusBody.holder.parent);
   for(let p=focusBody?.holder;p&&holderVisible;p=p.parent)if(p.visible===false)holderVisible=false;
   const visible=focusBody?!!(holderVisible&&focusBody.model?.visible&&visibleMeshes>0):!!enemy.visible;
-  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride,cameraPitch:+cameraPitch.toFixed(3)};
  },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
