@@ -342,6 +342,44 @@ test('golpe físico secundário atravessa a faixa livre quando não há parede',
   assert.deepEqual(result.impacts.map(e => e.target.id), ['side']);
 });
 
+function primaryBladeWallScenario({ targetX = 1.2, wall = true, fps = 60 } = {}) {
+  const hits = [], impacts = [];
+  const focus = { id: 'focus', x: targetX, y: 1, z: -.5, radius: .45, height: 1.8, alive: true };
+  const start = { base: { x: 0, y: 1, z: 0 }, tip: { x: 0, y: 1, z: -1 } };
+  const end = { base: { x: 1.2, y: 1, z: 0 }, tip: { x: 1.2, y: 1, z: -1 } };
+  const rites = new SwordRites({
+    pose: a => a.t < .24 ? start : end,
+    hit: (amount, id, kind) => hits.push({ amount, id, kind }),
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+    // A parede cruza a lâmina durante a varredura, mas não a linha direta jogador-alvo.
+    blocked: p => wall && p.x > .45 && p.x < .55 && p.z > -.65 && p.z < -.35,
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others: [], sword: 'aurora', grounded: true };
+  for (let i = 0; i < Math.ceil(.65 * fps); i++) rites.update(1 / fps, ctx);
+  return { hits, impacts };
+}
+
+for (const fps of [20, 30, 60, 120]) {
+  test('golpe físico primário não atravessa parede cruzada pela varredura a ' + fps + ' FPS', () => {
+    const result = primaryBladeWallScenario({ fps, targetX: 1.2, wall: true });
+    assert.deepEqual(result.hits, [], 'alvo primário atrás da parede não recebe dano');
+    assert.deepEqual(result.impacts, [], 'alvo primário atrás da parede não recebe VFX');
+  });
+}
+
+test('golpe físico primário ainda acerta antes da parede', () => {
+  const result = primaryBladeWallScenario({ fps: 60, targetX: .3, wall: true });
+  assert.deepEqual(result.hits.map(h => h.id), ['focus']);
+  assert.deepEqual(result.impacts.map(e => e.target.id), ['focus']);
+});
+
+test('golpe físico primário acerta no corredor sem obstrução', () => {
+  const result = primaryBladeWallScenario({ fps: 60, targetX: 1.2, wall: false });
+  assert.deepEqual(result.hits.map(h => h.id), ['focus']);
+  assert.deepEqual(result.impacts.map(e => e.target.id), ['focus']);
+});
+
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
   const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   assert.equal(combatWorkflow.split(ref).length - 1, 2);
