@@ -200,7 +200,10 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
           decay: s.decay,
           color: s.color ? [s.color.r, s.color.g, s.color.b] : null,
           position: activePosition(s),
-          slotIntensity: p.light.intensity
+          slotIntensity: p.light.intensity,
+          slotColor: p.light.color ? [p.light.color.r, p.light.color.g, p.light.color.b] : null,
+          slotDistance: p.light.distance,
+          slotDecay: p.light.decay
         };
       })
     };
