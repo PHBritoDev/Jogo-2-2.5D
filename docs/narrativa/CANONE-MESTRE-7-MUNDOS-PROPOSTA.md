@@ -394,4 +394,7 @@ https://doi.org/10.1145/3772363.3799339
 
 ## 17. Regra de implementação
 
+Sequência completa de amostra para revisão do tom e da agência: [A marca no recibo — proposta jogável](SEQUENCIA-AMOSTRA-ELDORIA-PROPOSTA.md). A amostra não é canônica nem está implementada.
+
+
 Este documento é apenas candidato. Depois da revisão, cada ato deve virar uma entrega pequena: roteiro aprovado, matriz de estado, implementação, testes de transição/save, gameplay WebGL, inspeção de fotos/vídeo e validação mobile quando disponível. Não mudar o save V6, IDs de cena, nomes de NPC ou menu de galáxias antes da decisão do criador.
