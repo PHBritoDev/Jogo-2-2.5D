@@ -135,9 +135,7 @@ async function main(){
     await page.screenshot({path:path.join(folder,"16-fim-limpo.png"),animations:"disabled",timeout:30000});
     if(data.glErrors.length||data.jsErrors.length||data.assets.length)
      throw Error("Erro WebGL/JS/asset: "+JSON.stringify(data.glErrors.concat(data.jsErrors,data.assets)).slice(0,1400));
-    data.status="approved";
     data.visualReview="As capturas precisam de comparação humana com as referências originais; aprovação técnica não mede fidelidade artística.";
-    process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 blast, faixa segura, limpeza, sem shader/JS/asset error.\n");
    }catch(e){
     data.status="failed";data.failure=String(e.stack||e).slice(0,1800);
     try{data.lastState=await page.evaluate(()=>{const d=window.SevenSinsDebug3D;return{dim:d?.dimState?.(),visual:d?.dimensionVisualState?.(),state:d?.state?.()};});}catch{}
@@ -155,6 +153,10 @@ async function main(){
      const header=signature.toString("hex");
      if(bytes<1024||header!=="1a45dfa3")throw new Error("WebM vazio ou inválido: "+bytes+" bytes / "+header);
      data.video={file:"ultimate-bispo3-281.webm",bytes,header,available:true};
+     if(data.status!=="failed"){
+      data.status="approved";
+      process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 blast, faixa segura, limpeza, WebM válido.\\n");
+     }
     }catch(e){
      const message="Vídeo obrigatório indisponível: "+String(e).slice(0,160);
      data.video={available:false,error:message};
