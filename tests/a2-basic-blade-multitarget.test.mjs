@@ -396,7 +396,7 @@ test('occlusion cache invalidates immediately when the hero moves around the wal
  assert.equal(losCalls,beforeMoveLos,'the clear ray must not reuse the old blocked result');
 });
  
-test('occlusion cache notices a dynamic obstacle opening within one 60Hz frame',()=>{
+test('occlusion cache notices a wall opening within one 60Hz frame while the cached result is still live',()=>{
  const focus=enemy('far-focus',40,40),side=enemy('side',0,3),hits=[];
  let wall=true,losCalls=0;
  const blocked=p=>{
@@ -410,11 +410,36 @@ test('occlusion cache notices a dynamic obstacle opening within one 60Hz frame',
  });
  assert.equal(rites.attack('prota',{target:focus}),true);
  const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
- for(let i=0;i<4;i++)rites.update(1/120,ctx);
- assert.ok(losCalls>=1,'the initial wall must be detected before caching');
+ rites.update(1/120,ctx);
+ rites.update(1/120,ctx);
+ assert.equal(losCalls,1,'the first live pose must detect and cache the wall');
  wall=false;
- for(let i=0;i<2;i++)rites.update(1/120,ctx);
- assert.deepEqual(hits,['side'],'a wall that opens must be observed within one 60Hz frame');
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,[],'the still-live blocked result may be reused for its remaining sub-frame TTL');
+ assert.equal(losCalls,1,'the cached result must avoid another LOS ray before expiry');
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,['side'],'the opened wall must be observed on the first tick after the 15.7ms TTL');
+});
+
+test('stationary visible blade sweep probes its hilt once because segmentBlocked checks the start point',()=>{
+ const focus=enemy('focus',0,3),hits=[];
+ const base={x:-1,y:1,z:2.6},tip={x:1,y:1,z:3.4};
+ let baseProbes=0;
+ const blocked=p=>{
+  if(p.x===base.x&&p.y===base.y&&p.z===base.z)baseProbes++;
+  return false;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'stationary-base-probe',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{...base},tip:{...tip}}),
+  hit:(damage,id)=>{hits.push(id);return true;}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[],sword:'prota',grounded:true};
+ rites.update(1/120,ctx);
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,['focus'],'removing the redundant probe must preserve the physical hit');
+ assert.equal(baseProbes,1,'the start point must be checked exactly once per stationary pose');
 });
 
 test('boss hit bridge rejects zero damage but still finalizes a pending death',async()=>{
