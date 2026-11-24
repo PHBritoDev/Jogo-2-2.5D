@@ -116,7 +116,10 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
   assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
   assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
   assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
-  assert.match(qa, /const minProjectedSeparation = worldSeparation < 1\.3 \? \.17 : worldSeparation < 2 \? \.22 : worldSeparation < 3 \? \.34 : \.42/);
+  assert.match(qa, /const fov = Number\(state\.dimension\?\.camFov\) \|\| 56/);
+  assert.match(qa, /const fovScale = Math\.tan\(56 \* Math\.PI \/ 360\) \/ Math\.tan\(fov \* Math\.PI \/ 360\)/);
+  assert.match(qa, /const baseMinProjectedSeparation = worldSeparation < 1\.3 \? \.17 : worldSeparation < 2 \? \.22 : worldSeparation < 3 \? \.42 : worldSeparation < 6 \? \.48 : \.42/);
+  assert.match(qa, /const minProjectedSeparation = baseMinProjectedSeparation \* fovScale/);
   assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= minProjectedSeparation/);
 });
 
@@ -154,7 +157,8 @@ test('fit geométrico do retrato mantém o ator próximo dentro da margem e os d
         const nearNdc = lateral / (nearDepth * tanHalfHorizontal);
         const farNdc = lateral / (farDepth * tanHalfHorizontal);
         assert.ok(nearNdc <= .721, aspect + ' / ' + fov + '° / ' + sep + 'm: ator próximo dentro da margem');
-        const minSeparation = sep < 1.3 ? .17 : sep < 2 ? .22 : sep < 3 ? .42 : sep < 6 ? .48 : .42;
+        const baseMinSeparation = sep < 1.3 ? .17 : sep < 2 ? .22 : sep < 3 ? .42 : sep < 6 ? .48 : .42;
+        const minSeparation = baseMinSeparation * Math.tan(56 * Math.PI / 360) / Math.tan(fov * Math.PI / 360);
         assert.ok(nearNdc + farNdc >= minSeparation, aspect + ' / ' + fov + '° / ' + sep + 'm: separação horizontal legível');
         if (sep === 2.4 && aspect > .45 && fov === 63) assert.ok(fit.parallaxBias > .51, 'curta distância usa o novo teto seguro de paralaxe');
         if (sep <= 1.5) assert.ok(fit.parallaxBias > .38, 'bias aumenta em curta distância enquanto a margem permite');

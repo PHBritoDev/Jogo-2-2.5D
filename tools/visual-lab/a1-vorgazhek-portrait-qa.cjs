@@ -266,7 +266,10 @@ function assertPortrait(state, label) {
   assert.ok(state.actors?.player?.center?.onScreen && state.actors?.enemy?.center?.onScreen, label + ': ambos os combatentes dentro do quadro');
   assert.ok(state.actors.player.head.onScreen && state.actors.enemy.head.onScreen, label + ': cabeças dos dois combatentes dentro do quadro');
   const worldSeparation = Math.hypot(state.player.enemy.x - state.player.x, state.player.enemy.z - state.player.z);
-  const minProjectedSeparation = worldSeparation < 1.3 ? .17 : worldSeparation < 2 ? .22 : worldSeparation < 3 ? .42 : worldSeparation < 6 ? .48 : .42;
+  const fov = Number(state.dimension?.camFov) || 56;
+  const fovScale = Math.tan(56 * Math.PI / 360) / Math.tan(fov * Math.PI / 360);
+  const baseMinProjectedSeparation = worldSeparation < 1.3 ? .17 : worldSeparation < 2 ? .22 : worldSeparation < 3 ? .42 : worldSeparation < 6 ? .48 : .42;
+  const minProjectedSeparation = baseMinProjectedSeparation * fovScale;
   assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= minProjectedSeparation, label + ': silhuetas dos combatentes separadas horizontalmente no quadro');
 }
 
