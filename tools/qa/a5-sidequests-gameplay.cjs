@@ -74,32 +74,33 @@ async function waitSideProgress(id, minimum, timeout = 30000) {
     return !!s && s.progress >= minimum;
   }, { id, minimum }, { timeout });
 }
-async function acceptMission({ id, giver, title, phrase, screenshot }) {
+async function acceptMission({ id, giver, title, phrase, screenshot, definition }) {
   const vendor = await talkTo(giver);
   await shot(screenshot + '-offer');
   const pages = await readDialogue();
   const allText = pages.map(p => p.text).join(' ');
   assert.ok(allText.includes(phrase), id + ': fala de oferta ausente: ' + allText);
   assert.ok(pages.every(p => p.who === vendor.name), id + ': falante não corresponde ao NPC: ' + JSON.stringify(pages));
-  assert.equal(pages.length, byId[id].offer.length, id + ': quantidade de páginas da oferta divergente');
-  assert.deepEqual(pages.map(p => p.text.replace(/\\s+/g, ' ').trim()), byId[id].offer.map(p => p.text.replace(/\\s+/g, ' ').trim()), id + ': texto da oferta diverge do módulo');
+  assert.equal(pages.length, definition.offer.length, id + ': quantidade de páginas da oferta divergente');
+  assert.deepEqual(pages.map(p => p.text.replace(/\s+/g, ' ').trim()), definition.offer.map(p => p.text.replace(/\s+/g, ' ').trim()), id + ': texto da oferta diverge do módulo');
   const state = await sideState();
   assert.equal(state[id]?.state, 'active', id + ': missão não foi aceita ao fechar o diálogo');
   report.missions[id] = { title, giver, offerPages: pages, accepted: true };
   return vendor;
 }
-async function deliverMission({ id, giver, title, reward, screenshot }) {
+async function deliverMission({ id, giver, title, reward, goalCount, screenshot, definition }) {
   const before = await qaState();
   const vendor = await talkTo(giver);
   await shot(screenshot + '-ready-dialogue');
   const pages = await readDialogue();
   assert.ok(pages.length > 0, id + ': diálogo de entrega vazio');
   assert.ok(pages.every(p => p.who === vendor.name), id + ': falante de entrega incorreto');
-  assert.equal(pages.length, byId[id].turnIn.length, id + ': quantidade de páginas da entrega divergente');
-  assert.deepEqual(pages.map(p => p.text.replace(/\\s+/g, ' ').trim()), byId[id].turnIn.map(p => p.text.replace(/\\s+/g, ' ').trim()), id + ': texto da entrega diverge do módulo');
+  assert.equal(pages.length, definition.turnIn.length, id + ': quantidade de páginas da entrega divergente');
+  assert.deepEqual(pages.map(p => p.text.replace(/\s+/g, ' ').trim()), definition.turnIn.map(p => p.text.replace(/\s+/g, ' ').trim()), id + ': texto da entrega diverge do módulo');
   await page.waitForFunction(id => JSON.parse(localStorage.getItem('seven-sins-3d-side') || '{}')[id]?.state === 'done', id, { timeout: 20000 });
   const after = await qaState();
-  assert.equal(after.side[id].progress, reward.goalCount ?? after.side[id].progress, id + ': estado inválido');
+  assert.equal(after.side[id].progress, goalCount, id + ': progresso final divergente');
+  assert.equal(after.side[id].state, 'done', id + ': missão não foi concluída');
   assert.equal(after.coins - before.coins, reward.coins, id + ': recompensa de moedas divergente');
   assert.equal(after.xp - before.xp, reward.xp, id + ': recompensa de XP divergente');
   await shot(screenshot + '-done');
@@ -209,17 +210,17 @@ async function collectPendant() {
     assert.equal(initial.questStep, 2, 'campanha precisa estar no passo 2 para habilitar as três missões');
     for (const q of SIDE_QUESTS) assert.equal(initial.side[q.id].state, 'available', q.id + ' não foi desbloqueada');
 
-    const bento = await acceptMission({ id: 'ervas', giver: 'ALIMENTOS', title: byId.ervas.title, phrase: 'Flor de Vigília', screenshot: 'bento' });
+    await acceptMission({ id: 'ervas', giver: 'ALIMENTOS', title: byId.ervas.title, phrase: 'Flor de Vigília', screenshot: 'bento', definition: byId.ervas });
     await collectFlowers();
-    await deliverMission({ id: 'ervas', giver: 'ALIMENTOS', title: byId.ervas.title, reward: byId.ervas.reward, screenshot: 'bento' });
+    await deliverMission({ id: 'ervas', giver: 'ALIMENTOS', title: byId.ervas.title, reward: byId.ervas.reward, goalCount: byId.ervas.goal.count, screenshot: 'bento', definition: byId.ervas });
 
-    const teo = await acceptMission({ id: 'abrigos', giver: 'PROVISÕES', title: byId.abrigos.title, phrase: 'pedras de abrigo', screenshot: 'teo' });
+    await acceptMission({ id: 'abrigos', giver: 'PROVISÕES', title: byId.abrigos.title, phrase: 'pedras de abrigo', screenshot: 'teo', definition: byId.abrigos });
     await registerShelters(SIDE_QUEST_WAYSTONES, MAP_STORE_KEY);
-    await deliverMission({ id: 'abrigos', giver: 'PROVISÕES', title: byId.abrigos.title, reward: byId.abrigos.reward, screenshot: 'teo' });
+    await deliverMission({ id: 'abrigos', giver: 'PROVISÕES', title: byId.abrigos.title, reward: byId.abrigos.reward, goalCount: byId.abrigos.goal.count, screenshot: 'teo', definition: byId.abrigos });
 
-    const lia = await acceptMission({ id: 'pingente', giver: 'FRUTAS', title: byId.pingente.title, phrase: 'Meu filho', screenshot: 'lia' });
+    await acceptMission({ id: 'pingente', giver: 'FRUTAS', title: byId.pingente.title, phrase: 'Meu filho', screenshot: 'lia', definition: byId.pingente });
     await collectPendant();
-    await deliverMission({ id: 'pingente', giver: 'FRUTAS', title: byId.pingente.title, reward: byId.pingente.reward, screenshot: 'lia' });
+    await deliverMission({ id: 'pingente', giver: 'FRUTAS', title: byId.pingente.title, reward: byId.pingente.reward, goalCount: byId.pingente.goal.count, screenshot: 'lia', definition: byId.pingente });
 
     const beforeReload = await qaState();
     assert.ok(SIDE_QUESTS.every(q => beforeReload.side[q.id].state === 'done'));
