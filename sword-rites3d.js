@@ -62,6 +62,20 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
 const BLADE_COLLISION_CACHE_TTL=.05;
+/** Exact pose/origin key: riteBlocked also depends on the live hero position. */
+function sameBladePoint(a,b){return !!a&&!!b&&a.x===b.x&&a.y===b.y&&a.z===b.z;}
+/** Reuse only a stationary, previously wall-checked blade pose for a short window. */
+function cachedBladePoseSweep(a,base,tip,origin,blocked,now){
+ const entry=a?.bladePoseOcclusion;
+ if(!entry||!origin||!Number.isFinite(origin.x)||!Number.isFinite(origin.y)||!Number.isFinite(origin.z)||
+  entry.blocked!==blocked||now-entry.time>=BLADE_COLLISION_CACHE_TTL||
+  !sameBladePoint(entry.base,base)||!sameBladePoint(entry.tip,tip)||!sameBladePoint(entry.origin,origin))return null;
+ return{frames:[{base:copy(base),tip:copy(tip)}],blocked:false,cached:true};
+}
+function rememberBladePoseSweep(a,base,tip,origin,blocked,now){
+ if(!a||!origin||!Number.isFinite(origin.x)||!Number.isFinite(origin.y)||!Number.isFinite(origin.z))return;
+ a.bladePoseOcclusion={base:copy(base),tip:copy(tip),origin:copy(origin),blocked,time:now};
+}
 /** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
 function bladeOcclusionCached(a,target,from,now){
  const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
@@ -243,8 +257,17 @@ export class SwordRites {
      }
      // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
      if(primarySweepCandidate||sideSweepCandidates.length){
-      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
-      if(physicalSweep.blocked)a.bladeBlocked=true;
+      if(a.bladeBlocked)physicalSweep={frames:[],blocked:true};
+      else{
+       const stationary=sameBladePoint(prev.base,blade.base)&&sameBladePoint(prevTip,currentTip);
+       const cached=stationary?cachedBladePoseSweep(a,blade.base,currentTip,ctx.from,this.api.blocked,this.time):null;
+       if(cached)physicalSweep=cached;
+       else{
+        physicalSweep=bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+        if(physicalSweep.blocked)a.bladeBlocked=true;
+        else rememberBladePoseSweep(a,blade.base,currentTip,ctx.from,this.api.blocked,this.time);
+       }
+      }
      }
     }
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
