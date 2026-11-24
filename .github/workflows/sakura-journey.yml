@@ -9,6 +9,11 @@ on:
       - 'tools/qa/sakura-contacts.cjs'
       - 'tools/qa/sakura-solids.mjs'
       - 'tools/qa/sakura-pranchas.py'
+      - 'mundo-3d-prototype.js'
+      - 'map3d.js'
+      - 'act2-flow.js'
+      - 'act3-flow.js'
+      - 'snow3d.js'
       - '.github/workflows/sakura-journey.yml'
   workflow_dispatch:
 permissions:
