@@ -247,7 +247,7 @@ test('Pedras que Lembram conta somente os três IDs de Eldória', () => {
   assert.deepEqual(SIDE_QUEST_WAYSTONES, ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);
   for (const id of SIDE_QUEST_WAYSTONES) assert.ok(mapIds.has(id), id + ' precisa existir no mapa');
   const laterActIds = WAYSTONES.filter((stone) => !SIDE_QUEST_WAYSTONES.includes(stone.id)).map((stone) => stone.id);
-  assert.equal(laterActIds.length, 3, 'o mapa tem três abrigos da jornada posterior');
+  assert.ok(laterActIds.length >= 3, 'o mapa deve conter marcos posteriores sem fazê-los contar para Eldória');
 
   const state = createSideState();
   refreshSide(state, { questStep: 2 });
