@@ -429,7 +429,7 @@ body.no-hints #top{display:none!important}
  body.bishop2-battle #actions #aim{right:calc(var(--u)*2.8)!important}
 }
 @media (orientation:portrait) and (max-width:600px){
- body.bishop2-battle{--u:clamp(38px,7.8vh,48px);--P:46px;--hpw:clamp(112px,28.8vw,130px);--hph:14px;--ctrl-scale:.88}
+ body.bishop2-battle{--u:clamp(40px,12.5vw,44px);--P:46px;--hpw:clamp(112px,28.8vw,130px);--hph:14px;--ctrl-scale:.88}
  body.bishop2-battle #quest-box,
  body.bishop2-battle #coin-pill,
  body.bishop2-battle #heart-pill,
