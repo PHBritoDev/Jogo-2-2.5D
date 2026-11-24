@@ -379,6 +379,32 @@ test('golpe físico primário ainda acerta antes da parede e posiciona o impacto
   assert.ok(p.x < .45, 'impacto do alvo antes da parede não pode aparecer depois dela');
 });
 
+function primaryBladeSpawnWallScenario({ fps = 60 } = {}) {
+  const hits = [], impacts = [];
+  const focus = { id: 'focus', x: 1.2, y: 1, z: -.5, radius: .45, height: 1.8, alive: true };
+  const start = { base: { x: 0, y: 1, z: 0 }, tip: { x: 0, y: 1, z: -1 } };
+  const end = { base: { x: 1.2, y: 1, z: 0 }, tip: { x: 1.2, y: 1, z: -1 } };
+  const rites = new SwordRites({
+    pose: a => a.t < .24 ? start : end,
+    hit: (amount, id, kind) => hits.push({ amount, id, kind }),
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+    // Parede fina de 1 cm: só o ponto inicial do punho fica dentro dela.
+    blocked: p => Math.abs(p.x) < .02 && Math.abs(p.z) < .01 && p.y > .9 && p.y < 1.1,
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others: [], sword: 'aurora', grounded: true };
+  for (let i = 0; i < Math.ceil(.65 * fps); i++) rites.update(1 / fps, ctx);
+  return { hits, impacts };
+}
+
+for (const fps of [20, 30, 60, 120]) {
+  test('golpe físico primário não escapa de parede fina já ocupada pelo punho a ' + fps + ' FPS', () => {
+    const result = primaryBladeSpawnWallScenario({ fps });
+    assert.deepEqual(result.hits, [], 'alvo além da parede fina não recebe dano');
+    assert.deepEqual(result.impacts, [], 'alvo além da parede fina não recebe VFX');
+  });
+}
+
 test('golpe físico primário acerta no corredor sem obstrução e usa a superfície do alvo', () => {
   const result = primaryBladeWallScenario({ fps: 60, targetX: 1.2, wall: false });
   assert.deepEqual(result.hits.map(h => h.id), ['focus']);
