@@ -242,14 +242,25 @@ fs.mkdirSync(dir, { recursive: true });
     assert.equal(physicalSideEvents.length, 2, 'golpe físico real precisa atingir os dois secundários');
     assert.deepEqual(physicalSideEvents.map(e => e.targetId).sort(), [...report.steps.physicalBefore.sideIds].sort());
     assert.ok(physicalSideEvents.every(e => e.position && Number.isFinite(e.position.x)), 'cada VFX físico precisa ter posição');
+    // Cápsulas adjacentes podem ter pontos de superfície próximos; atribua cada contato à cápsula correta,
+    // em vez de exigir uma distância arbitrária apenas no eixo X.
     for (const e of physicalSideEvents) {
       const actor = physicalBefore.get(e.targetId);
+      const otherId = report.steps.physicalBefore.sideIds.find(id => id !== e.targetId);
+      const other = physicalBefore.get(otherId);
       const surfaceOffset = Math.hypot(e.position.x - actor.x, e.position.z - actor.z);
+      const otherOffset = Math.hypot(e.position.x - other.x, e.position.z - other.z);
       assert.ok(surfaceOffset <= .55,
         `VFX físico de ${e.targetId} precisa permanecer na superfície da própria cápsula`);
+      assert.ok(surfaceOffset + .08 < otherOffset && otherOffset > .55,
+        `VFX de ${e.targetId} precisa ficar mais próximo da própria cápsula que da outra`);
     }
-    assert.ok(Math.abs(physicalSideEvents[0].position.x - physicalSideEvents[1].position.x) > .35,
-      'cada inimigo secundário precisa receber o VFX no próprio ponto da lâmina');
+    const impactPointDistance = Math.hypot(
+      physicalSideEvents[0].position.x - physicalSideEvents[1].position.x,
+      physicalSideEvents[0].position.y - physicalSideEvents[1].position.y,
+      physicalSideEvents[0].position.z - physicalSideEvents[1].position.z
+    );
+    assert.ok(impactPointDistance > .15, 'os dois impactos físicos precisam ter pontos de contato distintos');
     assert.ok(report.steps.physicalImpact.vfx.cuts >= 4,
       'os dois impactos físicos secundários precisam deixar os dois cortes visíveis por contato');
     for (const id of report.steps.physicalBefore.sideIds)
