@@ -61,8 +61,8 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
-const BLADE_COLLISION_CACHE_TTL=.05;
-/** Cache only occluded LOS rays for unchanged endpoints; never cache a clear collision result. */
+const BLADE_COLLISION_CACHE_TTL=1/60-.001;
+/** Cache only occluded LOS rays for less than one 60Hz frame; never cache a clear collision result. */
 function bladeOcclusionCached(a,target,from,now){
  const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
  if(!entry)return false;
