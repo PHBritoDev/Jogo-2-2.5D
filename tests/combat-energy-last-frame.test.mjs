@@ -306,6 +306,42 @@ test('golpe físico secundário respeita parede e não emite dano nem VFX atrás
   assert.deepEqual(result.impacts.map(e => e.target.id), ['left']);});
 
 
+function sweptWallSideScenario({ targetX = 1.2, wall = true, fps = 60 } = {}) {
+  const hits = [], impacts = [];
+  const focus = { id: 'focus', x: 8, y: 1, z: -8, radius: .45, height: 1.8, alive: true };
+  const side = { id: 'side', x: targetX, y: 1, z: -.5, radius: .45, height: 1.8, alive: true };
+  const start = { base: { x: 0, y: 1, z: 0 }, tip: { x: 0, y: 1, z: -1 } };
+  const end = { base: { x: 1.2, y: 1, z: 0 }, tip: { x: 1.2, y: 1, z: -1 } };
+  const rites = new SwordRites({
+    pose: a => a.t < .24 ? start : end,
+    hit: (amount, id, kind, meta) => hits.push({ amount, id, kind, meta }),
+    event: (name, data) => { if (name === 'impact') impacts.push(data); },
+    blocked: p => wall && p.x > .45 && p.x < .55 && p.z > -.65 && p.z < -.35,
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others: [side], sword: 'aurora', grounded: true };
+  for (let i = 0; i < Math.ceil(.65 * fps); i++) rites.update(1 / fps, ctx);
+  return { hits, impacts };
+}
+
+for (const fps of [20, 30, 60, 120]) {
+  test('golpe físico secundário para na primeira parede antes do alvo a ' + fps + ' FPS', () => {
+    const result = sweptWallSideScenario({ fps, targetX: 1.2, wall: true });
+    assert.deepEqual(result.hits, [], 'alvo inteiramente atrás da parede não recebe dano');
+    assert.deepEqual(result.impacts, [], 'alvo atrás da parede não recebe VFX');
+  });
+  test('golpe físico secundário ainda acerta antes da parede a ' + fps + ' FPS', () => {
+    const result = sweptWallSideScenario({ fps, targetX: .3, wall: true });
+    assert.deepEqual(result.hits.map(h => h.id), ['side']);
+    assert.deepEqual(result.impacts.map(e => e.target.id), ['side']);
+  });
+}
+test('golpe físico secundário atravessa a faixa livre quando não há parede', () => {
+  const result = sweptWallSideScenario({ fps: 60, targetX: 1.2, wall: false });
+  assert.deepEqual(result.hits.map(h => h.id), ['side']);
+  assert.deepEqual(result.impacts.map(e => e.target.id), ['side']);
+});
+
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
   const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   assert.equal(combatWorkflow.split(ref).length - 1, 2);
