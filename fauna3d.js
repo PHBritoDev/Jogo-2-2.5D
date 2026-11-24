@@ -21,6 +21,8 @@ export const FAUNA_LOAD_RETRY = Object.freeze({
 });
 /** Mantém o streaming responsivo se uma requisição de espécie ficar lenta. */
 export const FAUNA_MAX_CONCURRENT_LOADS = 2;
+/** Evita que uma requisição GLB sem resposta ocupe uma vaga indefinidamente. */
+export const FAUNA_LOAD_TIMEOUT_MS = 20000;
 function assetHttpStatus(error) {
   const message = String(error && error.message || error);
   const match = message.match(/(?:\bHTTP\s*|\bresponded with\s*|\bstatus(?:\s+code)?\s*[:=]?\s*)(\d{3})\b/i);
@@ -71,9 +73,9 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
 /**
  * Controlador no jogo. opts: { T, scene, GLTFLoader, skClone, base (URL da raiz), ground(x,z), ctx (habitatOk), low }.
  */
-export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
+export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false, fetchImpl = (url, options) => fetch(url, options), loadTimeoutMs = FAUNA_LOAD_TIMEOUT_MS }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, activeLoads: 0, peakActiveLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, loadTimeouts: 0, activeLoads: 0, peakActiveLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
   const mx = new T.Object3D(), forward = new T.Vector3(); let activeLoads = 0, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
@@ -86,6 +88,31 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     }).then(src => { const tx = new T.Texture(src); tx.flipY = false; tx.colorSpace = T.SRGBColorSpace; tx.needsUpdate = true; return tx; });
   } });
   const pending = {}, loadState = Object.create(null);
+  const requestTimeoutMs = Number.isFinite(loadTimeoutMs) && loadTimeoutMs > 0 ? loadTimeoutMs : FAUNA_LOAD_TIMEOUT_MS;
+  // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
+  // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
+  async function loadGLB(loader, url) {
+    if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);
+    const controller = new AbortController();
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new Error(`fauna GLB request timed out after ${requestTimeoutMs} ms: ${url}`);
+        error.code = 'FAUNA_LOAD_TIMEOUT';
+        reject(error);
+        controller.abort();
+      }, requestTimeoutMs);
+    });
+    try {
+      const response = await Promise.race([fetchImpl(url, { signal: controller.signal }), timeout]);
+      if (response.ok === false) throw new Error(`fetch for ${url} responded with ${response.status}: ${response.statusText || 'HTTP error'}`);
+      const data = await Promise.race([response.arrayBuffer(), timeout]);
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+      return await loader.parseAsync(data, base);
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
+  }
   function load(kind) {
     if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
     if (assets[kind]) return Promise.resolve(assets[kind]);
@@ -102,7 +129,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     stats.peakActiveLoads = Math.max(stats.peakActiveLoads, activeLoads);
     const request = Promise.resolve().then(() => {
       const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
-      return L.loadAsync(base + S.file);
+      return loadGLB(L, base + S.file);
     });
     return pending[kind] = request.then(g => {
       let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
@@ -119,7 +146,9 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     }).catch(e => {
       const message = String(e && e.message || e), status = assetHttpStatus(e);
       stats.loadFailures++;
-      stats.lastLoadError = { kind, message, status, attempt, cycle: state.cycles + 1 };
+      const timeout = e?.code === 'FAUNA_LOAD_TIMEOUT';
+      if (timeout) stats.loadTimeouts++;
+      stats.lastLoadError = { kind, message, status, timeout, attempt, cycle: state.cycles + 1 };
       if (isPermanentAssetError(e)) {
         state.permanent = true; stats.permanentFailures++;
       } else if (attempt >= FAUNA_LOAD_RETRY.attemptsPerCycle) {
