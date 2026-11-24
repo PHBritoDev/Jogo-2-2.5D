@@ -91,8 +91,8 @@ test('QA verifica projeção e separação dos dois combatentes, não apenas des
 });
 
 test('zoom manual por pinça e roda suspende a recentralização automática', () => {
-  assert.ok(world.includes("cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D();"), 'pinça registra a última entrada manual de câmera');
-  assert.ok(world.includes("lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D();"), 'roda do mouse registra a última entrada manual de câmera');
+  assert.ok(world.includes("const next=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);if(next!==cameraDistance){cameraDistance=next;if(dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();"), 'pinça registra zoom e override manual de distância');
+  assert.ok(world.includes("lookArea.addEventListener('wheel',e=>{const next=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);if(next!==cameraDistance){cameraDistance=next;if(dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();"), 'roda do mouse registra zoom e override manual de distância');
 });
 
 test('zoom manual no retrato preserva a distância escolhida pelo jogador', () => {
