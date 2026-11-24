@@ -278,3 +278,36 @@ test('save available preserva missão desbloqueada sem contar antes do aceite', 
   collectSide(state, 'flor');
   assert.equal(state.ervas.progress, 1);
 });
+
+
+test('save available nao antecipa o desbloqueio quando a campanha volta de etapa', () => {
+  const state = createSideState({
+    ervas: { state: 'available', progress: 2 },
+    pingente: { state: 'available', progress: 1 }
+  });
+  refreshSide(state, { questStep: 0 });
+  assert.equal(state.ervas.state, 'locked');
+  assert.equal(state.pingente.state, 'locked');
+  assert.equal(state.ervas.progress, 0);
+  assert.equal(state.pingente.progress, 0);
+  assert.equal(acceptSide(state, 'ervas'), false);
+  assert.equal(acceptSide(state, 'pingente'), false);
+  assert.equal(questForGiver(state, 'ERVAS'), null);
+
+  refreshSide(state, { questStep: 1 });
+  assert.equal(state.ervas.state, 'available');
+  assert.equal(state.pingente.state, 'locked');
+  assert.equal(acceptSide(state, 'ervas'), true);
+  assert.equal(acceptSide(state, 'pingente'), false);
+
+  refreshSide(state, { questStep: 2 });
+  assert.equal(state.pingente.state, 'available');
+  assert.equal(acceptSide(state, 'pingente'), true);
+});
+
+test('save available permanece intacto quando nao ha snapshot de campanha', () => {
+  const state = createSideState({ ervas: { state: 'available', progress: 0 } });
+  refreshSide(state, {});
+  assert.equal(state.ervas.state, 'available');
+  assert.equal(acceptSide(state, 'ervas'), true);
+});
