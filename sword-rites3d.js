@@ -172,7 +172,7 @@ export class SwordRites {
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
      if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked)){
-      a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
+      a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
