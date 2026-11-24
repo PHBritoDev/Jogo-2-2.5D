@@ -123,10 +123,14 @@ async function walkTo(stone, label) {
       const support = await walkState();
       const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
       if (nearStone <= 1.15 && p.y > stone.centerY - 0.25 && support.grounded) {
+        const netDistance = Math.hypot(p.x - start.x, p.z - start.z);
+        assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
+          label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
         const result = {
           label, from, to: { x: p.x, y: p.y, z: p.z },
           originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2),
-          travelled: +travelled.toFixed(2), surface: support.surface, steps: step,
+          netDistance: +netDistance.toFixed(2), travelled: +travelled.toFixed(2),
+          surface: support.surface, steps: step,
           cameraOffset: +cameraOffset.toFixed(3), control: 'touch #stick'
         };
         report.walks.push(result);
@@ -234,6 +238,9 @@ async function registerStone(stone, expectedProgress, mapKey) {
     page.on('response', r => {
       if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url())) report.httpErrors.push('HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
     });
+    page.on('requestfailed', r => {
+      if (/\\.(?:glb|js)(?:\\?|$)/i.test(r.url())) report.httpErrors.push('FAILED ' + r.url().slice(0, 220) + ' ' + (r.failure()?.errorText || ''));
+    });
 
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
@@ -298,7 +305,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
     report.final = { side: final.side.abrigos, registeredWaystones: final.registeredWaystones, coins: final.coins, xp: final.xp };
     await shot('05-ready-after-final-reload');
 
-    assert.equal(report.screenshots.length, 10, 'capturas de estado incompletas');
+    assert.equal(report.screenshots.length, 11, 'capturas de estado incompletas');
     const criticalConsole = report.consoleErrors.filter(e => !/KHR_parallel|PropertyBinding/i.test(e));
     assert.equal(report.errors.length, 0, 'erros JavaScript: ' + report.errors.join(' | '));
     assert.equal(report.httpErrors.length, 0, 'falhas de asset JS/GLB: ' + report.httpErrors.join(' | '));
