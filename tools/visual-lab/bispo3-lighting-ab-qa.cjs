@@ -74,7 +74,7 @@ async function capture(label,url,browser){
     await page.waitForFunction(()=>{
       const d=window.SevenSinsDebug3D,s=d.state(),c=d.cam(),hero=d.protaReport();
       return Math.abs(s.x-1200)<.1&&Math.abs(s.z-10)<.1&&
-        Math.hypot(c[0]-s.x,c[2]-s.z)<12&&hero.visible===true;
+        Math.hypot(c[0]-s.x,c[1]-s.y,c[2]-s.z)<14&&hero.visible===true;
     },null,{timeout:20000,polling:100});
     // The shared dimLight has a deliberate ±5% breathing pulse. Let the
     // four-slot budget settle, then accept that documented production range.
@@ -120,8 +120,8 @@ async function capture(label,url,browser){
     assert.equal(state.visual?.visible,true,label+': arena visual missing');
     assert.ok(state.game.enemy.visible,label+': boss missing');
     assert.ok(state.hero?.visible,label+': protagonist missing or hidden');
-    assert.ok(Math.hypot(state.camera[0]-state.game.x,state.camera[2]-state.game.z)<12,
-      label+': production camera did not follow the protagonist into the arena');
+    assert.ok(Math.hypot(state.camera[0]-state.game.x,state.camera[1]-state.game.y,state.camera[2]-state.game.z)<14,
+      label+': production camera is not physically close to the protagonist in the arena');
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const screenshot=path.join(out,label+'.png');
     const bytes=await page.screenshot({path:screenshot,timeout:60000});
