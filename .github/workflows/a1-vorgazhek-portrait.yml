@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'mundo-3d-prototype.js'
+      - 'portrait-camera-fit.js'
       - 'mundo-3d-prototype.html'
       - 'hud3d.css'
       - 'tests/vorgazhek-portrait-framing.test.mjs'
@@ -49,6 +50,7 @@ jobs:
         run: |
           node --test tests/vorgazhek-portrait-framing.test.mjs
           node --input-type=module --check < mundo-3d-prototype.js
+          node --check portrait-camera-fit.js
           node --check tools/visual-lab/a1-vorgazhek-portrait-qa.cjs
       - name: Capture normal gameplay at both aspect ratios
         env:

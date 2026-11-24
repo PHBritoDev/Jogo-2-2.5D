@@ -191,6 +191,7 @@ function assertPortrait(state, label) {
   assert.ok(Array.isArray(state.camera) && Number.isFinite(state.player?.x) && Math.abs(state.camera[0] - state.player.x) >= 1.1, label + ': câmera oblíqua separa os atores em retrato');
   assert.equal(state.actors?.enemy?.source, 'squad-body', label + ': projeção usa o corpo real do alvo da esquadra');
   assert.equal(state.actors?.enemy?.visible, true, label + ': modelo do alvo da esquadra está visível');
+  assert.ok(state.actors?.enemy?.visibleMeshes > 0, label + ': ao menos uma malha do Bispo está realmente visível');
   assert.ok(state.actors?.enemy?.id, label + ': alvo da esquadra identificado');
   assert.ok(state.actors?.player?.center?.onScreen && state.actors?.enemy?.center?.onScreen, label + ': ambos os combatentes dentro do quadro');
   assert.ok(state.actors.player.head.onScreen && state.actors.enemy.head.onScreen, label + ': cabeças dos dois combatentes dentro do quadro');

@@ -1,29 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { computePortraitCameraFit } from '../portrait-camera-fit.js';
 
 const world = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../hud3d.css', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8');
 const qa = fs.readFileSync(new URL('../tools/visual-lab/a1-vorgazhek-portrait-qa.cjs', import.meta.url), 'utf8');
 const squadRuntime = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
+const loader = fs.readFileSync(new URL('../mod181-loader.js', import.meta.url), 'utf8');
 
 test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não altera paisagem', () => {
   assert.match(world, /function portraitBishop2Profile\(foeOn,sep\)/);
   assert.match(world, /dimKey!=='bishop2'/);
   assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
   assert.match(world, /focusBlend:\.5/);
-  assert.match(world, /minDistance:Math\.min\(12\.5,Math\.max\(10\.8/);
+  assert.match(world, /const fit=computePortraitCameraFit\(sep,camera\.aspect,camera\.fov\)/);
+  assert.match(world, /minDistance:fit\.minDistance/);
   assert.match(world, /sep<12\|\|!!portrait/);
   assert.match(world, /Math\.max\(baseWant,portrait\.minDistance\)/);
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
-  assert.match(world, /deadZone:\.04,parallaxBias:\.38,turnRate:3\.2/);
+  assert.match(world, /deadZone:\.04,parallaxBias:fit\.parallaxBias,turnRate:3\.2/);
   assert.match(world, /actorScreen\(\)\{\s*camera\.updateMatrixWorld\(true\)/);
 });
 
-test('distância adaptativa alcança 12,5 m antes de soltar o foco em separações longas', () => {
-  const at21m = Math.min(12.5, Math.max(10.8, 9.8 + Math.max(0, 21 - 12) * .3));
-  assert.equal(at21m, 12.5);
+test('distância adaptativa chega a 15 m antes de soltar o foco em separações longas', () => {
+  const at21m = computePortraitCameraFit(21, 320 / 852, 56);
+  assert.equal(at21m.minDistance, 15);
   assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
 });
 
@@ -95,10 +98,12 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
   assert.match(world, /const focusBody=focusActor\?squadRT\?\.body\?\.\(focusActor\.id\):null/);
   assert.match(world, /target=focusBody\?\.holder\|\|enemy/);
   assert.match(world, /source:focusBody\?'squad-body':'enemy-proxy'/);
-  assert.match(world, /focusBody\.holder\.visible&&focusBody\.model\.visible&&focusBody\.holder\.parent/);
+  assert.match(world, /visibleMeshes>0/);
+  assert.match(world, /visibleMeshes,meshCount/);
   assert.match(squadRuntime, /body\(id\) \{ return bodies\.get\(id\) \|\| null; \}/);
   assert.match(qa, /state\.actors\.enemy\?\.source, 'squad-body'/);
   assert.match(qa, /state\.actors\.enemy\?\.visible, true/);
+  assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
   assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
   assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
   assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= \.22/);
@@ -114,4 +119,35 @@ test('zoom manual no retrato preserva a distância escolhida pelo jogador', () =
   assert.match(world, /portraitZoomOverride\?cameraDistance:Math\.max\(baseWant,portrait\.minDistance\)/);
   assert.match(world, /manualZoomOverride:portraitZoomOverride/);
   assert.match(world, /if\(key==='bishop2'\)portraitZoomOverride=false/);
+});
+
+
+test('fit geométrico do retrato mantém o ator próximo dentro da margem e os dois separados', () => {
+  for (const aspect of [320 / 852, 393 / 852]) {
+    for (const fov of [56, 63]) {
+      let lastDistance = 0, lastBias = .38;
+      for (const sep of [2.4, 3.5, 8, 12, 21, 22]) {
+        const fit = computePortraitCameraFit(sep, aspect, fov);
+        const half = sep * .5, tanHalfHorizontal = Math.tan(fov * Math.PI / 360) * aspect;
+        const nearDepth = fit.minDistance - half * Math.cos(fit.parallaxBias);
+        const farDepth = fit.minDistance + half * Math.cos(fit.parallaxBias);
+        const lateral = half * Math.sin(fit.parallaxBias);
+        const nearNdc = lateral / (nearDepth * tanHalfHorizontal);
+        const farNdc = lateral / (farDepth * tanHalfHorizontal);
+        assert.ok(nearNdc <= .721, aspect + ' / ' + fov + '° / ' + sep + 'm: ator próximo dentro da margem');
+        assert.ok(nearNdc + farNdc >= .22, aspect + ' / ' + fov + '° / ' + sep + 'm: separação horizontal legível');
+        assert.ok(fit.minDistance >= lastDistance && fit.minDistance <= 15, 'distância monotônica e limitada');
+        assert.ok(fit.parallaxBias <= lastBias + 1e-6, 'paralaxe diminui quando a separação aumenta');
+        lastDistance = fit.minDistance; lastBias = fit.parallaxBias;
+      }
+    }
+  }
+});
+
+test('probe do alvo exige malha realmente visível e helper compatível com loader de blob', () => {
+  assert.match(world, /from '\.\/portrait-camera-fit\.js'/);
+  assert.ok(loader.includes('[a-z0-9-]+\\.js'), 'loader reescreve imports locais .js para URLs absolutas');
+  assert.match(world, /visibleMeshes>0/);
+  assert.match(world, /visibleMeshes,meshCount/);
+  assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
 });

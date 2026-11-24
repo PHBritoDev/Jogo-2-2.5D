@@ -1,4 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
+import { computePortraitCameraFit } from './portrait-camera-fit.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {createVillagerBrain,createVillagerDriver,measureWalkSpeed,VILLAGER_PROFILES} from './eldoria-npc-life.js';
 import {createSeatPose} from './seated-pose3d.js';
@@ -7419,7 +7420,8 @@ let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vecto
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
  if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>22)return null;
- return{shoulder:.08,focusBlend:.5,minDistance:Math.min(12.5,Math.max(10.8,9.8+Math.max(0,sep-12)*.3)),idleMs:450,deadZone:.04,parallaxBias:.38,turnRate:3.2};
+ const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov);
+ return{shoulder:.08,focusBlend:.5,minDistance:fit.minDistance,idleMs:450,deadZone:.04,parallaxBias:fit.parallaxBias,turnRate:3.2};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
@@ -8826,8 +8828,22 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   const project=v=>{v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
   const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;return project(v);};
   const headPoint=()=>{const v=new THREE.Vector3();if(focusBody?.head?.getWorldPosition)focusBody.head.getWorldPosition(v);else{target.getWorldPosition(v);v.y+=targetHeight*.9;}return project(v);};
-  const visible=focusBody?!!(focusBody.holder.visible&&focusBody.model.visible&&focusBody.holder.parent):!!enemy.visible;
-  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
+  let meshCount=0,visibleMeshes=0;
+  if(focusBody?.model?.traverse){
+   focusBody.model.traverse(o=>{
+    if(!o.isMesh)return;
+    meshCount++;
+    let shown=o.visible!==false;
+    for(let p=o.parent;p&&shown;p=p.parent)if(p.visible===false)shown=false;
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    if(!materials.some(m=>m&&m.visible!==false&&(m.opacity??1)>.05))shown=false;
+    if(shown)visibleMeshes++;
+   });
+  }
+  let holderVisible=!!(focusBody?.holder&&focusBody.holder.parent);
+  for(let p=focusBody?.holder;p&&holderVisible;p=p.parent)if(p.visible===false)holderVisible=false;
+  const visible=focusBody?!!(holderVisible&&focusBody.model?.visible&&visibleMeshes>0):!!enemy.visible;
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
  },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
