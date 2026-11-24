@@ -143,8 +143,8 @@ test('zoom manual no retrato preserva a distância escolhida pelo jogador', () =
 test('fit geométrico do retrato mantém o ator próximo dentro da margem e os dois separados', () => {
   for (const aspect of [320 / 852, 393 / 852]) {
     for (const fov of [56, 63]) {
-      let lastDistance = 0, lastBias = .38;
-      for (const sep of [2.4, 3.5, 8, 12, 21, 22]) {
+      let lastDistance = 0, lastBias = .42;
+      for (const sep of [1.2, 1.5, 2.4, 3.5, 6, 8, 12, 21, 22]) {
         const fit = computePortraitCameraFit(sep, aspect, fov);
         const half = sep * .5, tanHalfHorizontal = Math.tan(fov * Math.PI / 360) * aspect;
         const nearDepth = fit.minDistance - half * Math.cos(fit.parallaxBias);

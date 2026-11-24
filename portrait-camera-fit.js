@@ -1,5 +1,5 @@
 /** Enquadramento horizontal do duelo retrato: mantém o ator próximo dentro de uma margem segura. */
-const MAX_PORTRAIT_BIAS = .38;
+const MAX_PORTRAIT_BIAS = .42;
 const SAFE_ACTOR_NDC = .72;
 const RELEASE_START = 22;
 const RELEASE_END = 28;
