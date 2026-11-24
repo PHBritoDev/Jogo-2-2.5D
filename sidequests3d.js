@@ -65,8 +65,9 @@ export function createSideState(saved) {
   const out = {};
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
-    const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
-    const progress = state === 'locked' ? 0 : safeSideProgress(s && s.progress, q.goal.count);
+    const state = ['available', 'active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
+    // Uma missão apenas disponível ainda não foi aceita; não restaure coleta anterior ao aceite.
+    const progress = ['locked', 'available'].includes(state) ? 0 : safeSideProgress(s && s.progress, q.goal.count);
     // Um save corrompido não pode entregar recompensa sem cumprir a meta.
     // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
     out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };

@@ -268,3 +268,13 @@ test('runtime fornece o Set de IDs registrados, não a contagem global', () => {
   assert.ok(runtime.includes("function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones})"));
   assert.ok(!runtime.includes("function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size})"));
 });
+
+
+test('save available preserva missão desbloqueada sem contar antes do aceite', () => {
+  const state = createSideState({ ervas: { state: 'available', progress: 2 } });
+  assert.equal(state.ervas.state, 'available');
+  assert.equal(state.ervas.progress, 0, 'missão disponível ainda não começou');
+  assert.equal(acceptSide(state, 'ervas'), true);
+  collectSide(state, 'flor');
+  assert.equal(state.ervas.progress, 1);
+});
