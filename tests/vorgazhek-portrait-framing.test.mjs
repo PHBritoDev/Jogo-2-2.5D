@@ -94,3 +94,10 @@ test('zoom manual por pinça e roda suspende a recentralização automática', (
   assert.ok(world.includes("cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D();"), 'pinça registra a última entrada manual de câmera');
   assert.ok(world.includes("lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);lastLookInputAt=performance.now();syncCameraToggle3D();"), 'roda do mouse registra a última entrada manual de câmera');
 });
+
+test('zoom manual no retrato preserva a distância escolhida pelo jogador', () => {
+  assert.equal((world.match(/portraitZoomOverride=true/g) || []).length, 2, 'pinça e roda ativam o override no retrato VORGAZHEK');
+  assert.match(world, /portraitZoomOverride\?cameraDistance:Math\.max\(baseWant,portrait\.minDistance\)/);
+  assert.match(world, /manualZoomOverride:portraitZoomOverride/);
+  assert.match(world, /if\(key==='bishop2'\)portraitZoomOverride=false/);
+});
