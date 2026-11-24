@@ -575,7 +575,7 @@ test('release não cria crescente quando a origem do herói já está dentro de 
  assert.ok(result.events.includes('obstructed'),'a obstrução inicial precisa ser registrada');
 });
 
-test('pose estacionária reutiliza a varredura de parede em vez de repetir probes a 120 Hz',()=>{
+test('pose estacionária evita varredura repetida quando todos os contatos já estão obstruídos',()=>{
  const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0;
  const blocked=p=>{blockedCalls++;return p.x> -4.95&&p.x< -4.94;};
  const rites=new SwordRites({
@@ -590,33 +590,35 @@ test('pose estacionária reutiliza a varredura de parede em vez de repetir probe
  assert(blockedCalls<2500,'a pose fixa deve reduzir os 9.002 probes do baseline; recebeu '+blockedCalls);
 });
 
-test('cache de pose estacionária expira e detecta parede que aparece na lâmina',()=>{
- const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0,bladeWall=false;
+test('parede nova na lâmina é detectada imediatamente sem cachear uma pose livre',()=>{
+ const focus=enemy('focus',0,3),hits=[],impacts=[];let blockedCalls=0,bladeWall=false;
  const blocked=p=>{
   blockedCalls++;
-  return (p.x> -4.95&&p.x< -4.94)||(bladeWall&&p.z>2.4&&p.z<2.5);
+  return bladeWall&&Math.abs(p.x)<.005&&p.z>2.4&&p.z<2.5;
  };
  const rites=new SwordRites({
   moveset:()=>({id:'stationary-wall-change',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
   blocked,pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}}),
-  hit:(damage,id)=>{hits.push(id);return true;}
+  hit:(damage,id)=>{hits.push(id);return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
  });
  rites.attack('prota',{target:focus,yaw:0});
  const ctx={from:{x:-5,y:0,z:0},target:focus,others:[],sword:'prota',grounded:true};
- for(let i=0;i<3;i++)rites.update(1/120,ctx);
- const before=blockedCalls;
+ rites.update(1/120,ctx);
  bladeWall=true;
- for(let i=0;i<10;i++)rites.update(1/120,ctx);
- assert.equal(rites.active?.bladeBlocked,true,'a nova parede precisa ser detectada após o TTL de 50 ms');
- assert(blockedCalls>before,'a expiração precisa provocar nova validação');
- assert.deepEqual(hits,[],'a parede nova não pode permitir dano');
+ rites.update(1/120,ctx);
+ assert.equal(rites.active?.bladeBlocked,true,'a parede que surgiu no corpo da lâmina deve bloquear no primeiro tick ativo');
+ assert.deepEqual(hits,[],'a pose livre anterior não pode permitir dano após a parede aparecer');
+ assert.deepEqual(impacts,[],'a parede nova não pode produzir falso impacto');
+ assert(blockedCalls>0,'a parede nova precisa ser consultada');
 });
 
-test('cache da lâmina invalida quando a origem viva do herói se desloca',()=>{
- const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0,originX=-5;
+test('cache de linha de visão invalida quando a origem viva do herói se desloca',()=>{
+ const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0,originX=-5,newOriginProbe=false;
  const from={x:-5,y:0,z:0};
  const blocked=p=>{
   blockedCalls++;
+  if(originX===-4.5&&p.x>originX+.02&&p.x<originX+.05)newOriginProbe=true;
   return p.x>originX+.02&&p.x<originX+.05;
  };
  const rites=new SwordRites({
@@ -630,6 +632,7 @@ test('cache da lâmina invalida quando a origem viva do herói se desloca',()=>{
  const before=blockedCalls;
  originX=-4.5;from.x=originX;
  rites.update(1/120,ctx);
- assert(blockedCalls>before+100,'mudar a origem deve invalidar a pose cacheada e refazer a varredura');
+ assert(blockedCalls>before,'mudar a origem deve invalidar a LOS cacheada e reconsultar a parede');
+ assert.equal(newOriginProbe,true,'a nova origem precisa produzir uma consulta de colisão');
  assert.deepEqual(hits,[],'a linha de visão continua obstruída na nova origem');
 });
