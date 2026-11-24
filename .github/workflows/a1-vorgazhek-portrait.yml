@@ -15,8 +15,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - name: Checkout exact base for visual comparison
         if: github.event_name == 'pull_request'
@@ -25,6 +27,17 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: work/baseline
           persist-credentials: false
+      - name: Verify exact head and base checkouts
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          actual_head="$(git rev-parse HEAD)"
+          actual_base="$(git -C work/baseline rev-parse HEAD)"
+          echo "PR head checkout: $actual_head"
+          echo "PR base checkout: $actual_base"
+          test "$actual_head" = "$EXPECTED_HEAD_SHA"
+          test "$actual_base" = "$EXPECTED_BASE_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -56,6 +69,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: a1-vorgazhek-portrait-${{ github.sha }}
+          name: a1-vorgazhek-portrait-${{ github.event.pull_request.head.sha }}
           path: work/evidence/
           retention-days: 14
