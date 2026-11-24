@@ -1600,6 +1600,7 @@ new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
  if(renderer.compileAsync)renderer.compileAsync(imported,camera,scene).then(attach,attach);else attach();
 },undefined,err=>{console.error('AnjoGuiador-otimizado.glb não carregou:',err);status.textContent='Não foi possível carregar o Anjo-Guia (AnjoGuiador-otimizado.glb)';});
 const PROGRESS_KEY='sevenSins3DCampaignV6';
+let sideRewardClaims=(()=>{try{const raw=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null'),claims=Array.isArray(raw?.sideRewardClaims)?raw.sideRewardClaims:[];return [...new Set(claims.filter(id=>typeof id==='string'&&/^side:[a-z0-9_-]+:v2$/.test(id)))].slice(-32);}catch(_){return[];}})();
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){let raw=null;try{raw=JSON.parse(localStorage.getItem(key)||'null');}catch(_){continue;}/* A1-SAVE-FALLBACK-02: slot corrompido não esconde um slot antigo válido */if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
 let sideReady=false;
@@ -1673,7 +1674,7 @@ function warmJourneyPrograms(){
  let p=null;force();try{p=renderer.compileAsync?renderer.compileAsync(scene,camera):null;}catch(e){p=null;}restore();
  if(p)p.then(draw,draw);else draw();
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now(),sideRewardClaims:[...sideRewardClaims]};let persisted=false;try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));persisted=true;}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}return persisted;}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -4069,14 +4070,15 @@ function updateVillagers(dt){
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
 function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
-function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)?{coins:saved.coins,xp:saved.xp}:null;}catch(_){return null;}}
+function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)?{coins:saved.coins,xp:saved.xp,sideRewardClaims:Array.isArray(saved.sideRewardClaims)?saved.sideRewardClaims:[]}:null;}catch(_){return null;}}
 function settlePendingSideReward(){
  const result=settleSideReward(sideState,savedCampaignProgress(),pending=>{
   if(!pending.appliedInMemory){
-   coins=Math.max(coins,pending.afterCoins);
-   const delta=Math.max(0,pending.afterXp-playerXp);if(delta>0)gainXp(delta);
+   coins+=pending.coins;
+   gainXp(pending.xp);
    pending.appliedInMemory=true;
   }
+  if(!sideRewardClaims.includes(pending.claimId))sideRewardClaims=[...sideRewardClaims,pending.claimId].slice(-32);
   save3DProgress();return savedCampaignProgress();
  });
  if(result!=='pending'&&result!=='none')saveSide();
@@ -4114,7 +4116,7 @@ function trySideQuestTalk(vendor){
  if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
  if(s.state==='ready'){showDialogue(q.turnIn,()=>{
   const r=turnInSide(sideState,q.id);if(r){
-   sideState.pendingReward={claimId:'side:'+q.id+':v1',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
+   sideState.pendingReward={claimId:'side:'+q.id+':v2',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
    if(!saveSide()){sideState[q.id].state='ready';sideState.pendingReward=null;status.textContent='Não foi possível salvar a entrega. Tente novamente.';refreshSideQuests();return;}
    const settled=settlePendingSideReward();
    if(settled==='pending')status.textContent='Recompensa registrada; a persistência será recuperada antes de outra entrega.';
