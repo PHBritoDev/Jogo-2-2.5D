@@ -146,3 +146,18 @@ test('A/B harness freezes boss automation, waits for VS readiness and performs o
   assert.equal(qa.includes('.vsGo('),false,'do not bypass the real start control with a synthetic debug call');
   assert.ok(qa.includes('window.__qaManualBossSkills=true;window.SevenSinsDebug3D.god()'),'comparison must suppress automatic boss skills and enable god mode before combat');
 });
+
+test('A/B restores the production camera after motionQA freezes the loop and accepts the dimLight pulse',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const placed=qa.indexOf("d.motionQA({x:1200,z:10,enemyDistance:12,sword:'prota'});");
+  const resumed=qa.indexOf('d.realtime();',placed);
+  const cameraWait=qa.indexOf('await page.waitForFunction(()=>{',resumed);
+  const lightProbe=qa.indexOf('const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));',cameraWait);
+  assert.ok(placed>=0&&resumed>placed&&cameraWait>resumed&&lightProbe>cameraWait,
+    'resume the real frame loop and let the production camera follow the actors before measuring light slots');
+  assert.match(qa,/Math\.abs\(source\.intensity-16\)<=\.81/,
+    'the production dimLight has a deliberate ±5% pulse, not a constant 16.00');
+  assert.match(qa,/state\.hero\?\.visible/,'the candidate frame must retain the protagonist');
+  assert.match(qa,/Math\.hypot\(state\.camera\[0\]-state\.game\.x,state\.camera\[2\]-state\.game\.z\)<12/,
+    'the measured camera must be near the protagonist in the arena');
+});
