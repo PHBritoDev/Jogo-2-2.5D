@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
+import { Enemy1Squad } from '../enemy1-squad3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -83,4 +85,31 @@ test('secondary sector knockback radiates from its origin; blade remains melee',
   {x:2,z:3,kind:'spell'});
  assert.deepEqual(swordSideHitContext({by:'blade',target},target,fallback),
   {x:90,z:-40,kind:'melee'});
+});
+
+test('real squad knockback follows a travelling wave instead of the moved hero',()=>{
+ const squad=new Enemy1Squad({seed:7}),[actor]=squad.spawn([{x:10,z:20}]);
+ const source=swordSideHitContext({wave:{direction:{x:1,y:0,z:0}}},actor,{x:90,z:-40});
+ squad.damageActor(actor,10,{...source,by:'hero',knock:.3});
+ assert.ok(actor.kx>0,'wave travelling +X must push the enemy +X');
+ assert.ok(Math.abs(actor.kz)<1e-9,'wave travelling +X must not inherit the moved hero Z');
+});
+test('real squad knockback uses sector origin and keeps blade source as melee',()=>{
+ const sectorSquad=new Enemy1Squad({seed:8}),[sectorActor]=sectorSquad.spawn([{x:10,z:20}]);
+ const sector=swordSideHitContext({energy:{kind:'sector',x:2,z:3}},sectorActor,{x:90,z:-40});
+ sectorSquad.damageActor(sectorActor,10,{...sector,by:'hero',knock:.3});
+ assert.ok(sectorActor.kx>0&&sectorActor.kz>0,'sector pushes away from its own origin');
+ const bladeSquad=new Enemy1Squad({seed:9}),[bladeActor]=bladeSquad.spawn([{x:10,z:20}]);
+ const blade=swordSideHitContext({by:'blade'},bladeActor,{x:90,z:-40});
+ bladeSquad.damageActor(bladeActor,10,{...blade,by:'hero',knock:.3});
+ assert.ok(bladeActor.kx<0&&bladeActor.kz>0,'physical blade still pushes away from the hero');
+ assert.equal(blade.kind,'melee');
+});
+test('production squad bridge consumes the projectile-aware side-hit context',async()=>{
+ const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
+ const start=source.indexOf('function protaSideHit('),end=source.indexOf('\nfunction riteReady',start);
+ assert.ok(start>=0&&end>start);
+ const bridge=source.slice(start,end);
+ assert.match(bridge,/swordSideHitContext\(x,a,player\.position\)/);
+ assert.match(bridge,/sq\.damageActor\(a,damage,\{\.\.\.source,by:'hero',knock:\.3\}\)/);
 });
