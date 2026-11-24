@@ -19,6 +19,8 @@ export const FAUNA_LOAD_RETRY = Object.freeze({
   cycleCooldownSeconds: 30,
   maxCycles: 2
 });
+/** Mantém o streaming responsivo se uma requisição de espécie ficar lenta. */
+export const FAUNA_MAX_CONCURRENT_LOADS = 2;
 function assetHttpStatus(error) {
   const message = String(error && error.message || error);
   const match = message.match(/(?:\bHTTP\s*|\bresponded with\s*|\bstatus(?:\s+code)?\s*[:=]?\s*)(\d{3})\b/i);
@@ -71,8 +73,8 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
  */
 export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
-  const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, activeLoads: 0, peakActiveLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
+  const mx = new T.Object3D(), forward = new T.Vector3(); let activeLoads = 0, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
     if (index !== baseIdx) return Promise.resolve(null);              // normal/rugosidade 2048²: não decodifica
@@ -88,12 +90,16 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
     if (assets[kind]) return Promise.resolve(assets[kind]);
     if (pending[kind]) return pending[kind];
+    if (activeLoads >= FAUNA_MAX_CONCURRENT_LOADS) return Promise.resolve(null);
     const state = loadState[kind] || (loadState[kind] = { attempts: 0, cycles: 0, retryAt: 0, permanent: false });
     if (state.permanent || state.exhausted || t < state.retryAt) return Promise.resolve(null);
     if (state.attempts >= FAUNA_LOAD_RETRY.attemptsPerCycle) state.attempts = 0;
     const attempt = ++state.attempts, S = FAUNA[kind], t0 = performance.now();
     if (attempt > 1 || state.cycles > 0) stats.loadRetries++;
     stats.loads++;
+    activeLoads++;
+    stats.activeLoads = activeLoads;
+    stats.peakActiveLoads = Math.max(stats.peakActiveLoads, activeLoads);
     const request = Promise.resolve().then(() => {
       const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
       return L.loadAsync(base + S.file);
@@ -127,7 +133,11 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         state.retryAt = t + FAUNA_LOAD_RETRY.backoffSeconds[attempt - 1];
       }
       return { failed: message, retryAt: state.retryAt, permanent: state.permanent };
-    }).finally(() => { delete pending[kind]; });
+    }).finally(() => {
+      delete pending[kind];
+      activeLoads = Math.max(0, activeLoads - 1);
+      stats.activeLoads = activeLoads;
+    });
   }
   // Only inspect rendered rocks when a bird is created. Intersect one nearby
   // instance at a time; a ray through the entire instanced world is expensive.
@@ -185,7 +195,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
       const retry = loadState[kind];
-      if (list.length && !assets[kind] && !loading && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) { loading = load(kind).finally(() => { loading = null; }); }
+      if (list.length && !assets[kind] && !pending[kind] && activeLoads < FAUNA_MAX_CONCURRENT_LOADS && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) load(kind);
     }
     for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
     const population = {};
