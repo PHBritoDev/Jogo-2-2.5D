@@ -278,7 +278,7 @@ test('progresso negativo ou acima da meta durante a sessão é normalizado', () 
 
 
 test('checkpoints não escalares não liberam missões após restauração', () => {
-  for (const invalid of [true, false, null, [], [2], {}, { valueOf: () => 2 }, ' ']) {
+  for (const invalid of [true, false, null, [], [2], {}, { valueOf: () => 2 }, ' ', 1.5, 2.5, '1.5', '2.5', Number.MAX_SAFE_INTEGER + 1, String(Number.MAX_SAFE_INTEGER + 1)]) {
     const state = createSideState();
     refreshSide(state, { questStep: invalid });
     assert.equal(state.pingente.state, 'locked');
@@ -376,6 +376,10 @@ test('save available nao antecipa o desbloqueio quando a campanha volta de etapa
     ervas: { state: 'available', progress: 2 },
     pingente: { state: 'available', progress: 1 }
   });
+  refreshSide(state, { questStep: 1.5 });
+  assert.equal(state.ervas.state, 'available', 'checkpoint fracionário é inválido e não altera o desbloqueio');
+  assert.equal(state.pingente.state, 'available', 'checkpoint fracionário não deve relockar nem liberar missões');
+
   refreshSide(state, { questStep: 0 });
   assert.equal(state.ervas.state, 'locked');
   assert.equal(state.pingente.state, 'locked');
