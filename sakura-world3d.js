@@ -48,11 +48,36 @@ export function createSakuraWorld(T,scene,{ground,low}){
    m.tube([2.8,1.82,0],[.94,1.53,0],.14,.12,0xaaa177);lantern(m,-2.4,0,-1,true);
   }else if(k===1 || k===3){
    // Observation deck and swallow roost both open toward the valley.
-   for(let j=0;j<10;j++)m.box(0,.24,j*.44-2,5,.33,.41,timber);
+   const boards=[0x79584c,0x69493e,0x735246,0x7f604f];
+   for(let j=0;j<10;j++)m.box(0,.24,j*.44-2,5,.33,.41,boards[j%4]);
    for(const sign of [-1,1]){
-    m.tube([sign*2.4,-.3,-2],[sign*2.4,1.6,-2],.13,.12,timber);
-    m.rib([[sign*2.4,1.5,-2],[sign*2.4,1.5,2]],.11,timber);}
-   if(k===1)m.box(0,.85,1.7,3,.23,.8,stone);
+    const x=sign*2.4;
+    m.box(x*.72,-.02,0,.32,.32,4.75,timber);
+    for(const z of [-2,2]){
+     m.box(x,-.28,z,.42,.98,.43,stone);
+     m.tube([x,.16,z],[x,1.6,z],.13,.12,timber);
+     m.tube([x,1.58,z],[x,1.70,z],.18,.11,0x93745d,8);
+    }
+    m.rib([[x,1.5,-2],[x,1.5,2]],.11,timber);
+   }
+   if(k===1){
+    // Two cut-stone trestles bear the chamfered seat. Their feet rest
+    // directly on the planks; the lower rail remains behind the visitor.
+    for(const x of [-.98,.98]){
+     m.box(x,.45,1.7,.62,.09,.73,0x746e65);
+     m.box(x,.59,1.7,.35,.23,.50,0x846f64);
+     m.box(x,.72,1.7,.57,.08,.69,0xa4937c);
+    }
+    const rim=[[-1.5,-.30],[-1.40,-.40],[1.40,-.40],[1.5,-.30],[1.5,.30],[1.40,.40],[-1.40,.40],[-1.5,.30]];
+    for(let i=0;i<rim.length;i++){
+     const [x,z]=rim[i],[xx,zz]=rim[(i+1)%rim.length];
+     const edge=[x,.925,1.7+z],next=[xx,.925,1.7+zz];
+     const top=[x*.975,.965,1.7+z*.92],topNext=[xx*.975,.965,1.7+zz*.92];
+     m.quad([x,.745,1.7+z],[xx,.745,1.7+zz],next,edge,i%2?0x786b66:0x8a7e71);
+     m.quad(edge,next,topNext,top,0xb5a48a);
+     m.tri([0,.965,1.7],top,topNext,i%3?0xa49887:0xa99b89);
+    }
+   }
    else for(let j=0;j<3;j++){m.tube([j-1,0,1],[j-1,3+j*.32,1],.13,.08,timber);m.box(j-1,2.9+j*.32,1,.76,.48,.72,0xa56b56);}
   }else{
    for(const side of [-1,1]){m.quad([side*2,0,-2],[0,3,-2],[0,3,2],[side*2,0,2],0x8a9b9c);
