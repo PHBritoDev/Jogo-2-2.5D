@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFauna, FAUNA_LOAD_RETRY, cellCandidate } from '../fauna3d.js';
+import { createFauna, FAUNA_LOAD_RETRY, FAUNA_MAX_CONCURRENT_LOADS, cellCandidate } from '../fauna3d.js';
 
 class Vec3 {
   constructor(x = 0, y = 0, z = 0) { this.set(x, y, z); }
@@ -139,6 +139,52 @@ test('fauna: scanner de produção tenta novamente após o backoff no habitat at
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(mock.calls(), 2, 'o scanner real agenda a nova tentativa quando o backoff termina');
   assert.deepEqual(fauna.stats.loaded, ['grilo']);
+  fauna.dispose();
+});
+
+test('fauna: uma requisição lenta não bloqueia outras espécies e respeita o limite de concorrência', async () => {
+  assert.equal(FAUNA_MAX_CONCURRENT_LOADS, 2);
+  const coelho = cellCandidate('coelho', 29, -15);
+  const montanha = cellCandidate('montanha', 29, -15);
+  const lava = cellCandidate('lava', 29, -15);
+  assert.ok(coelho && montanha && lava, 'a célula de regressão precisa conter os três candidatos');
+
+  const habitat = {
+    biome: (x, z) => {
+      for (const [candidate, biome] of [[coelho, 'vale'], [montanha, 'serra'], [lava, 'cinzas']]) {
+        if (Math.hypot(x - candidate.x, z - candidate.z) < 1e-6) return biome;
+      }
+      return 'cidade';
+    },
+    water: () => -1, road: () => false, lava: () => 0, blocked: () => false
+  };
+  const requests = [];
+  class Loader {
+    register() {}
+    loadAsync(url) {
+      requests.push(url);
+      if (url.endsWith('Coelhinho.glb')) return new Promise(() => {});
+      return Promise.resolve({ scene: fakeScene() });
+    }
+  }
+
+  const fauna = create(Loader, habitat);
+  const update = dt => fauna.update(dt, { px: coelho.x, pz: coelho.z, hour: 12, camera: null });
+  update(0);
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.ok(requests.some(url => url.endsWith('Coelhinho.glb')), 'a primeira espécie inicia e permanece pendente');
+  assert.ok(requests.some(url => url.endsWith('PassaroMontanha.glb')), 'a segunda espécie carrega apesar da primeira estar lenta');
+  assert.ok(!requests.some(url => url.endsWith('PassaroLava.glb')), 'a terceira aguarda o limite de duas cargas');
+  assert.deepEqual(fauna.stats.loaded, ['montanha']);
+  assert.equal(fauna.stats.activeLoads, 1);
+  assert.equal(fauna.stats.peakActiveLoads, 2);
+
+  update(.6);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(requests.some(url => url.endsWith('PassaroLava.glb')), 'uma vaga liberada permite iniciar a terceira espécie');
+  assert.equal(fauna.stats.activeLoads, 2);
+  assert.equal(fauna.stats.peakActiveLoads, FAUNA_MAX_CONCURRENT_LOADS);
   fauna.dispose();
 });
 
