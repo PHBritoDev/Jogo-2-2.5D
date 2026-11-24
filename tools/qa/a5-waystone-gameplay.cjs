@@ -18,9 +18,9 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch input on the shipped #stick joystick; viewQA aligns yaw with fixed QA pitch/distance; real talk-button registration; no shelter-to-shelter teleport',
+  method: 'real CDP touch input on the shipped #stick joystick; A* routes from navCatalog/whyBlocked avoid world obstacles; viewQA aligns yaw; real talk-button registration; no shelter-to-shelter teleport',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touch on #stick and Playwright tap on #talk-button; viewQA adjusts camera yaw and fixed QA pitch/distance without moving the player; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touchStart/touchMove on #stick with pointermove/knob verification; A* waypoints from runtime collision queries; Playwright tap on #talk-button; viewQA only aligns camera yaw/pitch/distance; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -31,7 +31,8 @@ const report = {
   errors: [],
   consoleErrors: [],
   httpErrors: [],
-  input: { joystickPointerTypes: [], interactionPointerTypes: [] }
+  input: { joystickPointerTypes: [], joystickPointerMoves: [], interactionPointerTypes: [] },
+  routes: []
 };
 
 let browser = null, context = null, page = null, video = null, cdp = null, fatal = null;
@@ -78,9 +79,14 @@ async function beginJoystick() {
   assert.ok(hit, 'ponto de toque não pertence ao joystick #stick');
   await page.evaluate(() => {
     window.__a5JoystickPointerType = null;
-    document.getElementById('stick').addEventListener('pointerdown', e => {
+    window.__a5JoystickPointerMoves = [];
+    const stick = document.getElementById('stick');
+    stick.addEventListener('pointerdown', e => {
       window.__a5JoystickPointerType = e.pointerType;
     }, { once: true });
+    stick.addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') window.__a5JoystickPointerMoves.push({ x: e.clientX, y: e.clientY });
+    });
   });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
   await page.waitForFunction(() => window.__a5JoystickPointerType === 'touch', null, { timeout: 5000 });
@@ -88,6 +94,14 @@ async function beginJoystick() {
   await wait(80);
   const forwardY = Math.round(y - box.height * 0.32);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: forwardY, id: 1 }] });
+  await page.waitForFunction(() => (window.__a5JoystickPointerMoves || []).length > 0, null, { timeout: 5000 });
+  const movement = await page.evaluate(() => ({
+    count: window.__a5JoystickPointerMoves.length,
+    last: window.__a5JoystickPointerMoves.at(-1),
+    transform: document.getElementById('knob')?.style.transform || ''
+  }));
+  assert.match(movement.transform, /translate\([^,]+,\s*-\d/, 'toque não deslocou o knob do joystick para frente: ' + movement.transform);
+  report.input.joystickPointerMoves.push(movement);
   return { x, y, forwardY };
 }
 async function endJoystick() {
@@ -99,90 +113,195 @@ async function aimJoystick(dx, dz, offset) {
   await page.evaluate(value => window.SevenSinsDebug3D.viewQA(false, value, 0.12), yaw);
   return yaw;
 }
+async function findWalkPath(start, target, stone) {
+  return page.evaluate(({ start, target, stone }) => {
+    const api = window.SevenSinsDebug3D;
+    const step = 0.65, pad = 8;
+    const minX = Math.floor((Math.min(start.x, target.x) - pad) / step) * step;
+    const maxX = Math.ceil((Math.max(start.x, target.x) + pad) / step) * step;
+    const minZ = Math.floor((Math.min(start.z, target.z) - pad) / step) * step;
+    const maxZ = Math.ceil((Math.max(start.z, target.z) + pad) / step) * step;
+    const cols = Math.max(2, Math.ceil((maxX - minX) / step));
+    const rows = Math.max(2, Math.ceil((maxZ - minZ) / step));
+    const catalog = api.navCatalog((start.x + target.x) * .5, (start.z + target.z) * .5,
+      Math.hypot(target.x - start.x, target.z - start.z) + 18);
+    const cache = new Map();
+    let sampled = 0;
+    const blocked = (x, z) => {
+      const key = Math.round(x * 4) + ':' + Math.round(z * 4);
+      if (cache.has(key)) return cache.get(key);
+      const why = api.whyBlocked(x, z);
+      const rock = (catalog.rocks || []).some(r => r.h > .55 && Math.hypot(x - r.x, z - r.z) < r.r + .42);
+      const market = (catalog.market || []).some(m => m.h > .68 &&
+        Math.abs(x - m.x) < m.hx + .42 && Math.abs(z - m.z) < m.hz + .42);
+      const value = !!(why.blockedAt || why.player || why.walk || why.tree || why.market || why.npc ||
+        why.water > .08 || rock || market);
+      cache.set(key, value);
+      sampled++;
+      return value;
+    };
+    const point = (ix, iz) => ({ x: minX + (ix + .5) * step, z: minZ + (iz + .5) * step });
+    const cell = (x, z) => ({
+      ix: Math.max(0, Math.min(cols - 1, Math.round((x - minX) / step - .5))),
+      iz: Math.max(0, Math.min(rows - 1, Math.round((z - minZ) / step - .5)))
+    });
+    const startCell = cell(start.x, start.z);
+    const startIndex = startCell.iz * cols + startCell.ix;
+    const goalRadius = Math.max(.12, 1.30 - Math.hypot(target.x - stone.x, target.z - stone.z));
+    const center = cell(target.x, target.z);
+    const goals = [];
+    for (let iz = Math.max(0, center.iz - 2); iz <= Math.min(rows - 1, center.iz + 2); iz++) {
+      for (let ix = Math.max(0, center.ix - 2); ix <= Math.min(cols - 1, center.ix + 2); ix++) {
+        const p = point(ix, iz), d = Math.hypot(p.x - target.x, p.z - target.z);
+        if (d <= goalRadius && Math.hypot(p.x - stone.x, p.z - stone.z) <= 1.30 && !blocked(p.x, p.z)) {
+          goals.push({ ix, iz, p, d });
+        }
+      }
+    }
+    goals.sort((a, b) => a.d - b.d);
+    if (!goals.length) return { ok: false, reason: 'nenhuma célula livre dentro do raio de registro', sampled, goalRadius, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    const goal = goals[0], goalIndex = goal.iz * cols + goal.ix;
+    const total = cols * rows;
+    const scores = new Float64Array(total); scores.fill(Infinity);
+    const came = new Int32Array(total); came.fill(-1);
+    const closed = new Uint8Array(total);
+    const heuristic = (ix, iz) => Math.hypot(goal.ix - ix, goal.iz - iz) * step;
+    const open = [{ index: startIndex, f: heuristic(startCell.ix, startCell.iz) }];
+    scores[startIndex] = 0;
+    let explored = 0, found = false;
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    while (open.length && explored < total * 2) {
+      let best = 0;
+      for (let i = 1; i < open.length; i++) if (open[i].f < open[best].f) best = i;
+      const current = open.splice(best, 1)[0], ci = current.index;
+      if (closed[ci]) continue;
+      if (ci === goalIndex) { found = true; break; }
+      closed[ci] = 1; explored++;
+      const cx = ci % cols, cz = Math.floor(ci / cols);
+      for (const [dx, dz] of dirs) {
+        const nx = cx + dx, nz = cz + dz;
+        if (nx < 0 || nz < 0 || nx >= cols || nz >= rows) continue;
+        const ni = nz * cols + nx;
+        if (closed[ni]) continue;
+        const next = point(nx, nz);
+        if (ni !== startIndex && blocked(next.x, next.z)) continue;
+        if (dx && dz) {
+          const sideA = point(cx + dx, cz), sideB = point(cx, cz + dz);
+          if (blocked(sideA.x, sideA.z) || blocked(sideB.x, sideB.z)) continue;
+        }
+        const tentative = scores[ci] + step * (dx && dz ? Math.SQRT2 : 1);
+        if (tentative >= scores[ni]) continue;
+        came[ni] = ci; scores[ni] = tentative;
+        open.push({ index: ni, f: tentative + heuristic(nx, nz) });
+      }
+    }
+    if (!found) return { ok: false, reason: 'A* não encontrou caminho livre', explored, sampled, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    const nodes = [];
+    let cursor = goalIndex, guard = 0;
+    while (cursor !== startIndex && cursor >= 0 && guard++ < total) {
+      nodes.push(point(cursor % cols, Math.floor(cursor / cols)));
+      cursor = came[cursor];
+    }
+    if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled };
+    nodes.reverse();
+    const raw = [{ x: start.x, z: start.z }, ...nodes];
+    const clearLine = (a, b) => {
+      const distance = Math.hypot(b.x - a.x, b.z - a.z);
+      const count = Math.ceil(distance / .32);
+      for (let i = 1; i < count; i++) {
+        const t = i / count;
+        if (blocked(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return false;
+      }
+      return true;
+    };
+    const points = [];
+    let at = 0;
+    while (at < raw.length - 1) {
+      let far = at + 1;
+      for (let i = raw.length - 1; i > at + 1; i--) {
+        if (clearLine(raw[at], raw[i])) { far = i; break; }
+      }
+      points.push(raw[far]); at = far;
+    }
+    return {
+      ok: true, points, explored, sampled, step,
+      goal: goal.p, goalDistance: +goal.d.toFixed(3), goalRadius: +goalRadius.toFixed(3),
+      catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 }
+    };
+  }, { start, target, stone });
+}
 async function walkTo(stone, label) {
   const start = await playerState();
   const originDistance = Math.hypot(stone.x - start.x, stone.z - start.z);
-  const from = { x: start.x, z: start.z };
-  const routeDx = stone.x - start.x, routeDz = stone.z - start.z;
-  const routeLen = Math.hypot(routeDx, routeDz) || 1;
-  const target = {
-    x: stone.x - routeDx / routeLen * 0.45,
-    z: stone.z - routeDz / routeLen * 0.45
-  };
-  let stalled = 0, travelled = 0, cameraOffset = 0;
+  const angles = Array.from({ length: 8 }, (_, i) => i * Math.PI / 4);
+  const approaches = angles.map(angle => ({
+    x: stone.x + Math.cos(angle) * .9,
+    z: stone.z + Math.sin(angle) * .9
+  })).sort((a, b) => Math.hypot(a.x - start.x, a.z - start.z) - Math.hypot(b.x - start.x, b.z - start.z));
+  let selected = null;
+  const rejected = [];
+  for (const target of approaches) {
+    const plan = await findWalkPath(start, target, stone);
+    if (plan.ok) { selected = { target, plan }; break; }
+    rejected.push({ target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled });
+  }
+  if (!selected) throw new Error(label + ': nenhum acesso caminhável ao abrigo; tentativas=' + JSON.stringify(rejected));
+  report.routes.push({
+    label, target: selected.target, points: selected.plan.points,
+    explored: selected.plan.explored, sampled: selected.plan.sampled,
+    goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
+  });
   await beginJoystick();
+  let travelled = 0, totalSteps = 0;
   try {
-    // Calibra a relação câmera/joystick com quatro direções cardeais.
-    // Todos os deslocamentos são produzidos pelo controle #stick real, não por walkMove.
-    let best = null;
-    for (const offset of [0, Math.PI, Math.PI / 2, -Math.PI / 2]) {
-      const before = await playerState();
-      const dx = target.x - before.x, dz = target.z - before.z;
-      await aimJoystick(dx, dz, offset);
-      await wait(280);
-      const after = await playerState();
-      const remaining = Math.hypot(target.x - after.x, target.z - after.z);
-      const delta = Math.hypot(after.x - before.x, after.z - before.z);
-      travelled += delta;
-      report.legs.push({ label, phase: 'camera-calibration', offset: +offset.toFixed(3), remaining: +remaining.toFixed(2), moved: +delta.toFixed(2) });
-      if (!best || remaining < best.remaining) best = { offset, remaining };
-    }
-    cameraOffset = best.offset;
-    for (let step = 0; step < 280; step++) {
-      const p = await playerState();
-      const d = Math.hypot(target.x - p.x, target.z - p.z);
-      const support = await walkState();
-      const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
-      if (nearStone <= 1.15 && p.y > stone.centerY - 0.25 && support.grounded) {
-        const netDistance = Math.hypot(p.x - start.x, p.z - start.z);
-        assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
-          label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
-        const result = {
-          label, from, to: { x: p.x, y: p.y, z: p.z }, stoneCenterY: +stone.centerY.toFixed(3),
-          originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2),
-          netDistance: +netDistance.toFixed(2), travelled: +travelled.toFixed(2),
-          surface: support.surface, steps: step,
-          cameraOffset: +cameraOffset.toFixed(3), control: 'touch #stick'
-        };
-        report.walks.push(result);
-        return result;
-      }
-      const dx = target.x - p.x, dz = target.z - p.z;
-      await aimJoystick(dx, dz, cameraOffset);
-      await wait(280);
-      const after = await playerState();
-      const nextDistance = Math.hypot(target.x - after.x, target.z - after.z);
-      const delta = Math.hypot(after.x - p.x, after.z - p.z);
-      travelled += delta;
-      report.legs.push({
-        label, step, distance: +d.toFixed(2), nextDistance: +nextDistance.toFixed(2),
-        delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
-        cameraOffset: +cameraOffset.toFixed(3), control: 'touch #stick'
-      });
-      if (nextDistance < d - 0.05) stalled = 0;
-      else stalled++;
-      if (stalled === 4) {
-        let alternate = { offset: cameraOffset, remaining: nextDistance };
-        for (const offset of [cameraOffset - 0.45, cameraOffset + 0.45, cameraOffset - 0.9, cameraOffset + 0.9]) {
-          const before = await playerState();
-          const toTarget = Math.hypot(target.x - before.x, target.z - before.z);
-          await aimJoystick(target.x - before.x, target.z - before.z, offset);
-          await wait(220);
-          const afterAlt = await playerState();
-          const remaining = Math.hypot(target.x - afterAlt.x, target.z - afterAlt.z);
-          travelled += Math.hypot(afterAlt.x - before.x, afterAlt.z - before.z);
-          report.legs.push({ label, phase: 'obstacle-steer', offset: +offset.toFixed(3), remaining: +remaining.toFixed(2), prior: +toTarget.toFixed(2) });
-          if (remaining < alternate.remaining) alternate = { offset, remaining };
+    for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
+      const waypoint = selected.plan.points[waypointIndex];
+      let stalled = 0, reached = false;
+      for (let step = 0; step < 180; step++) {
+        const p = await playerState();
+        const distance = Math.hypot(waypoint.x - p.x, waypoint.z - p.z);
+        if (distance <= .38) { reached = true; break; }
+        await aimJoystick(waypoint.x - p.x, waypoint.z - p.z, 0);
+        await wait(260);
+        const after = await playerState();
+        const nextDistance = Math.hypot(waypoint.x - after.x, waypoint.z - after.z);
+        const delta = Math.hypot(after.x - p.x, after.z - p.z);
+        travelled += delta; totalSteps++;
+        report.legs.push({
+          label, waypoint: waypointIndex, step: totalSteps,
+          distance: +distance.toFixed(2), nextDistance: +nextDistance.toFixed(2),
+          delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
+          control: 'touch #stick'
+        });
+        if (nextDistance < distance - .045) stalled = 0;
+        else stalled++;
+        if (stalled >= 8) {
+          const reason = await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.whyBlocked(x, z), waypoint);
+          throw new Error(label + ': rota bloqueada no waypoint ' + waypointIndex +
+            '; distância=' + nextDistance.toFixed(2) + '; diagnóstico=' + JSON.stringify(reason));
         }
-        cameraOffset = alternate.offset;
-        stalled = alternate.remaining < d - 0.05 ? 0 : 5;
       }
-      if (stalled >= 10) {
-        const reason = await page.evaluate(({ x, z }) => window.SevenSinsDebug3D.whyBlocked(x, z), { x: stone.x, z: stone.z });
-        throw new Error(label + ': joystick sem progresso; distância=' + nextDistance.toFixed(2) + '; diagnóstico=' + JSON.stringify(reason));
-      }
+      const afterWaypoint = await playerState();
+      const remaining = Math.hypot(waypoint.x - afterWaypoint.x, waypoint.z - afterWaypoint.z);
+      assert.ok(reached || remaining <= .75, label + ': não alcançou waypoint ' + waypointIndex + '; distância=' + remaining.toFixed(2));
     }
-    throw new Error(label + ': limite de passos excedido; joystick não alcançou o abrigo');
+    const p = await playerState(), support = await walkState();
+    const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
+    assert.ok(nearStone <= 1.35, label + ': personagem fora do raio do abrigo (' + nearStone.toFixed(2) + 'm)');
+    assert.ok(p.y > stone.centerY - 0.25, label + ': personagem abaixo do centro da plataforma');
+    assert.ok(support.grounded, label + ': personagem não está apoiado no chão');
+    const netDistance = Math.hypot(p.x - start.x, p.z - start.z);
+    assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
+      label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
+    const result = {
+      label, from: { x: start.x, z: start.z }, to: { x: p.x, y: p.y, z: p.z },
+      stoneCenterY: +stone.centerY.toFixed(3), originDistance: +originDistance.toFixed(2),
+      finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
+      travelled: +travelled.toFixed(2), steps: totalSteps,
+      routePoints: selected.plan.points.length, control: 'touch #stick'
+    };
+    report.walks.push(result);
+    return result;
   } finally {
     await endJoystick();
   }
@@ -333,6 +452,8 @@ async function registerStone(stone, expectedProgress, mapKey) {
     assert.equal(report.screenshots.length, 11, 'capturas de estado incompletas');
     assert.equal(report.input.joystickPointerTypes.length, 3, 'três percursos precisam usar pointerType touch');
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
+    assert.equal(report.input.joystickPointerMoves.length, 3, 'três percursos precisam mover o knob pelo pointermove touch');
+    assert.ok(report.input.joystickPointerMoves.every(move => move.count > 0), 'joystick não recebeu pointermove touch');
     assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');
     assert.ok(report.input.interactionPointerTypes.every(type => type === 'touch'), 'botão de registro não recebeu toque real');
     const criticalConsole = report.consoleErrors.filter(e => !/KHR_parallel|PropertyBinding/i.test(e));
