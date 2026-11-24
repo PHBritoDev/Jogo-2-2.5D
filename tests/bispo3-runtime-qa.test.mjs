@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const runtime = await readFile(new URL('../tools/visual-lab/bispo3-runtime-qa.cjs', import.meta.url), 'utf8');
 const sixSeals = await readFile(new URL('../tools/visual-lab/zarkhael-six-seals-qa.cjs', import.meta.url), 'utf8');
 const workflow = await readFile(new URL('../.github/workflows/bispo3-dimension-qa.yml', import.meta.url), 'utf8');
+const world = await readFile(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 
 test('Bispo 3 runtime QA enters after the cutscene and polls without repeated actions', () => {
   const activeStart = runtime.indexOf('async function active()');
@@ -89,4 +90,15 @@ test('six-seals QA diagnostica em até 12 s uma ultimate criada mas sem relógio
   assert.match(sixSeals, /s\.cinematic\?\.t>.08&&s\.bossUltKind==="zarkhael6"&&s\.bossUltTime>.08/);
   assert.match(sixSeals, /timeout:12000,polling:125/);
   assert.match(sixSeals, /data\.firstTick=await firstTick\.jsonValue\(\)/);
+});
+test('ZAR’KHAEL six-seals ultimate continues ticking in the mandatory squad encounter', () => {
+  const start = world.indexOf('function updateBossUltimates(dt,now){');
+  const end = world.indexOf('function startSupernova()', start);
+  assert.ok(start >= 0 && end > start, 'scheduler central de ultimates precisa existir');
+  const scheduler = world.slice(start, end);
+  assert.match(scheduler, /const squadZarkUlt=bossUlt\.kind==='zarkhael6'&&!!zarkUlt&&isZarkhaelProfile\(encounterProfile\)/);
+  assert.match(scheduler, /if\(squadOn&&!squadZarkUlt\)\{if\(bossUlt\.kind\)endBossUlt\(\);return;\}/,
+    'ultimates genéricas continuam bloqueadas para esquadras');
+  assert.match(scheduler, /bossUlt\.kind==='zarkhael6'\?tickZarkUlt/,
+    'a ultimate autoral do ZAR’KHAEL precisa chegar ao seu relógio de atualização');
 });
