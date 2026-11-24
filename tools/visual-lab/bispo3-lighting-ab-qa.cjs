@@ -109,6 +109,8 @@ async function capture(label,url,browser){
       label+': boss target is outside the camera frame');
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
     const arenaOrigin={x:state.game.x,y:state.game.y,z:state.game.z-10};
+    assert.ok(Math.abs(arenaOrigin.x-1200)<.1&&Math.abs(arenaOrigin.z)<.1,
+      label+': player is not at the expected Zar’khael arena origin');
     assert.ok(Number.isFinite(arenaOrigin.y)&&Math.abs(arenaOrigin.y+2000)<.5,
       label+': player is not on the known dimension floor; world-space fill cannot be compared');
     const expectedFill=expectedFillFor(label,arenaOrigin);
