@@ -104,7 +104,7 @@ test('light-budget telemetry reports the real selected source, world position an
   class Point extends Obj {
     constructor(){super();this.isPointLight=true;this.userData={};this.castShadow=false;this.layers={mask:1,set(i){this.mask=1<<i;}};
       this.position={setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];}};
-      this.color={r:.745,g:.791,b:.888,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}};
+      this.color={r:.737910,g:.791298,b:.887923,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}};
       this.intensity=0;this.distance=0;this.decay=2;}
   }
   class Vec {
@@ -125,6 +125,9 @@ test('light-budget telemetry reports the real selected source, world position an
   assert.equal(details[0].name,'zarkhael-dimension-fill');
   assert.equal(details[0].intensity,16);
   assert.equal(details[0].distance,36);
+  assert.deepEqual(details[0].slotColor,[.737910,.791298,.887923]);
+  assert.equal(details[0].slotDistance,36);
+  assert.equal(details[0].slotDecay,2);
   assert.ok(details[0].slotIntensity>15);
 });
 
@@ -201,5 +204,8 @@ test('A/B verifies source color and decay before accepting the active shader slo
   assert.ok(qa.includes('color:[.737910,.791298,.887923]'),'candidate fill must remain cool white');
   assert.ok(qa.includes('Math.abs(source.decay-expectedFill.decay)<.001'));
   assert.ok(qa.includes('source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
+  assert.ok(qa.includes('source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)'));
+  assert.ok(qa.includes('Math.abs(source.slotDistance-expectedFill.distance)<.01'));
+  assert.ok(qa.includes('Math.abs(source.slotDecay-expectedFill.decay)<.001'));
   assert.ok(qa.includes('color:fill.color,slotIntensity:fill.slotIntensity'));
 });
