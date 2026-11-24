@@ -71,7 +71,7 @@
 | g1.a1.portal-warden | questStep 5/6/wardenDefeated | derrotar guardião e abrir portal | guardião/guia reconhecem portal aberto | repetir luta não paga duas vezes |
 | g1.a1.vhazrael | questStep 7/8/vhazraelRewardClaimed | dimensão e chefe | fala de VHAZRAEL reflete a dívida e a vitória | morte/reload reinicia arena, não o Ato I |
 | g1.a2.road | questStep 9 | atravessar vale/serra/ponte até Cinzária | guia reconhece sinais da Ganância | checkpoints por trecho, sem teleporte obrigatório |
-| g1.a2.city | questStep 10; migration para 11 em saves antigos | bandido e pessoa misteriosa (conteúdo provisório) | reação depende do encontro | migração step10 deve ser idempotente |
+| g1.a2.city | questStep 10; Mod321 substituiu a cidade antiga e migrateAct2Step leva saves do passo 10 direto ao 11 | funções antigas de bandido/duelo ainda existem no módulo, mas não presumir que sejam alcançáveis no fluxo atual | se recuperadas, NPCs reagem ao encontro; se removidas, registrar a decisão | migração step10→11 deve ser idempotente e preservar recursos |
 | g1.a2.gate | questStep 11 | vencer dois guardas | guardas reconhecem invasão | derrota não consome chave |
 | g1.a2.volcano-lab | questStep 12/act1Sub 0–4 | laboratório, chave, ouro, galeria e trono | prisioneiros/guia respondem às descobertas | cada subpasso salva; porta não pode ficar sem chave |
 | g1.a2.vorgazhek | questStep 13–14 | portal e chefe | VORGAZHEK reage aos livros de dívida | recompensa única; eruption/cutscene retoma após reload |

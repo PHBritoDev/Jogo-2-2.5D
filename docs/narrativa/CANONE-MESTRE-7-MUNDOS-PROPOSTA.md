@@ -140,7 +140,7 @@ Os nomes aparecem no PDF/runtime/M1–M14; os epítetos devem ser conferidos no 
 7. **VORGAZHEK.** Os livros representam dívida, juros e garantia. Ele afirma que todos assinaram, mesmo quando a assinatura foi obtida sob ameaça.
 8. **Erupção e VÉRAXION.** A vitória sobre VORGAZHEK não resolve o sistema. A cidade entra em colapso; VÉRAXION usa o buraco negro e o Anjo desaparece. A nota aponta para a cidade de neve.
 
-**Conflito documental:** M3-ATO2 diz que a narrativa nova será escrita depois, mas act2-flow.js ainda contém fluxo provisório de cidade/bandidos/duelo e migra saves do passo 10 para 11. Antes de reescrever, mapear o que o jogador já pode ter visto.
+**Conflito documental e de runtime:** M3-ATO2 diz que a narrativa nova será escrita depois. act2-flow.js ainda conserva funções de cena para bandidos e duelo com a pessoa misteriosa, mas a revisão Mod321 substituiu a cidade antiga por Cinzária e a rota atual usa migrateAct2Step para levar saves do passo 10 diretamente ao passo 11 (entrada do vulcão). Portanto, essas funções antigas existem no módulo, mas não devem ser presumidas como cenas alcançáveis no percurso atual. A nova narrativa precisa decidir se as recupera em Cinzária ou as substitui, sem quebrar saves.
 
 ### Ato III — Invernália: a verdade que não cabe em um corpo
 
