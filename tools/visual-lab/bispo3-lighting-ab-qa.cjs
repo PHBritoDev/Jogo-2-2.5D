@@ -57,12 +57,22 @@ async function capture(label,url,browser){
       const quality=document.querySelector('#graphics-profile-3d');
       if(quality){quality.value='low';quality.dispatchEvent(new Event('change'));}
       d.motionQA({x:1200,z:10,enemyDistance:12,sword:'prota'});
-      d.fly(null);d.view(.4,.12,7);d.speed(1);
+      d.fly(null);d.view(.4,.12,7);
+      // motionQA freezes the real loop (debugDtScale=0); restore it so the
+      // production camera follows the teleported actors before measuring light slots.
+      d.realtime();
     });
-    await page.waitForTimeout(2200);
+    await page.waitForFunction(()=>{
+      const d=window.SevenSinsDebug3D,s=d.state(),c=d.cam(),hero=d.protaReport();
+      return Math.abs(s.x-1200)<.1&&Math.abs(s.z-10)<.1&&
+        Math.hypot(c[0]-s.x,c[2]-s.z)<12&&hero.visible===true;
+    },null,{timeout:20000,polling:100});
+    // The shared dimLight has a deliberate ±5% breathing pulse. Let the
+    // four-slot budget settle, then accept that documented production range.
+    await page.waitForTimeout(1400);
     const state=await page.evaluate(()=>{
       const d=window.SevenSinsDebug3D;
-      return {game:d.state(),dim:d.dimState(),visual:d.dimensionVisualState(),camera:d.cam(),renderer:d.rinfo()};
+      return {game:d.state(),dim:d.dimState(),visual:d.dimensionVisualState(),camera:d.cam(),hero:d.protaReport(),renderer:d.rinfo()};
     });
     // Confirm the production PointLight is not merely configured: the shared
     // four-slot mobile budget must actually select the dimension fill for this camera.
@@ -70,7 +80,7 @@ async function capture(label,url,browser){
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
     const fill=lighting.lights?.activeDetails?.find(source=>
       source.position&&Math.abs(source.position[0]-1200)<.5&&Math.abs(source.position[2])<.5&&
-      Math.abs(source.intensity-16)<.01&&Math.abs(source.distance-36)<.01);
+      Math.abs(source.intensity-16)<=.81&&Math.abs(source.distance-36)<.01);
     assert.ok(fill,label+': Zar’khael dimension fill is not selected in the active shader slots');
     assert.ok(fill.slotIntensity>15,label+': selected dimension fill has not reached its configured intensity');
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
@@ -80,6 +90,9 @@ async function capture(label,url,browser){
     assert.equal(state.dim.voidMode,true,label+': arena inactive');
     assert.equal(state.visual?.visible,true,label+': arena visual missing');
     assert.ok(state.game.enemy.visible,label+': boss missing');
+    assert.ok(state.hero?.visible,label+': protagonist missing or hidden');
+    assert.ok(Math.hypot(state.camera[0]-state.game.x,state.camera[2]-state.game.z)<12,
+      label+': production camera did not follow the protagonist into the arena');
     await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const screenshot=path.join(out,label+'.png');
     const bytes=await page.screenshot({path:screenshot,timeout:60000});
