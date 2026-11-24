@@ -73,7 +73,7 @@ test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewpo
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
-  assert.match(html, /hud3d\.css\?v=a1-vorgazhek-portrait-vs-fit/);
+  assert.match(html, /hud3d\.css\?v=a1-vorgazhek-portrait-vs-fit-r2/);
   assert.match(world, /function portraitBishop2Profile/);
 });
 test('QA inicia a apresentação uma vez e mantém a espera da batalha somente leitura', () => {
@@ -191,6 +191,7 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
   assert.match(css, /@media \(orientation:portrait\) and \(max-width:600px\)\{[\s\S]*?#vs-panel\{/);
   assert.match(css, /\.vs-stage\{[^}]*display:grid;grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/);
   assert.match(css, /\.vs-side\{[^}]*min-width:0/);
+  assert.match(css, /\.vs-frame\\{[^}]*box-sizing:border-box/);
   assert.match(css, /#vs-go\{[^}]*width:min\(220px,72vw\);min-width:0/);
   assert.match(qa, /async function inspectVsCard/);
   assert.match(qa, /function assertVsPortrait/);
