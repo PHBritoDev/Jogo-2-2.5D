@@ -26,6 +26,22 @@ test('one physical swing damages primary and secondary capsule once, never dista
  assert(e.hits.every(h=>h.damage>0));
  assert.deepEqual(e.hits.map(h=>[h.id,h.kind]),[[1,'basic'],[2,'energy-side']]);
 });
+test('physical blade sweep cannot skip a 1cm wall between coarse samples',()=>{
+ const target=enemy(1,.12,0),hits=[],impacts=[];
+ const blocked=p=>p.x>.031&&p.x<.041;
+ const rites=new SwordRites({
+  blocked,
+  pose:()=>({base:{x:0,y:1,z:0},tip:{x:.12,y:1,z:0}}),
+  hit:(damage,id,kind)=>hits.push({damage,id,kind}),
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target}),true);
+ const ctx={from:{x:0,y:1,z:0},target,others:[],sword:'prota',grounded:true};
+ for(let i=0;i<120;i++)rites.update(1/120,ctx);
+ assert.equal(hits.length,0,'a 1cm wall between the old 6cm samples must stop the blade');
+ assert.equal(impacts.length,0,'a blocked blade must not emit an impact');
+});
+
 test('secondary physical contact respects obstruction',()=>{
  const e=encounter((p)=>p.x>.15);assert(e.rites.attack('prota',{target:e.primary}));
  for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
@@ -197,16 +213,16 @@ test('rejected Eclipse wave secondary contact does not emit a false impact',()=>
 
 test('production primary squad bridge returns actual damage and keeps the proxy synchronized',async()=>{
  const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
- const start=source.indexOf('function protaPrimaryRiteHit('),end=source.indexOf('\\nfunction riteReady',start);
+ const start=source.indexOf('function protaPrimaryRiteHit('),end=source.indexOf('\nfunction riteReady',start);
  assert.ok(start>=0&&end>start,'primary bridge must exist in the world controller');
  const bridge=source.slice(start,end);
- assert.match(bridge,/swordSideHitContext\\(hitMeta,a,player\\.position\\)/);
- assert.match(bridge,/sq\\.damageActor\\(a,amount,\\{\\.\\.\\.source,by:'hero'\\}\\)/);
- assert.match(bridge,/squadProxy\\.hp=a\\.hp/);
+ assert.match(bridge,/swordSideHitContext\(hitMeta,a,player\.position\)/);
+ assert.match(bridge,/sq\.damageActor\(a,amount,\{\.\.\.source,by:'hero'\}\)/);
+ assert.match(bridge,/squadProxy\.hp=a\.hp/);
  assert.match(bridge,/return dealt>0/);
  const hitStart=source.indexOf("hit:(damage,id,kind,x)=>{"),hitEnd=source.indexOf("event:(type,e)=>",hitStart);
  assert.ok(hitStart>=0&&hitEnd>hitStart);
- assert.match(source.slice(hitStart,hitEnd),/return protaPrimaryRiteHit\\(damage,id,kind,x\\)/);
+ assert.match(source.slice(hitStart,hitEnd),/return protaPrimaryRiteHit\(damage,id,kind,x\)/);
  const squad=new Enemy1Squad({seed:21}),[actor]=squad.spawn([{x:0,z:3}]),flashes=[];
  const sandbox={squadOn:true,squadFocus:actor,squadSq:()=>squad,player:{position:{x:0,z:0}},
   swordSideHitContext,VZ_HERO_DMG:1,enemyHP:actor.hp,squadProxy:{hp:actor.hp},enemyAlive:true,siegeEpoch:99,
