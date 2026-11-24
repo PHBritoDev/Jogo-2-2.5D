@@ -56,7 +56,7 @@ export const SIDE_QUEST_WAYSTONES = Object.freeze([
 function normalizePendingReward(value, quests) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const q = SIDE_QUESTS.find(item => item.id === value.questId);
-  if (!q || quests[q.id]?.state !== 'done' || value.claimId !== 'side:' + q.id + ':v1') return null;
+  if (!q || quests[q.id]?.state !== 'done' || quests[q.id]?.progress !== q.goal.count || value.claimId !== 'side:' + q.id + ':v1') return null;
   const { coins, xp, beforeCoins, afterCoins, beforeXp, afterXp } = value;
   if (![coins, xp, beforeCoins, afterCoins, beforeXp, afterXp].every(Number.isSafeInteger)) return null;
   if (coins !== q.reward.coins || xp !== q.reward.xp || coins < 0 || xp <= 0 || beforeCoins < 0 || beforeXp < 0) return null;
