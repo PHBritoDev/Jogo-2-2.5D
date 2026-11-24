@@ -191,12 +191,12 @@ async function main(){
     report.baseline=await capture(browser,'baseline',baselineUrl);
     report.branch=await capture(browser,'branch',branchUrl);
     const b=report.baseline,h=report.branch;
-    assert.equal(b.env.hemi[2],.8,'baseline hemisphere intensity must match main');
-    assert.equal(b.env.sun[1],.38,'baseline directional intensity must match main');
-    assert.equal(b.env.light[1],1.2,'baseline local fill must match main');
-    assert.equal(h.env.hemi[2],1.1,'branch hemisphere intensity must match PR');
-    assert.equal(h.env.sun[1],.48,'branch directional intensity must match PR');
-    assert.deepEqual(h.env.light,[0xe7e7ec,8,170,[0,8,7]],'branch local fill must match PR');
+    // PR #674 is already in the base (Mod 358): isolate only the new water shader.
+    assert.deepEqual(b.env.hemi,[0xa3abb1,0x030304,1.1],'baseline hemisphere preset must match current main');
+    assert.deepEqual(b.env.sun,[0xc1cad1,.48],'baseline directional preset must match current main');
+    assert.deepEqual(b.env.light,[0xe7e7ec,8,170,[0,8,7]],'baseline local fill must match current main');
+    assert.equal(b.env.exposure,1.12,'baseline exposure must match current main');
+    assert.deepEqual(h.env,b.env,'water sheen must not change the production lighting preset');
     assert.equal(b.lights,3);assert.equal(h.lights,3);
     assert.ok(!rectsOverlap(b.rects.boss,b.rects.hero),'baseline boss/hero ROIs must not overlap');
     assert.ok(!rectsOverlap(h.rects.boss,h.rects.hero),'branch boss/hero ROIs must not overlap');
