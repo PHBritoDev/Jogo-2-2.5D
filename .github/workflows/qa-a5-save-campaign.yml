@@ -23,9 +23,11 @@ permissions:
 jobs:
   regressao:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -40,6 +42,7 @@ jobs:
       - name: Caminhada e registro real dos três abrigos
         env:
           NODE_PATH: ${{ github.workspace }}/work/qa/node_modules
+          A5_QA_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
           VISUAL_OUTPUT: ${{ github.workspace }}/work/a5-waystones
           VISUAL_BASE_URL: 'http://127.0.0.1:4173'
         run: |
@@ -52,6 +55,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: a5-waystone-gameplay-${{ github.sha }}
+          name: a5-waystone-gameplay-${{ github.event.pull_request.head.sha || github.sha }}
           path: work/a5-waystones/
           retention-days: 14
