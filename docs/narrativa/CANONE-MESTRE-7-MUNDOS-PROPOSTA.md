@@ -363,7 +363,7 @@ As falas abaixo definem intenção e voz. Não são texto aprovado nem devem ser
 - Ryan, Rigby & Przybylski (2006): quatro estudos sobre motivação em jogos; autonomia, competência e vínculo se relacionam com diversão e continuidade.
 - Kensinger (2009), memória emocional: revisão; emoção pode priorizar detalhes centrais, não garantir lembrança de todos os detalhes. Aplicação: poucos motivos recorrentes.
 - Cohen (2001), identificação com personagens: discussão conceitual; não confundir identificação, simpatia e vínculo.
-- Zaini et al. (2025): scoping review de 69 estudos sobre design de personagens em jogos; útil para organizar motivação, relações e função lúdica, não como fórmula causal.
+- Zaini et al. (2025): scoping review de 69 estudos sobre design de personagens em jogos; 48% dos estudos mapeados eram empíricos e 52% não empíricos. É um mapa do campo, não uma estimativa causal; útil para organizar motivação, relações e função lúdica.
 - Holl & Melzer (2022): estudo de caso de Detroit: Become Human sobre decisões morais; não generalizar para todo jogador.
 - Zaini et al. (2026): piloto com N=15; achado exploratório, não evidência definitiva.
 
