@@ -265,7 +265,9 @@ function assertPortrait(state, label) {
   assert.ok(state.actors?.enemy?.id, label + ': alvo da esquadra identificado');
   assert.ok(state.actors?.player?.center?.onScreen && state.actors?.enemy?.center?.onScreen, label + ': ambos os combatentes dentro do quadro');
   assert.ok(state.actors.player.head.onScreen && state.actors.enemy.head.onScreen, label + ': cabeças dos dois combatentes dentro do quadro');
-  assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= .22, label + ': herói e Bispo separados horizontalmente no quadro');
+  const worldSeparation = Math.hypot(state.player.enemy.x - state.player.x, state.player.enemy.z - state.player.z);
+  const minProjectedSeparation = worldSeparation < 1.3 ? .17 : worldSeparation < 2 ? .22 : worldSeparation < 3 ? .34 : .42;
+  assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= minProjectedSeparation, label + ': silhuetas dos combatentes separadas horizontalmente no quadro');
 }
 
 async function finish(context, page) {
