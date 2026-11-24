@@ -580,3 +580,23 @@ test('Set real de waystones restaurado pelo mapa mantém apenas abrigos de Eldó
   assert.equal(restoredSide.abrigos.progress, 3);
   assert.equal(restoredSide.abrigos.state, 'ready');
 });
+
+
+test('checkpoint negativo nao relocka nem desbloqueia missoes', () => {
+  const state = createSideState({
+    ervas: { state: 'available', progress: 0 },
+    pingente: { state: 'locked', progress: 0 }
+  });
+  for (const invalid of [-1, '-1']) {
+    refreshSide(state, { questStep: invalid });
+    assert.equal(state.ervas.state, 'available', 'etapa negativa nao pode relockar missao disponivel');
+    assert.equal(state.pingente.state, 'locked', 'etapa negativa nao pode desbloquear missao bloqueada');
+  }
+  refreshSide(state, { questStep: 0 });
+  assert.equal(state.ervas.state, 'locked', 'etapa zero valida pode relockar a missao de etapa 1');
+  refreshSide(state, { questStep: 1 });
+  assert.equal(state.ervas.state, 'available');
+  assert.equal(state.pingente.state, 'locked');
+  refreshSide(state, { questStep: 2 });
+  assert.equal(state.pingente.state, 'available');
+});
