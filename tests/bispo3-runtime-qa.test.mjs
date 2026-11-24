@@ -45,6 +45,18 @@ test('Bispo 3 runtime QA enters after the cutscene and polls without repeated ac
   assert.doesNotMatch(poll, /kitMove|\.power\(\)|\.skills\(\)|\.god\(/);
 });
 
+test('six-seals QA slows its runtime clock and waits for the exact camera shot before capture', () => {
+  const setupStart=sixSeals.indexOf('const setup=await page.evaluate');
+  const launchStart=sixSeals.indexOf('const launch=await page.evaluate',setupStart);
+  const slow=sixSeals.indexOf('const timeScale=d.speed(0.1)',setupStart);
+  assert.ok(setupStart>=0&&slow>setupStart&&launchStart>slow,
+    'the dedicated ultimate capture must slow the real game clock before launching');
+  assert.match(sixSeals,/state\\.shot===expectedShot&&state\\.t>=target/,
+    'each screenshot must be synchronized to the expected camera shot, not only an elapsed timestamp');
+  assert.match(sixSeals,/timeScale/,
+    'the effective QA time scale must be recorded for diagnosing capture timing');
+});
+
 test('six-seals QA launches once, proves the safe annulus and records cleanup', () => {
   const activeStart = sixSeals.indexOf('const pre=await page.evaluate');
   const launchStart = sixSeals.indexOf('const launch=await page.evaluate', activeStart);
