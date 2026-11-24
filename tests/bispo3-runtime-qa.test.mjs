@@ -20,6 +20,16 @@ test('Bispo 3 runtime QA enters after the cutscene and polls without repeated ac
   assert.match(active, /!s\.cineActive&&!s\.menuGate&&!s\.paused/);
   assert.doesNotMatch(active, /if\(s\.vs\)d\.vsGo/);
 
+  const exitStart=runtime.indexOf("TESTE DAS DIMENSÕES");
+  const toggle=runtime.indexOf("toggle.click()",exitStart);
+  const menuReady=runtime.indexOf("getComputedStyle(menu).display!=='none'",toggle);
+  const reentry=runtime.indexOf("Dimensão III",menuReady);
+  const cleanup=runtime.indexOf("!s.voidMode&&!s.battle",reentry);
+  const reenterBattle=runtime.indexOf("await active()",cleanup);
+  assert.ok(exitStart>=0&&toggle>exitStart&&menuReady>toggle&&reentry>menuReady&&cleanup>reentry&&reenterBattle>cleanup,
+    "runtime QA must abort through the real dimension menu, prove disposal, then re-enter");
+  assert.doesNotMatch(runtime,/Sair da dimensão|Reiniciar luta/,"QA must not depend on buttons absent from the production test panel");
+
   const start = runtime.indexOf("for(const id of ['s1','s2','sw'])");
   const end = runtime.indexOf('report.restored=', start);
   assert.ok(start >= 0 && end > start);
