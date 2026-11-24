@@ -16,7 +16,7 @@ export function getVorgazhekLighting(radius = 85) {
 export function buildVorgazhekAbyss(T,g,spec,ctx){
  const R=spec.radius,geo=[],mat=[],tex=[],watchers=[];
  const own=(a,o)=>{a.push(o);return o;};
- const water=own(mat,new T.ShaderMaterial({fog:false,uniforms:{uTime:{value:0},uR:{value:R},uPlayer:{value:new T.Vector2(0,12)}},
+ const water=own(mat,new T.ShaderMaterial({fog:false,uniforms:{uTime:{value:0},uR:{value:R},uPlayer:{value:new T.Vector2(0,12)},uCamera:{value:new T.Vector3(0,8,12)}},
  vertexShader:'varying vec2 p;void main(){p=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
 
  fragmentShader:`precision mediump float;
@@ -24,6 +24,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
  uniform float uTime;
  uniform float uR;
  uniform vec2 uPlayer;
+ uniform vec3 uCamera;
  void main(){
    float t=uTime;
    float r=length(p);
@@ -44,10 +45,15 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
               exp(-pr*.35)*smoothstep(.5,1.5,pr);
    // A low-frequency liquid gleam distinguishes water from a static patterned floor.
    float gleam=pow(max(0.0,sin(q.x*.095+q.y*.032+t*.21)*.5+.5),7.0)*.065;
+   // Camera-local Fresnel: a restrained silver sheen appears only at grazing angles.
+   float viewDistance=max(length(vec3(uCamera.xy-p,uCamera.z)),.001);
+   float viewCos=clamp(abs(uCamera.z)/viewDistance,0.0,1.0);
+   float fresnel=pow(1.0-viewCos,3.0);
    float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
    // Keep the arena abyssal, but make foot contact readable without adding a light or pass.
    // Only the existing localized ripple receives the extra silver reflection.
-   float shine=(ribbons*.82+silverPatch*.17+foot*.52+gleam)*edge;
+   float glancingReflection=fresnel*(.008+ribbons*.055+silverPatch*.025+gleam*.08);
+   float shine=(ribbons*.82+silverPatch*.17+foot*.52+gleam+glancingReflection)*edge;
    // A faint, broad reflection reveals the water plane between sparse silver currents.
    // Keep the center readable while the outer abyss falls off naturally; no extra lights/passes.
    float horizonFade=1.0-smoothstep(uR*.28,uR*.98,r);
@@ -143,7 +149,11 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
   if(p)water.uniforms.uPlayer.value.set(p.x-spec.x,-(p.z-spec.z));
   if(p)focus.set(p.x-spec.x,(p.y||0)-spec.y,p.z-spec.z);
   else if(camera)focus.copy(camera.position).sub(g.position);
-  if(camera)cameraPos.copy(camera.position).sub(g.position);
+  if(camera){
+   cameraPos.copy(camera.position).sub(g.position);
+   // Plane-local axes match the foot ripple: world X, negative world Z, then height.
+   water.uniforms.uCamera.value.set(cameraPos.x,-cameraPos.z,cameraPos.y);
+  }
   for(const w of watchers){
    const progress=(t*.055+w.phase*.39)%1,opacity=sm(.025,.13,progress)*(1-sm(.72,.91,progress));
    const budget=options?.quality==='low'?5:options?.quality==='medium'?8:11;
