@@ -24,7 +24,7 @@ import {createSwordViewmodel} from './sword-viewmodel3d.js';
 import {BOSS_MOVES,bossTraceContact,bossLift} from './boss-choreography3d.js';
 import {bakeCombatClips} from './combat-rig3d.js';
 import {COMBAT_MOVES,WEAPON_STYLES} from './combat-choreography3d.js';
-import {SwordRites,SWORD_RITES,swordAim,segmentBlocked} from './sword-rites3d.js';
+import {SwordRites,SWORD_RITES,swordAim,segmentBlocked,swordSideHitContext} from './sword-rites3d.js';
 import {createSwordRitesVFX} from './sword-rites-vfx3d.js';
 import {lockSwordRigScales,prepareSwordClips,isolatedSwordStorage,swordLayers} from './sword-rites-animation3d.js';
 const vfxLabRequested=new URLSearchParams(location.search).has('vfxLab236');
@@ -3000,7 +3000,7 @@ function updateWorldAudio(dt){
 const MAP_STORE=MAP_STORE_KEY;
 const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
-function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
+function saveMapState(force){if(!mapDirty&&!force)return true;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));mapDirty=false;return true;}catch(_){mapDirty=true;return false;}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
    o registro só acontece com o herói no CENTRO da plataforma. */
 const waystoneVisuals=WAYSTONES.map((w,i)=>{const c0=groundHeightAt(w.x,w.z),hs=[];for(let k=0;k<12;k++){const a=k/12*Math.PI*2;hs.push(groundHeightAt(w.x+Math.sin(a)*3.35,w.z+Math.cos(a)*3.35));}const y=Math.min(Math.max(c0,...hs),c0+.35),skirt=Math.max(.25,y-Math.min(c0,...hs)+.15),sh=buildShelter(THREE,{x:w.x,y,z:w.z,yaw:i*.7,seed:i+1,walk:eldoriaWalk,lowSpec:terrainLowSpec,skirt});scene.add(sh.group);return{data:w,group:sh.group,shelter:sh};});
@@ -4639,7 +4639,7 @@ function squadProjectileHit(p){
  for(const a of squadAlive()){if(a===squadFocus)continue;if(Math.hypot(p.group.position.x-a.x,p.group.position.z-a.z)<r&&Math.abs(p.group.position.y-(a.y+1))<1.8){p.hit=true;const n=s.damageActor(a.id,p.damage,{x:p.group.position.x,z:p.group.position.z,kind:'spell',by:'hero'});squadHitFx(a,n);return true;}}
  return false;
 }
-function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){burstSparks(p,0xffc860);worldAudio.hit();}}
+function squadHitFx(a,n){if(!squadRT)return;const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){squadRT.flash(a.id);burstSparks(p,0xffc860);worldAudio.hit();}}
 /* 21/11 — Fera dos Mil Olhos (ZAR'KHAEL): QUALQUER magia ofensiva do herói a desfaz com um acerto (as magias miram a fera
    quando ela é a ameaça mais próxima ou está à frente; o acerto vem da colisão real de cada poder); a ESPADA não mata,
    só provoca um salto; HUD do debuff da mordida (−20 % de dano causado, 30 s de jogo, renova sem acumular). */
@@ -4921,7 +4921,7 @@ function updateSquadCombat(dt,now){
  const f=squadFocus;
  if(f&&f.alive){
   const lost=squadProxy.hp-enemyHP;
-  if(lost>0){const n=s.damageActor(f.id,f.kind==='vhazrael'?Math.round(lost*VZ_HERO_DMG):lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
+  if(lost>0){const n=s.damageActor(f.id,f.kind==='vhazrael'?Math.round(lost*VZ_HERO_DMG):lost,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero'});if(n>0)squadRT.flash(f.id);if(n<lost){const p=new THREE.Vector3(f.x,f.y+2,f.z);damageNumber(p,n>0?'DEFENDEU':'ESQUIVOU','blocked');}
    const R=squadAreaRadius();if(R>0)for(const o of squadAlive())if(o!==f&&Math.hypot(o.x-f.x,o.z-f.z)<R){const m=s.damageActor(o.id,lost,{x:f.x,z:f.z,kind:'area',by:'hero'});squadHitFx(o,m);}}
   const mx=enemy.position.x-squadProxy.x,mz=enemy.position.z-squadProxy.z,md=Math.hypot(mx,mz);if(md>1e-3&&md<4&&!f.act?.unstoppable&&!squadBlocked(f.x+mx,f.z+mz)){f.x+=mx;f.z+=mz;}
   if(enemyKnockback>0){f.kx+=enemyKnockbackX*enemyKnockback*3;f.kz+=enemyKnockbackZ*enemyKnockback*3;enemyKnockback=0;}
@@ -7548,7 +7548,9 @@ function updateBossUltimates(dt,now){
  tickTransientFx(dt);
  // MOD 238: na esquadra Enemy1/Enemy2 o ultimate genérico do kit antigo ("Ritual"/"Furacão Infernal") disparava pelos
  // limiares de vida do procurador do foco, junto com os poderes novos. A esquadra usa só o próprio kit.
- if(squadOn){if(bossUlt.kind)endBossUlt();return;}
+ // Enemy1/Enemy2 squads keep their own kit; ZAR'KHAEL's bespoke six-seals ultimate must still tick.
+ const squadZarkUlt=bossUlt.kind==='zarkhael6'&&!!zarkUlt&&isZarkhaelProfile(encounterProfile);
+ if(squadOn&&!squadZarkUlt){if(bossUlt.kind)endBossUlt();return;}
  if(meleeOnlyProfile(encounterProfile)){if(bossUlt.kind)endBossUlt();return;}
  const fight=encounterProfile+':'+enemyMaxHP;if(fight!==bossUlt.fight){bossUlt.fight=fight;bossUlt.used={};}
  const live=combatStepNow()&&enemy.visible&&enemyAlive&&playerHP>0;
@@ -7724,8 +7726,8 @@ function fxVortex(dur,speed,dmg,c1,c2){
   if(t>dur+.5){fxDispose(g);return false;}});
 }
 /** O herói machuca o chefe (efeitos amigos): mesma regra de morte do resto do combate. */
-function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&enemy.visible&&enemyAlive))return;enemyHP=Math.max(0,enemyHP-dmg);if(!silent){if(celestial){const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(dmg),'');hitStop(35);cameraShake(.04);}else onEnemyDamaged(dmg,!!big);}
- if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(!silent&&!(zarkSword&&zarkSword.holdBoss)&&!(zarkUlt&&zarkUlt.holdBoss)&&!(vxSwords&&vxSwords.holdBoss)&&!(cySkill&&cySkill.holdBoss))playEnemyAnimation('hit',.05,true);}
+function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&enemy.visible&&enemyAlive))return false;const amount=Number.isFinite(dmg)?Math.max(0,dmg):0,before=enemyHP;enemyHP=Math.max(0,enemyHP-amount);const applied=Math.max(0,before-enemyHP);if(applied>0&&!silent){if(celestial){const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(dmg),'');hitStop(35);cameraShake(.04);}else onEnemyDamaged(dmg,!!big);}
+ if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(applied>0&&!silent&&!(zarkSword&&zarkSword.holdBoss)&&!(zarkUlt&&zarkUlt.holdBoss)&&!(vxSwords&&vxSwords.holdBoss)&&!(cySkill&&cySkill.holdBoss))playEnemyAnimation('hit',.05,true);return applied>0;}
 /** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
 function runFoeMove(m,k){
  if(meleeOnlyProfile(encounterProfile))return;
@@ -8573,9 +8575,9 @@ const rites=new SwordRites({
   const blade=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(!blade)return null;
   if(equippedSword==='prota'||equippedSword==='aurora'){const bd=blade.userData.blade;riteBase.set(0,bd?bd.base[1]:.40,0);riteTip.set(0,bd?bd.tip[1]:-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);}else{const geometryRoot=blade.getObjectByName(equippedSword==='quantum'?'Quantum':'LaminaCelestial');riteBase.set(0,equippedSword==='quantum'?.48:.26,0);riteTip.set(0,1.38,0);geometryRoot.localToWorld(riteBase);geometryRoot.localToWorld(riteTip);}return riteBlade;
  },
- hit:(damage,id,kind,x)=>{if(kind==='energy-side'){protaSideHit(damage,id,x);return;}if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
+ hit:(damage,id,kind,x)=>{if(kind==='energy-side')return protaSideHit(damage,id,x);const applied=protaPrimaryRiteHit(damage,id,kind,x);if(applied&&kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));return applied;},
  event:(type,e)=>{
-  if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){riteAudit.push({type,n:e.n,at:rites.active?.t,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
+  if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){const rawTargetId=e.target?.id??null;const targetId=squadOn&&squadFocus&&rawTargetId===siegeEpoch?squadFocus.id:rawTargetId;riteAudit.push({type,n:e.n,at:rites.active?.t,targetId,secondary:!!e.secondary,waveSerial:e.energy?.serial??e.wave?.serial??e.serial??null,by:e.by??null,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
   // MOD 315: espada inicial — crescente varrido amostrado da lâmina real, onda (= volume de dano) e impacto estrelado
   if(type==='blade'&&e.a.kind==='basic'&&e.a.sword==='prota'&&e.a.def?.drive)tryBladeClash(e.a,e.blade);
@@ -8603,8 +8605,31 @@ const rites=new SwordRites({
 /** MOD 315: outros inimigos da esquadra (além do foco) que a onda pode atingir, com altura/raio reais. */
 const protaOthersList=[];
 function protaOthers(){protaOthersList.length=0;if(!squadOn)return protaOthersList;for(const a of squadAlive()){if(a===squadFocus)continue;const h=squadRT.body(a.id)?.height||a.T.height;protaOthersList.push({id:a.id,x:a.x,y:a.y+h*.5,z:a.z,radius:a.T.radius,height:h,alive:true});}return protaOthersList;}
-function protaSideHit(damage,id,x){const sq=squadSq();if(!sq)return;const a=sq.actor(id);if(!a||!a.alive)return;const dealt=sq.damageActor(a,damage,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero',knock:.3});
- if(dealt>0){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});squadRT.flash?.(a.id);worldAudio.hit();}}
+function protaSideHit(damage,id,x){const sq=squadSq();if(!sq)return false;const a=sq.actor(id);if(!a||!a.alive)return false;const source=swordSideHitContext(x,a,player.position);const dealt=sq.damageActor(a,damage,{...source,by:'hero',knock:.3});
+ if(dealt>0){if(!x?.energy&&!x?.wave&&x?.by!=='blade'){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});worldAudio.hit();}squadRT.flash?.(a.id);}return dealt>0;}
+function protaPrimaryRiteHit(damage,id,kind,meta){
+ if(id!==siegeEpoch||!enemyAlive)return false;
+ if(squadOn){
+  const sq=squadSq(),a=squadFocus;
+  if(!sq||!a?.alive)return false;
+  const hitMeta=meta||(kind==='judgment'?{kind:'spell',by:'judgment'}:null);
+  const source=swordSideHitContext(hitMeta,a,player.position);
+  const amount=a.kind==='vhazrael'?Math.round(damage*VZ_HERO_DMG):damage;
+  const dealt=sq.damageActor(a,amount,{...source,by:'hero'});
+  // Keep the legacy focus proxy in sync so updateSquad cannot apply this hit twice.
+  enemyHP=a.hp;squadProxy.hp=a.hp;
+  if(dealt>0)squadRT?.flash?.(a.id);
+  if(dealt<amount){const p=new THREE.Vector3(a.x,a.y+2,a.z);damageNumber(p,dealt>0?'DEFENDEU':'ESQUIVOU','blocked');}
+  // Preserve the existing skill-area spillover when another area skill is active.
+  const R=squadAreaRadius();
+  if(R>0)for(const o of squadAlive())if(o!==a&&Math.hypot(o.x-a.x,o.z-a.z)<R){
+   const splash=sq.damageActor(o.id,damage,{x:a.x,z:a.z,kind:'area',by:'hero'});
+   squadHitFx(o,splash);
+  }
+  return dealt>0;
+ }
+ return hurtEnemy(damage,false,true,true);
+}
 function riteReady(){return model&&mixer&&swordRoot&&Object.keys(COMBAT_MOVES).every(k=>riteClips[k])&&!!riteClips.Rite_Judgment&&!!riteClips.Rite_Eclipse;}
 function updateRiteLocomotion(dt){
  if(rites.active?.kind!=='basic'||!rites.active.layered||!grounded||!riteLayers){if(riteLower){riteLower.fadeOut(.08);riteLower=null;}return;}
@@ -8988,7 +9013,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   cyState(){const s=cySkill;if(!s)return null;return{t:+s.st.t.toFixed(2),phase:s.st.phase,aura:+s.st.aura.toFixed(2),p0:[+s.st.p0.x.toFixed(2),+s.st.p0.z.toFixed(2)],torn:s.st.torn.map(o=>+o.alpha.toFixed(2)).join(','),mega:+s.st.mega.scale.toFixed(2),fires:s.st.fires.length,burn:s.st.burn?s.st.burn.stacks:0,hp:playerHP,hero:[+player.position.x.toFixed(2),+player.position.z.toFixed(2)],hold:s.holdBoss,fov:+camera.fov.toFixed(1),calls:renderer.info.render.calls,tris:renderer.info.render.triangles,poses:poseJobs.map(j=>j.kind).join(' ')};},
   hallVisualState(){const a=dimArenas.bishop4,h=a?.refs?.hall;return h?{...h.stats(),visible:a.group.visible,frame:renderer.info.render.frame,camera:h.uniforms.uHallCamera.value.toArray(),architectureVisible:h.occluders.map(o=>o.visible),swordAvailable:!!kitFor('veraxion')?.sword}:null;},
   dimensionVisualState(){const a=dimArenas.bishop3,m=a?.refs?.mushrooms;return m?{...m.stats(),time:m.uniforms.uTime.value,frame:renderer.info.render.frame,visible:a.group.visible,target:m.uniforms.uPlayer.value.toArray(),camera:m.uniforms.uCamera.value.toArray(),architectureVisible:a.refs.zarkhaelCinematicOccluders.map(o=>o.visible),swordPhase:zarkSword?.st.phase||null}:null;},
-  dimState(){return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),safeRadius:zarkUlt.st.dangerR,selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,bossFrozen:!!zarkUltBossLock,mixerScale:enemyMixer?.timeScale,lockPos:zarkUltBossLock?.position.toArray(),bossPos:enemy.position.toArray(),vfx:!!zarkUltVfx?.holder.visible,occluders:zarkUltOccluderState?.length||0,hudCompact:document.body.classList.contains('zark-ult-cine'),shot:zarkUltCameraShot,cam:camera.position.toArray().map(v=>+v.toFixed(2)),fov:+camera.fov.toFixed(2)}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
+  dimState(){const arena=dimBattle&&dimBattle.active?arenaSpec(dimBattle.key):null;return{battle:dimBattle?{key:dimBattle.key,active:dimBattle.active,test:dimBattle.test}:null,vs:vsOpen,voidMode,profile:encounterProfile,ehp:enemyHP,emax:enemyMaxHP,visible:enemy.visible,hp:playerHP,cineActive:!!cineActive,menuGate:!!menuGate,paused:!!gamePaused,dtScale:+debugDtScale.toFixed(2),bossUltKind:bossUlt.kind,bossUltTime:+bossUlt.t.toFixed(2),arena:arena?{center:[arena.x,arena.z],radius:arena.radius,floorY:arena.y}:null,ritual:tornadoRitual?{phase:tornadoRitual.st.phase,wave:tornadoRitual.st.wave,n:tornadoRitual.st.tornados.length,states:tornadoRitual.st.tornados.map(o=>o.state+':'+o.grow.toFixed(2))}:null,portals:portalSwords?{phase:portalSwords.st.phase,n:portalSwords.st.portals.length,fired:portalSwords.st.fired,shots:portalSwords.st.portals.map(p=>p.fired).join(''),swords:portalSwords.st.swords.map(s=>s.state).join(','),ys:portalSwords.st.portals.map(p=>+(p.y-fxGy(p.x,p.z)).toFixed(1))}:null,moonFlames:moonFlames?{phase:moonFlames.st.phase,t:+moonFlames.st.t.toFixed(2),fired:moonFlames.st.fired,final:moonFlames.st.final?moonFlames.st.final.state:null}:null,flameFields:bfHazards?bfHazards.st.fields.map(f=>(f.big?'B':'s')+f.t.toFixed(1)).join(','):'',burn:bfHazards&&bfHazards.st.burn?bfHazards.st.burn.tier+':'+bfHazards.st.burn.left.toFixed(1):null,hydra:hydraSkill?{phase:hydraSkill.st.phase,t:+hydraSkill.st.t.toFixed(2),orbs:hydraSkill.st.orbs.map(o=>o.state+':'+o.k.toFixed(2)).join(','),hits:hydraSkill.st.hits,dissolve:+hydraSkill.st.dissolve.toFixed(2),trauma:+hydraSkill.st.trauma.toFixed(2)}:null,kite:zkKite,cinematic:zarkUlt?{phase:zarkUlt.st.phase,pi:zarkUlt.st.pi,pt:+zarkUlt.st.pt.toFixed(2),t:+zarkUlt.st.t.toFixed(2),center:[zarkUlt.st.center.x,zarkUlt.st.center.z],arenaRadius:zarkUlt.st.R,hero:[player.position.x,player.position.z],safeDistance:Math.hypot(player.position.x-zarkUlt.st.center.x,player.position.z-zarkUlt.st.center.z),hp:playerHP,dangerRadius:zarkUlt.st.dangerR,safeRadius:zarkUlt.st.dangerR,burstHits:zarkUlt.st.bursts.map(b=>({n:b.n,hit:!!b.hit,damage:b.damage})),selos:zarkUlt.st.seals.map(c=>[c.i+1,+c.build.toFixed(2),+c.spin.toFixed(2)]),bursts:zarkUlt.st.bursts.map(b=>b.n),hits:zarkUlt.st.hitEvents,bossFrozen:!!zarkUltBossLock,mixerScale:enemyMixer?.timeScale,lockPos:zarkUltBossLock?.position.toArray(),bossPos:enemy.position.toArray(),vfx:!!zarkUltVfx?.holder.visible,occluders:zarkUltOccluderState?.length||0,hudCompact:document.body.classList.contains('zark-ult-cine'),shot:zarkUltCameraShot,cam:camera.position.toArray().map(v=>+v.toFixed(2)),fov:+camera.fov.toFixed(2)}:null,cosmic:cosmicUlt?{phase:cosmicUlt.st.phase,pi:cosmicUlt.st.pi,pt:+cosmicUlt.st.pt.toFixed(2),rt:+cosmicUlt.st.rt.toFixed(2),lock:cosmicUlt.lockPlayer,P:cosmicUlt.st.P,circles:cosmicUlt.st.circles.map(c=>[c.r,+(c.y-cosmicUlt.st.P.y).toFixed(1),+c.k.toFixed(2)]),tipY:+(cosmicUlt.st.tipY-cosmicUlt.st.P.y).toFixed(2),hits:cosmicUlt.st.hits,white:+cosmicUlt.st.white.toFixed(2),trauma:+cosmicUlt.st.trauma.toFixed(2)}:null,camFov:+camera.fov.toFixed(1),handSword:!!(cosmicHandSword&&cosmicHandSword.visible&&cosmicHandSword.parent),eclipse:eclipseSword?{phase:eclipseSword.st.phase,t:+eclipseSword.st.t.toFixed(2),stage:eclipseSword.st.stage,level:+eclipseSword.st.level.toFixed(2),hits:eclipseSword.st.hits,impact:eclipseSword.st.impact&&eclipseSword.st.impact.kind,sword:!!(eclipseVfx&&eclipseVfx.swordReady&&eclipseVfx.holder.visible)}:null,squad:squadOn,dimTest:dimTest.key};},
  /** MOD 204 — leva o Ato I a uma etapa/sub-etapa e põe o jogador perto do gatilho dela. */
  /** MOD 291 — estrada de Teren: road(0) prado/encontro, road(1) lona presa, road(2) pós-bandidos. */
  road(stage=0){this.act1(1,0);roadStage=stage;road.met=stage>0;try{localStorage.setItem(ROAD_STORE,String(stage));}catch(_){}ensureRoadProps();placeRoadCart(stage>=2?RIDE.ambush:RIDE.start,true);const c=road.cart.position,x=stage===0?FALL_SPOT.x:c.x+2.6,z=stage===0?FALL_SPOT.z:c.z;player.position.set(x,terrainHeightAt(x,z),z);updateQuestHud();return this.roadState();},
@@ -9066,7 +9091,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  power(){bossPowerCd=0;foeSkillCd=0;kitState.cds={};kitState.t=0;},
   /** MOD 212 — força um poder do kit do inimigo atual: 's1','s2','s3','sw' ou 'ult'. */
   kitMove(id){const k=kitFor(encounterProfile);if(!k||!enemy.visible)return null;if(id==='ult'){const u=ultimateFor(encounterProfile);if(!u)return null;if(u.kind==='nova')startSupernova();else if(u.kind==='zarkhael_six_seals'){if(!startZarkUlt())return null;}else startKitUlt(u.kind);return u.kind;}const m=id==='sw'?k.sword:k.skills.find(s=>s.id===id);if(!m||m.disabled)return null;runFoeMove(powerStats(encounterProfile,m),k);return m.name;},
-  god(){playerInvulnerableUntil=performance.now()+1e9;},
+  god(on=true){playerInvulnerableUntil=on?performance.now()+1e9:0;return !!on;},
   /** QA apenas: revela se o AudioContext foi liberado, nunca o som bruto. */
   audioState(){return{state:worldAudio.state,muted:worldAudio.settings.muted,sfx:worldAudio.settings.sfx,music:worldAudio.settings.music};},
   sprint(on){sprintToggle=!!on;return{run:!!actions.run,speed:+Math.hypot(moveVX,moveVZ).toFixed(2)};},
