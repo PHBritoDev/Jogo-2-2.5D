@@ -241,7 +241,9 @@ test('production primary squad bridge returns actual damage and keeps the proxy 
  assert.match(bridge,/return dealt>0/);
  const hitStart=source.indexOf("hit:(damage,id,kind,x)=>{"),hitEnd=source.indexOf("event:(type,e)=>",hitStart);
  assert.ok(hitStart>=0&&hitEnd>hitStart);
- assert.match(source.slice(hitStart,hitEnd),/return protaPrimaryRiteHit\(damage,id,kind,x\)/);
+ assert.match(source.slice(hitStart,hitEnd),/const applied=protaPrimaryRiteHit\(damage,id,kind,x\)/);
+ assert.match(source.slice(hitStart,hitEnd),/return applied/);
+ assert.match(source.slice(hitStart,hitEnd),/if\(applied&&kind==='basic'\)/);
  const squad=new Enemy1Squad({seed:21}),[actor]=squad.spawn([{x:0,z:3}]),flashes=[];
  const sandbox={squadOn:true,squadFocus:actor,squadSq:()=>squad,player:{position:{x:0,z:0}},
   swordSideHitContext,VZ_HERO_DMG:1,enemyHP:actor.hp,squadProxy:{hp:actor.hp},enemyAlive:true,siegeEpoch:99,
