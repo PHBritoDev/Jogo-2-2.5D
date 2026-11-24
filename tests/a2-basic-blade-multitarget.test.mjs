@@ -42,6 +42,23 @@ test('physical blade sweep cannot skip a 1cm wall between coarse samples',()=>{
  assert.equal(impacts.length,0,'a blocked blade must not emit an impact');
 });
 
+test('moving blade sweep stops at a thin wall between clear endpoint poses',()=>{
+ const focus=enemy(99,10,10),side=enemy(2,1.2,.2),hits=[],impacts=[];
+ const blocked=p=>p.x>.331&&p.x<.339&&p.z>.45&&p.z<.55;
+ const rites=new SwordRites({
+  moveset:()=>({id:'thin-wall',duration:.6,open:.01,close:.5,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,
+  pose:a=>{const x=a.t<.025?0:1.2;return{base:{x,y:1,z:0},tip:{x,y:1,z:1}};},
+  hit:(damage,id,kind)=>hits.push({damage,id,kind}),
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:1,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ for(let i=0;i<120;i++)rites.update(1/120,ctx);
+ assert.equal(hits.length,0,'a moving blade must stop before the 1cm wall even when endpoint poses are clear');
+ assert.equal(impacts.length,0,'the secondary target behind the wall must not receive a ghost impact');
+});
+
 test('secondary physical contact respects obstruction',()=>{
  const e=encounter((p)=>p.x>.15);assert(e.rites.attack('prota',{target:e.primary}));
  for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
