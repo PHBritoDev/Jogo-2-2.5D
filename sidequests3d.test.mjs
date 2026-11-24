@@ -606,7 +606,7 @@ test('checkpoint negativo nao relocka nem desbloqueia missoes', () => {
 test('claim V6 continua reconhecido mesmo quando moedas ou XP do snapshot estao corrompidos', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   const begin = runtime.indexOf('function savedCampaignProgress(){');
-  const end = runtime.indexOf('\\nfunction settlePendingSideReward', begin);
+  const end = runtime.indexOf('\nfunction settlePendingSideReward', begin);
   assert.ok(begin >= 0 && end > begin);
   const recovery = runtime.slice(begin, end);
   const pending = pendingFor('ervas', 100, 50);
@@ -632,7 +632,7 @@ test('claim V6 continua reconhecido mesmo quando moedas ou XP do snapshot estao 
     saveSide() { return true; }
   };
   context.gainXp = amount => { context.playerXp += amount; };
-  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', context);
+  runInNewContext(recovery + '\nthis.__settle = settlePendingSideReward;', context);
   assert.equal(context.__settle(), 'already-applied');
   assert.equal(context.coins, 0, 'claim existente impede duplicar moedas mesmo com saldo invalido');
   assert.equal(context.playerXp, 0, 'claim existente impede duplicar XP mesmo com saldo invalido');
