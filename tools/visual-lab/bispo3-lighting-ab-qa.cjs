@@ -36,7 +36,17 @@ async function capture(label,url,browser){
       return s.vs||s.battle?.active;
     },null,{timeout:180000,polling:250});
     const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());
-    if(pre.vs)await page.evaluate(()=>window.SevenSinsDebug3D.vsGo());
+    if(pre.vs){
+      // The VS panel can exist while its start button is still disabled. Wait for
+      // the real control to become ready, then issue exactly one trusted click.
+      await page.waitForFunction(()=>{
+        const button=document.querySelector('#vs-go');
+        return !!button&&!button.disabled;
+      },null,{timeout:180000,polling:250});
+      await page.locator('#vs-go').click({timeout:15000});
+    }else if(!pre.battle?.active){
+      throw new Error('VS panel disappeared before combat became active');
+    }
     await page.waitForFunction(()=>{
       const d=window.SevenSinsDebug3D,s=d.dimState();
       return s.battle?.active&&!s.vs&&s.voidMode&&d.dimensionVisualState()?.visible&&!s.cineActive&&!s.menuGate&&!s.paused;
