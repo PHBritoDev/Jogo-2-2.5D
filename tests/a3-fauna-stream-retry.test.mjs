@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFauna, FAUNA_LOAD_RETRY, FAUNA_MAX_CONCURRENT_LOADS, cellCandidate } from '../fauna3d.js';
+import { createFauna, FAUNA_LOAD_RETRY, FAUNA_MAX_CONCURRENT_LOADS, FAUNA_LOAD_TIMEOUT_MS, cellCandidate } from '../fauna3d.js';
 
 class Vec3 {
   constructor(x = 0, y = 0, z = 0) { this.set(x, y, z); }
@@ -81,8 +81,8 @@ function loaderFor(results) {
   }
   return { Loader, calls: () => calls };
 }
-function create(loader, habitat = ctx) {
-  return createFauna({ T, scene: scene(), GLTFLoader: loader, skClone: x => x, base: './', ground, ctx: habitat });
+function create(loader, habitat = ctx, options = {}) {
+  return createFauna({ T, scene: scene(), GLTFLoader: loader, skClone: x => x, base: './', ground, ctx: habitat, ...options });
 }
 const tick = (fauna, dt) => fauna.update(dt, { px: 0, pz: 0, hour: 22, camera: null });
 
@@ -259,5 +259,73 @@ test('fauna: falhas transitórias têm teto de seis tentativas por espécie', as
   tick(fauna, 60);
   await fauna.load('grilo');
   assert.equal(mock.calls(), 6, 'o teto continua bloqueando novas tentativas após esgotar');
+  fauna.dispose();
+});
+
+
+test('fauna: GLBs pendurados são abortados e liberam as duas vagas para retry', async () => {
+  assert.equal(FAUNA_LOAD_TIMEOUT_MS, 20000);
+  const coelho = cellCandidate('coelho', 29, -15);
+  const montanha = cellCandidate('montanha', 29, -15);
+  const lava = cellCandidate('lava', 29, -15);
+  assert.ok(coelho && montanha && lava);
+
+  const habitat = {
+    biome: (x, z) => {
+      for (const [candidate, biome] of [[coelho, 'vale'], [montanha, 'serra'], [lava, 'cinzas']]) {
+        if (Math.hypot(x - candidate.x, z - candidate.z) < 1e-6) return biome;
+      }
+      return 'cidade';
+    },
+    water: () => -1, road: () => false, lava: () => 0, blocked: () => false
+  };
+  const attempts = new Map();
+  const aborted = [];
+  const fetchImpl = (url, { signal }) => {
+    const file = url.split('/').pop();
+    const attempt = (attempts.get(file) || 0) + 1;
+    attempts.set(file, attempt);
+    if (attempt === 1) {
+      return new Promise((resolve, reject) => {
+        const abort = () => {
+          aborted.push(file);
+          reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        };
+        if (signal.aborted) abort();
+        else signal.addEventListener('abort', abort, { once: true });
+      });
+    }
+    return Promise.resolve({
+      ok: true, status: 200, statusText: 'OK',
+      arrayBuffer: async () => new ArrayBuffer(8)
+    });
+  };
+  class Loader {
+    register() {}
+    parseAsync() { return Promise.resolve({ scene: fakeScene() }); }
+  }
+
+  const fauna = create(Loader, habitat, { fetchImpl, loadTimeoutMs: 20 });
+  const update = dt => fauna.update(dt, { px: coelho.x, pz: coelho.z, hour: 12, camera: null });
+  update(0);
+  await new Promise(resolve => setTimeout(resolve, 60));
+
+  assert.equal(attempts.get('Coelhinho.glb'), 1);
+  assert.equal(attempts.get('PassaroMontanha.glb'), 1);
+  assert.equal(attempts.get('PassaroLava.glb'), undefined, 'a terceira espécie espera enquanto as duas vagas estão ocupadas');
+  assert.deepEqual(new Set(aborted), new Set(['Coelhinho.glb', 'PassaroMontanha.glb']));
+  assert.equal(fauna.stats.loadTimeouts, 2);
+  assert.equal(fauna.stats.activeLoads, 0, 'timeouts precisam liberar as duas vagas');
+  assert.equal(fauna.stats.loadFailures, 2);
+  assert.equal(fauna.stats.lastLoadError.timeout, true);
+
+  update(.8);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(fauna.stats.loaded.includes('coelho'));
+  assert.ok(fauna.stats.loaded.includes('montanha'));
+  assert.equal(attempts.get('Coelhinho.glb'), 2);
+  assert.equal(attempts.get('PassaroMontanha.glb'), 2);
+  assert.equal(fauna.stats.loadRetries, 2);
+  assert.equal(fauna.stats.activeLoads, 0);
   fauna.dispose();
 });
