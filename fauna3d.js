@@ -12,6 +12,27 @@ export const FAUNA = Object.freeze({
 });
 export const FAUNA_CELL = 40;
 
+/** Retry limitado para GLBs de fauna: falha transitória não desativa a espécie até recarregar o jogo. */
+export const FAUNA_LOAD_RETRY = Object.freeze({
+  attemptsPerCycle: 3,
+  backoffSeconds: Object.freeze([.75, 2]),
+  cycleCooldownSeconds: 30,
+  maxCycles: 2
+});
+/** Mantém o streaming responsivo se uma requisição de espécie ficar lenta. */
+export const FAUNA_MAX_CONCURRENT_LOADS = 2;
+/** Evita que fetch, leitura do GLB ou parse pendente ocupem uma vaga indefinidamente. */
+export const FAUNA_LOAD_TIMEOUT_MS = 20000;
+function assetHttpStatus(error) {
+  const message = String(error && error.message || error);
+  const match = message.match(/(?:\bHTTP\s*|\bresponded with\s*|\bstatus(?:\s+code)?\s*[:=]?\s*)(\d{3})\b/i);
+  return match ? Number(match[1]) : null;
+}
+function isPermanentAssetError(error) {
+  const status = assetHttpStatus(error);
+  return status !== null && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 function hash(a, b, s) { let h = (a * 374761393 + b * 668265263 + s * 974711) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
 const SEED = { coelho:61, montanha:79, lava:97, dourado: 23, grilo: 53 };
 /** Candidato determinístico de uma espécie numa célula (ou null): mesma resposta sempre, sem estado. */
@@ -52,10 +73,10 @@ export function insectLevel(hour, nearHabitat) { const dusk = hour >= 18.5 || ho
 /**
  * Controlador no jogo. opts: { T, scene, GLTFLoader, skClone, base (URL da raiz), ground(x,z), ctx (habitatOk), low }.
  */
-export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false }) {
+export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground, ctx, low = false, fetchImpl = (url, options) => fetch(url, options), loadTimeoutMs = FAUNA_LOAD_TIMEOUT_MS }) {
   const root = new T.Group(); root.name = 'fauna-mod327'; scene.add(root);
-  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadMs: [] };
-  const mx = new T.Object3D(), forward = new T.Vector3(); let loading = null, scanT = 0, t = 0;
+  const assets = {}, live = new Map(), stats = { loaded: [], live: 0, draws: 0, tris: 0, loads: 0, loadRetries: 0, loadFailures: 0, permanentFailures: 0, retryExhausted: 0, loadTimeouts: 0, activeLoads: 0, orphanedLoads: 0, peakActiveLoads: 0, peakConcurrentLoads: 0, lastLoadError: null, lastLoadRecovery: null, loadMs: [] };
+  const mx = new T.Object3D(), forward = new T.Vector3(); let activeLoads = 0, orphanedLoads = 0, scanT = 0, t = 0;
   const liteTex = size => parser => ({ name: 'MOD327_cor_base_reduzida', loadTexture(index) {
     const json = parser.json, baseIdx = json.materials?.[0]?.pbrMetallicRoughness?.baseColorTexture?.index;
     if (index !== baseIdx) return Promise.resolve(null);              // normal/rugosidade 2048²: não decodifica
@@ -66,21 +87,174 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         : new Promise((ok, no) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = size; c.getContext('2d').drawImage(im, 0, 0, size, size); ok(c); }; im.onerror = no; im.src = URL.createObjectURL(blob); }));
     }).then(src => { const tx = new T.Texture(src); tx.flipY = false; tx.colorSpace = T.SRGBColorSpace; tx.needsUpdate = true; return tx; });
   } });
-  const pending = {};
+  const pending = {}, loadState = Object.create(null), activeControllers = new Set();
+  let disposed = false;
+  function releaseGltf(gltf) {
+    const scenes = new Set([gltf?.scene, ...(Array.isArray(gltf?.scenes) ? gltf.scenes : [])].filter(scene => scene?.traverse));
+    if (!scenes.size) return;
+    const geometries = new Set(), materials = new Set(), textures = new Set(), skeletons = new Set();
+    for (const loadedScene of scenes) loadedScene.traverse(o => {
+      if (o.geometry && !geometries.has(o.geometry)) { geometries.add(o.geometry); o.geometry.dispose?.(); }
+      const list = Array.isArray(o.material) ? o.material : [o.material];
+      for (const material of list) {
+        if (!material || materials.has(material)) continue;
+        materials.add(material);
+        for (const value of Object.values(material)) {
+          if (value?.isTexture && !textures.has(value)) {
+            textures.add(value);
+            value.dispose?.();
+            value.image?.close?.();
+          }
+        }
+        material.dispose?.();
+      }
+      if (o.skeleton && !skeletons.has(o.skeleton)) { skeletons.add(o.skeleton); o.skeleton.dispose?.(); }
+    });
+  }
+  const requestTimeoutMs = Number.isFinite(loadTimeoutMs) && loadTimeoutMs > 0 ? loadTimeoutMs : FAUNA_LOAD_TIMEOUT_MS;
+  // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
+  // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
+  async function loadGLB(loader, url, releaseSlot) {
+    if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB load'), { name: 'AbortError' });
+    const controller = new AbortController();
+    let timer = null, timedOut = false, abandoned = false, cancelLoad = null;
+    let operationSettled = false, operationValue = null, raceSettled = false, raceRejected = false;
+    let orphanCounted = false, orphanReleased = false;
+    const markAbandoned = () => {
+      abandoned = true;
+      // parseAsync/loadAsync não são canceláveis. Uma operação órfã continua ocupando
+      // orçamento real até resolver; sem isso, retries após timeout criam parses ilimitados.
+      if (!operationSettled && !orphanCounted) {
+        orphanCounted = true;
+        orphanedLoads++;
+        stats.orphanedLoads = orphanedLoads;
+      }
+    };
+    const releaseAbandonedResult = () => {
+      if (orphanReleased || !operationValue) return;
+      orphanReleased = true;
+      releaseGltf(operationValue);
+    };
+    const settleOperation = gltf => {
+      operationSettled = true;
+      operationValue = gltf || null;
+      if (orphanCounted) {
+        orphanCounted = false;
+        orphanedLoads = Math.max(0, orphanedLoads - 1);
+        stats.orphanedLoads = orphanedLoads;
+      }
+      if (abandoned && raceSettled && raceRejected && operationValue) releaseAbandonedResult();
+    };
+    const cancelled = new Promise((_, reject) => {
+      cancelLoad = () => {
+        markAbandoned();
+        reject(Object.assign(new Error('fauna GLB load aborted because controller was disposed'), { name: 'AbortError' }));
+      };
+    });
+    const active = { controller, cancel: cancelLoad };
+    activeControllers.add(active);
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        markAbandoned();
+        const error = new Error(`fauna GLB load timed out after ${requestTimeoutMs} ms: ${url}`);
+        error.code = 'FAUNA_LOAD_TIMEOUT';
+        reject(error);
+        controller.abort();
+      }, requestTimeoutMs);
+    });
+    const operation = Promise.resolve().then(async () => {
+      if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB request'), { name: 'AbortError' });
+      // O fallback mantém compatibilidade com loaders antigos/mocks, mas também
+      // fica sob o mesmo limite total e descarta o GLB se terminar tarde.
+      if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);
+      const response = await fetchImpl(url, { signal: controller.signal });
+      if (response.ok === false) {
+        // Cancelar o corpo de respostas HTTP não utilizáveis libera a conexão sem consumir o payload.
+        controller.abort();
+        throw new Error(`fetch for ${url} responded with ${response.status}: ${response.statusText || 'HTTP error'}`);
+      }
+      const data = await response.arrayBuffer();
+      if (timedOut || disposed) throw Object.assign(new Error('fauna GLB load aborted before parsing'), { name: 'AbortError' });
+      return loader.parseAsync(data, base);
+    });
+    operation.then(gltf => settleOperation(gltf), () => settleOperation(null));
+    try {
+      return await Promise.race([operation, timeout, cancelled]);
+    } catch (error) {
+      raceRejected = true;
+      throw error;
+    } finally {
+      raceSettled = true;
+      if (abandoned && raceRejected && operationSettled && operationValue) releaseAbandonedResult();
+      if (abandoned && raceRejected) releaseSlot();
+      if (timer !== null) clearTimeout(timer);
+      activeControllers.delete(active);
+    }
+  }
   function load(kind) {
-    if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
-    if (assets[kind]) return Promise.resolve(assets[kind]); if (pending[kind]) return pending[kind];
-    const S = FAUNA[kind], t0 = performance.now(); stats.loads++;
-    const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
-    return pending[kind] = L.loadAsync(base + S.file).then(g => {
+    if (disposed || !FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
+    if (assets[kind]) return Promise.resolve(assets[kind]);
+    if (pending[kind]) return pending[kind];
+    if (activeLoads + orphanedLoads >= FAUNA_MAX_CONCURRENT_LOADS) return Promise.resolve(null);
+    const state = loadState[kind] || (loadState[kind] = { attempts: 0, cycles: 0, retryAt: 0, permanent: false });
+    if (state.permanent || state.exhausted || t < state.retryAt) return Promise.resolve(null);
+    if (state.attempts >= FAUNA_LOAD_RETRY.attemptsPerCycle) state.attempts = 0;
+    const attempt = ++state.attempts, S = FAUNA[kind], t0 = performance.now();
+    if (attempt > 1 || state.cycles > 0) stats.loadRetries++;
+    stats.loads++;
+    activeLoads++;
+    stats.activeLoads = activeLoads;
+    stats.peakActiveLoads = Math.max(stats.peakActiveLoads, activeLoads);
+    stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
+    let slotReleased = false;
+    const releaseSlot = () => {
+      if (slotReleased) return;
+      slotReleased = true;
+      activeLoads = Math.max(0, activeLoads - 1);
+      stats.activeLoads = activeLoads;
+      stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
+    };
+    const request = Promise.resolve().then(() => {
+      const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
+      return loadGLB(L, base + S.file, releaseSlot);
+    });
+    return pending[kind] = request.then(g => {
+      if (disposed) { releaseGltf(g); return null; }
       let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
       const old = mesh.material, mat = new T.MeshLambertMaterial({ map: old.map || null, color: old.map ? 0xffffff : old.color }); old.dispose();
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
-      const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3 };
+      const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3, scenes: Array.isArray(g.scenes) && g.scenes.length ? g.scenes : [g.scene] };
       if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
-      else { A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
-      assets[kind] = A; stats.loaded.push(kind); stats.loadMs.push(Math.round(performance.now() - t0));
-    }).catch(e => { assets[kind] = { failed: String(e && e.message || e) }; }).finally(() => { delete pending[kind]; });
+      else { mesh.material = mat; A.proto = g.scene; A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
+      assets[kind] = A; delete loadState[kind];
+      const loadMs = Math.round(performance.now() - t0);
+      if (attempt > 1 || state.cycles > 0) stats.lastLoadRecovery = { kind, attempt, cycle: state.cycles + 1, loadMs };
+      stats.loaded.push(kind); stats.loadMs.push(loadMs);
+      return A;
+    }).catch(e => {
+      const message = String(e && e.message || e), status = assetHttpStatus(e);
+      stats.loadFailures++;
+      const timeout = e?.code === 'FAUNA_LOAD_TIMEOUT';
+      if (timeout) stats.loadTimeouts++;
+      stats.lastLoadError = { kind, message, status, timeout, attempt, cycle: state.cycles + 1 };
+      if (isPermanentAssetError(e)) {
+        state.permanent = true; stats.permanentFailures++;
+      } else if (attempt >= FAUNA_LOAD_RETRY.attemptsPerCycle) {
+        if (state.cycles + 1 >= FAUNA_LOAD_RETRY.maxCycles) {
+          state.exhausted = true; stats.retryExhausted++;
+        } else {
+          state.cycles++;
+          state.retryAt = t + FAUNA_LOAD_RETRY.cycleCooldownSeconds;
+        }
+      } else {
+        state.retryAt = t + FAUNA_LOAD_RETRY.backoffSeconds[attempt - 1];
+      }
+      return { failed: message, retryAt: state.retryAt, permanent: state.permanent };
+    }).finally(() => {
+      delete pending[kind];
+      releaseSlot();
+    });
   }
   // Only inspect rendered rocks when a bird is created. Intersect one nearby
   // instance at a time; a ray through the entire instanced world is expensive.
@@ -137,7 +311,8 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       const R = S.near, c0x = Math.floor((px - R) / FAUNA_CELL), c1x = Math.floor((px + R) / FAUNA_CELL), c0z = Math.floor((pz - R) / FAUNA_CELL), c1z = Math.floor((pz + R) / FAUNA_CELL), list = [];
       for (let cx = c0x; cx <= c1x; cx++) for (let cz = c0z; cz <= c1z; cz++) { const c = cellCandidate(kind, cx, cz); if (!c) continue; const d = Math.hypot(c.x - px, c.z - pz); if (d > R || !habitatOk(kind, c.x, c.z, ctx)) continue; list.push([d, c]); }
       list.sort((p, q) => p[0] - q[0]); wanted[kind] = list.slice(0, B);
-      if (list.length && !assets[kind] && !loading) { loading = load(kind).finally(() => { loading = null; }); }
+      const retry = loadState[kind];
+      if (list.length && !assets[kind] && !pending[kind] && activeLoads + orphanedLoads < FAUNA_MAX_CONCURRENT_LOADS && (!retry || (!retry.permanent && !retry.exhausted && t >= retry.retryAt))) load(kind);
     }
     for (const [k, a] of live) { const S = FAUNA[a.kind]; if (near(a, px, pz) > S.near * 1.25 || !a.qa && !(wanted[a.kind] || []).some(([, c]) => c.cell + c.kind === k)) despawn(k); }
     const population = {};
@@ -261,6 +436,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   return {
     root, stats,
     update(dt, { px, pz, hour = 12, camera = null, hidden = false }) {
+      if (disposed) return;
       t += dt; root.visible = !hidden; if (hidden) return;
       scanT -= dt; if (scanT <= 0) { scanT = .6; scan(px, pz, hour, camera); }
       const counts = {}; let draws = 0, tris = 0;
@@ -269,13 +445,31 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       stats.live = live.size; stats.draws = draws; stats.tris = Math.round(tris); stats.counts = counts;
     },
     /** QA: força o carregamento e o spawn imediato (ignora o "não nascer na cara"). */
-    debugSpawnAt(kind, x, z, yaw = 0) { if (!assets[kind] || assets[kind].failed || !budget(kind, low) || !habitatOk(kind, x, z, ctx)) return false;
+    debugSpawnAt(kind, x, z, yaw = 0) { if (disposed || !assets[kind] || assets[kind].failed || !budget(kind, low) || !habitatOk(kind, x, z, ctx)) return false;
       const same = [...live].filter(([, a]) => a.kind === kind);
       if (same.length >= budget(kind, low)) despawn(same[0][0]);
       spawn({ kind, cell: 'qa' + x.toFixed(1) + z.toFixed(1), x, z, yaw, seed: .5, qa: true }); return true; },
     load,
     list() { return [...live.values()].map(a => ({ kind: a.kind, state: a.state, yaw: a.yaw, qa: !!a.qa, perch:!!a.perch, x: +a.x.toFixed(2), z: +a.z.toFixed(2), y: +a.y.toFixed(2) })); },
-    dispose() { for (const k of [...live.keys()]) despawn(k); for (const A of Object.values(assets)) { if (A.im) { A.im.geometry.dispose(); A.im.dispose(); root.remove(A.im); }
-        if (A.proto) A.proto.traverse(o => { if (o.isSkinnedMesh) { o.geometry.dispose(); o.skeleton.dispose(); } }); if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); } } scene.remove(root); }
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const active of activeControllers) {
+        active.cancel();
+        active.controller.abort();
+      }
+      activeControllers.clear();
+      for (const k of [...live.keys()]) despawn(k);
+      for (const A of Object.values(assets)) {
+        if (A.im) {
+          root.remove(A.im);
+          A.im.dispose?.();
+        }
+        // A cena-fonte mantém também meshes auxiliares que não entram na InstancedMesh.
+        // Ela é a única dona da geometria/material compartilhados com A.im.
+        if (A.proto) releaseGltf({ scene: A.proto, scenes: A.scenes });
+      }
+      scene.remove(root);
+    }
   };
 }

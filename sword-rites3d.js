@@ -13,15 +13,116 @@ export const SWORD_COMBO=Object.freeze([
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
+const BLADE_SWEEP_RAILS=Object.freeze([0,.25,.5,.75,1]);
+const ENERGY_OCCLUSION_STEP=.008;
+/** Resolve the source and damage class for a secondary squad contact.
+ * Waves push along their travel direction; sectors push radially from their origin.
+ * Physical blade contacts keep the hero as their source.
+ */
+export function swordSideHitContext(meta,target,fallback){
+ const energy=meta?.wave||meta?.energy;
+ if(!energy)return{x:fallback.x,z:fallback.z,kind:meta?.kind==='spell'||meta?.by==='judgment'?'spell':'melee'};
+ const direction=energy.direction;
+ if(direction&&Number.isFinite(direction.x)&&Number.isFinite(direction.z)){
+  const len=Math.hypot(direction.x,direction.z);
+  if(len>1e-5)return{x:target.x-direction.x/len,z:target.z-direction.z/len,kind:'spell'};
+ }
+ // Degenerate/missing wave vectors still have a deterministic travel heading.
+ if((meta?.wave||energy.kind==='wave')&&Number.isFinite(energy.yaw)){
+  return{x:target.x-Math.sin(energy.yaw),z:target.z-Math.cos(energy.yaw),kind:'spell'};
+ }
+ if(Number.isFinite(energy.x)&&Number.isFinite(energy.z)){
+  const dx=target.x-energy.x,dz=target.z-energy.z;
+  if(Math.hypot(dx,dz)>1e-5)return{x:energy.x,z:energy.z,kind:'spell'};
+  // A target exactly at a radial sector's origin has no radial normal; use its authored yaw.
+  if(Number.isFinite(energy.yaw))return{x:target.x-Math.sin(energy.yaw),z:target.z-Math.cos(energy.yaw),kind:'spell'};
+ }
+ return{x:fallback.x,z:fallback.z,kind:'spell'};
+}
 export function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
 /** Includes the spawn segment: a blade reaching past a thin wall cannot emit behind it. */
-export function segmentBlocked(a,b,blocked){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.06));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
+export function segmentBlocked(a,b,blocked,maxStep=.06){if(blocked(a))return true;const step=Number.isFinite(maxStep)&&maxStep>0?maxStep:.06,n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/step));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
 /** Sweep the true blade, interpolating both endpoints, against a vertical capsule. */
 export function bladeContact(a,b,c,d,target,radius=.48){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06));
  for(let i=0;i<=n;i++){const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
   for(let j=0;j<=4;j++){const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z};if(segmentDistance(p,base,tip)<=radius)return true;}
  }return false;
+}
+function closestOnSegment(p,a,b){
+ const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;
+ return{x:a.x+x*t,y:a.y+y*t,z:a.z+z*t};
+}
+/** Conservative broadphase: the interpolated blade quad must overlap the target capsule AABB. */
+function bladeSweepMayTouch(bounds,target,hitRadius=.6){
+ if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.y)||!Number.isFinite(target.z))return false;
+ const r=Number.isFinite(hitRadius)&&hitRadius>0?hitRadius:.6,half=(target.height||1.7)*.5;
+ return target.x+r>=bounds.minX&&target.x-r<=bounds.maxX&&
+  target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
+  target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
+}
+const BLADE_COLLISION_CACHE_TTL=.05;
+/** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
+function bladeOcclusionCached(a,target,from,now){
+ const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
+ if(!entry)return false;
+ const same=from&&entry.from.x===from.x&&entry.from.y===from.y&&entry.from.z===from.z&&
+  entry.target.x===target.x&&entry.target.y===target.y&&entry.target.z===target.z;
+ if(same&&now-entry.time<BLADE_COLLISION_CACHE_TTL)return true;
+ cache.delete(target.id);return false;
+}
+function rememberBladeOcclusion(a,target,from,now){
+ if(!a||!target||target.id==null||!from)return;
+ const cache=a.bladeOcclusion||(a.bladeOcclusion=new Map());
+ cache.set(target.id,{from:copy(from),target:copy(target),time:now});
+}
+/** Returns the capsule-surface point facing the swept blade, not an occluded point inside the actor. */
+/** Builds the unoccluded part of the swept blade and remembers the first wall crossed. */
+function bladeSweepFrames(a,b,c,d,blocked=()=>false){
+ const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06)),frames=[];
+ let previous=null;
+ for(let i=0;i<=n;i++){
+  const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
+  // Trace five rails through the moving blade between poses; coarse 6cm pose samples
+  // alone can tunnel through a 1cm wall even when each endpoint pose is clear.
+  if(previous&&base.x===previous.base.x&&base.y===previous.base.y&&base.z===previous.base.z&&
+   tip.x===previous.tip.x&&tip.y===previous.tip.y&&tip.z===previous.tip.z)continue;
+  if(previous)for(const rail of BLADE_SWEEP_RAILS){
+   const from={x:previous.base.x+(previous.tip.x-previous.base.x)*rail,y:previous.base.y+(previous.tip.y-previous.base.y)*rail,z:previous.base.z+(previous.tip.z-previous.base.z)*rail};
+   const to={x:base.x+(tip.x-base.x)*rail,y:base.y+(tip.y-base.y)*rail,z:base.z+(tip.z-base.z)*rail};
+   if(from.x===to.x&&from.y===to.y&&from.z===to.z)continue;
+   if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
+  }
+  // A thin wall may contain the hilt at the first pose while later samples are already outside it.
+  if(blocked(base)||segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
+  previous={base,tip};frames.push(previous);
+ }
+ return{frames,blocked:false};
+}
+/** Returns the capsule-surface point at first contact, only before the first wall crossed. */
+function bladeContactPoint(frames,target,hitRadius=.48,origin=null){
+ if(!frames?.length)return null;
+ let bestAxisPoint=null,bestBladePoint=null,bestFrame=null,bestDistance=Infinity;
+ for(const frame of frames){
+  let frameAxis=null,frameBlade=null,frameDistance=Infinity;
+  for(let j=0;j<=4;j++){
+   const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},q=closestOnSegment(p,frame.base,frame.tip),distance=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z);
+   if(distance<frameDistance){frameDistance=distance;frameAxis=p;frameBlade=q;}
+  }
+  if(frameAxis&&frameDistance<=hitRadius){bestAxisPoint=frameAxis;bestBladePoint=frameBlade;bestFrame=frame;bestDistance=frameDistance;break;}
+ }
+ if(!bestAxisPoint)return null;
+ // Point from the capsule axis toward the blade: place the slash on the visible contact surface.
+ let nx=bestBladePoint.x-bestAxisPoint.x,ny=bestBladePoint.y-bestAxisPoint.y,nz=bestBladePoint.z-bestAxisPoint.z,len=bestDistance;
+ if(len<1e-5&&origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.z)){nx=origin.x-bestAxisPoint.x;ny=0;nz=origin.z-bestAxisPoint.z;len=Math.hypot(nx,nz);}
+ if(!Number.isFinite(len)||len<1e-5){
+  const dx=bestFrame.tip.x-bestFrame.base.x,dz=bestFrame.tip.z-bestFrame.base.z;nx=-dz;nz=dx;ny=0;len=Math.hypot(nx,nz);
+  if(len<1e-5){nx=0;ny=0;nz=1;len=1;}
+  if(origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.z)&&
+    nx*(origin.x-bestAxisPoint.x)+nz*(origin.z-bestAxisPoint.z)<0){nx=-nx;nz=-nz;}
+ }
+ const surfaceRadius=target.radius||.48;
+ return{x:bestAxisPoint.x+nx/len*surfaceRadius,y:bestAxisPoint.y+ny/len*surfaceRadius,z:bestAxisPoint.z+nz/len*surfaceRadius};
 }
 /** Horizontal aim only. Assist is bounded by range, cone, floor and line of sight. */
 export function swordAim(from,yaw,target,blocked=()=>false,{assist=true,range=18,cone=.55}={}){
@@ -45,6 +146,15 @@ export function passagePath(from,target,blocked){
   const at=(ahead,lateral)=>({x:target.x+dx*ahead+dz*lateral*side,y:from.y,z:target.z+dz*ahead-dx*lateral*side});
   append(at(-r,r));if(ok)append(at(r,r));if(ok)append(at(r,0));if(ok)return points;
  }return null;
+}
+function auroraWaveTouches(w,o){
+ const dx=o.x-w.p.x,dz=o.z-w.p.z,along=dx*Math.sin(w.yaw)+dz*Math.cos(w.yaw),side=dx*Math.cos(w.yaw)-dz*Math.sin(w.yaw),dy=o.y-w.p.y;
+ const cross=side*Math.cos(w.roll)+dy*Math.sin(w.roll),thick=-side*Math.sin(w.roll)+dy*Math.cos(w.roll);
+ return Math.abs(along)<.55+(o.radius||.5)&&Math.abs(cross)<w.radius+(o.radius||.5)&&Math.abs(thick)<.55+(o.height||1.7)*.4;
+}
+function auroraWaveImpactPoint(w,o){
+ const fx=Math.sin(w.yaw),fz=Math.cos(w.yaw),r=o.radius||.5;
+ return{x:o.x-fx*r,y:o.y,z:o.z-fz*r};
 }
 export class SwordRites {
  constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.queued=false;this.energies=[];}
@@ -77,7 +187,7 @@ export class SwordRites {
   a.energyOut=true;const from=ctx.from||{x:0,y:0,z:0},spec=a.def.energy,mid=blade?{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2}:{x:from.x,y:from.y+1.05,z:from.z};
   const ground=ctx.ground??from.y,y=Math.max(ground+.35,Math.min(ground+1.9,mid.y));
   const ay=a.aimYaw??a.yaw,origin=spec.kind==='wave'?{x:from.x+Math.sin(ay)*.6,y,z:from.z+Math.cos(ay)*.6}:{x:from.x,y,z:from.z};
-  if(spec.kind==='wave'&&segmentBlocked({x:from.x,y,z:from.z},origin,this.api.blocked)){this.api.event('obstructed',{p:origin,sword:a.sword});return;}
+  if(spec.kind==='wave'&&segmentBlocked({x:from.x,y,z:from.z},origin,this.api.blocked,ENERGY_OCCLUSION_STEP)){this.api.event('obstructed',{p:origin,sword:a.sword});return;}
   const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
@@ -110,35 +220,60 @@ export class SwordRites {
    if(blade){if(live)this.api.event('blade',{a,blade});
     if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
     if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48)-.2);}
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){const prev=this.prevBlade||blade;
-     const ext=(b)=>{if(!a.def.trail)return b.tip;const dx=b.tip.x-b.base.x,dy=b.tip.y-b.base.y,dz=b.tip.z-b.base.z,l=Math.hypot(dx,dy,dz)||1,k=1+a.def.trail/l;return{x:b.base.x+dx*k,y:b.base.y+dy*k,z:b.base.z+dz*k};}; // CLAUDE (P4): a varredura cobre o rastro visível colado à lâmina
-     if(bladeContact(prev.base,ext(prev),blade.base,ext(blade),target,(target.radius||.48)+(a.def.drive?.2:.12))&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
-      a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
-     }
-    }
-    // Each physical swing may also connect with nearby bodies crossed by the actual blade.
-    // A per-swing set prevents repeated damage from 120 Hz substeps; the primary target
-    // retains its original hit/impact behavior and damage budget.
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&ctx.others?.length){
+    // Build one wall-clipped sweep for every physical swing. The primary target must
+    // obey the same first-wall cutoff as side targets; checking only the final blade pose
+    // allowed a fast swing to tunnel through a wall between two animation samples.
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
+    const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
+    const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
+    let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[];
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
      const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
-     a.bladeSideHits=a.bladeSideHits||new Set();
-     if(!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
-      for(const other of ctx.others){
-       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
-       if(!bladeContact(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12))continue;
-       if(segmentBlocked(ctx.from,other,this.api.blocked))continue;
-       a.bladeSideHits.add(other.id);
-       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
-       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
-       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:0,shake:0});
-      }
+     const prevTip=extend(prev),currentTip=extend(blade);
+     const bounds={
+      minX:Math.min(prev.base.x,prevTip.x,blade.base.x,currentTip.x),maxX:Math.max(prev.base.x,prevTip.x,blade.base.x,currentTip.x),
+      minY:Math.min(prev.base.y,prevTip.y,blade.base.y,currentTip.y),maxY:Math.max(prev.base.y,prevTip.y,blade.base.y,currentTip.y),
+      minZ:Math.min(prev.base.z,prevTip.z,blade.base.z,currentTip.z),maxZ:Math.max(prev.base.z,prevTip.z,blade.base.z,currentTip.z)
+     };
+     if(needsPrimarySweep)primarySweepCandidate=bladeSweepMayTouch(bounds,target,(target.radius||.48)+(a.def.drive?.2:.12));
+     if(needsSideSweep)for(const other of ctx.others){
+      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      if(bladeSweepMayTouch(bounds,other,(other.radius||.48)+.12))sideSweepCandidates.push(other);
+     }
+     // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
+     if(primarySweepCandidate||sideSweepCandidates.length){
+      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+      if(physicalSweep.blocked)a.bladeBlocked=true;
+     }
+    }
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
+     const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
+     if(contact&&!bladeOcclusionCached(a,target,ctx.from,this.time)){
+      if(segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
+      else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});}
+     }
+    }
+    // Each physical swing may also connect with nearby bodies crossed by the same sweep.
+    // A per-swing set prevents repeated damage from 120 Hz substeps.
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&sideSweepCandidates.length){
+     for(const other of sideSweepCandidates){
+      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
+      if(!contact)continue;
+      if(bladeOcclusionCached(a,other,ctx.from,this.time))continue;
+      if(segmentBlocked(ctx.from,other,this.api.blocked,.008)){rememberBladeOcclusion(a,other,ctx.from,this.time);continue;}
+      a.bladeOcclusion?.delete(other.id);
+      a.bladeSideHits.add(other.id);
+      // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
+      const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
+      if(applied!==false&&applied!==0)this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:contact,hitstop:0,shake:0});
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
    if(a.kind==='prota'){
     const moments=JUDGMENT_TIMES;while(a.events<moments.length&&a.t>=moments[a.events]){
-     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment');this.api.event('judgment',{target,n,sword:a.sword,final:n===15});}
+     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){const applied=this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment',{target,kind:'spell',by:'judgment'});if(applied!==false&&applied!==0)this.api.event('judgment',{target,n,sword:a.sword,final:n===15});}
     }
    }else if(a.kind==='aurora'){
     const moments=[.40,.82,1.24,1.70];while(a.events<moments.length&&a.t>=moments[a.events]){
@@ -157,28 +292,47 @@ export class SwordRites {
   // Mod 302: volumes de energia (setor que se expande / onda que viaja). O dano sai quando a FRENTE visível toca o corpo;
   // compartilha o "acertou" do golpe (híbrido nunca dá dano dobrado) e respeita parede/linha de visão.
   for(let i=this.energies.length-1;i>=0;i--){const e=this.energies[i],owner=e.owner;
-   if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt);for(let d=e.travel;d<=end+1e-6&&!e.done;d+=Math.max(.05,Math.min(.06,end-d||.06)))for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}
+   if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt),span=Math.max(0,end-e.travel),steps=Math.max(1,Math.ceil(span/ENERGY_OCCLUSION_STEP));for(let j=1;j<=steps&&!e.done;j++){const d=e.travel+span*j/steps;for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}}
    // A energia pode expirar AO ALCANÇAR a distância final neste quadro; esse último contato ainda é válido.
    // Capturar o estado após a checagem de parede, antes de energyStep marcar o fim do alcance.
    const unblockedThisFrame=!e.done;
-   const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
+   const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked,ENERGY_OCCLUSION_STEP)});
    // Inimigos secundários também devem ser atingidos no último quadro, sem atravessar paredes.
-   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z);this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});}}}
-   if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
-    const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
-    this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
+   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked,ENERGY_OCCLUSION_STEP))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z),applied=this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});
+    // Secondary energy contacts need the same visible impact cue as the primary hit.
+    // Keep hitstop/shake disabled for a crowd to avoid stacking camera impulses.
+    if(applied!==false&&applied!==0){
+     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),radius=o.radius||.5;
+     const dx=o.x-e.x,dz=o.z-e.z,radial=Math.hypot(dx,dz)||1;
+     const contact=e.kind==='sector'?{x:o.x-dx/radial*radius,y:o.y,z:o.z-dz/radial*radius}:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius};
+     this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',secondary:true,energy:e,p:contact,hitstop:0,shake:0});
+    }}}}
+   if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){
+    owner.hit=true;owner.hitBy='energy';
+    const applied=this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic',{target,energy:e,by:'energy'});
+    if(applied!==false&&applied!==0){
+     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
+     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});
+    }
+   }
    if(e.done){this.api.event('energyEnd',e);this.energies.splice(i,1);}
   }
-  for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/.06));let gone=false;Object.assign(w.previous,w.p);
+  for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/ENERGY_OCCLUSION_STEP));let gone=false;Object.assign(w.previous,w.p);
    for(let j=0;j<steps;j++){
     const delta=distance/steps;w.p.x+=w.direction.x*delta;w.p.z+=w.direction.z*delta;w.travel+=delta;w.radius=w.maxRadius*(.28+.72*Math.min(1,w.travel/2.2));
     // Sweep the width as well as the centre, so a wave cannot hit through a wall.
     for(let k=-2;k<=2;k++){const off=k*.5*w.radius*Math.cos(w.roll);if(this.api.blocked({x:w.p.x+Math.cos(w.yaw)*off,y:w.p.y,z:w.p.z-Math.sin(w.yaw)*off})){gone=true;break;}}
     if(gone)break;
-    if(target?.alive&&!w.hits.has(target.id)){
-     const dx=target.x-w.p.x,dz=target.z-w.p.z,along=dx*Math.sin(w.yaw)+dz*Math.cos(w.yaw),side=dx*Math.cos(w.yaw)-dz*Math.sin(w.yaw),dy=target.y-w.p.y;
-     const cross=side*Math.cos(w.roll)+dy*Math.sin(w.roll),thick=-side*Math.sin(w.roll)+dy*Math.cos(w.roll);
-     if(Math.abs(along)<.55+(target.radius||.5)&&Math.abs(cross)<w.radius+(target.radius||.5)&&Math.abs(thick)<.55+(target.height||1.7)*.4){w.hits.add(target.id);this.api.hit(w.damage,target.id,'eclipse');this.api.event('impact',{target,sword:'aurora',final:w.n===3});}
+    if(target?.alive&&!w.hits.has(target.id)&&auroraWaveTouches(w,target)&&!segmentBlocked(w.origin,target,this.api.blocked,ENERGY_OCCLUSION_STEP)){
+     w.hits.add(target.id);const applied=this.api.hit(w.damage,target.id,'eclipse',{target,wave:w,by:'energy'});
+     if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:'aurora',final:w.n===3,by:'energy',energy:w,p:auroraWaveImpactPoint(w,target)});
+    }
+    // A onda do Eclipse também percorre ctx.others: cada alvo lateral recebe dano e
+    // impacto próprio uma vez por onda, sem acumular hitstop/shake da multidão.
+    if(ctx.others?.length)for(const o of ctx.others){
+     if(!o?.alive||o.id==null||o.id===target?.id||w.hits.has(o.id)||!auroraWaveTouches(w,o)||segmentBlocked(w.origin,o,this.api.blocked,ENERGY_OCCLUSION_STEP))continue;
+     w.hits.add(o.id);const applied=this.api.hit(Math.round(w.damage*.8),o.id,'energy-side',{target:o,wave:w});
+     if(applied!==false&&applied!==0)this.api.event('impact',{target:o,sword:'aurora',final:false,by:'energy',secondary:true,energy:w,p:auroraWaveImpactPoint(w,o),hitstop:0,shake:0});
     }
    }
    if(gone||w.travel>=w.range){this.api.event('waveEnd',w);this.waves.splice(i,1);}

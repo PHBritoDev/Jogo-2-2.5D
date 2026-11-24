@@ -191,7 +191,9 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
   assert.ok(/fauna\.update\(dt,\{px:P\.x,pz:P\.z,hour:gameClock\.hour,camera,hidden:voidMode\|\|caveWalk\}\)/.test(m));
   assert.ok(/worldAudio\.update\(dt,\{[^}]*insects:faunaInsects,/.test(m));
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
-  assert.ok(/if \(list\.length && !assets\[kind\] && !loading\)/.test(src));
+  assert.ok(/const retry = loadState\[kind\]/.test(src), 'estado de retry separado dos assets carregados');
+  assert.ok(/!retry\.permanent && !retry\.exhausted && t >= retry\.retryAt/.test(src), 'backoff, falha permanente e esgotamento controlam o próximo pedido');
+  assert.ok(/activeLoads \+ orphanedLoads < FAUNA_MAX_CONCURRENT_LOADS/.test(src), 'conta também parses órfãs no limite de concorrência');
 });
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */

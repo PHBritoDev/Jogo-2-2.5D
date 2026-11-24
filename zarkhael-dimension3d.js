@@ -173,6 +173,16 @@ function floorGeometry(THREE,radius) {
   quad(-8,-212,8,join);
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Array(positions.length/3*2).fill(0),2));geo.setIndex(indices);geo.computeVertexNormals();return geo;
 }
+export function getZarkhaelLighting() {
+  return {
+    bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
+    hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
+    // Raise the shared fill and shift it toward the player-facing side.
+    // The 8m height softens the checker-floor hotspot; +2m Z improves the near-facing read of Zar’khael.
+    // Both combatants stay in the near field; the 30m disc remains inside 36m and the corridor stays outside.
+    light:[0xdfe6f2,16,36,[0,8,2]], exposure:.85
+  };
+}
 export function buildMushroomDimension(THREE,group,spec,ctx) {
   const uniforms={uTime:{value:0},uPlayer:{value:new THREE.Vector3(0,1.7,10)},uCamera:{value:new THREE.Vector3()},uDistance:{value:95},uFraction:{value:.67}};
   const items=mushroomLayout(spec.radius),visuals=new THREE.Group();visuals.name='ZarkhaelOrganicArchitecture';group.add(visuals);
@@ -208,5 +218,5 @@ export function buildMushroomDimension(THREE,group,spec,ctx) {
   });
   ctx.refs.mushrooms={items,eyes:patches.eyes,uniforms,stats:()=>({quality:currentQuality,mushrooms:items.length,eyes:patches.eyes.length,drawCalls:5,disposed}),
     dispose(){if(disposed)return;disposed=true;for(const geometry of lodGeometries)geometry.dispose();group.traverse(o=>{if(o.geometry&&!lodGeometries.has(o.geometry))o.geometry.dispose();if(o.material)o.material.dispose();if(o.isInstancedMesh)o.dispose();});}};
-  return {bg:0x010102,fog:0x010102,fogNear:65,fogFar:265,hemi:[0xb7b1af,0x110608,.48],sun:[0xffe8dc,1.0],light:[0xffefdf,3.5,110,[0,18,4]],exposure:.85};
+  return getZarkhaelLighting();
 }
