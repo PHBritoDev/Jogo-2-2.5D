@@ -226,7 +226,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
       const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3 };
       if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
-      else { A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
+      else { mesh.material = mat; A.proto = g.scene; A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
       assets[kind] = A; delete loadState[kind];
       const loadMs = Math.round(performance.now() - t0);
       if (attempt > 1 || state.cycles > 0) stats.lastLoadRecovery = { kind, attempt, cycle: state.cycles + 1, loadMs };
@@ -464,10 +464,9 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         if (A.im) {
           root.remove(A.im);
           A.im.dispose?.();
-          releaseGltf({ scene: A.im });
         }
-        // O GLB pode conter meshes auxiliares não skinned e materiais próprios.
-        // Reutilizar a liberação completa evita deixar geometria/textura órfã.
+        // A cena-fonte mantém também meshes auxiliares que não entram na InstancedMesh.
+        // Ela é a única dona da geometria/material compartilhados com A.im.
         if (A.proto) releaseGltf({ scene: A.proto });
       }
       scene.remove(root);
