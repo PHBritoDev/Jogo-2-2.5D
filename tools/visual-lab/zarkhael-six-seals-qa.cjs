@@ -54,9 +54,18 @@ async function main(){
      return {arena:a,player:{x:p.x,y:p.y,z:p.z},safeDistance,dangerRadius,hpBefore:s.hp};
     });
     const launch=await page.evaluate(()=>{
-     const d=window.SevenSinsDebug3D,response=d.kitMove("ult");
-     return {response,cine:d.dimState().cinematic};
+     const d=window.SevenSinsDebug3D,response=d.kitMove("ult"),s=d.dimState();
+     return {response,cine:s.cinematic,diagnostics:{bossUltKind:s.bossUltKind,bossUltTime:s.bossUltTime,
+      squad:s.squad,dtScale:s.dtScale,paused:s.paused,cineActive:s.cineActive,battle:s.battle,visible:s.visible}};
     });
+    if(launch.diagnostics.bossUltKind!=="zarkhael6")
+     throw Error("Ultimate foi criada, mas o update central já limpou bossUlt: "+JSON.stringify(launch.diagnostics));
+    const firstTick=await page.waitForFunction(()=>{
+     const s=window.SevenSinsDebug3D.dimState();
+     return s.cinematic?.t>.08&&s.bossUltKind==="zarkhael6"&&s.bossUltTime>.08
+      ?{phase:s.cinematic.phase,t:s.cinematic.t,bossUltTime:s.bossUltTime,squad:s.squad,dtScale:s.dtScale}:null;
+    },null,{timeout:12000,polling:125});
+    data.firstTick=await firstTick.jsonValue();
     let launchState=launch.cine;
     if(!launchState||launchState.phase!=="aura"){
      const h=await page.waitForFunction(()=>{
@@ -66,7 +75,7 @@ async function main(){
      launchState=await h.jsonValue();
     }
     if(!launchState)throw Error("Ultimate não iniciou por kitMove(ult); resposta="+String(launch.response));
-    data.launch={...setup,response:launch.response,phase:launchState.phase};
+    data.launch={...setup,response:launch.response,phase:launchState.phase,diagnostics:launch.diagnostics};
     const schedule=[
      ["01-bispo-frente",1.25,"FRONTAL_BISPO"],
      ["02-aura-controlada",2.88,"FRONTAL_BISPO"],
