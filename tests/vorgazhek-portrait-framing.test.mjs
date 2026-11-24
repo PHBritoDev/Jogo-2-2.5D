@@ -6,6 +6,7 @@ const world = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.ur
 const css = fs.readFileSync(new URL('../hud3d.css', import.meta.url), 'utf8');
 const html = fs.readFileSync(new URL('../mundo-3d-prototype.html', import.meta.url), 'utf8');
 const qa = fs.readFileSync(new URL('../tools/visual-lab/a1-vorgazhek-portrait-qa.cjs', import.meta.url), 'utf8');
+const squadRuntime = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', import.meta.url), 'utf8');
 
 test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não altera paisagem', () => {
   assert.match(world, /function portraitBishop2Profile\(foeOn,sep\)/);
@@ -83,8 +84,15 @@ test('controles do retrato compacto afastam escudo, corrida e mira do joystick',
 });
 
 
-test('QA verifica projeção e separação dos dois combatentes, não apenas deslocamento da câmera', () => {
-  assert.match(qa, /actors: d && d\.actorScreen \? d\.actorScreen\(\) : null/);
+test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível', () => {
+  assert.match(world, /const focusActor=newHero&&squadOn&&squadFocus\?\.alive\?squadFocus:null/);
+  assert.match(world, /const focusBody=focusActor\?squadRT\?\.body\?\.\(focusActor\.id\):null/);
+  assert.match(world, /target=focusBody\?\.holder\|\|enemy/);
+  assert.match(world, /source:focusBody\?'squad-body':'enemy-proxy'/);
+  assert.match(world, /focusBody\.holder\.visible&&focusBody\.model\.visible&&focusBody\.holder\.parent/);
+  assert.match(squadRuntime, /body\(id\) \{ return bodies\.get\(id\) \|\| null; \}/);
+  assert.match(qa, /state\.actors\.enemy\?\.source, 'squad-body'/);
+  assert.match(qa, /state\.actors\.enemy\?\.visible, true/);
   assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
   assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
   assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= \.22/);

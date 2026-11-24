@@ -8818,9 +8818,16 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
  /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
  actorScreen(){
-  camera.updateMatrixWorld(true);
-  const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
-  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(enemy,1),head:point(enemy,2)},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
+  const focusActor=newHero&&squadOn&&squadFocus?.alive?squadFocus:null;
+  const focusBody=focusActor?squadRT?.body?.(focusActor.id):null;
+  const target=focusBody?.holder||enemy,targetHeight=focusBody?.height||2;
+  if(focusBody?.holder)focusBody.holder.updateMatrixWorld(true);
+  player.updateMatrixWorld(true);target.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+  const project=v=>{v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
+  const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;return project(v);};
+  const headPoint=()=>{const v=new THREE.Vector3();if(focusBody?.head?.getWorldPosition)focusBody.head.getWorldPosition(v);else{target.getWorldPosition(v);v.y+=targetHeight*.9;}return project(v);};
+  const visible=focusBody?!!(focusBody.holder.visible&&focusBody.model.visible&&focusBody.holder.parent):!!enemy.visible;
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride};
  },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
