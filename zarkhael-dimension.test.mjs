@@ -30,17 +30,17 @@ test('cap profile stays finite, continuous at seam and asymmetric',()=>{
 test('mushroom cap shading reuses its precomputed tissue field instead of evaluating it twice',()=>{
   const source=readFileSync(new URL('./zarkhael-dimension3d.js',import.meta.url),'utf8');
   const helperStart=source.indexOf('vec3 flesh(vec3 p,float n){');
-  const helperEnd=source.indexOf('\\n}',helperStart);
+  const helperEnd=source.indexOf('}',helperStart);
   assert.ok(helperStart>=0&&helperEnd>helperStart,'cap flesh helper must receive the already computed tissue value');
   const helper=source.slice(helperStart,helperEnd);
-  assert.doesNotMatch(helper,/tissue\\(/,'the cap helper must not repeat the three-octave tissue noise');
+  assert.doesNotMatch(helper,/tissue\(/,'the cap helper must not repeat the three-octave tissue noise');
   const capStart=source.indexOf("const color = kind === 'cap' ?");
   const capEnd=source.indexOf(": kind === 'stem'",capStart);
   assert.ok(capStart>=0&&capEnd>capStart,'cap material branch must remain present');
   const cap=source.slice(capStart,capEnd);
-  assert.equal((cap.match(/tissue\\(/g)||[]).length,1,'each cap fragment should evaluate tissue noise once');
-  assert.match(cap,/diffuseColor\\.rgb=flesh\\(vOrganic\\*\\.85,n\\)/,'the exact computed tissue value must feed the flesh shading');
-  assert.equal((source.match(/flesh\\(/g)||[]).length,2,'the helper and its single cap call must remain paired');
+  assert.equal((cap.match(/tissue\(/g)||[]).length,1,'each cap fragment should evaluate tissue noise once');
+  assert.match(cap,/diffuseColor\.rgb=flesh\(vOrganic\*\.85,n\)/,'the exact computed tissue value must feed the flesh shading');
+  assert.equal((source.match(/flesh\(/g)||[]).length,2,'the helper and its single cap call must remain paired');
 });
 
 test('quality limits animation distance, density and target sampling without removing eyes',()=>{
