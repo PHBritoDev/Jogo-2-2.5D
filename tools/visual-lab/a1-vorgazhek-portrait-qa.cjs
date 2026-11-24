@@ -124,7 +124,16 @@ async function inspect(page) {
         },
         coins: rect('#coin-pill'),
         hearts: rect('#heart-pill'),
-        objective: rect('#objective-arrow')
+        objective: rect('#objective-arrow'),
+        actionButtons: Array.from(document.querySelectorAll('#actions button')).map(el => {
+          const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+          return {
+            id: el.id, display: s.display, visibility: s.visibility, opacity: s.opacity,
+            left: +r.left.toFixed(1), top: +r.top.toFixed(1),
+            right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1),
+            width: +r.width.toFixed(1), height: +r.height.toFixed(1)
+          };
+        })
       }
     };
   });
@@ -154,6 +163,9 @@ function assertPortrait(state, label) {
   assert.equal(state.bodyClass, true, label + ': escopo visual ativado');
   assert.ok(String(state.bossName || '').includes('VORGAZHEK'), label + ': nome do chefe');
   const h = state.hud, w = state.viewport.width, height = state.viewport.height;
+  const visibleButtons = Object.fromEntries((h.actionButtons || [])
+    .filter(button => button.display !== 'none' && button.visibility !== 'hidden' && Number(button.opacity) > 0)
+    .map(button => [button.id, button]));
   assert.ok(h.enemy && h.enemy.display !== 'none' && h.enemy.visibility !== 'hidden', label + ': barra do Bispo visível');
   assert.ok(h.enemy.width >= 200 && h.enemy.top >= 0 && h.enemy.bottom <= 150, label + ': barra do Bispo no topo');
   assert.equal(h.quest.display, 'none', label + ': missão recolhida');
@@ -164,6 +176,9 @@ function assertPortrait(state, label) {
   assert.ok(h.actions.left >= 0 && h.actions.right <= w && h.actions.top >= height * .70 && h.actions.bottom <= height + 1, label + ': ações dentro da borda inferior direita');
   assert.ok(h.stick.left >= 0 && h.stick.right <= w && h.stick.top >= height * .70 && h.stick.bottom <= height + 1, label + ': joystick dentro da borda inferior esquerda');
   assert.ok(!overlaps(h.actions, h.stick), label + ': joystick e ações separados');
+  assert.ok(visibleButtons.shield && !overlaps(visibleButtons.shield, h.stick), label + ': escudo não cobre joystick');
+  assert.ok(visibleButtons.run && !overlaps(visibleButtons.run, h.stick), label + ': corrida não cobre joystick');
+  if (visibleButtons.aim) assert.ok(!overlaps(visibleButtons.aim, visibleButtons.shield), label + ': mira não cobre escudo');
   assert.ok(!overlaps(h.enemy, h.actions) && !overlaps(h.enemy, h.stick), label + ': barra não cobre controles');
   assert.ok(!overlaps(h.enemy, h.topRight), label + ': barra do Bispo não cobre controles superiores');
   assert.ok(!overlaps(h.enemy, h.player), label + ': barra não cobre vida do protagonista');

@@ -68,3 +68,13 @@ test('QA inicia a apresentação uma vez e mantém a espera da batalha somente l
   assert.equal(pollBodies.length, 2, 'dois estados observados sem side effects');
   assert.ok(pollBodies.every(body => !body.includes('.vsGo(')), 'polling permanece somente leitura');
 });
+
+
+test('controles do retrato compacto afastam escudo, corrida e mira do joystick', () => {
+  assert.match(css, /body\.bishop2-battle #actions #shield\{right:calc\(var\(--u\)\*3\.8\)!important\}/);
+  assert.match(css, /body\.bishop2-battle #actions #run\{right:calc\(var\(--u\)\*3\.7\)!important\}/);
+  assert.match(css, /body\.bishop2-battle #actions #aim\{right:calc\(var\(--u\)\*2\.8\)!important\}/);
+  assert.match(qa, /actionButtons: Array\.from\(document\.querySelectorAll\('#actions button'\)\)/);
+  assert.match(qa, /!overlaps\(visibleButtons\.shield, h\.stick\)/);
+  assert.match(qa, /!overlaps\(visibleButtons\.run, h\.stick\)/);
+});
