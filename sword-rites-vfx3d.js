@@ -8,6 +8,21 @@ export function swordImpactCue(e){
  if(e?.secondary)return{burst:24,scale:.82,life:.28,secondScale:.48,secondLife:.22};
  return{burst:e?.final ? 32 : 15,scale:e?.final ? .9 : .52,life:.19};
 }
+/** Resolve the impact cut's world heading from the attack that actually connected. */
+export function swordImpactYaw(e){
+ const energy=e?.energy||e?.wave;
+ if(energy?.kind==='sector'&&Number.isFinite(energy.x)&&Number.isFinite(energy.z)&&
+  Number.isFinite(e?.target?.x)&&Number.isFinite(e?.target?.z)){
+  const dx=e.target.x-energy.x,dz=e.target.z-energy.z;
+  if(Math.hypot(dx,dz)>1e-5)return Math.atan2(dx,dz);
+ }
+ for(const direction of [e?.direction,e?.wave?.direction,energy?.direction]){
+  if(direction&&Number.isFinite(direction.x)&&Number.isFinite(direction.z)&&Math.hypot(direction.x,direction.z)>1e-5)
+   return Math.atan2(direction.x,direction.z);
+ }
+ const yaw=Number.isFinite(e?.yaw)?e.yaw:Number.isFinite(energy?.yaw)?energy.yaw:Number.isFinite(e?.wave?.yaw)?e.wave.yaw:0;
+ return Math.atan2(Math.sin(yaw),Math.cos(yaw));
+}
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
  */
@@ -57,7 +72,7 @@ export function createSwordRitesVFX(T,scene){
    if(e.final)cut(p,'prota',2,roll+Math.PI/2,n*.91,.38);
    burst(p,'prota',e.final?24:4);
   }
-  else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,time*3,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,time*3+Math.PI/2,cue.secondLife);}
+  else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw,cue.secondLife);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
   else if(type==='cancel')clear();
  }

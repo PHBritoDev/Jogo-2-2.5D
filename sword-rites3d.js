@@ -285,7 +285,7 @@ export class SwordRites {
      const precheckedVisible=stationaryOcclusion?.visible.has(target)===true;
      if(contact&&!precheckedOccluded&&(precheckedVisible||!bladeOcclusionCached(a,target,ctx.from,this.time))){
       if(!precheckedVisible&&segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
-      else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});}
+      else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,yaw:a.yaw,hitstop:a.def.hitstop,shake:a.def.shake});}
      }
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
@@ -303,7 +303,7 @@ export class SwordRites {
       a.bladeSideHits.add(other.id);
       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
       const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
-      if(applied!==false&&applied!==0)this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:contact,hitstop:0,shake:0});
+      if(applied!==false&&applied!==0)this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:contact,yaw:a.yaw,hitstop:0,shake:0});
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
