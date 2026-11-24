@@ -13,6 +13,7 @@ export const SWORD_COMBO=Object.freeze([
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
+const BLADE_SWEEP_RAILS=Object.freeze([0,.25,.5,.75,1]);
 /** Resolve the source and damage class for a secondary squad contact.
  * Waves push along their travel direction; sectors push radially from their origin.
  * Physical blade contacts keep the hero as their source.
@@ -60,7 +61,7 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
   const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
   // Trace five rails through the moving blade between poses; coarse 6cm pose samples
   // alone can tunnel through a 1cm wall even when each endpoint pose is clear.
-  if(previous)for(const rail of [0,.25,.5,.75,1]){
+  if(previous)for(const rail of BLADE_SWEEP_RAILS){
    const from={x:previous.base.x+(previous.tip.x-previous.base.x)*rail,y:previous.base.y+(previous.tip.y-previous.base.y)*rail,z:previous.base.z+(previous.tip.z-previous.base.z)*rail};
    const to={x:base.x+(tip.x-base.x)*rail,y:base.y+(tip.y-base.y)*rail,z:base.z+(tip.z-base.z)*rail};
    if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
