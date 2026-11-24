@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
+import { SwordRites, segmentBlocked, swordSideHitContext } from '../sword-rites3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
 
@@ -545,4 +545,32 @@ test('ondas viajantes interrompem a trajetória visual ao cruzar parede de 1 cm'
   assert.equal(clear.active,1,kind+': corredor livre mantém a onda ativa');
   assert.ok(clear.projectile.travel>1.09,kind+': corredor livre permite deslocamento');
  }
+});
+
+
+test('segmentBlocked rejeita origem já dentro de um obstáculo, mesmo quando a primeira amostra sai dele',()=>{
+ const start={x:0,y:1,z:0},end={x:.6,y:1,z:0};
+ const blocked=p=>p.x>=0&&p.x<.005;
+ assert.equal(blocked(start),true,'o ponto de emissão começa dentro da parede fina');
+ assert.equal(blocked({x:.008,y:1,z:0}),false,'a primeira amostra de 8 mm já estaria fora da parede');
+ assert.equal(segmentBlocked(start,end,blocked,.008),true,'a linha precisa rejeitar a origem obstruída antes de avançar');
+});
+function thinWallStartReleaseScenario(){
+ const events=[],rites=new SwordRites({
+  moveset:()=>({id:'thin-start-wall',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,count:1,
+   energy:{kind:'wave',at:.01,roll:0,radius:1.2,speed:12,range:4,band:.7,life:1}}),
+  blocked:p=>p.z>=0&&p.z<.005,
+  pose:()=>({base:{x:0,y:1,z:0},tip:{x:0,y:1,z:1}}),
+  event:type=>events.push(type)
+ });
+ const target=enemy('focus',0,4);
+ rites.attack('prota',{target,yaw:0});
+ const ctx={from:{x:0,y:0,z:0},target,sword:'prota',ground:0,grounded:true};
+ for(let i=0;i<5;i++)rites.update(1/120,ctx);
+ return{energies:rites.energies.length,events};
+}
+test('release não cria crescente quando a origem do herói já está dentro de uma parede sub-8mm',()=>{
+ const result=thinWallStartReleaseScenario();
+ assert.equal(result.energies,0,'a energia não pode nascer do outro lado de uma parede que contém a origem');
+ assert.ok(result.events.includes('obstructed'),'a obstrução inicial precisa ser registrada');
 });
