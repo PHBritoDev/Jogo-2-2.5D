@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mushroomLayout,capPoint,blinkOpen,MUSHROOM_QUALITY,getZarkhaelLighting} from './zarkhael-dimension3d.js';
 import {DIMENSIONS,arenaSpots} from './dimensions3d.js';
 import {readFileSync} from 'node:fs';
+import {createLightBudget} from './light-budget3d.js';
 
 test('mushroom stems preserve the entire original 30m combat disc',()=>{
   const items=mushroomLayout(30);assert.deepEqual(items,mushroomLayout(30));assert.equal(items.length,24);
@@ -78,12 +79,53 @@ test('production runtime and preview consume the exact Zar’khael preset throug
   assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
 });
 
-test('A/B harness records the live four-slot light budget and requires the dimension fill to be selected',()=>{
+test('A/B identifies the exact Zar’khael fill by world position and source parameters',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
   assert.match(qa,/const lighting=await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.perfProbe\(1\)\)/);
   assert.match(qa,/lighting\.lights\?\.slots,4/);
-  assert.match(qa,/lighting\.lights\?\.active\?\.includes\('luz'\)/);
-  assert.match(qa,/lighting\.shaderPointLights,4/);
+  assert.match(qa,/lighting\.lights\?\.activeDetails\?\.find/);
+  assert.match(qa,/Math\.abs\(source\.position\[0\]-1200\)/);
+  assert.match(qa,/Math\.abs\(source\.distance-36\)/);
+  assert.match(qa,/Math\.abs\(source\.intensity-16\)/);
+  assert.match(qa,/fill\.slotIntensity>15/);
+  assert.doesNotMatch(qa,/active\?\.includes\('luz'\)/);
+  assert.match(budget,/activeDetails: selected\.map/);
+});
+
+test('light-budget telemetry reports the real selected source, world position and shader-slot intensity',()=>{
+  class Obj {
+    constructor(){this.children=[];this.parent=null;this.isObject3D=true;this.visible=true;this.matrixWorld={elements:new Array(16).fill(0)};this.matrixWorld.elements[15]=1;}
+    add(...objects){for(const o of objects){if(o.parent){const i=o.parent.children.indexOf(o);if(i>=0)o.parent.children.splice(i,1);}this.children.push(o);o.parent=this;}return this;}
+    remove(...objects){for(const o of objects){const i=this.children.indexOf(o);if(i>=0){this.children.splice(i,1);o.parent=null;}}return this;}
+    traverse(fn){fn(this);for(const child of this.children)child.traverse(fn);}
+    getWorldPosition(out){const e=this.matrixWorld.elements;out.x=e[12];out.y=e[13];out.z=e[14];return out;}
+  }
+  class Point extends Obj {
+    constructor(){super();this.isPointLight=true;this.userData={};this.castShadow=false;this.layers={mask:1,set(i){this.mask=1<<i;}};
+      this.position={setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];}};
+      this.color={r:.745,g:.791,b:.888,copy(c){this.r=c.r;this.g=c.g;this.b=c.b;}};
+      this.intensity=0;this.distance=0;this.decay=2;}
+  }
+  class Vec {
+    constructor(){this.x=this.y=this.z=0;}
+    setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];return this;}
+    distanceTo(v){return Math.hypot(this.x-v.x,this.y-v.y,this.z-v.z);}
+  }
+  const T={Object3D:Obj,PointLight:Point,Vector3:Vec},scene=new Obj(),fill=new Point();
+  fill.name='zarkhael-dimension-fill';fill.intensity=16;fill.distance=36;fill.decay=2;
+  fill.matrixWorld.elements[12]=1200;fill.matrixWorld.elements[13]=7;fill.matrixWorld.elements[14]=0;
+  scene.add(fill);
+  const budget=createLightBudget(T,scene,{slots:4,rescanEvery:1});
+  const camera={getWorldPosition(out){out.x=1200;out.y=7;out.z=0;}};
+  for(let i=0;i<60;i++)budget.update(camera,1/60);
+  const details=budget.stats().activeDetails;
+  assert.equal(details.length,1);
+  assert.deepEqual(details[0].position,[1200,7,0]);
+  assert.equal(details[0].name,'zarkhael-dimension-fill');
+  assert.equal(details[0].intensity,16);
+  assert.equal(details[0].distance,36);
+  assert.ok(details[0].slotIntensity>15);
 });
 
 test('A/B harness freezes boss automation, waits for VS readiness and performs one trusted start click',()=>{
