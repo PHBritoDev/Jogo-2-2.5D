@@ -20,12 +20,21 @@ const copy=p=>({x:p.x,y:p.y,z:p.z});
 export function swordSideHitContext(meta,target,fallback){
  const energy=meta?.wave||meta?.energy;
  if(!energy)return{x:fallback.x,z:fallback.z,kind:'melee'};
- const direction=energy.direction||(energy.kind==='wave'&&Number.isFinite(energy.yaw)?{x:Math.sin(energy.yaw),z:Math.cos(energy.yaw)}:null);
+ const direction=energy.direction;
  if(direction&&Number.isFinite(direction.x)&&Number.isFinite(direction.z)){
-  const len=Math.hypot(direction.x,direction.z)||1;
-  return{x:target.x-direction.x/len,z:target.z-direction.z/len,kind:'spell'};
+  const len=Math.hypot(direction.x,direction.z);
+  if(len>1e-5)return{x:target.x-direction.x/len,z:target.z-direction.z/len,kind:'spell'};
  }
- if(Number.isFinite(energy.x)&&Number.isFinite(energy.z))return{x:energy.x,z:energy.z,kind:'spell'};
+ // Degenerate/missing wave vectors still have a deterministic travel heading.
+ if(energy.kind==='wave'&&Number.isFinite(energy.yaw)){
+  return{x:target.x-Math.sin(energy.yaw),z:target.z-Math.cos(energy.yaw),kind:'spell'};
+ }
+ if(Number.isFinite(energy.x)&&Number.isFinite(energy.z)){
+  const dx=target.x-energy.x,dz=target.z-energy.z;
+  if(Math.hypot(dx,dz)>1e-5)return{x:energy.x,z:energy.z,kind:'spell'};
+  // A target exactly at a radial sector's origin has no radial normal; use its authored yaw.
+  if(Number.isFinite(energy.yaw))return{x:target.x-Math.sin(energy.yaw),z:target.z-Math.cos(energy.yaw),kind:'spell'};
+ }
  return{x:fallback.x,z:fallback.z,kind:'spell'};
 }
 export function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
