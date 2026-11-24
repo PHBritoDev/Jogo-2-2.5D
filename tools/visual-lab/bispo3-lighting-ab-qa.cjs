@@ -92,6 +92,8 @@ async function capture(label,url,browser){
       return {hero:d.camView(),boss:d.projectBoss(),viewport:{width:innerWidth,height:innerHeight}};
     });
     assert.equal(actorFrame.hero?.onScreen,true,label+': protagonist is outside the camera frame');
+    assert.ok(Number.isFinite(actorFrame.hero?.camToHero)&&actorFrame.hero.camToHero<=14,
+      label+': protagonist is only a distant speck, not framed at combat distance');
     assert.ok(Array.isArray(actorFrame.boss)&&actorFrame.boss.length===2&&actorFrame.boss.every(Number.isFinite),
       label+': boss target has no valid screen projection');
     assert.ok(actorFrame.boss[0]>=0&&actorFrame.boss[0]<=actorFrame.viewport.width&&
