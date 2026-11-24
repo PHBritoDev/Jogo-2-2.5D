@@ -159,31 +159,34 @@ export class SwordRites {
    if(blade){if(live)this.api.event('blade',{a,blade});
     if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
     if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48)-.2);}
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){const prev=this.prevBlade||blade;
-     const ext=(b)=>{if(!a.def.trail)return b.tip;const dx=b.tip.x-b.base.x,dy=b.tip.y-b.base.y,dz=b.tip.z-b.base.z,l=Math.hypot(dx,dy,dz)||1,k=1+a.def.trail/l;return{x:b.base.x+dx*k,y:b.base.y+dy*k,z:b.base.z+dz*k};}; // CLAUDE (P4): a varredura cobre o rastro visível colado à lâmina
-     if(bladeContact(prev.base,ext(prev),blade.base,ext(blade),target,(target.radius||.48)+(a.def.drive?.2:.12))&&!segmentBlocked(ctx.from,target,this.api.blocked)&&!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
+    // Build one wall-clipped sweep for every physical swing. The primary target must
+    // obey the same first-wall cutoff as side targets; checking only the final blade pose
+    // allowed a fast swing to tunnel through a wall between two animation samples.
+    let physicalSweep=null;
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live){
+     const prev=this.prevBlade||blade;
+     const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
+     physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,extend(prev),blade.base,extend(blade),this.api.blocked);
+     if(physicalSweep.blocked)a.bladeBlocked=true;
+    }
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive)){
+     const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
+     if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked)){
       a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2},hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }
-    // Each physical swing may also connect with nearby bodies crossed by the actual blade.
-    // A per-swing set prevents repeated damage from 120 Hz substeps; the primary target
-    // retains its original hit/impact behavior and damage budget.
+    // Each physical swing may also connect with nearby bodies crossed by the same sweep.
+    // A per-swing set prevents repeated damage from 120 Hz substeps.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&ctx.others?.length){
-     const prev=this.prevBlade||blade;
-     const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
      a.bladeSideHits=a.bladeSideHits||new Set();
-     if(!a.bladeBlocked){
-      const sweep=bladeSweepFrames(prev.base,extend(prev),blade.base,extend(blade),this.api.blocked);
-      for(const other of ctx.others){
-       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
-       const contact=bladeContactPoint(sweep.frames,other,(other.radius||.48)+.12,ctx.from);
-       if(!contact||segmentBlocked(ctx.from,other,this.api.blocked))continue;
-       a.bladeSideHits.add(other.id);
-       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
-       this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
-       this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:contact,hitstop:0,shake:0});
-      }
-      if(sweep.blocked)a.bladeBlocked=true;
+     for(const other of ctx.others){
+      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
+      if(!contact||segmentBlocked(ctx.from,other,this.api.blocked))continue;
+      a.bladeSideHits.add(other.id);
+      // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
+      this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
+      this.api.event('impact',{target:other,sword:a.sword,final:false,pattern:a.def.pattern,mode:a.mode,by:'blade',secondary:true,p:contact,hitstop:0,shake:0});
      }
     }this.prevBlade={base:copy(blade.base),tip:copy(blade.tip)};
    }
