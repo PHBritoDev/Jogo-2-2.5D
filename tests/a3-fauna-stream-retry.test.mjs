@@ -329,3 +329,92 @@ test('fauna: GLBs pendurados são abortados e liberam as duas vagas para retry',
   assert.equal(fauna.stats.activeLoads, 0);
   fauna.dispose();
 });
+
+
+test('fauna: HTTP 404 no caminho fetch/parseAsync cancela o corpo e fica permanente', async () => {
+  let requests = 0, parses = 0, signalAborted = false;
+  class Loader {
+    register() {}
+    parseAsync() { parses++; return Promise.resolve({ scene: fakeScene() }); }
+  }
+  const fetchImpl = async (_url, { signal }) => {
+    requests++;
+    return { ok: false, status: 404, statusText: 'Not Found', arrayBuffer: async () => new ArrayBuffer(0),
+      get body() { return null; }, signal };
+  };
+  const originalFetch = fetchImpl;
+  const wrappedFetch = async (url, options) => {
+    const response = await originalFetch(url, options);
+    options.signal.addEventListener('abort', () => { signalAborted = true; }, { once: true });
+    return response;
+  };
+  const fauna = create(Loader, ctx, { fetchImpl: wrappedFetch });
+  const failure = await fauna.load('grilo');
+  assert.equal(failure.permanent, true);
+  assert.equal(fauna.stats.lastLoadError.status, 404);
+  assert.equal(fauna.stats.permanentFailures, 1);
+  assert.equal(signalAborted, true, 'a resposta não utilizável deve cancelar seu corpo');
+  tick(fauna, 60);
+  await fauna.load('grilo');
+  assert.equal(requests, 1, '404 não pode repetir na mesma sessão');
+  assert.equal(parses, 0, 'GLTFLoader não deve receber uma resposta HTTP inválida');
+  fauna.dispose();
+});
+
+test('fauna: HTTP 429 no caminho fetch/parseAsync é transitório e entrega bytes/base', async () => {
+  let requests = 0;
+  const bytes = new ArrayBuffer(16), parsed = [];
+  class Loader {
+    register() {}
+    parseAsync(data, path) {
+      parsed.push({ data, path });
+      return Promise.resolve({ scene: fakeScene() });
+    }
+  }
+  const fetchImpl = async () => {
+    requests++;
+    if (requests === 1) return { ok: false, status: 429, statusText: 'Too Many Requests' };
+    return { ok: true, status: 200, statusText: 'OK', arrayBuffer: async () => bytes };
+  };
+  const base = 'https://assets.example/game/';
+  const fauna = create(Loader, ctx, { fetchImpl, base });
+  const failure = await fauna.load('grilo');
+  assert.equal(failure.permanent, false);
+  assert.equal(fauna.stats.lastLoadError.status, 429);
+  tick(fauna, .8);
+  await fauna.load('grilo');
+  assert.equal(requests, 2);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].data, bytes);
+  assert.equal(parsed[0].path, base);
+  assert.deepEqual(fauna.stats.loaded, ['grilo']);
+  assert.equal(fauna.stats.loadRetries, 1);
+  fauna.dispose();
+});
+
+test('fauna: timeout durante a leitura do corpo GLB também aborta e libera a vaga', async () => {
+  let aborted = 0, parses = 0;
+  class Loader {
+    register() {}
+    parseAsync() { parses++; return Promise.resolve({ scene: fakeScene() }); }
+  }
+  const fetchImpl = async (_url, { signal }) => ({
+    ok: true, status: 200, statusText: 'OK',
+    arrayBuffer: () => new Promise((resolve, reject) => {
+      const onAbort = () => {
+        aborted++;
+        reject(Object.assign(new Error('body aborted'), { name: 'AbortError' }));
+      };
+      if (signal.aborted) onAbort();
+      else signal.addEventListener('abort', onAbort, { once: true });
+    })
+  });
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 20 });
+  const failure = await fauna.load('grilo');
+  assert.match(failure.failed, /timed out after 20 ms/);
+  assert.equal(aborted, 1);
+  assert.equal(fauna.stats.loadTimeouts, 1);
+  assert.equal(fauna.stats.activeLoads, 0);
+  assert.equal(parses, 0);
+  fauna.dispose();
+});
