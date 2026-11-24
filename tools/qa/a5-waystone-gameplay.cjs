@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { isRuntimeAssetUrl, hasCompletedTouchLifecycle } = require('./a5-waystone-qa-utils.cjs');
+const { isRuntimeAssetUrl, hasCompletedTouchLifecycle, waypointStepBudget } = require('./a5-waystone-qa-utils.cjs');
 
 const OUT = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a5-waystones');
 const BASE = (process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
@@ -52,7 +52,8 @@ const report = {
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
   movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
-  commit: process.env.GITHUB_SHA || 'local',
+  commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
+  workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
   legs: [],
   walks: [],
@@ -387,9 +388,12 @@ async function walkTo(stone, label) {
     for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
       const waypoint = selected.plan.points[waypointIndex];
       const waypointStart = await playerState();
-      const progressWatch = createProgressWatch(Math.hypot(waypoint.x - waypointStart.x, waypoint.z - waypointStart.z), { threshold: 0.04, now: Date.now() });
+      const initialDistance = Math.hypot(waypoint.x - waypointStart.x, waypoint.z - waypointStart.z);
+      const maxSteps = waypointStepBudget(initialDistance);
+      assert.ok(maxSteps > 0, label + ': distância inicial inválida no waypoint ' + waypointIndex);
+      const progressWatch = createProgressWatch(initialDistance, { threshold: 0.04, now: Date.now() });
       let reached = false;
-      for (let step = 0; step < 180; step++) {
+      for (let step = 0; step < maxSteps; step++) {
         const p = await playerState();
         const distance = Math.hypot(waypoint.x - p.x, waypoint.z - p.z);
         if (distance <= .38) { reached = true; break; }
@@ -403,7 +407,7 @@ async function walkTo(stone, label) {
         travelled += delta; totalSteps++;
         const progress = progressWatch.sample(nextDistance, Date.now());
         report.legs.push({
-          label, waypoint: waypointIndex, step: totalSteps,
+          label, waypoint: waypointIndex, step: totalSteps, budget: maxSteps,
           distance: +distance.toFixed(2), nextDistance: +nextDistance.toFixed(2),
           delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
           progressed: progress.progressed, bestDistance: +progress.bestDistance.toFixed(2),
@@ -437,7 +441,7 @@ async function walkTo(stone, label) {
       }
       const afterWaypoint = await playerState();
       const remaining = Math.hypot(waypoint.x - afterWaypoint.x, waypoint.z - afterWaypoint.z);
-      assert.ok(reached || remaining <= .75, label + ': não alcançou waypoint ' + waypointIndex + '; distância=' + remaining.toFixed(2));
+      assert.ok(reached || remaining <= .75, label + ': não alcançou waypoint ' + waypointIndex + '; distância=' + remaining.toFixed(2) + '; orçamento=' + maxSteps);
     }
     const p = await playerState(), support = await walkState();
     const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
