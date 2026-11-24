@@ -15,7 +15,7 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /dimKey!=='bishop2'/);
   assert.match(world, /camera\.aspect>=\.78\|\|sep>28/);
   assert.match(world, /focusBlend:fit\.focusBlend/);
-  assert.match(world, /const fit=computePortraitCameraFit\(sep,camera\.aspect,camera\.fov\)/);
+  assert.match(world, /const fit=computePortraitCameraFit\(sep,camera\.aspect,camera\.fov,cameraPitch\)/);
   assert.match(world, /minDistance:fit\.minDistance/);
   assert.match(world, /sep<12\|\|!!portrait/);
   assert.match(world, /baseWant\+\(fittedWant-baseWant\)\*\(portrait\.release\?\?1\)/);
@@ -162,6 +162,20 @@ test('fit geométrico do retrato mantém o ator próximo dentro da margem e os d
       }
     }
   }
+});
+
+test('fit geométrico respeita a inclinação vertical da câmera', () => {
+  const aspect = 393 / 852, fov = 63, separation = 12, pitch = .8;
+  const level = computePortraitCameraFit(separation, aspect, fov, 0);
+  const tilted = computePortraitCameraFit(separation, aspect, fov, pitch);
+  const half = separation * .5, tanHalfHorizontal = Math.tan(fov * Math.PI / 360) * aspect;
+  const nearDepth = (tilted.minDistance - half * Math.cos(tilted.parallaxBias)) * Math.cos(pitch);
+  const nearNdc = half * Math.sin(tilted.parallaxBias) / (nearDepth * tanHalfHorizontal);
+  assert.ok(tilted.parallaxBias < level.parallaxBias, 'reduz paralaxe quando a câmera inclina');
+  assert.ok(nearNdc <= .721, 'ator próximo permanece dentro da margem segura em pitch alto');
+  assert.match(world, /cameraPitch:\+cameraPitch\.toFixed\(3\)/);
+  assert.match(qa, /afterTilt\.cameraPitch/);
+  assert.match(qa, /fire\('pointermove', 103/);
 });
 
 test('probe do alvo exige malha realmente visível e helper compatível com loader de blob', () => {
