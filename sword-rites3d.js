@@ -41,7 +41,7 @@ export function swordSideHitContext(meta,target,fallback){
 }
 export function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
 /** Includes the spawn segment: a blade reaching past a thin wall cannot emit behind it. */
-export function segmentBlocked(a,b,blocked,maxStep=.06){const step=Number.isFinite(maxStep)&&maxStep>0?maxStep:.06,n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/step));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
+export function segmentBlocked(a,b,blocked,maxStep=.06){if(blocked(a))return true;const step=Number.isFinite(maxStep)&&maxStep>0?maxStep:.06,n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/step));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
 /** Sweep the true blade, interpolating both endpoints, against a vertical capsule. */
 export function bladeContact(a,b,c,d,target,radius=.48){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06));
