@@ -77,6 +77,17 @@ async function capture(label,url,browser){
     // Confirm the production PointLight is not merely configured: the shared
     // four-slot mobile budget must actually select the dimension fill for this camera.
     const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));
+    // A valid lighting frame must contain both combatants, not merely visible scene objects.
+    const actorFrame=await page.evaluate(()=>{
+      const d=window.SevenSinsDebug3D;
+      return {hero:d.camView(),boss:d.projectBoss(),viewport:{width:innerWidth,height:innerHeight}};
+    });
+    assert.equal(actorFrame.hero?.onScreen,true,label+': protagonist is outside the camera frame');
+    assert.ok(Array.isArray(actorFrame.boss)&&actorFrame.boss.length===2&&actorFrame.boss.every(Number.isFinite),
+      label+': boss target has no valid screen projection');
+    assert.ok(actorFrame.boss[0]>=0&&actorFrame.boss[0]<=actorFrame.viewport.width&&
+      actorFrame.boss[1]>=0&&actorFrame.boss[1]<=actorFrame.viewport.height,
+      label+': boss target is outside the camera frame');
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
     const fill=lighting.lights?.activeDetails?.find(source=>
       source.position&&Math.abs(source.position[0]-1200)<.5&&Math.abs(source.position[2])<.5&&
@@ -100,7 +111,7 @@ async function capture(label,url,browser){
     await page.waitForTimeout(1600);
     const videoPath=await page.video().path();
     await context.close();
-    return {state,lighting,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
+    return {state,lighting,actorFrame,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
   }catch(error){
     await context.close().catch(()=>{});
     throw error;
