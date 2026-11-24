@@ -424,8 +424,9 @@ body.no-hints #top{display:none!important}
 @media (orientation:portrait) and (max-width:388px){
  body.bishop2-battle #inventory-btn,
  body.bishop2-battle #map-toggle-3d{display:none!important}
+ body.bishop2-battle #stick{width:calc(var(--u)*2.15)!important;height:calc(var(--u)*2.15)!important}
  body.bishop2-battle #actions #shield{right:calc(var(--u)*3.8)!important}
- body.bishop2-battle #actions #run{right:calc(var(--u)*3.7)!important}
+ body.bishop2-battle #actions #run{right:calc(var(--u)*3.9)!important}
  body.bishop2-battle #actions #aim{right:calc(var(--u)*2.8)!important}
 }
 @media (orientation:portrait) and (max-width:600px){
