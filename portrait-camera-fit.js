@@ -10,17 +10,19 @@ function smoothstep01(value) {
   return t * t * (3 - 2 * t);
 }
 
-export function computePortraitCameraFit(separation, aspect, fov = 56) {
+export function computePortraitCameraFit(separation, aspect, fov = 56, pitch = 0) {
   const sep = Number.isFinite(separation) ? Math.max(0, separation) : 0;
   const ratio = Number.isFinite(aspect) ? Math.max(.1, aspect) : .375;
   const verticalFov = Number.isFinite(fov) ? Math.min(100, Math.max(20, fov)) : 56;
+  const pitchAngle = Number.isFinite(pitch) ? Math.min(1.32, Math.max(-1.32, pitch)) : 0;
+  const depthScale = Math.cos(pitchAngle);
   const minDistance = Math.min(15, Math.max(10.8, 10.8 + Math.max(0, sep - 6) * .3));
   const half = sep * .5;
   const tanHalfHorizontal = Math.max(.01, Math.tan(verticalFov * Math.PI / 360) * ratio);
   let low = 0, high = MAX_PORTRAIT_BIAS;
   for (let i = 0; i < 12; i++) {
     const bias = (low + high) * .5;
-    const nearDepth = minDistance - half * Math.cos(bias);
+    const nearDepth = (minDistance - half * Math.cos(bias)) * depthScale;
     const nearNdc = nearDepth > 0 ? half * Math.sin(bias) / (nearDepth * tanHalfHorizontal) : Infinity;
     if (nearNdc <= SAFE_ACTOR_NDC) low = bias;
     else high = bias;
