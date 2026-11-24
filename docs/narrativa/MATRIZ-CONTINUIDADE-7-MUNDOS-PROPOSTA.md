@@ -142,7 +142,44 @@ Regras:
 - Playwright/WebGL em paisagem e retrato; depois teste de toque/Android físico quando disponível.
 - Fotos/vídeo inspecionados manualmente; relatório sem console/page errors e sem aceitar screenshot que não mostre o evento.
 
-## 8. Coordenação e áreas protegidas
+## 8. Protocolo de playtest narrativo
+
+Amostras pequenas servem para encontrar confusão e ritmo ruim; não provam efeito universal. Fazer primeiro teste formativo com 5–8 jogadores, corrigir, e repetir com outra amostra. Não explicar a história antes do teste.
+
+Depois de cada cena, perguntar sem induzir:
+1. Qual é seu objetivo agora?
+2. Que pergunta você quer ver respondida?
+3. O que o NPC queria e o que ele temia?
+4. O que mudou por causa da sua escolha?
+5. Qual imagem, objeto ou frase ficou na memória?
+6. O que você faria em seguida?
+
+Registrar:
+- se o jogador consegue repetir o objetivo sem ajuda;
+- se identifica pelo menos uma pista antes da revelação;
+- se distingue o que é fato, suspeita e mentira;
+- se percebe a consequência da escolha no NPC/ambiente;
+- se o motivo sensorial retorna com significado novo;
+- onde pula diálogo, fica parado ou pede orientação;
+- se a pausa de exploração recupera a atenção depois de tensão alta.
+
+### Rubrica de aceitação por cena
+
+Pontuar cada item 0–2: 0 = falha; 1 = parcial; 2 = claro. Cena não passa com 0 em objetivo, continuidade ou retomada.
+
+| Critério | 0 | 1 | 2 |
+|---|---|---|---|
+| Objetivo | jogador não sabe o que fazer | precisa de marcador/ajuda excessiva | consegue explicar e localizar o próximo passo |
+| Curiosidade | segredo sem pista | uma pista ambígua | pergunta específica + duas pistas observáveis |
+| Personagem | NPC só entrega exposição | desejo é percebido, mas não a contradição | jogador explica desejo, medo e limite |
+| Agência | escolha cosmética | muda fala/recompensa pequena | muda reação/estado persistente e é percebida |
+| Memória | motivo não é notado | motivo lembrado sem significado | motivo retorna e o jogador percebe a reinterpretação |
+| Ritmo | cena longa sem ação/pausa | tensão e alívio pouco equilibrados | alternância clara de ação, exploração e recuperação |
+| Continuidade | save/skip perde estado | retoma com uma correção manual | reload/skip/morte retoma no mesmo objetivo sem duplicar recompensa |
+
+Não usar a pontuação como “nota científica”. É uma ferramenta de revisão interna; comparar observações e falas dos jogadores, não apenas somar números.
+
+## 9. Coordenação e áreas protegidas
 
 - #670 é a única PR A5 ativa e foi reduzida a correções técnicas de sidequests (BG-004/BG-005 e IDs locais). Não usar como PR de história.
 - #665/#673: Codex, Ato III/Sakura/Neve/Castelo; não editar.
@@ -153,7 +190,7 @@ Regras:
 - #468/#515: áreas de locomoção/caverna; não editar.
 - O hunk A5 em mundo-3d-prototype.js é somente o argumento waystones em refreshSideQuests; foi comparado com os hunks concorrentes.
 
-## 9. Sequência de implementação após aprovação
+## 10. Sequência de implementação após aprovação
 
 1. Aprovar a lista de pecados e os nomes dos personagens.
 2. Congelar o Cânone Mestre e publicar roteiro aprovado por ato.
@@ -166,7 +203,7 @@ Regras:
 9. Validar percurso completo, saves, NPCs, screenshots/vídeo e Android físico.
 10. Só então retirar flags antigas e documentos obsoletos, após aprovação explícita.
 
-## 10. Pendências de auditoria
+## 11. Pendências de auditoria
 
 - Localizar no runtime grande a chave física do save de galáxias (a API usa unlocked/celebrate, mas a chave não foi identificada).
 - Conferir o uso real de lateFound/lateFightIndex/lateBossClaimed/gauntletIndex/finaleClaimed em cada cena.
