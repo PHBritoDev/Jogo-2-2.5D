@@ -414,7 +414,8 @@ test('Pedras que Lembram conta somente os três IDs de Eldória', () => {
 test('recuperação de recompensa usa moedas e XP do mesmo snapshot V6', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(runtime.includes('function savedCampaignProgress(){'));
-  assert.ok(runtime.includes('Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)'));
+  assert.ok(runtime.includes("saved&&typeof saved==='object'&&!Array.isArray(saved)"));
+  assert.ok(!runtime.includes('Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)'));
   assert.ok(runtime.includes('Array.isArray(saved.sideRewardClaims)'));
   assert.ok(runtime.includes('sideRewardClaims:[...sideRewardClaims]'));
   assert.ok(runtime.includes('coins+=pending.coins;'));
@@ -599,4 +600,41 @@ test('checkpoint negativo nao relocka nem desbloqueia missoes', () => {
   assert.equal(state.pingente.state, 'locked');
   refreshSide(state, { questStep: 2 });
   assert.equal(state.pingente.state, 'available');
+});
+
+
+test('claim V6 continua reconhecido mesmo quando moedas ou XP do snapshot estao corrompidos', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const begin = runtime.indexOf('function savedCampaignProgress(){');
+  const end = runtime.indexOf('\\nfunction settlePendingSideReward', begin);
+  assert.ok(begin >= 0 && end > begin);
+  const recovery = runtime.slice(begin, end);
+  const pending = pendingFor('ervas', 100, 50);
+  const storage = new Map([['sevenSins3DCampaignV6', JSON.stringify({
+    coins: null, xp: null, sideRewardClaims: [pending.claimId]
+  })]]);
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pending
+  });
+  const context = {
+    PROGRESS_KEY: 'sevenSins3DCampaignV6',
+    localStorage: {
+      getItem(key) { return storage.get(key) || null; },
+      setItem(key, value) { storage.set(key, value); }
+    },
+    settleSideReward,
+    sideState: state,
+    sideRewardClaims: [],
+    coins: 0,
+    playerXp: 0,
+    save3DProgress() { throw new Error('nao deve gravar novamente uma recompensa ja reclamada'); },
+    saveSide() { return true; }
+  };
+  context.gainXp = amount => { context.playerXp += amount; };
+  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', context);
+  assert.equal(context.__settle(), 'already-applied');
+  assert.equal(context.coins, 0, 'claim existente impede duplicar moedas mesmo com saldo invalido');
+  assert.equal(context.playerXp, 0, 'claim existente impede duplicar XP mesmo com saldo invalido');
+  assert.equal(state.pendingReward, null);
 });
