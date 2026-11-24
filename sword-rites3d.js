@@ -27,14 +27,23 @@ function closestOnSegment(p,a,b){
  const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;
  return{x:a.x+x*t,y:a.y+y*t,z:a.z+z*t};
 }
-/** Returns the target-capsule point nearest to the swept blade, keeping each side-hit VFX on its own actor. */
-function bladeContactPoint(a,b,c,d,target,radius=.48){
+/** Returns the capsule-surface point facing the swept blade, not an occluded point inside the actor. */
+function bladeContactPoint(a,b,c,d,target,hitRadius=.48,origin=null){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06));
- let bestTarget=null,bestDistance=Infinity;
+ let bestAxisPoint=null,bestBladePoint=null,bestDistance=Infinity;
  for(let i=0;i<=n;i++){const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
-  for(let j=0;j<=4;j++){const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},q=closestOnSegment(p,base,tip),distance=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z);if(distance<bestDistance){bestDistance=distance;bestTarget=p;}}
+  for(let j=0;j<=4;j++){const p={x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},q=closestOnSegment(p,base,tip),distance=Math.hypot(p.x-q.x,p.y-q.y,p.z-q.z);if(distance<bestDistance){bestDistance=distance;bestAxisPoint=p;bestBladePoint=q;}}
  }
- return bestDistance<=radius?bestTarget:null;
+ if(!bestAxisPoint||bestDistance>hitRadius)return null;
+ // Point from the capsule axis toward the blade: place the slash on the visible contact surface.
+ let nx=bestBladePoint.x-bestAxisPoint.x,ny=bestBladePoint.y-bestAxisPoint.y,nz=bestBladePoint.z-bestAxisPoint.z,len=bestDistance;
+ if(len<1e-5&&origin){nx=origin.x-bestAxisPoint.x;ny=(origin.y??bestAxisPoint.y)-bestAxisPoint.y;nz=origin.z-bestAxisPoint.z;len=Math.hypot(nx,ny,nz);}
+ if(len<1e-5){
+  const dx=d.x-a.x,dz=d.z-a.z;nx=-dz;nz=dx;ny=0;len=Math.hypot(nx,nz)||1;
+  if(origin&&(nx*(origin.x-bestAxisPoint.x)+nz*(origin.z-bestAxisPoint.z))<0){nx=-nx;nz=-nz;}
+ }
+ const surfaceRadius=target.radius||.48;
+ return{x:bestAxisPoint.x+nx/len*surfaceRadius,y:bestAxisPoint.y+ny/len*surfaceRadius,z:bestAxisPoint.z+nz/len*surfaceRadius};
 }
 /** Horizontal aim only. Assist is bounded by range, cone, floor and line of sight. */
 export function swordAim(from,yaw,target,blocked=()=>false,{assist=true,range=18,cone=.55}={}){
@@ -148,7 +157,7 @@ export class SwordRites {
      if(!segmentBlocked(blade.base,blade.tip,this.api.blocked)){
       for(const other of ctx.others){
        if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
-       const contact=bladeContactPoint(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12);
+       const contact=bladeContactPoint(prev.base,extend(prev),blade.base,extend(blade),other,(other.radius||.48)+.12,ctx.from);
        if(!contact)continue;
        if(segmentBlocked(ctx.from,other,this.api.blocked))continue;
        a.bladeSideHits.add(other.id);
