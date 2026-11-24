@@ -194,7 +194,7 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
   assert.match(css, /#vs-go\{[^}]*width:min\(220px,72vw\);min-width:0/);
   assert.match(qa, /async function inspectVsCard/);
   assert.match(qa, /function assertVsPortrait/);
-  assert.match(qa, /return \\{ context, page, vsCard \\};/);
+  assert.match(qa, /return \{ context, page, vsCard \};/);
   assert.match(qa, /assertVsPortrait\(vsCard/);
   assert.match(qa, /shot\(page, stage \+ '-vs-retrato'\)/);
   assert.match(qa, /vsCard, manualZoom/);
