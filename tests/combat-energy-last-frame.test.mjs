@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
-import { SwordRites } from '../sword-rites3d.js';
+import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
 import { swordImpactCue } from '../sword-rites-vfx3d.js';
 
@@ -36,6 +36,7 @@ test('energia e lâmina laterais delegam o contato sem duplicar áudio/VFX do ad
   const calls = { damage: 0, audio: 0, slash: 0, flash: 0 };
   const actor = { id: 'e1', alive: true };
   const sandbox = {
+    swordSideHitContext,
     squadSq: () => ({ actor: () => actor, damageActor: () => { calls.damage++; return 12; } }),
     player: { position: { x: 0, z: 0 } },
     playerYaw: 0,
@@ -415,7 +416,8 @@ test('golpe físico primário acerta no corredor sem obstrução e usa a superf�
 
 test('terminal-wave captura e testes usam o HEAD exato da PR', () => {
   const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
-  assert.equal(terminalWorkflow.split(ref).length - 1, 2);
+  assert.equal(terminalWorkflow.split(ref).length - 1, 1);
+  assert.ok(terminalWorkflow.includes('PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}'));
   assert.equal(terminalWorkflow.split('Verify exact PR head').length - 1, 1);
   assert.ok(terminalWorkflow.includes('run: test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"'));
   assert.ok(terminalWorkflow.includes('persist-credentials: false'));
