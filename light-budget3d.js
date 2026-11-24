@@ -176,6 +176,34 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       else if (!live && l.intensity < .02) p.src = null;
     }
   }
-  function stats() { return { slots: safeSlots, sources: sources.size, active: pool.filter(p => p.src).map(p => p.src.name || 'luz') }; }
+  function activePosition(source) {
+    if (typeof source.getWorldPosition === 'function') {
+      source.getWorldPosition(v);
+      return [v.x, v.y, v.z];
+    }
+    const e = source.matrixWorld?.elements;
+    return e?.length >= 16 ? [e[12], e[13], e[14]] : null;
+  }
+  function stats() {
+    const selected = pool.filter(p => p.src);
+    return {
+      slots: safeSlots,
+      sources: sources.size,
+      active: selected.map(p => p.src.name || 'luz'),
+      // Debug/QA only: identify the actual source behind each fixed shader slot.
+      activeDetails: selected.map(p => {
+        const s = p.src;
+        return {
+          name: s.name || 'luz',
+          intensity: s.intensity,
+          distance: s.distance,
+          decay: s.decay,
+          color: s.color ? [s.color.r, s.color.g, s.color.b] : null,
+          position: activePosition(s),
+          slotIntensity: p.light.intensity
+        };
+      })
+    };
+  }
   return { update, stats, scan };
 }
