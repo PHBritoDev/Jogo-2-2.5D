@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isRuntimeAssetUrl } = require('./a5-waystone-qa-utils.cjs');
+const { isRuntimeAssetUrl, hasCompletedTouchLifecycle } = require('./a5-waystone-qa-utils.cjs');
 
 test('detecta módulos e modelos mesmo com query string ou fragmento', () => {
   for (const url of [
@@ -51,4 +51,27 @@ test('pathfinder rejeita entrada inválida e aceita segmento sem deslocamento', 
   const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
   assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 1, z: 1 }, null), false);
   assert.equal(isAxisSeparatedSegmentClear({ x: 1, z: 2 }, { x: 1, z: 2 }, () => true), true);
+});
+
+test('exige encerramento real do mesmo pointer touch após touchEnd', () => {
+  const valid = [
+    { type: 'pointerdown', pointerType: 'touch', pointerId: 7, ending: false },
+    { type: 'pointerup', pointerType: 'touch', pointerId: 7, ending: true },
+    { type: 'lostpointercapture', pointerType: 'touch', pointerId: 7, ending: true }
+  ];
+  assert.equal(hasCompletedTouchLifecycle(valid), true);
+  assert.equal(hasCompletedTouchLifecycle([valid[0]]), false);
+  assert.equal(hasCompletedTouchLifecycle([
+    valid[0], { type: 'pointerup', pointerType: 'touch', pointerId: 7, ending: false }
+  ]), false);
+  assert.equal(hasCompletedTouchLifecycle([
+    valid[0], { type: 'pointerup', pointerType: 'touch', pointerId: 8, ending: true }
+  ]), false);
+  assert.equal(hasCompletedTouchLifecycle([
+    { type: 'pointerdown', pointerType: 'mouse', pointerId: 7, ending: false },
+    valid[1]
+  ]), false);
+  assert.equal(hasCompletedTouchLifecycle([
+    valid[0], valid[1], { type: 'pointerdown', pointerType: 'touch', pointerId: 9, ending: false }
+  ]), false);
 });
