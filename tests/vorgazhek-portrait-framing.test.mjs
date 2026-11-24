@@ -202,4 +202,9 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
   assert.match(qa, /async function runCompactVsPortrait/);
   assert.match(qa, /width: 320, height: 852/);
   assert.match(qa, /report.head.compactVsPortrait/);
+  const compactFn = qa.match(/async function runCompactVsPortrait[\s\S]*?\n\}/);
+  assert.ok(compactFn, 'percurso de VS em retrato compacto existe');
+  assert.match(compactFn[0], /openBattle\(browser, url, stage, \{ width: 320, height: 852 \}\)/);
+  assert.match(compactFn[0], /assertPortrait\(portrait, stage \+ ' retrato compacto'\)/);
+  assert.match(compactFn[0], /return \{ portrait, vsCard, videoPath \};/);
 });
