@@ -365,6 +365,8 @@ body.no-hints #top{display:none!important}
 /* MOD 202 — Apresentação "jogador VS Bispo" (leve: só transform/opacity, sem blur nem filtros pesados). */
 #vs-panel{position:fixed;inset:0;z-index:31;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,2vh,16px);padding:10px 16px;background:#030206;color:#f4ead0;--vs-accent:#e0b040;overflow:hidden}
 #vs-panel[hidden]{display:none}
+/* A1: o atalho de teleporte ADM não pode cobrir o cartão VS no modo de diagnóstico. */
+#vs-panel:not([hidden]) ~ #adm-tp-vulcao-ato2-quick{display:none!important}
 .vs-bg{position:absolute;inset:0;background:radial-gradient(60% 80% at 25% 50%,#1a2a4a66,transparent 70%),radial-gradient(60% 80% at 75% 50%,color-mix(in srgb,var(--vs-accent) 28%,transparent),transparent 70%);opacity:.9}
 .vs-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 47%,var(--vs-accent) 49.6%,var(--vs-accent) 50.4%,transparent 53%);opacity:.5}
 .vs-kicker{position:relative;font:800 clamp(9px,2.4vh,12px)/1 var(--hud-font,system-ui);letter-spacing:.28em;color:var(--vs-accent);text-align:center}
