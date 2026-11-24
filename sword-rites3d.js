@@ -14,6 +14,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
 const BLADE_SWEEP_RAILS=Object.freeze([0,.25,.5,.75,1]);
+const ENERGY_OCCLUSION_STEP=.008;
 /** Resolve the source and damage class for a secondary squad contact.
  * Waves push along their travel direction; sectors push radially from their origin.
  * Physical blade contacts keep the hero as their source.
@@ -186,7 +187,7 @@ export class SwordRites {
   a.energyOut=true;const from=ctx.from||{x:0,y:0,z:0},spec=a.def.energy,mid=blade?{x:(blade.base.x+blade.tip.x)/2,y:(blade.base.y+blade.tip.y)/2,z:(blade.base.z+blade.tip.z)/2}:{x:from.x,y:from.y+1.05,z:from.z};
   const ground=ctx.ground??from.y,y=Math.max(ground+.35,Math.min(ground+1.9,mid.y));
   const ay=a.aimYaw??a.yaw,origin=spec.kind==='wave'?{x:from.x+Math.sin(ay)*.6,y,z:from.z+Math.cos(ay)*.6}:{x:from.x,y,z:from.z};
-  if(spec.kind==='wave'&&segmentBlocked({x:from.x,y,z:from.z},origin,this.api.blocked)){this.api.event('obstructed',{p:origin,sword:a.sword});return;}
+  if(spec.kind==='wave'&&segmentBlocked({x:from.x,y,z:from.z},origin,this.api.blocked,ENERGY_OCCLUSION_STEP)){this.api.event('obstructed',{p:origin,sword:a.sword});return;}
   const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
@@ -295,9 +296,9 @@ export class SwordRites {
    // A energia pode expirar AO ALCANÇAR a distância final neste quadro; esse último contato ainda é válido.
    // Capturar o estado após a checagem de parede, antes de energyStep marcar o fim do alcance.
    const unblockedThisFrame=!e.done;
-   const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked)});
+   const touched=unblockedThisFrame&&energyStep(e,dt,target,{blocked:(a,b)=>segmentBlocked(a,b,this.api.blocked,ENERGY_OCCLUSION_STEP)});
    // Inimigos secundários também devem ser atingidos no último quadro, sem atravessar paredes.
-   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z),applied=this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});
+   if(unblockedThisFrame&&ctx.others&&ctx.others.length){e.hits=e.hits||new Set();for(const o of ctx.others){if(!o.alive||o.id===target?.id||e.hits.has(o.id)||owner.sideHits?.has(o.id)||owner.bladeSideHits?.has(o.id))continue;if(energyTouches(e,o,(a,b)=>segmentBlocked(a,b,this.api.blocked,ENERGY_OCCLUSION_STEP))){e.hits.add(o.id);(owner.sideHits=owner.sideHits||new Set()).add(o.id);const d=Math.hypot(o.x-ctx.from.x,o.z-ctx.from.z),applied=this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,d)*.8),o.id,'energy-side',{target:o,energy:e});
     // Secondary energy contacts need the same visible impact cue as the primary hit.
     // Keep hitstop/shake disabled for a crowd to avoid stacking camera impulses.
     if(applied!==false&&applied!==0){
@@ -322,14 +323,14 @@ export class SwordRites {
     // Sweep the width as well as the centre, so a wave cannot hit through a wall.
     for(let k=-2;k<=2;k++){const off=k*.5*w.radius*Math.cos(w.roll);if(this.api.blocked({x:w.p.x+Math.cos(w.yaw)*off,y:w.p.y,z:w.p.z-Math.sin(w.yaw)*off})){gone=true;break;}}
     if(gone)break;
-    if(target?.alive&&!w.hits.has(target.id)&&auroraWaveTouches(w,target)){
+    if(target?.alive&&!w.hits.has(target.id)&&auroraWaveTouches(w,target)&&!segmentBlocked(w.origin,target,this.api.blocked,ENERGY_OCCLUSION_STEP)){
      w.hits.add(target.id);const applied=this.api.hit(w.damage,target.id,'eclipse',{target,wave:w,by:'energy'});
      if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:'aurora',final:w.n===3,by:'energy',energy:w,p:auroraWaveImpactPoint(w,target)});
     }
     // A onda do Eclipse também percorre ctx.others: cada alvo lateral recebe dano e
     // impacto próprio uma vez por onda, sem acumular hitstop/shake da multidão.
     if(ctx.others?.length)for(const o of ctx.others){
-     if(!o?.alive||o.id==null||o.id===target?.id||w.hits.has(o.id)||!auroraWaveTouches(w,o)||segmentBlocked(w.origin,o,this.api.blocked))continue;
+     if(!o?.alive||o.id==null||o.id===target?.id||w.hits.has(o.id)||!auroraWaveTouches(w,o)||segmentBlocked(w.origin,o,this.api.blocked,ENERGY_OCCLUSION_STEP))continue;
      w.hits.add(o.id);const applied=this.api.hit(Math.round(w.damage*.8),o.id,'energy-side',{target:o,wave:w});
      if(applied!==false&&applied!==0)this.api.event('impact',{target:o,sword:'aurora',final:false,by:'energy',secondary:true,energy:w,p:auroraWaveImpactPoint(w,o),hitstop:0,shake:0});
     }

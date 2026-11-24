@@ -443,3 +443,74 @@ test('boss hit bridge rejects zero damage but still finalizes a pending death',a
  assert.deepEqual(calls.animations,['death']);
  assert.deepEqual(calls.timers,[850]);
 });
+
+function thinWallGenericEnergyScenario(kind,wall=true){
+ const focus=enemy('focus',0,3),side=enemy('side',1.2,3),hits=[],impacts=[];
+ const rites=new SwordRites({
+  blocked:p=>wall&&p.z>1.005&&p.z<1.015,
+  hit:(damage,id)=>{hits.push(id);return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data.target.id);}
+ });
+ const spec=kind==='wave'
+  ?{kind:'wave',speed:12,range:3,radius:1.2,life:10,roll:0,band:.7}
+  :{kind:'sector',r0:.9,r1:3,speed:6,span:Math.PI*2,roll:0,half:1,band:1,life:10};
+ const energy=makeEnergy(spec,{x:0,y:1,z:0},0,0);
+ if(kind==='wave')energy.travel=2.9;else energy.radius=2.9;
+ energy.owner={damage:24,def:{multiplier:1},targetId:'focus'};
+ rites.energies.push(energy);
+ rites.update(1/60,{from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota'});
+ return{hits,impacts};
+}
+test('ondas e setores genéricos rejeitam foco e secundário atrás de parede de 1 cm',()=>{
+ for(const kind of ['wave','sector']){
+  const blocked=thinWallGenericEnergyScenario(kind,true);
+  assert.deepEqual(blocked.hits,[],kind+': nenhum alvo pode receber dano atrás da parede');
+  assert.deepEqual(blocked.impacts,[],kind+': nenhum VFX pode aparecer atrás da parede');
+  const clear=thinWallGenericEnergyScenario(kind,false);
+  assert.deepEqual(clear.hits.sort(),['focus','side'],kind+': corredor livre continua atingindo ambos');
+  assert.deepEqual(clear.impacts.sort(),['focus','side'],kind+': corredor livre mantém impactos');
+ }
+});
+function thinWallEclipseScenario(wall=true){
+ const focus=enemy('focus',0,1.1),side=enemy('side',1.3,1.1),hits=[],impacts=[];
+ const rites=new SwordRites({
+  blocked:p=>wall&&p.z>1.005&&p.z<1.015,
+  hit:(damage,id)=>{hits.push(id);return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data.target.id);}
+ });
+ rites.waves.push({p:{x:0,y:1,z:.9},origin:{x:0,y:1,z:0},direction:{x:0,y:0,z:1},
+  previous:{x:0,y:1,z:.9},yaw:0,roll:0,maxRadius:1.55,radius:1.55,travel:.9,
+  speed:12,range:3,damage:20,hits:new Set(),n:0,age:0,serial:1});
+ rites.update(1/60,{from:{x:0,y:0,z:0},target:focus,others:[side]});
+ return{hits,impacts};
+}
+test('Eclipse bloqueia foco e secundário atrás de parede de 1 cm sem perder corredor livre',()=>{
+ const blocked=thinWallEclipseScenario(true);
+ assert.deepEqual(blocked.hits,[],'nenhum alvo deve receber dano através da parede');
+ assert.deepEqual(blocked.impacts,[],'nenhum impacto deve surgir através da parede');
+ const clear=thinWallEclipseScenario(false);
+ assert.deepEqual(clear.hits.sort(),['focus','side'],'foco e secundário continuam recebendo dano sem obstáculo');
+ assert.deepEqual(clear.impacts.sort(),['focus','side'],'os dois impactos permanecem no corredor livre');
+});
+function thinWallReleaseScenario(wall=true){
+ const events=[],rites=new SwordRites({
+  moveset:()=>({id:'thin-spawn',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'energy',count:1,
+   energy:{kind:'wave',at:.01,roll:0,radius:1.2,speed:12,range:4,band:.7,life:1}}),
+  blocked:p=>wall&&p.z>.301&&p.z<.311,
+  pose:()=>({base:{x:0,y:1,z:0},tip:{x:0,y:1,z:1}}),
+  event:type=>events.push(type)
+ });
+ const target=enemy('focus',0,4);
+ rites.attack('prota',{target,yaw:0});
+ const ctx={from:{x:0,y:0,z:0},target,sword:'prota',ground:0,grounded:true};
+ for(let i=0;i<5;i++)rites.update(1/120,ctx);
+ return{energies:rites.energies.length,events};
+}
+test('release de crescente não nasce depois de uma parede de 1 cm',()=>{
+ const blocked=thinWallReleaseScenario(true);
+ assert.equal(blocked.energies,0,'a energia não deve ser criada além da parede');
+ assert.ok(blocked.events.includes('obstructed'),'a obstrução precisa ser registrada');
+ const clear=thinWallReleaseScenario(false);
+ assert.equal(clear.energies,1,'o crescente continua sendo criado em corredor livre');
+ assert.ok(clear.events.includes('energy'));
+});
