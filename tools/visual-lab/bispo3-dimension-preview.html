@@ -6,7 +6,7 @@
 <nav><button id="wide">Corredor</button><button id="close">Olhos</button><button id="left">Olhar à esquerda</button><button id="right">Olhar à direita</button><select id="quality" aria-label="Qualidade"><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option></select><a href="../../mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1">Jogar a dimensão</a></nav>
 <script type="module">
 import * as THREE from 'https://esm.sh/three@0.160.0';
-import {buildDimensionArena} from '../../dimension-arenas3d.js?v=a4-zarkhael-fill-3';
+import {buildDimensionArena} from '../../dimension-arenas3d.js?v=a4-zarkhael-fill-4';
 const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,400);
 const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
 let arena;const player=new THREE.Vector3(0,0,0);let quality='high',running=true;
