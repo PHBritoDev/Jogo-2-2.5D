@@ -325,7 +325,8 @@ test('fauna: GLBs pendurados são abortados e liberam as duas vagas para retry',
   assert.equal(attempts.get('PassaroLava.glb'), undefined, 'a terceira espécie espera enquanto as duas vagas estão ocupadas');
   assert.deepEqual(new Set(aborted), new Set(['Coelhinho.glb', 'PassaroMontanha.glb']));
   assert.equal(fauna.stats.loadTimeouts, 2);
-  assert.equal(fauna.stats.activeLoads, 0, 'timeouts precisam liberar as duas vagas');
+  assert.equal(fauna.stats.activeLoads, 0, 'os wrappers de fetch encerram após timeout');
+  assert.equal(fauna.stats.orphanedLoads, 0, 'fetch abortado precisa encerrar a operação subjacente');
   assert.equal(fauna.stats.loadFailures, 2);
   assert.equal(fauna.stats.lastLoadError.timeout, true);
 
@@ -430,7 +431,59 @@ test('fauna: timeout durante a leitura do corpo GLB também aborta e libera a va
 });
 
 
-test('fauna: timeout durante parseAsync libera a vaga e descarta o GLB tardio', async () => {
+
+test('fauna: parsers órfãos continuam no orçamento e impedem acumular retries sem limite', async () => {
+  const finishers = [];
+  const counts = { geometry: 0, material: 0 };
+  const makeGltf = () => {
+    const geometry = { dispose() { counts.geometry++; } };
+    const material = { dispose() { counts.material++; } };
+    return { scene: { traverse(fn) { fn({ geometry, material }); } } };
+  };
+  class Loader {
+    register() {}
+    parseAsync() { return new Promise(resolve => finishers.push(() => resolve(makeGltf()))); }
+  }
+  const fetchImpl = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 20 });
+
+  const first = fauna.load('coelho');
+  const second = fauna.load('grilo');
+  const [firstFailure, secondFailure] = await Promise.all([first, second]);
+  assert.match(firstFailure.failed, /timed out/);
+  assert.match(secondFailure.failed, /timed out/);
+  assert.equal(fauna.stats.activeLoads, 0);
+  assert.equal(fauna.stats.orphanedLoads, 2);
+  assert.equal(fauna.stats.peakConcurrentLoads, FAUNA_MAX_CONCURRENT_LOADS);
+  assert.equal(finishers.length, 2);
+
+  assert.equal(await fauna.load('lava'), null,
+    'duas parses não canceláveis ainda ocupam todo o orçamento, mesmo após o timeout dos wrappers');
+  assert.equal(finishers.length, 2, 'não inicia uma terceira parse enquanto as duas anteriores continuam vivas');
+
+  finishers.shift()();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.orphanedLoads, 1);
+  const third = fauna.load('lava');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(finishers.length, 2, 'uma vaga volta a ficar disponível quando a primeira parse termina');
+  assert.equal(fauna.stats.activeLoads, 1);
+  assert.equal(fauna.stats.orphanedLoads, 1);
+
+  fauna.dispose();
+  const thirdFailure = await third;
+  assert.match(thirdFailure.failed, /disposed/i);
+  assert.equal(fauna.stats.activeLoads, 0);
+  assert.equal(fauna.stats.orphanedLoads, 2);
+
+  finishers.splice(0).forEach(finish => finish());
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.orphanedLoads, 0);
+  assert.equal(fauna.stats.peakConcurrentLoads, FAUNA_MAX_CONCURRENT_LOADS);
+  assert.deepEqual(counts, { geometry: 3, material: 3 });
+});
+
+test('fauna: timeout durante parseAsync libera o wrapper, mas mantém o parser órfão no orçamento', async () => {
   let finishParse, parseStarted = false;
   const counts = { geometry: 0, material: 0, texture: 0, image: 0, skeleton: 0 };
   const texture = {
@@ -457,11 +510,13 @@ test('fauna: timeout durante parseAsync libera a vaga e descarta o GLB tardio', 
   assert.match(failure.failed, /timed out after 20 ms/);
   assert.equal(fauna.stats.loadTimeouts, 1);
   assert.equal(fauna.stats.lastLoadError.timeout, true);
-  assert.equal(fauna.stats.activeLoads, 0, 'parse pendente não pode manter a vaga ocupada após timeout');
+  assert.equal(fauna.stats.activeLoads, 0, 'o wrapper do retry termina após timeout');
+  assert.equal(fauna.stats.orphanedLoads, 1, 'parseAsync não cancelável continua ocupando uma vaga até resolver');
   assert.deepEqual(fauna.stats.loaded, []);
 
   finishParse();
   await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.orphanedLoads, 0, 'a vaga órfã é liberada quando o parse tardio termina');
   assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 },
     'o resultado de parseAsync que chega depois do timeout precisa ser descartado');
   fauna.dispose();
@@ -487,8 +542,10 @@ test('fauna: timeout do fallback loadAsync também libera a vaga e descarta o GL
   assert.match(failure.failed, /timed out after 20 ms/);
   assert.equal(fauna.stats.loadTimeouts, 1);
   assert.equal(fauna.stats.activeLoads, 0);
+  assert.equal(fauna.stats.orphanedLoads, 1);
   finishLoad();
   await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.orphanedLoads, 0);
   assert.deepEqual(counts, { geometry: 1, material: 1 },
     'o fallback loadAsync também precisa liberar recursos quando termina tarde');
   fauna.dispose();
@@ -568,9 +625,11 @@ test('fauna: descarta e libera GLB que termina o parse depois do dispose', async
   fauna.dispose();
   const failure = await pending;
   assert.match(failure.failed, /aborted.*disposed/i);
-  assert.equal(fauna.stats.activeLoads, 0, 'dispose deve liberar a vaga mesmo com parseAsync pendente');
+  assert.equal(fauna.stats.activeLoads, 0, 'dispose deve liberar o wrapper mesmo com parseAsync pendente');
+  assert.equal(fauna.stats.orphanedLoads, 1, 'a parse não cancelável permanece contabilizada até resolver');
   finishParse();
   await new Promise(resolve => setImmediate(resolve));
+  assert.equal(fauna.stats.orphanedLoads, 0);
   assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 });
   assert.deepEqual(fauna.stats.loaded, []);
   assert.equal(fauna.stats.activeLoads, 0);
