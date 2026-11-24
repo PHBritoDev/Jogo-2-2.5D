@@ -46,9 +46,9 @@ function createProgressWatch(initialDistance, { threshold = 0.04, now = Date.now
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch input on the shipped #stick joystick; frame-synchronized movement sampling (two RAF frames); cumulative progress detection; A* routes from navCatalog/whyBlocked; real talk-button registration; no shelter-to-shelter teleport',
+  method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per movement sample; cumulative 0.04m progress window; A* waypoints from runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -321,9 +321,10 @@ async function walkTo(stone, label) {
     explored: selected.plan.explored, sampled: selected.plan.sampled,
     goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
   });
-  await beginJoystick();
-  let travelled = 0, totalSteps = 0;
+  let travelled = 0, totalSteps = 0, joystickStarted = false;
   try {
+    joystickStarted = true;
+    await beginJoystick();
     for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
       const waypoint = selected.plan.points[waypointIndex];
       const waypointStart = await playerState();
@@ -394,12 +395,12 @@ async function walkTo(stone, label) {
       verticalDelta: +(p.y - stone.centerY).toFixed(3), grounded: !!support.grounded,
       originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
       travelled: +travelled.toFixed(2), steps: totalSteps,
-      routePoints: selected.plan.points.length, control: 'touch #stick'
+      routePoints: selected.plan.points.length, rawPoints: selected.plan.rawPoints, control: 'touch #stick'
     };
     report.walks.push(result);
     return result;
   } finally {
-    await endJoystick();
+    if (joystickStarted) await endJoystick();
   }
 }
 async function registerStone(stone, expectedProgress, mapKey) {
@@ -492,10 +493,12 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
-    await page.evaluate(async () => {
+    const pathfinderReady = await page.evaluate(async () => {
       const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
       window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
+      return typeof window.__a5AxisSeparatedSegmentClear === 'function';
     });
+    assert.equal(pathfinderReady, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
     await wait(2200);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(900);
