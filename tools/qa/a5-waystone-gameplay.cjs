@@ -517,6 +517,18 @@ async function registerStone(stone, expectedProgress, mapKey) {
   report.registrations.push({ id: stone.id, progress: after.side.abrigos.progress, state: after.side.abrigos.state });
   await shot(stone.id + '-registered');
 }
+// Navegação/reload recria o contexto da página; os helpers QA em window precisam ser reinstalados.
+async function exposePathfinder() {
+  const ready = await page.evaluate(async () => {
+    const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
+    window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
+    window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
+    return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
+      typeof window.__a5RankShelterApproaches === 'function';
+  });
+  assert.equal(ready, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
+}
+
 (async () => {
   try {
     fs.mkdirSync(OUT, { recursive: true });
@@ -568,14 +580,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
     await waitForWorldCollisionReady('initial');
-    const pathfinderReady = await page.evaluate(async () => {
-      const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
-      window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
-      window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
-      return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
-        typeof window.__a5RankShelterApproaches === 'function';
-    });
-    assert.equal(pathfinderReady, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
+    await exposePathfinder();
     await wait(2200);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(900);
@@ -613,6 +618,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
+    await exposePathfinder();
     await waitForWorldCollisionReady('after-two-waystones-reload');
     await wait(1800);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
