@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isRuntimeAssetUrl, hasCompletedTouchLifecycle } = require('./a5-waystone-qa-utils.cjs');
+const { isRuntimeAssetUrl, hasCompletedTouchLifecycle, waypointStepBudget } = require('./a5-waystone-qa-utils.cjs');
 
 test('detecta módulos e modelos mesmo com query string ou fragmento', () => {
   for (const url of [
@@ -132,4 +132,16 @@ test('mede a altura junto à borda do anel, não usa terreno mais alto no ponto 
   assert.equal(sides[0].groundY, 0.3);
   assert.equal(sides[0].maxApproachGroundY, 0.8);
   assert.equal(sides[0].rise, 0.8);
+});
+
+
+test('orçamento de passos acompanha waypoints longos sem cortar o percurso em 180 amostras', () => {
+  assert.equal(waypointStepBudget(4), 180, 'percursos curtos preservam o orçamento mínimo');
+  assert.equal(waypointStepBudget(141.9), 919, 'primeiro trecho longo até o Abrigo da Caverna recebe margem suficiente');
+  assert.equal(waypointStepBudget(40), 282);
+  assert.equal(waypointStepBudget(1000), 1400, 'o orçamento continua limitado contra rotas absurdas');
+  for (const invalid of [NaN, Infinity, -1, '141.9', null]) {
+    assert.equal(waypointStepBudget(invalid), 0, 'distância inválida não inicia caminhada');
+  }
+  assert.equal(waypointStepBudget(10, { metersPerSample: 0 }), 0);
 });
