@@ -671,3 +671,23 @@ test('claim V6 continua reconhecido mesmo quando moedas ou XP do snapshot estao 
   assert.equal(context.playerXp, 0, 'claim existente impede duplicar XP mesmo com saldo invalido');
   assert.equal(state.pendingReward, null);
 });
+
+
+test('progresso fracionario em memoria nao deixa missao pronta sem quantidade inteira', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 2 });
+  assert.equal(acceptSide(s, 'abrigos'), true);
+
+  s.abrigos.state = 'ready';
+  s.abrigos.progress = 2.5;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.abrigos.progress, 0, 'fracao em memoria deve ser invalidada');
+  assert.equal(s.abrigos.state, 'active', 'missao pronta sem contagem inteira volta a ativa');
+  assert.equal(turnInSide(s, 'abrigos'), null, 'fracao nao pode liberar recompensa');
+  assert.deepEqual(activeSideLines(s), ['Pedras que Lembram · 0/3']);
+
+  s.abrigos.progress = 1.5;
+  refreshSide(s, { questStep: 2 });
+  assert.equal(s.abrigos.progress, 0, 'fracao durante coleta tambem deve ser normalizada');
+  assert.equal(s.abrigos.state, 'active');
+});

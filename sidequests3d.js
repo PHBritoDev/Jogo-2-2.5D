@@ -118,7 +118,7 @@ export function refreshSide(state, ctx) {
     const s = state[q.id];
     // Um estado ready restaurado/adulterado sem progresso suficiente não deve
     // instruir o jogador a entregar uma missão que turnInSide recusará.
-    if (['active', 'ready'].includes(s.state) && (!Number.isFinite(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
+    if (['active', 'ready'].includes(s.state) && (!Number.isSafeInteger(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
       s.progress = safeSideProgress(s.progress, q.goal.count);
     }
     if (s.state === 'ready' && s.progress < q.goal.count) {
