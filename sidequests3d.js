@@ -96,7 +96,11 @@ export function refreshSide(state, ctx) {
       s.state = 'locked';
       s.progress = 0;
     }
-    if (s.state === 'locked' && hasStep && step >= q.minStep) s.state = 'available';
+    if (s.state === 'locked' && hasStep && step >= q.minStep) {
+      s.state = 'available';
+      // Um desbloqueio nunca herda coleta residual de estado bloqueado/corrompido.
+      s.progress = 0;
+    }
     if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state)) {
       // A missão pertence a Eldória: abrigos da jornada/Ato II não contam para ela.
       const registered = ctx?.waystones;
@@ -116,6 +120,8 @@ export function refreshSide(state, ctx) {
 export function acceptSide(state, id) {
   const s = state[id];
   if (!s || s.state !== 'available') return false;
+  // A missão começa sem progresso: nenhum estado anterior ao aceite conta.
+  s.progress = 0;
   s.state = 'active';
   return true;
 }
