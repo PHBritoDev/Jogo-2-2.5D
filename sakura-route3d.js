@@ -134,7 +134,7 @@ const ga=ROUTE[46],gb=ROUTE[47],bridgeLength=Math.hypot(gb.x-ga.x,gb.z-ga.z);
 export const GLACIER_BRIDGE={x:ga.x+(gb.x-ga.x)*.31,z:ga.z+(gb.z-ga.z)*.31,y:ga.y+(gb.y-ga.y)*.31,
  dx:(gb.x-ga.x)/bridgeLength,dz:(gb.z-ga.z)/bridgeLength,len:bridgeLength*.44,rise:(gb.y-ga.y)*.44};
 // The same stations describe the planks, inclines, flared landings and rails.
-export const DOJO_BRIDGE = {x:DOJO.x, start:-1686, end:-1623, halfWidth:3.6};
+export const DOJO_BRIDGE = {x:DOJO.x, start:-1686, end:-1630, halfWidth:3.6};
 export function bridgeSection(z){
  const {start,end,halfWidth}=DOJO_BRIDGE;
  if(z<start || z>end)return null;

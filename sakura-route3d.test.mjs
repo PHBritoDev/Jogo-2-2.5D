@@ -98,4 +98,10 @@ test('o tabuleiro e os dois corrimãos acompanham a inclinação até às duas c
   }
  }
  assert.equal(bridgeSection(-1650).height,125);
+ // The return path leaves the north landing to the east, past the final post.
+ const a=ROUTE[24],beyond=ROUTE[25];
+ for(let i=0;i<=250;i++){
+  const t=i/250;
+  assert.equal(roadBlocked(a.x+(beyond.x-a.x)*t,a.z+(beyond.z-a.z)*t),false);
+ }
 });
