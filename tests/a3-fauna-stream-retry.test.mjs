@@ -566,8 +566,11 @@ test('fauna: descarta e libera GLB que termina o parse depois do dispose', async
   assert.equal(parseStarted, true);
 
   fauna.dispose();
+  const failure = await pending;
+  assert.match(failure.failed, /aborted.*disposed/i);
+  assert.equal(fauna.stats.activeLoads, 0, 'dispose deve liberar a vaga mesmo com parseAsync pendente');
   finishParse();
-  assert.equal(await pending, null);
+  await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 });
   assert.deepEqual(fauna.stats.loaded, []);
   assert.equal(fauna.stats.activeLoads, 0);

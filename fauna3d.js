@@ -117,11 +117,21 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   async function loadGLB(loader, url) {
     if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB load'), { name: 'AbortError' });
     const controller = new AbortController();
-    activeControllers.add(controller);
-    let timer = null, timedOut = false;
+    let timer = null, timedOut = false, abandoned = false, settled = false, cancelLoad = null;
+    // GLTFLoader.parseAsync não é cancelável. Separar o cancelamento do controlador
+    // da interrupção do fetch permite liberar a vaga imediatamente durante o parse.
+    const cancelled = new Promise((_, reject) => {
+      cancelLoad = () => {
+        abandoned = true;
+        reject(Object.assign(new Error('fauna GLB load aborted because controller was disposed'), { name: 'AbortError' }));
+      };
+    });
+    const active = { controller, cancel: cancelLoad };
+    activeControllers.add(active);
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => {
         timedOut = true;
+        abandoned = true;
         const error = new Error(`fauna GLB load timed out after ${requestTimeoutMs} ms: ${url}`);
         error.code = 'FAUNA_LOAD_TIMEOUT';
         reject(error);
@@ -143,14 +153,16 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       if (timedOut || disposed) throw Object.assign(new Error('fauna GLB load aborted before parsing'), { name: 'AbortError' });
       return loader.parseAsync(data, base);
     });
-    // parseAsync/loadAsync não oferecem cancelamento confiável. Se terminarem
-    // depois do timeout, o resultado órfão precisa liberar seus recursos.
-    operation.then(gltf => { if (timedOut) releaseGltf(gltf); }, () => {});
+    // Se timeout/dispose vencerem a corrida, parseAsync/loadAsync pode terminar depois.
+    // O resultado órfão só é liberado aqui quando o cancelamento já chegou ao chamador;
+    // se a operação vencer a corrida, load() cuida do dispose sem dupla liberação.
+    operation.then(gltf => { if (abandoned && settled) releaseGltf(gltf); }, () => {});
     try {
-      return await Promise.race([operation, timeout]);
+      return await Promise.race([operation, timeout, cancelled]);
     } finally {
+      settled = true;
       if (timer !== null) clearTimeout(timer);
-      activeControllers.delete(controller);
+      activeControllers.delete(active);
     }
   }
   function load(kind) {
@@ -407,7 +419,10 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     dispose() {
       if (disposed) return;
       disposed = true;
-      for (const controller of activeControllers) controller.abort();
+      for (const active of activeControllers) {
+        active.cancel();
+        active.controller.abort();
+      }
       activeControllers.clear();
       for (const k of [...live.keys()]) despawn(k);
       for (const A of Object.values(assets)) {
