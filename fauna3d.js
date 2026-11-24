@@ -400,9 +400,14 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       activeControllers.clear();
       for (const k of [...live.keys()]) despawn(k);
       for (const A of Object.values(assets)) {
-        if (A.im) { A.im.geometry.dispose(); A.im.dispose(); root.remove(A.im); }
-        if (A.proto) A.proto.traverse(o => { if (o.isSkinnedMesh) { o.geometry.dispose(); o.skeleton.dispose(); } });
-        if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); }
+        if (A.im) {
+          root.remove(A.im);
+          A.im.dispose?.();
+          releaseGltf({ scene: A.im });
+        }
+        // O GLB pode conter meshes auxiliares não skinned e materiais próprios.
+        // Reutilizar a liberação completa evita deixar geometria/textura órfã.
+        if (A.proto) releaseGltf({ scene: A.proto });
       }
       scene.remove(root);
     }

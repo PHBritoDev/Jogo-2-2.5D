@@ -17,6 +17,7 @@ class Object3D {
   }
   add(child) { this.children.push(child); child.parent = this; }
   remove(child) { this.children = this.children.filter(x => x !== child); child.parent = null; }
+  traverse(fn) { fn(this); for (const child of this.children) child.traverse ? child.traverse(fn) : fn(child); }
   updateMatrix() {}
   dispose() {}
 }
@@ -480,4 +481,79 @@ test('fauna: descarta e libera GLB que termina o parse depois do dispose', async
   assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 });
   assert.deepEqual(fauna.stats.loaded, []);
   assert.equal(fauna.stats.activeLoads, 0);
+});
+
+
+test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias carregadas', async () => {
+  const counts = {
+    mainGeometry: 0, extraGeometry: 0, instancedGeometry: 0,
+    mainOriginalMaterial: 0, extraMaterial: 0, instancedOriginalMaterial: 0,
+    replacementMaterial: 0,
+    mainTexture: 0, extraTexture: 0, instancedTexture: 0,
+    mainImage: 0, extraImage: 0, instancedImage: 0,
+    skeleton: 0, instancedMesh: 0
+  };
+  const texture = (name) => ({
+    isTexture: true,
+    image: { close() { counts[name + 'Image']++; } },
+    dispose() { counts[name + 'Texture']++; }
+  });
+  const geometry = (name) => ({
+    attributes: { position: { count: 3, getX: i => [-1, 0, 1][i], getY: i => [-1, 0, 1][i], getZ: i => [-1, 0, 1][i] } },
+    dispose() { counts[name + 'Geometry']++; }
+  });
+  const mainTexture = texture('main');
+  const extraTexture = texture('extra');
+  const instancedTexture = texture('instanced');
+  const mainGeometry = geometry('main');
+  const extraGeometry = geometry('extra');
+  const instancedGeometry = geometry('instanced');
+  const mainOriginal = { map: mainTexture, color: 0xffffff, dispose() { counts.mainOriginalMaterial++; } };
+  const extraMaterial = { map: extraTexture, dispose() { counts.extraMaterial++; } };
+  const instancedOriginal = { map: instancedTexture, color: 0xffffff, dispose() { counts.instancedOriginalMaterial++; } };
+  const skeleton = { dispose() { counts.skeleton++; } };
+  const mainMesh = { isMesh: true, isSkinnedMesh: true, geometry: mainGeometry, material: mainOriginal, skeleton };
+  const accessoryMesh = { isMesh: true, geometry: extraGeometry, material: extraMaterial };
+  const coelhoScene = {
+    traverse(fn) { fn(mainMesh); fn(accessoryMesh); },
+    updateMatrixWorld() {}
+  };
+  const griloMesh = { isMesh: true, geometry: instancedGeometry, material: instancedOriginal };
+  const griloScene = { traverse(fn) { fn(griloMesh); }, updateMatrixWorld() {} };
+  class Loader {
+    register() {}
+    loadAsync(url) {
+      return Promise.resolve({ scene: url.endsWith('Coelhinho.glb') ? coelhoScene : griloScene });
+    }
+  }
+
+  const originalMaterialFactory = T.MeshLambertMaterial;
+  const originalInstancedDispose = InstancedMesh.prototype.dispose;
+  T.MeshLambertMaterial = class extends Material {
+    constructor(options) { super(options); }
+    dispose() { counts.replacementMaterial++; }
+  };
+  InstancedMesh.prototype.dispose = function() { counts.instancedMesh++; };
+  const fauna = create(Loader);
+  try {
+    await fauna.load('coelho');
+    await fauna.load('grilo');
+    assert.equal(counts.mainOriginalMaterial, 1, 'o material original do mesh principal é substituído durante a carga');
+    assert.equal(counts.instancedOriginalMaterial, 1, 'o material original da instância é substituído durante a carga');
+
+    fauna.dispose();
+    fauna.dispose();
+
+    assert.deepEqual(counts, {
+      mainGeometry: 1, extraGeometry: 1, instancedGeometry: 1,
+      mainOriginalMaterial: 1, extraMaterial: 1, instancedOriginalMaterial: 1,
+      replacementMaterial: 2,
+      mainTexture: 1, extraTexture: 1, instancedTexture: 1,
+      mainImage: 1, extraImage: 1, instancedImage: 1,
+      skeleton: 1, instancedMesh: 1
+    });
+  } finally {
+    T.MeshLambertMaterial = originalMaterialFactory;
+    InstancedMesh.prototype.dispose = originalInstancedDispose;
+  }
 });
