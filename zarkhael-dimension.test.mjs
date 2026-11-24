@@ -59,6 +59,7 @@ test('the fill reuses the arena light rig without adding lights or render passes
   assert.doesNotMatch(source,/new\s+(?:THREE|T)\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\b/);
   assert.doesNotMatch(source,/WebGLRenderTarget|EffectComposer|ShadowMap/);
   assert.match(arenas,/mushrooms\(THREE,\s*g,\s*spec,\s*ctx\)\s*\{\s*return buildMushroomDimension/);
+  assert.match(arenas,/zarkhael-dimension3d\.js\?v=a4-zarkhael-fill-4/,'standalone preview must not reuse the stale Mod 296 module URL');
 });
 
 test('production runtime and preview consume the exact Zar’khael preset through existing lights',()=>{
