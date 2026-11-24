@@ -252,8 +252,8 @@ function physicalBladeSideScenario({ fps = 60, wall = false } = {}) {
   const hits = [], impacts = [];
   const focus = { id: 'focus', x: 8, y: 1, z: -8, radius: .45, height: 1.8, alive: true };
   const others = [
-    { id: 'left', x: -.35, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
-    { id: 'right', x: .35, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
+    { id: 'left', x: -.55, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
+    { id: 'right', x: .55, y: 1, z: 0, radius: .45, height: 1.8, alive: true },
   ];
   const blade = { base: { x: -1, y: 1, z: 0 }, tip: { x: 1, y: 1, z: 0 } };
   const rites = new SwordRites({
