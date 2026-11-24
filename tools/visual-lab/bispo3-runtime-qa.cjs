@@ -54,7 +54,9 @@ async function main(){
     await p.waitForFunction(()=>{const d=SevenSinsDebug3D,s=d.dimState();return !s.hydra&&!s.moonFlames&&!s.cinematic&&!d.dimensionVisualState()?.swordPhase;},null,{timeout:180000,polling:100});
   }
   report.restored=await p.evaluate(()=>SevenSinsDebug3D.dimensionVisualState());assert.ok(report.restored.architectureVisible.every(Boolean));
-  await p.evaluate(()=>{SevenSinsDebug3D.speed(1);const buttons=[...document.querySelectorAll('#dim-test-panel button')];const toggle=buttons.find(b=>b.textContent.includes('TESTE DAS DIMENSÕES'));if(!toggle)throw new Error('dimension test toggle missing');toggle.click();});
+  report.clockRestored=await p.evaluate(()=>SevenSinsDebug3D.speed(1));
+  assert.equal(report.clockRestored,1,'runtime QA must restore the real game clock before dimension exit/re-entry');
+  await p.evaluate(()=>{const buttons=[...document.querySelectorAll('#dim-test-panel button')];const toggle=buttons.find(b=>b.textContent.includes('TESTE DAS DIMENSÕES'));if(!toggle)throw new Error('dimension test toggle missing');toggle.click();});
   await p.waitForFunction(()=>{const menu=document.querySelector('#dim-test-panel > div');return !!menu&&getComputedStyle(menu).display!=='none';},null,{timeout:5000});
   await p.evaluate(()=>{const button=[...document.querySelectorAll('#dim-test-panel button')].find(b=>b.textContent.includes('Dimensão III'));if(!button)throw new Error('Bispo 3 re-entry button missing');button.click();});
   await p.waitForFunction(()=>{const s=SevenSinsDebug3D.dimState();return !s.voidMode&&!s.battle;},null,{timeout:30000,polling:100});report.exit=await p.evaluate(()=>({visual:SevenSinsDebug3D.dimensionVisualState(),memory:SevenSinsDebug3D.rinfo()}));assert.equal(report.exit.visual,null);
