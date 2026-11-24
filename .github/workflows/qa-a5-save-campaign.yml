@@ -7,6 +7,7 @@ on:
       - 'map3d.js'
       - 'map3d.test.mjs'
       - 'mundo-3d-prototype.js'
+      - 'tools/qa/a5-sidequests-gameplay.cjs'
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
       - 'act2-flow.js'
