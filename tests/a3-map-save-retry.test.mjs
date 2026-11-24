@@ -13,6 +13,8 @@ import {
 } from '../map3d.js';
 
 const worldSource = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+const shelterSource = readFileSync(new URL('../eldoria-shelter3d.js', import.meta.url), 'utf8');
+const runtimeSource = readFileSync(new URL('../tools/qa/a3-map-save-retry-runtime.cjs', import.meta.url), 'utf8');
 const saveFunction = worldSource.match(/function saveMapState\(force\)\{[^\n]*\}/);
 assert.ok(saveFunction, 'a função de produção saveMapState(force) precisa continuar localizável');
 
@@ -106,4 +108,13 @@ test('map save: falha ao serializar também preserva dirty para uma tentativa fu
   assert.equal(ctx.__saveMapState(false), false);
   assert.equal(ctx.mapDirty, true, 'falha antes do setItem também não pode limpar dirty');
   assert.equal(writes, 0);
+});
+
+
+test('map save runtime QA positions the hero on the real upper shelter ring before registration', () => {
+  assert.match(shelterSource, /walk\.addRing\(x, z, 0, S\.r2, y \+ S\.step \* 2, 'abrigo-degrau2'\)/);
+  assert.match(worldSource, /player\.position\.y>v\.shelter\.center\.y-\.25/);
+  assert.match(runtimeSource, /navCatalog\(-4\.6, -36\.5, 6\)/);
+  assert.match(runtimeSource, /placeAt\(-4\.6, top\.y, -36\.5, Math\.PI\)/);
+  assert.match(runtimeSource, /walkState\.surface, 'abrigo-degrau2'/);
 });
