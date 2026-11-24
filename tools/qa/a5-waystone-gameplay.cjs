@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { isRuntimeAssetUrl } = require('./a5-waystone-qa-utils.cjs');
+const { isRuntimeAssetUrl, hasCompletedTouchLifecycle } = require('./a5-waystone-qa-utils.cjs');
 
 const OUT = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a5-waystones');
 const BASE = (process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
@@ -580,7 +580,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
     assert.ok(report.input.joystickPointerMoves.every(move => move.count > 0), 'joystick não recebeu pointermove touch');
     assert.equal(report.input.joystickLifecycle.length, 3, 'três ciclos de joystick precisam ter diagnóstico de captura');
     assert.ok(report.input.joystickLifecycle.every(s => s.events.some(e => e.type === 'pointerdown' && e.pointerType === 'touch')), 'um percurso não começou com pointerdown touch');
-    assert.ok(report.input.joystickLifecycle.every(s => s.events.filter(e => ['pointerup', 'pointercancel', 'lostpointercapture'].includes(e.type)).every(e => e.ending)), 'captura do joystick foi perdida antes do touchEnd intencional');
+    assert.ok(report.input.joystickLifecycle.every(s => hasCompletedTouchLifecycle(s.events)), 'cada toque do joystick precisa terminar com pointerup/pointercancel touch do mesmo pointerId após touchEnd');
     assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');
     assert.ok(report.input.interactionPointerTypes.every(type => type === 'touch'), 'botão de registro não recebeu toque real');
     const criticalConsole = report.consoleErrors.filter(e => !/KHR_parallel|PropertyBinding/i.test(e));
