@@ -27,20 +27,26 @@ test('cap profile stays finite, continuous at seam and asymmetric',()=>{
   }
   assert.notDeepEqual(capPoint(1,1),capPoint(1,2));
 });
-test('mushroom cap shading reuses its precomputed tissue field instead of evaluating it twice',()=>{
+test('mushroom caps and embedded eyes reuse one tissue field per fragment',()=>{
   const source=readFileSync(new URL('./zarkhael-dimension3d.js',import.meta.url),'utf8');
   const helperStart=source.indexOf('vec3 flesh(vec3 p,float n){');
   const helperEnd=source.indexOf('}',helperStart);
-  assert.ok(helperStart>=0&&helperEnd>helperStart,'cap flesh helper must receive the already computed tissue value');
+  assert.ok(helperStart>=0&&helperEnd>helperStart,'flesh helper must receive the already computed tissue value');
   const helper=source.slice(helperStart,helperEnd);
-  assert.doesNotMatch(helper,/tissue\(/,'the cap helper must not repeat the three-octave tissue noise');
+  assert.doesNotMatch(helper,/tissue\(/,'the helper must not repeat the three-octave tissue noise');
   const capStart=source.indexOf("const color = kind === 'cap' ?");
-  const capEnd=source.indexOf(": kind === 'stem'",capStart);
-  assert.ok(capStart>=0&&capEnd>capStart,'cap material branch must remain present');
-  const cap=source.slice(capStart,capEnd);
+  const stemStart=source.indexOf(": kind === 'stem'",capStart);
+  assert.ok(capStart>=0&&stemStart>capStart,'cap material branch must remain present');
+  const cap=source.slice(capStart,stemStart);
   assert.equal((cap.match(/tissue\(/g)||[]).length,1,'each cap fragment should evaluate tissue noise once');
-  assert.match(cap,/diffuseColor\.rgb=flesh\(vOrganic\*\.85,n\)/,'the exact computed tissue value must feed the flesh shading');
-  assert.equal((source.match(/flesh\(/g)||[]).length,2,'the helper and its single cap call must remain paired');
+  assert.match(cap,/diffuseColor\.rgb=flesh\(vOrganic\*\.85,n\)/,'cap shading must reuse its computed tissue value');
+  const eyeStart=source.indexOf('vec2 p=vEyeUV*2.-1;float n=tissue(vOrganic*.85);');
+  const eyeEnd=source.indexOf('diffuseColor.rgb*=mix(.38',eyeStart);
+  assert.ok(eyeStart>=0&&eyeEnd>eyeStart,'embedded-eye material branch must remain present');
+  const eye=source.slice(eyeStart,eyeEnd);
+  assert.equal((eye.match(/tissue\(/g)||[]).length,1,'each eye fragment should evaluate tissue noise once');
+  assert.match(eye,/flesh\(vOrganic\*\.85,n\)/,'eye shading must reuse its computed tissue value');
+  assert.equal((source.match(/flesh\(/g)||[]).length,3,'the helper and its cap/eye calls must remain paired');
 });
 
 test('quality limits animation distance, density and target sampling without removing eyes',()=>{
