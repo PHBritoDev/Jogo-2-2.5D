@@ -26,3 +26,29 @@ test('não classifica imagens, estilos, mapas ou extensões apenas parecidas com
 test('trata entradas ausentes ou não textuais como inválidas', () => {
   for (const value of [undefined, null, 42, {}, '']) assert.equal(isRuntimeAssetUrl(value), false);
 });
+
+
+test('pathfinder rejeita atalho diagonal bloqueado pelo passo X do controlador', async () => {
+  const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
+  const blocked = (x, z) => Math.abs(x - 0.15) < 1e-8 && Math.abs(z) < 1e-8;
+  assert.equal(blocked(0.15, -0.15), false, 'o ponto diagonal isolado parece livre');
+  assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 0.3, z: -0.3 }, blocked, 0.3), false);
+});
+
+test('pathfinder rejeita bloqueio no passo Z depois de aceitar X', async () => {
+  const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
+  const blocked = (x, z) => Math.abs(x - 0.15) < 1e-8 && Math.abs(z + 0.15) < 1e-8;
+  assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 0.3, z: -0.3 }, blocked, 0.3), false);
+});
+
+test('pathfinder mantém reta quando os dois passos reais estão livres', async () => {
+  const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
+  const blocked = (x, z) => x > 2 && z < -2;
+  assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 0.3, z: -0.3 }, blocked, 0.12), true);
+});
+
+test('pathfinder rejeita entrada inválida e aceita segmento sem deslocamento', async () => {
+  const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
+  assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 1, z: 1 }, null), false);
+  assert.equal(isAxisSeparatedSegmentClear({ x: 1, z: 2 }, { x: 1, z: 2 }, () => true), true);
+});
