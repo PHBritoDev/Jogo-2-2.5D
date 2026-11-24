@@ -146,8 +146,23 @@ async function main(){
    }finally{
     const video=page.video();
     await ctx.close().catch(()=>{});
-    try{if(video){const p=await video.path();fs.copyFileSync(p,path.join(folder,"ultimate-bispo3-281.webm"));}}
-    catch(e){data.jsErrors.push("Vídeo indisponível: "+String(e).slice(0,160));}
+    try{
+     if(!video)throw new Error("Playwright não criou o vídeo da cinematográfica");
+     const source=await video.path(),target=path.join(folder,"ultimate-bispo3-281.webm");
+     fs.copyFileSync(source,target);
+     const bytes=fs.statSync(target).size,fd=fs.openSync(target,"r"),signature=Buffer.alloc(4);
+     try{fs.readSync(fd,signature,0,4,0);}finally{fs.closeSync(fd);}
+     const header=signature.toString("hex");
+     if(bytes<1024||header!=="1a45dfa3")throw new Error("WebM vazio ou inválido: "+bytes+" bytes / "+header);
+     data.video={file:"ultimate-bispo3-281.webm",bytes,header,available:true};
+    }catch(e){
+     const message="Vídeo obrigatório indisponível: "+String(e).slice(0,160);
+     data.video={available:false,error:message};
+     data.jsErrors.push(message);
+     data.status="failed";
+     data.failure=(data.failure?data.failure+"\\n":"")+message;
+     process.exitCode=1;
+    }
    }
   }
   report.ok=wanted.every(m=>report.modes[m].status==="approved");
