@@ -20,7 +20,7 @@ const report = {
   scenario: 'Eldoria waystone quest progress + map save/reload',
   method: 'real CDP touch input on the shipped #stick joystick; QA camera yaw is aligned to each route; real talk-button registration; no shelter-to-shelter teleport',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touchStart/touchMove/touchEnd on #stick; viewQA changes camera yaw only; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touch on #stick and Playwright tap on #talk-button; viewQA changes camera yaw only; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -30,7 +30,8 @@ const report = {
   screenshots: [],
   errors: [],
   consoleErrors: [],
-  httpErrors: []
+  httpErrors: [],
+  input: { joystickPointerTypes: [], interactionPointerTypes: [] }
 };
 
 let browser = null, context = null, page = null, video = null, cdp = null, fatal = null;
@@ -75,7 +76,15 @@ async function beginJoystick() {
   const x = Math.round(box.x + box.width / 2), y = Math.round(box.y + box.height / 2);
   const hit = await page.evaluate(([px, py]) => !!document.elementFromPoint(px, py)?.closest('#stick'), [x, y]);
   assert.ok(hit, 'ponto de toque não pertence ao joystick #stick');
+  await page.evaluate(() => {
+    window.__a5JoystickPointerType = null;
+    document.getElementById('stick').addEventListener('pointerdown', e => {
+      window.__a5JoystickPointerType = e.pointerType;
+    }, { once: true });
+  });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  await page.waitForFunction(() => window.__a5JoystickPointerType === 'touch', null, { timeout: 5000 });
+  report.input.joystickPointerTypes.push(await page.evaluate(() => window.__a5JoystickPointerType));
   await wait(80);
   const forwardY = Math.round(y - box.height * 0.32);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: forwardY, id: 1 }] });
@@ -188,7 +197,15 @@ async function registerStone(stone, expectedProgress, mapKey) {
     return b && !b.classList.contains('hidden') && b.textContent.includes('REGISTRAR ESTE ABRIGO');
   }, null, { timeout: 30000 });
   await shot(stone.id + '-before-register');
-  await page.locator('#talk-button').click();
+  await page.evaluate(() => {
+    window.__a5InteractionPointerType = null;
+    document.getElementById('talk-button').addEventListener('pointerdown', e => {
+      window.__a5InteractionPointerType = e.pointerType;
+    }, { once: true });
+  });
+  await page.locator('#talk-button').tap();
+  await page.waitForFunction(() => window.__a5InteractionPointerType === 'touch', null, { timeout: 5000 });
+  report.input.interactionPointerTypes.push(await page.evaluate(() => window.__a5InteractionPointerType));
   await page.waitForFunction(({ id, expected, key }) => {
     const map = JSON.parse(localStorage.getItem(key) || '{}');
     const q = window.SevenSinsDebug3D.sideQuestQA();
@@ -308,6 +325,10 @@ async function registerStone(stone, expectedProgress, mapKey) {
     await shot('05-ready-after-final-reload');
 
     assert.equal(report.screenshots.length, 11, 'capturas de estado incompletas');
+    assert.equal(report.input.joystickPointerTypes.length, 3, 'três percursos precisam usar pointerType touch');
+    assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
+    assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');
+    assert.ok(report.input.interactionPointerTypes.every(type => type === 'touch'), 'botão de registro não recebeu toque real');
     const criticalConsole = report.consoleErrors.filter(e => !/KHR_parallel|PropertyBinding/i.test(e));
     assert.equal(report.errors.length, 0, 'erros JavaScript: ' + report.errors.join(' | '));
     assert.equal(report.httpErrors.length, 0, 'falhas de asset JS/GLB: ' + report.httpErrors.join(' | '));
