@@ -54,7 +54,7 @@ test('six-seals QA slows its runtime clock and waits for the exact camera shot b
   const slow=sixSeals.indexOf('const timeScale=d.speed(0.1)',setupStart);
   assert.ok(setupStart>=0&&slow>setupStart&&launchStart>slow,
     'the dedicated ultimate capture must slow the real game clock before launching');
-  assert.match(sixSeals,/state\\.shot===expectedShot&&state\\.t>=target/,
+  assert.match(sixSeals,/state\.shot===expectedShot&&state\.t>=target/,
     'each screenshot must be synchronized to the expected camera shot, not only an elapsed timestamp');
   assert.match(sixSeals,/timeScale/,
     'the effective QA time scale must be recorded for diagnosing capture timing');
