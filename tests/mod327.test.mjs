@@ -193,7 +193,7 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
   const src = fs.readFileSync(new URL('../fauna3d.js', import.meta.url), 'utf8');
   assert.ok(/const retry = loadState\[kind\]/.test(src), 'estado de retry separado dos assets carregados');
   assert.ok(/!retry\.permanent && !retry\.exhausted && t >= retry\.retryAt/.test(src), 'backoff, falha permanente e esgotamento controlam o próximo pedido');
-  assert.ok(/if \(list\.length && !assets\[kind\] && !loading/.test(src), 'continua lazy: só carrega com candidato próximo');
+  assert.ok(/if \(list\.length && !assets\[kind\] && !pending\[kind\] && activeLoads < FAUNA_MAX_CONCURRENT_LOADS/.test(src), 'continua lazy e limita cargas simultâneas mesmo com outra espécie pendente');
 });
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
