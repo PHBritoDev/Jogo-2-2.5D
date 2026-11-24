@@ -1,7 +1,7 @@
 'use strict';
 /* QA A5 — progressão real dos três abrigos de Eldória.
  * A missão é pré-semeada como ativa para isolar a correção técnica sem canonizar givers provisórios.
- * Caminhada usa CDP touch no #stick de produção; o harness orienta apenas o yaw da câmera.
+ * Caminhada usa CDP touch no #stick de produção; viewQA alinha yaw e fixa pitch/distância de observação sem mover o jogador.
  * Registro usa #talk-button real; sem walkMove, teleport ou sprint helper entre abrigos.
  * Não valida oferta/entrega do NPC nem certifica Android físico.
  */
@@ -18,9 +18,9 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch input on the shipped #stick joystick; QA camera yaw is aligned to each route; real talk-button registration; no shelter-to-shelter teleport',
+  method: 'real CDP touch input on the shipped #stick joystick; viewQA aligns yaw with fixed QA pitch/distance; real talk-button registration; no shelter-to-shelter teleport',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touch on #stick and Playwright tap on #talk-button; viewQA changes camera yaw only; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touch on #stick and Playwright tap on #talk-button; viewQA adjusts camera yaw and fixed QA pitch/distance without moving the player; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -138,7 +138,7 @@ async function walkTo(stone, label) {
         assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
           label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
         const result = {
-          label, from, to: { x: p.x, y: p.y, z: p.z },
+          label, from, to: { x: p.x, y: p.y, z: p.z }, stoneCenterY: +stone.centerY.toFixed(3),
           originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2),
           netDistance: +netDistance.toFixed(2), travelled: +travelled.toFixed(2),
           surface: support.surface, steps: step,
@@ -274,8 +274,14 @@ async function registerStone(stone, expectedProgress, mapKey) {
     report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp };
     await shot('00-initial-active');
 
+    await page.waitForFunction(ids => {
+      const current = window.SevenSinsDebug3D.sideQuestQA().waystones.filter(w => ids.includes(w.id));
+      return current.length === 3 && current.every(w => Number.isFinite(w.centerY));
+    }, SIDE_QUEST_WAYSTONES, { timeout: 30000 });
+    initial = await qa();
     let stones = initial.waystones.filter(w => SIDE_QUEST_WAYSTONES.includes(w.id));
     assert.equal(stones.length, 3, 'runtime não expôs os três abrigos de Eldória');
+    assert.ok(stones.every(w => Number.isFinite(w.centerY)), 'altura visual dos três abrigos ainda não está disponível');
     stones.sort((a, b) => SIDE_QUEST_WAYSTONES.indexOf(a.id) - SIDE_QUEST_WAYSTONES.indexOf(b.id));
 
     for (let i = 0; i < 2; i++) {
