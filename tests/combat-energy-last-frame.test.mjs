@@ -8,6 +8,7 @@ import { swordImpactCue } from '../sword-rites-vfx3d.js';
 
 const worldSource = await readFile(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 const combatWorkflow = await readFile(new URL('../.github/workflows/combat315.yml', import.meta.url), 'utf8');
+const terminalWorkflow = await readFile(new URL('../.github/workflows/combat-energy-last-frame.yml', import.meta.url), 'utf8');
 
 test('impacto secundário do Eclipse tem assinatura VFX mais legível sem alterar o primário', () => {
   assert.deepEqual(swordImpactCue({ secondary: true }), { burst: 24, scale: .82, life: .28, secondScale: .48, secondLife: .22 });
@@ -386,6 +387,14 @@ test('golpe físico primário acerta no corredor sem obstrução e usa a superf�
   assert.ok(Math.abs(Math.hypot(p.x - 1.2, p.y - 1, p.z + .5) - .45) < .02,
     'VFX primário precisa nascer na superfície do alvo');
   assert.ok(p.x < 1.2, 'impacto deve ficar na face voltada à lâmina');
+});
+
+test('terminal-wave captura e testes usam o HEAD exato da PR', () => {
+  const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
+  assert.equal(terminalWorkflow.split(ref).length - 1, 2);
+  assert.equal(terminalWorkflow.split('Verify exact PR head').length - 1, 1);
+  assert.ok(terminalWorkflow.includes('run: test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"'));
+  assert.ok(terminalWorkflow.includes('persist-credentials: false'));
 });
 
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
