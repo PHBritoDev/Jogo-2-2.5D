@@ -114,7 +114,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   const requestTimeoutMs = Number.isFinite(loadTimeoutMs) && loadTimeoutMs > 0 ? loadTimeoutMs : FAUNA_LOAD_TIMEOUT_MS;
   // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
   // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
-  async function loadGLB(loader, url) {
+  async function loadGLB(loader, url, releaseSlot) {
     if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB load'), { name: 'AbortError' });
     const controller = new AbortController();
     let timer = null, timedOut = false, abandoned = false, cancelLoad = null;
@@ -128,7 +128,6 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         orphanCounted = true;
         orphanedLoads++;
         stats.orphanedLoads = orphanedLoads;
-        stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
       }
     };
     const releaseAbandonedResult = () => {
@@ -188,6 +187,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     } finally {
       raceSettled = true;
       if (abandoned && raceRejected && operationSettled && operationValue) releaseAbandonedResult();
+      if (abandoned && raceRejected) releaseSlot();
       if (timer !== null) clearTimeout(timer);
       activeControllers.delete(active);
     }
@@ -207,9 +207,17 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     stats.activeLoads = activeLoads;
     stats.peakActiveLoads = Math.max(stats.peakActiveLoads, activeLoads);
     stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
+    let slotReleased = false;
+    const releaseSlot = () => {
+      if (slotReleased) return;
+      slotReleased = true;
+      activeLoads = Math.max(0, activeLoads - 1);
+      stats.activeLoads = activeLoads;
+      stats.peakConcurrentLoads = Math.max(stats.peakConcurrentLoads, activeLoads + orphanedLoads);
+    };
     const request = Promise.resolve().then(() => {
       const L = new GLTFLoader(); L.register(liteTex(low ? Math.min(128, S.tex) : S.tex));
-      return loadGLB(L, base + S.file);
+      return loadGLB(L, base + S.file, releaseSlot);
     });
     return pending[kind] = request.then(g => {
       if (disposed) { releaseGltf(g); return null; }
@@ -245,8 +253,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       return { failed: message, retryAt: state.retryAt, permanent: state.permanent };
     }).finally(() => {
       delete pending[kind];
-      activeLoads = Math.max(0, activeLoads - 1);
-      stats.activeLoads = activeLoads;
+      releaseSlot();
     });
   }
   // Only inspect rendered rocks when a bird is created. Intersect one nearby
