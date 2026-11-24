@@ -102,8 +102,9 @@ async function inspectVsCard(page) {
     const rect = selector => {
       const el = document.querySelector(selector);
       if (!el) return null;
-      const r = el.getBoundingClientRect();
+      const r = el.getBoundingClientRect(), style = getComputedStyle(el);
       return {
+        display: style.display, visibility: style.visibility, opacity: style.opacity,
         left: +r.left.toFixed(1), top: +r.top.toFixed(1),
         right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1),
         width: +r.width.toFixed(1), height: +r.height.toFixed(1),
@@ -119,6 +120,7 @@ async function inspectVsCard(page) {
     return {
       viewport: { width: innerWidth, height: innerHeight },
       visible: !!(panel && !panel.hidden && getComputedStyle(panel).display !== 'none'),
+      adminQuick: rect('#adm-tp-vulcao-ato2-quick'),
       panel: rect('#vs-panel'), kicker: rect('.vs-kicker'), stage: rect('.vs-stage'),
       hero: rect('.vs-hero'), heroFrame: rect('.vs-hero .vs-frame'), heroCaption: rect('.vs-hero figcaption'),
       boss: rect('.vs-boss'), bossFrame: rect('.vs-boss .vs-frame'), bossCaption: rect('.vs-boss figcaption'),
@@ -136,6 +138,7 @@ function assertVsPortrait(state, label) {
   const { width, height } = state.viewport;
   assert.ok(width < height, label + ': viewport portrait');
   assert.equal(state.visible, true, label + ': cartão VS visível');
+  assert.ok(state.adminQuick && (state.adminQuick.display === 'none' || state.adminQuick.visibility === 'hidden' || Number(state.adminQuick.opacity) === 0), label + ': atalho ADM oculto enquanto o cartão VS está aberto');
   const within = box => !!(box && box.width > 0 && box.height > 0 && box.left >= -1 && box.top >= -1 && box.right <= width + 1 && box.bottom <= height + 1);
   for (const key of ['panel','kicker','stage','hero','heroFrame','heroCaption','boss','bossFrame','bossCaption','mark','line','go']) {
     assert.ok(within(state[key]), label + ': ' + key + ' inteiro dentro do viewport');
