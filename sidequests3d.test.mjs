@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
-import { WAYSTONES } from './map3d.js';
+import { WAYSTONES, createMapState, serializeMapState } from './map3d.js';
 
 const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
 
@@ -313,3 +313,31 @@ test('save available permanece intacto quando nao ha snapshot de campanha', () =
 });
 
 
+
+
+test('Set real de waystones restaurado pelo mapa mantém apenas abrigos de Eldória', () => {
+  const map = createMapState({
+    waystones: ['abrigo-vila', 'abrigo-vale', 'abrigo-serra', 'abrigo-cinzaria']
+  });
+  const state = createSideState();
+  refreshSide(state, { questStep: 2 });
+  assert.equal(acceptSide(state, 'abrigos'), true);
+
+  refreshSide(state, { questStep: 2, waystones: map.waystones });
+  assert.equal(state.abrigos.progress, 1, 'somente abrigo-vila conta antes do reload');
+
+  const savedMap = serializeMapState(map);
+  const restoredMap = createMapState(savedMap);
+  const restoredSide = createSideState(JSON.parse(JSON.stringify(state)));
+  assert.ok(restoredMap.waystones instanceof Set);
+  refreshSide(restoredSide, { questStep: 2, waystones: restoredMap.waystones });
+  assert.equal(restoredSide.abrigos.progress, 1, 'o Set reconstruído do save preserva apenas o progresso local');
+
+  restoredMap.waystones.add('abrigo-mata');
+  refreshSide(restoredSide, { questStep: 2, waystones: restoredMap.waystones });
+  assert.equal(restoredSide.abrigos.progress, 2);
+  restoredMap.waystones.add('abrigo-caverna');
+  refreshSide(restoredSide, { questStep: 2, waystones: restoredMap.waystones });
+  assert.equal(restoredSide.abrigos.progress, 3);
+  assert.equal(restoredSide.abrigos.state, 'ready');
+});
