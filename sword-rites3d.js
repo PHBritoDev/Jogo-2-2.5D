@@ -245,8 +245,7 @@ export class SwordRites {
     }
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
-     if(contact){
-      if(bladeOcclusionCached(a,target,ctx.from,this.time))continue;
+     if(contact&&!bladeOcclusionCached(a,target,ctx.from,this.time)){
       if(segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
       else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});}
      }
