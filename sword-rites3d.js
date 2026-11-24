@@ -19,7 +19,7 @@ const copy=p=>({x:p.x,y:p.y,z:p.z});
  */
 export function swordSideHitContext(meta,target,fallback){
  const energy=meta?.wave||meta?.energy;
- if(!energy)return{x:fallback.x,z:fallback.z,kind:'melee'};
+ if(!energy)return{x:fallback.x,z:fallback.z,kind:meta?.kind==='spell'||meta?.by==='judgment'?'spell':'melee'};
  const direction=energy.direction;
  if(direction&&Number.isFinite(direction.x)&&Number.isFinite(direction.z)){
   const len=Math.hypot(direction.x,direction.z);
@@ -200,7 +200,7 @@ export class SwordRites {
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsPrimarySweep){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
      if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked)){
-      a.hit=true;a.hitBy='blade';this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic');this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
+      a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
      }
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
@@ -219,7 +219,7 @@ export class SwordRites {
    }
    if(a.kind==='prota'){
     const moments=JUDGMENT_TIMES;while(a.events<moments.length&&a.t>=moments[a.events]){
-     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment');this.api.event('judgment',{target,n,sword:a.sword,final:n===15});}
+     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){const applied=this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment',{target,kind:'spell',by:'judgment'});if(applied!==false&&applied!==0)this.api.event('judgment',{target,n,sword:a.sword,final:n===15});}
     }
    }else if(a.kind==='aurora'){
     const moments=[.40,.82,1.24,1.70];while(a.events<moments.length&&a.t>=moments[a.events]){
@@ -253,9 +253,14 @@ export class SwordRites {
      const contact=e.kind==='sector'?{x:o.x-dx/radial*radius,y:o.y,z:o.z-dz/radial*radius}:{x:o.x-fx*radius,y:o.y,z:o.z-fz*radius};
      this.api.event('impact',{target:o,sword:owner.sword,final:false,pattern:owner.def.pattern,mode:owner.mode,by:'energy',secondary:true,energy:e,p:contact,hitstop:0,shake:0});
     }}}}
-   if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){owner.hit=true;owner.hitBy='energy';this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic');
-    const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
-    this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});}
+   if(touched&&!owner.hit&&target?.alive&&(target.id===owner.targetId||owner.def.drive)){
+    owner.hit=true;owner.hitBy='energy';
+    const applied=this.api.hit(Math.round(owner.damage*owner.def.multiplier*energyFalloff(e,Math.hypot(target.x-ctx.from.x,target.z-ctx.from.z))),target.id,'basic',{target,energy:e,by:'energy'});
+    if(applied!==false&&applied!==0){
+     const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),d=Math.hypot(target.x-e.x,target.z-e.z)||1,r=target.radius||.5;
+     this.api.event('impact',{target,sword:owner.sword,final:!!owner.def.finisher,pattern:owner.def.pattern,mode:owner.mode,by:'energy',energy:e,p:e.kind==='sector'?{x:target.x-(target.x-e.x)/d*r,y:target.y,z:target.z-(target.z-e.z)/d*r}:{x:target.x-fx*r,y:target.y,z:target.z-fz*r},hitstop:owner.def.hitstop,shake:owner.def.shake});
+    }
+   }
    if(e.done){this.api.event('energyEnd',e);this.energies.splice(i,1);}
   }
   for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/.06));let gone=false;Object.assign(w.previous,w.p);
@@ -265,8 +270,8 @@ export class SwordRites {
     for(let k=-2;k<=2;k++){const off=k*.5*w.radius*Math.cos(w.roll);if(this.api.blocked({x:w.p.x+Math.cos(w.yaw)*off,y:w.p.y,z:w.p.z-Math.sin(w.yaw)*off})){gone=true;break;}}
     if(gone)break;
     if(target?.alive&&!w.hits.has(target.id)&&auroraWaveTouches(w,target)){
-     w.hits.add(target.id);this.api.hit(w.damage,target.id,'eclipse');
-     this.api.event('impact',{target,sword:'aurora',final:w.n===3,by:'energy',energy:w,p:auroraWaveImpactPoint(w,target)});
+     w.hits.add(target.id);const applied=this.api.hit(w.damage,target.id,'eclipse',{target,wave:w,by:'energy'});
+     if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:'aurora',final:w.n===3,by:'energy',energy:w,p:auroraWaveImpactPoint(w,target)});
     }
     // A onda do Eclipse também percorre ctx.others: cada alvo lateral recebe dano e
     // impacto próprio uma vez por onda, sem acumular hitstop/shake da multidão.
