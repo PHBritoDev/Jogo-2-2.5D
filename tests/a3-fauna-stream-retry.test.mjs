@@ -67,7 +67,7 @@ function fakeScene() {
   };
   const material = { map: null, color: 0xffffff, dispose() {} };
   const mesh = { isMesh: true, geometry, material };
-  return { traverse(fn) { fn(mesh); } };
+  return { traverse(fn) { fn(mesh); }, updateMatrixWorld() {} };
 }
 function loaderFor(results) {
   let calls = 0;
