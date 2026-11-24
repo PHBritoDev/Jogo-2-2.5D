@@ -421,6 +421,70 @@ test('fauna: timeout durante a leitura do corpo GLB também aborta e libera a va
 });
 
 
+test('fauna: timeout durante parseAsync libera a vaga e descarta o GLB tardio', async () => {
+  let finishParse, parseStarted = false;
+  const counts = { geometry: 0, material: 0, texture: 0, image: 0, skeleton: 0 };
+  const texture = {
+    isTexture: true,
+    image: { close() { counts.image++; } },
+    dispose() { counts.texture++; }
+  };
+  const geometry = { dispose() { counts.geometry++; } };
+  const material = { map: texture, dispose() { counts.material++; } };
+  const skeleton = { dispose() { counts.skeleton++; } };
+  const loadedScene = { traverse(fn) { fn({ geometry, material, skeleton }); } };
+  class Loader {
+    register() {}
+    parseAsync() {
+      parseStarted = true;
+      return new Promise(resolve => { finishParse = () => resolve({ scene: loadedScene }); });
+    }
+  }
+  const fetchImpl = async () => ({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) });
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 20 });
+  const failure = await fauna.load('grilo');
+
+  assert.equal(parseStarted, true);
+  assert.match(failure.failed, /timed out after 20 ms/);
+  assert.equal(fauna.stats.loadTimeouts, 1);
+  assert.equal(fauna.stats.lastLoadError.timeout, true);
+  assert.equal(fauna.stats.activeLoads, 0, 'parse pendente não pode manter a vaga ocupada após timeout');
+  assert.deepEqual(fauna.stats.loaded, []);
+
+  finishParse();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 },
+    'o resultado de parseAsync que chega depois do timeout precisa ser descartado');
+  fauna.dispose();
+});
+
+test('fauna: timeout do fallback loadAsync também libera a vaga e descarta o GLB tardio', async () => {
+  let finishLoad, loadStarted = false;
+  const counts = { geometry: 0, material: 0 };
+  const geometry = { dispose() { counts.geometry++; } };
+  const material = { dispose() { counts.material++; } };
+  const loadedScene = { traverse(fn) { fn({ geometry, material }); } };
+  class Loader {
+    register() {}
+    loadAsync() {
+      loadStarted = true;
+      return new Promise(resolve => { finishLoad = () => resolve({ scene: loadedScene }); });
+    }
+  }
+  const fauna = create(Loader, ctx, { loadTimeoutMs: 20 });
+  const failure = await fauna.load('grilo');
+
+  assert.equal(loadStarted, true);
+  assert.match(failure.failed, /timed out after 20 ms/);
+  assert.equal(fauna.stats.loadTimeouts, 1);
+  assert.equal(fauna.stats.activeLoads, 0);
+  finishLoad();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(counts, { geometry: 1, material: 1 },
+    'o fallback loadAsync também precisa liberar recursos quando termina tarde');
+  fauna.dispose();
+});
+
 test('fauna: dispose aborta requisições pendentes e bloqueia novos carregamentos', async () => {
   let requests = 0, aborts = 0;
   const fetchImpl = (_url, { signal }) => new Promise((_, reject) => {

@@ -21,7 +21,7 @@ export const FAUNA_LOAD_RETRY = Object.freeze({
 });
 /** Mantém o streaming responsivo se uma requisição de espécie ficar lenta. */
 export const FAUNA_MAX_CONCURRENT_LOADS = 2;
-/** Evita que uma requisição GLB sem resposta ocupe uma vaga indefinidamente. */
+/** Evita que fetch, leitura do GLB ou parse pendente ocupem uma vaga indefinidamente. */
 export const FAUNA_LOAD_TIMEOUT_MS = 20000;
 function assetHttpStatus(error) {
   const message = String(error && error.message || error);
@@ -115,28 +115,37 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
   // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
   async function loadGLB(loader, url) {
-    if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);
     const controller = new AbortController();
     activeControllers.add(controller);
-    let timer = null;
+    let timer = null, timedOut = false;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => {
-        const error = new Error(`fauna GLB request timed out after ${requestTimeoutMs} ms: ${url}`);
+        timedOut = true;
+        const error = new Error(`fauna GLB load timed out after ${requestTimeoutMs} ms: ${url}`);
         error.code = 'FAUNA_LOAD_TIMEOUT';
         reject(error);
         controller.abort();
       }, requestTimeoutMs);
     });
-    try {
-      const response = await Promise.race([fetchImpl(url, { signal: controller.signal }), timeout]);
+    const operation = Promise.resolve().then(async () => {
+      // O fallback mantém compatibilidade com loaders antigos/mocks, mas também
+      // fica sob o mesmo limite total e descarta o GLB se terminar tarde.
+      if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);
+      const response = await fetchImpl(url, { signal: controller.signal });
       if (response.ok === false) {
         // Cancelar o corpo de respostas HTTP não utilizáveis libera a conexão sem consumir o payload.
         controller.abort();
         throw new Error(`fetch for ${url} responded with ${response.status}: ${response.statusText || 'HTTP error'}`);
       }
-      const data = await Promise.race([response.arrayBuffer(), timeout]);
-      if (timer !== null) { clearTimeout(timer); timer = null; }
-      return await loader.parseAsync(data, base);
+      const data = await response.arrayBuffer();
+      if (timedOut || disposed) throw Object.assign(new Error('fauna GLB load aborted before parsing'), { name: 'AbortError' });
+      return loader.parseAsync(data, base);
+    });
+    // parseAsync/loadAsync não oferecem cancelamento confiável. Se terminarem
+    // depois do timeout, o resultado órfão precisa liberar seus recursos.
+    operation.then(gltf => { if (timedOut) releaseGltf(gltf); }, () => {});
+    try {
+      return await Promise.race([operation, timeout]);
     } finally {
       if (timer !== null) clearTimeout(timer);
       activeControllers.delete(controller);
