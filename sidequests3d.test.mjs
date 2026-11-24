@@ -9,7 +9,7 @@ const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count)
 const pendingFor = (id, beforeCoins = 100, beforeXp = 50) => {
   const q = SIDE_QUESTS.find(item => item.id === id);
   return {
-    claimId: 'side:' + id + ':v1', questId: id,
+    claimId: 'side:' + id + ':v2', questId: id,
     coins: q.reward.coins, xp: q.reward.xp,
     beforeCoins, afterCoins: beforeCoins + q.reward.coins,
     beforeXp, afterXp: beforeXp + q.reward.xp
@@ -45,59 +45,74 @@ test('recompensa pendente sobrevive reload e recupera crash antes do save da cam
   assert.equal(restored.ervas.state, 'done');
   assert.deepEqual(restored.pendingReward, state.pendingReward);
   let applied = 0;
-  assert.equal(settleSideReward(restored, null, pending => { applied++; return { coins: pending.afterCoins, xp: pending.afterXp }; }), 'applied');
+  assert.equal(settleSideReward(restored, null, pending => {
+    applied++;
+    return { coins: pending.afterCoins, xp: pending.afterXp, sideRewardClaims: [pending.claimId] };
+  }), 'applied');
   assert.equal(applied, 1);
   assert.equal(restored.pendingReward, null);
   assert.equal(turnInSide(restored, 'ervas'), null);
 });
 
-test('recompensa já persistida limpa pendência sem creditar novamente', () => {
+test('claim persistido limpa pendência mesmo depois de gastar moedas e XP', () => {
   const pending = pendingFor('ervas');
   const state = createSideState({
     ervas: { state: 'done', progress: 4 },
     pendingReward: pending
   });
   let applied = 0;
-  assert.equal(settleSideReward(state, { coins: pending.afterCoins + 5, xp: pending.afterXp + 30 }, () => { applied++; return null; }), 'already-applied');
+  assert.equal(settleSideReward(state, {
+    coins: 2, xp: 3, sideRewardClaims: [pending.claimId]
+  }, () => { applied++; return null; }), 'already-applied');
   assert.equal(applied, 0);
   assert.equal(state.pendingReward, null);
 });
 
-test('XP salvo acima da meta não descarta recibo quando as moedas ainda não foram persistidas', () => {
+test('XP alto de outras fontes não comprova que a recompensa da missão foi paga', () => {
   const pending = pendingFor('ervas');
   const state = createSideState({
     ervas: { state: 'done', progress: 4 },
     pendingReward: pending
   });
-  let applied = 0;
-  const result = settleSideReward(state, {
-    coins: pending.beforeCoins,
-    xp: pending.afterXp + 25
-  }, receipt => {
+  const persisted = { coins: pending.beforeCoins, xp: pending.afterXp + 25, sideRewardClaims: [] };
+  let applied = 0, committed;
+  const result = settleSideReward(state, persisted, receipt => {
     applied++;
-    return { coins: receipt.afterCoins, xp: receipt.afterXp };
+    committed = {
+      coins: persisted.coins + receipt.coins,
+      xp: persisted.xp + receipt.xp,
+      sideRewardClaims: [receipt.claimId]
+    };
+    return committed;
   });
   assert.equal(result, 'applied');
   assert.equal(applied, 1);
+  assert.equal(committed.coins, pending.afterCoins);
+  assert.equal(committed.xp, persisted.xp + pending.xp);
   assert.equal(state.pendingReward, null);
 });
 
-test('moedas salvas acima da meta não descartam recibo quando o XP ainda não foi persistido', () => {
+test('moedas altas de outras fontes não comprovam que a recompensa da missão foi paga', () => {
   const pending = pendingFor('ervas');
   const state = createSideState({
     ervas: { state: 'done', progress: 4 },
     pendingReward: pending
   });
-  let applied = 0;
-  const result = settleSideReward(state, {
-    coins: pending.afterCoins + 25,
-    xp: pending.beforeXp
-  }, receipt => {
+  const persisted = { coins: pending.afterCoins + 25, xp: pending.beforeXp, sideRewardClaims: [] };
+  let applied = 0, committed;
+  const result = settleSideReward(state, persisted, receipt => {
     applied++;
-    return { coins: receipt.afterCoins, xp: receipt.afterXp };
+    committed = {
+      coins: persisted.coins + receipt.coins,
+      xp: persisted.xp + receipt.xp,
+      sideRewardClaims: [receipt.claimId]
+    };
+    return committed;
   });
   assert.equal(result, 'applied');
   assert.equal(applied, 1);
+  assert.equal(committed.coins, persisted.coins + pending.coins);
+  assert.equal(committed.xp, pending.afterXp);
   assert.equal(state.pendingReward, null);
 });
 
@@ -106,9 +121,11 @@ test('falha temporária do save mantém transação pendente e permite retry', (
     ervas: { state: 'done', progress: 4 },
     pendingReward: pendingFor('ervas')
   });
-  assert.equal(settleSideReward(state, { coins: 100, xp: 50 }, () => ({ coins: 100, xp: 50 })), 'pending');
+  assert.equal(settleSideReward(state, { coins: 100, xp: 50, sideRewardClaims: [] },
+    () => ({ coins: 100, xp: 50, sideRewardClaims: [] })), 'pending');
   assert.ok(state.pendingReward);
-  assert.equal(settleSideReward(state, { coins: 100, xp: 50 }, pending => ({ coins: pending.afterCoins, xp: pending.afterXp })), 'applied');
+  assert.equal(settleSideReward(state, { coins: 100, xp: 50, sideRewardClaims: [] },
+    pending => ({ coins: pending.afterCoins, xp: pending.afterXp, sideRewardClaims: [pending.claimId] })), 'applied');
   assert.equal(state.pendingReward, null);
 });
 
@@ -124,7 +141,7 @@ test('pendência não sobrevive a save done sem progresso completo', () => {
 test('pending reward inválido ou sem missão done é descartado', () => {
   const valid = pendingFor('ervas');
   const invalid = [
-    { ...valid, claimId: 'side:ervas:v2' },
+    { ...valid, claimId: 'side:ervas:v1' },
     { ...valid, afterXp: valid.afterXp - 1 },
     { ...valid, coins: valid.coins + 1 },
     { ...valid, afterCoins: valid.afterCoins + 1 }
@@ -398,19 +415,23 @@ test('recuperação de recompensa usa moedas e XP do mesmo snapshot V6', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   assert.ok(runtime.includes('function savedCampaignProgress(){'));
   assert.ok(runtime.includes('Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)'));
+  assert.ok(runtime.includes('Array.isArray(saved.sideRewardClaims)'));
+  assert.ok(runtime.includes('sideRewardClaims:[...sideRewardClaims]'));
+  assert.ok(runtime.includes('coins+=pending.coins;'));
   assert.ok(runtime.includes('settleSideReward(sideState,savedCampaignProgress(),pending=>{'));
   assert.ok(runtime.includes('save3DProgress();return savedCampaignProgress();'));
   assert.ok(!runtime.includes('function savedCampaignXp(){'));
 });
 
-test('recuperação real da campanha faz retry após falha e não duplica após crash', () => {
+test('recompensa soma ao saldo atual e claim atômico evita perda, retry duplo e pagamento após reload', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   const begin = runtime.indexOf('function savedCampaignProgress(){');
   const end = runtime.indexOf('\nconst sideRewardRecovery', begin);
   assert.ok(begin >= 0 && end > begin, 'bloco de recuperação transacional não foi localizado');
   const recovery = runtime.slice(begin, end);
-  const pending = pendingFor('ervas');
-  const storage = new Map([['sevenSins3DCampaignV6', JSON.stringify({ coins: 100, xp: 50 })]]);
+  const pending = pendingFor('ervas', 100, 100);
+  // Três vitórias de captor salvaram 112 moedas / 160 XP, sem o claim da missão.
+  const storage = new Map([['sevenSins3DCampaignV6', JSON.stringify({ coins: 112, xp: 160, sideRewardClaims: [] })]]);
   const state = createSideState({
     ervas: { state: 'done', progress: 4 },
     pendingReward: pending
@@ -423,8 +444,9 @@ test('recuperação real da campanha faz retry após falha e não duplica após 
     },
     settleSideReward,
     sideState: state,
-    coins: 100,
-    playerXp: 50,
+    sideRewardClaims: [],
+    coins: 112,
+    playerXp: 160,
     allowSave: false,
     saveCount: 0,
     sideSaveCount: 0
@@ -432,36 +454,47 @@ test('recuperação real da campanha faz retry após falha e não duplica após 
   context.gainXp = amount => { context.playerXp += amount; };
   context.save3DProgress = () => {
     context.saveCount++;
-    if (context.allowSave) storage.set(context.PROGRESS_KEY, JSON.stringify({ coins: context.coins, xp: context.playerXp }));
+    if (context.allowSave) storage.set(context.PROGRESS_KEY, JSON.stringify({
+      coins: context.coins, xp: context.playerXp, sideRewardClaims: [...context.sideRewardClaims]
+    }));
   };
   context.saveSide = () => { context.sideSaveCount++; return true; };
   runInNewContext(recovery + '\nthis.__settle = settlePendingSideReward;', context);
 
   assert.equal(context.__settle(), 'pending', 'falha do primeiro save mantém o recibo');
-  assert.equal(context.coins, pending.afterCoins, 'moedas são aplicadas em memória antes do save');
-  assert.equal(context.playerXp, pending.afterXp, 'XP é aplicado em memória antes do save');
+  assert.equal(context.coins, 122, 'recompensa soma +10 ao saldo aumentado por combate');
+  assert.equal(context.playerXp, 190, 'recompensa soma +30 ao XP aumentado por combate');
+  assert.ok(context.sideRewardClaims.includes(pending.claimId));
   assert.ok(state.pendingReward);
 
   context.allowSave = true;
-  assert.equal(context.__settle(), 'applied', 'retry persiste os saldos já aplicados em memória');
-  assert.equal(context.coins, pending.afterCoins, 'retry não duplica moedas');
-  assert.equal(context.playerXp, pending.afterXp, 'retry não duplica XP');
+  assert.equal(context.__settle(), 'applied', 'retry persiste o mesmo saldo e o claim');
+  assert.equal(context.coins, 122, 'retry não duplica moedas');
+  assert.equal(context.playerXp, 190, 'retry não duplica XP');
   assert.equal(context.saveCount, 2);
   assert.equal(context.sideSaveCount, 1);
   assert.equal(state.pendingReward, null);
+  const committed = JSON.parse(storage.get(context.PROGRESS_KEY));
+  assert.deepEqual(committed.sideRewardClaims, [pending.claimId]);
+  assert.equal(committed.coins, 122);
+  assert.equal(committed.xp, 190);
 
-  // Simula crash depois do save da campanha e antes de limpar o recibo do save da vila.
+  // Crash depois do snapshot V6 e antes de limpar o recibo do save da vila.
   const reloaded = createSideState({
     ervas: { state: 'done', progress: 4 },
     pendingReward: pending
   });
-  const recoveryAfterCrash = { ...context, sideState: reloaded, allowSave: false, saveCount: 0, sideSaveCount: 0 };
+  const recoveryAfterCrash = {
+    ...context, sideState: reloaded, allowSave: false, saveCount: 0, sideSaveCount: 0,
+    coins: committed.coins, playerXp: committed.xp,
+    sideRewardClaims: [...committed.sideRewardClaims]
+  };
   delete recoveryAfterCrash.__settle;
   runInNewContext(recovery + '\nthis.__settle = settlePendingSideReward;', recoveryAfterCrash);
   assert.equal(recoveryAfterCrash.__settle(), 'already-applied');
   assert.equal(reloaded.pendingReward, null);
-  assert.equal(recoveryAfterCrash.coins, pending.afterCoins);
-  assert.equal(recoveryAfterCrash.playerXp, pending.afterXp);
+  assert.equal(recoveryAfterCrash.coins, 122);
+  assert.equal(recoveryAfterCrash.playerXp, 190);
   assert.equal(recoveryAfterCrash.saveCount, 0, 'crash recovery não grava/credita novamente a campanha');
 });
 
