@@ -62,7 +62,7 @@ test('Bispo 1 no modo de espada: esquiva com dash, defende menos e mais curto, r
 
 test('câmera estilo Genshin: duelo enquadrado automático (sem travar), zona morta e arrastar manda', () => {
   assert.ok(/function autoDuelCamera\(dt,now,engaged\)/.test(m));
-  assert.ok(/now-lastLookInputAt<1200/.test(m) && /dead=\.35/.test(m), 'só depois de 1,2 s sem mexer na câmera; zona morta de 20°');
+  assert.ok(/const idleMs=portrait\?portrait\.idleMs:1200/.test(m) && /now-lastLookInputAt<idleMs/.test(m) && /dead=portrait\?portrait\.deadZone:\.35/.test(m), 'duelo genérico mantém 1,2 s/20°; o perfil retrato pode ajustar os dois valores');
   assert.ok(/engaged&&newHero&&cameraDistance>=1\.05\?duelPull:0/.test(m), 'em duelo aproxima às costas do herói (nunca além do zoom do jogador)');
   assert.ok(/Math\.min\(0,Math\.max\(3\.6,Math\.min\(7,4\.6\+/.test(m));
   assert.ok(/autoRecenterCamera\(dt,performance\.now\(\)\+i\*1000\/fps\);updatePlayerCamera\(dt\)/.test(m), 'o mesmo caminho no combatStep');
