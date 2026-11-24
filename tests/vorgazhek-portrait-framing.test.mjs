@@ -78,4 +78,5 @@ test('controles do retrato compacto afastam escudo, corrida e mira do joystick',
   assert.match(qa, /actionButtons: Array\.from\(document\.querySelectorAll\('#actions button'\)\)/);
   assert.match(qa, /!overlaps\(visibleButtons\.shield, h\.stick\)/);
   assert.match(qa, /!overlaps\(visibleButtons\.run, h\.stick\)/);
+  assert.match(qa, /state\.hud\.stick\.width <= 92/);
 });

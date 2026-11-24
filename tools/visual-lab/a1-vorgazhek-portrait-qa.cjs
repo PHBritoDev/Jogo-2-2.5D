@@ -151,6 +151,7 @@ function overlaps(a, b) {
 
 function assertCompactPortrait(state, label) {
   assertPortrait(state, label);
+  assert.ok(state.hud.stick.width <= 92, label + ': joystick compacto não invade a coluna de ações');
   assert.equal(state.hud.inventory?.display, 'none', label + ': inventário recolhido em viewport estreito');
   assert.equal(state.hud.map?.display, 'none', label + ': mapa recolhido em viewport estreito');
 }

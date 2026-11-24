@@ -424,7 +424,6 @@ body.no-hints #top{display:none!important}
 @media (orientation:portrait) and (max-width:388px){
  body.bishop2-battle #inventory-btn,
  body.bishop2-battle #map-toggle-3d{display:none!important}
- body.bishop2-battle #stick{width:calc(var(--u)*2.15)!important;height:calc(var(--u)*2.15)!important}
  body.bishop2-battle #actions #shield{right:calc(var(--u)*3.8)!important}
  body.bishop2-battle #actions #run{right:calc(var(--u)*3.9)!important}
  body.bishop2-battle #actions #aim{right:calc(var(--u)*2.8)!important}
@@ -451,4 +450,8 @@ body.no-hints #top{display:none!important}
  body.bishop2-battle #actions{--ctrl-scale:.88;right:calc(6px + var(--safe-r))!important;bottom:calc(6px + var(--safe-b))!important}
  body.bishop2-battle #stick{left:calc(10px + var(--safe-l))!important;bottom:calc(10px + var(--safe-b))!important;width:calc(var(--u)*2.35)!important;height:calc(var(--u)*2.35)!important}
  body.bishop2-battle #marker{left:calc(6px + var(--safe-l))!important;bottom:calc(var(--u)*2.45 + 14px + var(--safe-b))!important}
+}
+
+@media (orientation:portrait) and (max-width:388px){
+ body.bishop2-battle #stick{width:calc(var(--u)*2.15)!important;height:calc(var(--u)*2.15)!important}
 }
