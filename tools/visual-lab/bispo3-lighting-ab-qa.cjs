@@ -68,7 +68,11 @@ async function capture(label,url,browser){
     // four-slot mobile budget must actually select the dimension fill for this camera.
     const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
-    assert.ok(lighting.lights?.active?.includes('luz'),label+': existing dimension fill is absent from active light slots');
+    const fill=lighting.lights?.activeDetails?.find(source=>
+      source.position&&Math.abs(source.position[0]-1200)<.5&&Math.abs(source.position[2])<.5&&
+      Math.abs(source.intensity-16)<.01&&Math.abs(source.distance-36)<.01);
+    assert.ok(fill,label+': Zar’khael dimension fill is not selected in the active shader slots');
+    assert.ok(fill.slotIntensity>15,label+': selected dimension fill has not reached its configured intensity');
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
     assert.equal(state.dim.battle?.active,true,label+': battle inactive');
