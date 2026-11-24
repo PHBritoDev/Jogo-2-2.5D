@@ -55,7 +55,8 @@ const report = {
   legs: [],
   walks: [],
   registrations: [],
-  screenshots: [],
+  interactionChecks: [],
+  screenshots: [];
   errors: [],
   consoleErrors: [],
   httpErrors: [],
@@ -356,15 +357,17 @@ async function walkTo(stone, label) {
     const p = await playerState(), support = await walkState();
     const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
     assert.ok(nearStone <= 1.35, label + ': personagem fora do raio do abrigo (' + nearStone.toFixed(2) + 'm)');
-    assert.ok(p.y > stone.centerY - 0.25, label + ': personagem abaixo do centro da plataforma');
+    // centerY é o pivô/centro visual do objeto, não a cota do piso sob os pés do jogador.
+    // A chegada válida é comprovada pelo raio XZ, suporte físico e prompt real de interação.
     assert.ok(support.grounded, label + ': personagem não está apoiado no chão');
     const netDistance = Math.hypot(p.x - start.x, p.z - start.z);
     assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
       label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
     const result = {
       label, from: { x: start.x, z: start.z }, to: { x: p.x, y: p.y, z: p.z },
-      stoneCenterY: +stone.centerY.toFixed(3), originDistance: +originDistance.toFixed(2),
-      finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
+      playerY: +p.y.toFixed(3), stoneCenterY: +stone.centerY.toFixed(3),
+      verticalDelta: +(p.y - stone.centerY).toFixed(3), grounded: !!support.grounded,
+      originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
       travelled: +travelled.toFixed(2), steps: totalSteps,
       routePoints: selected.plan.points.length, control: 'touch #stick'
     };
@@ -375,15 +378,29 @@ async function walkTo(stone, label) {
   }
 }
 async function registerStone(stone, expectedProgress, mapKey) {
-  const p = await playerState();
+  const p = await playerState(), support = await walkState();
   const d = Math.hypot(stone.x - p.x, stone.z - p.z);
   assert.ok(d <= 1.35, stone.id + ': personagem fora do raio de registro (' + d.toFixed(2) + 'm)');
-  assert.ok(p.y > stone.centerY - 0.25, stone.id + ': personagem abaixo do centro da plataforma');
+  assert.ok(support.grounded, stone.id + ': personagem não está apoiado no chão para interagir');
+  const buttonBefore = await page.evaluate(() => {
+    const b = document.getElementById('talk-button');
+    return { exists: !!b, hidden: !!b?.classList.contains('hidden'), text: b?.textContent?.trim() || '' };
+  });
+  report.interactionChecks.push({
+    id: stone.id, x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3),
+    centerY: +stone.centerY.toFixed(3), verticalDelta: +(p.y - stone.centerY).toFixed(3),
+    distance: +d.toFixed(3), grounded: !!support.grounded, buttonBefore
+  });
+  await shot(stone.id + '-approach');
   await page.waitForFunction(() => {
     const b = document.getElementById('talk-button');
     return b && !b.classList.contains('hidden') && b.textContent.includes('REGISTRAR ESTE ABRIGO');
   }, null, { timeout: 30000 });
-  await shot(stone.id + '-before-register');
+  const buttonReady = await page.evaluate(() => {
+    const b = document.getElementById('talk-button');
+    return { exists: !!b, hidden: !!b?.classList.contains('hidden'), text: b?.textContent?.trim() || '' };
+  });
+  report.interactionChecks.push({ id: stone.id, phase: 'ready', button: buttonReady });
   await page.evaluate(() => {
     window.__a5InteractionPointerType = null;
     document.getElementById('talk-button').addEventListener('pointerdown', e => {
