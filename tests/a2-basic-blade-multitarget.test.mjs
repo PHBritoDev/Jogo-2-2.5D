@@ -514,3 +514,35 @@ test('release de crescente não nasce depois de uma parede de 1 cm',()=>{
  assert.equal(clear.energies,1,'o crescente continua sendo criado em corredor livre');
  assert.ok(clear.events.includes('energy'));
 });
+
+function thinWallTravelingProjectileScenario(kind,wall=true){
+ const events=[],blocked=p=>wall&&p.z>1.005&&p.z<1.015;
+ const rites=new SwordRites({blocked,event:(type,data)=>events.push({type,data})});
+ let projectile;
+ if(kind==='generic'){
+  projectile=makeEnergy({kind:'wave',speed:12,range:3,radius:1.2,life:10,roll:0,band:.7},{x:0,y:1,z:0},0,0);
+  projectile.travel=1;
+  projectile.owner={damage:20,def:{multiplier:1},targetId:'focus'};
+  rites.energies.push(projectile);
+ }else{
+  projectile={p:{x:0,y:1,z:1},origin:{x:0,y:1,z:0},direction:{x:0,y:0,z:1},previous:{x:0,y:1,z:1},
+   yaw:0,roll:0,maxRadius:1.55,radius:.95,travel:1,speed:12,range:3.2,damage:20,
+   hits:new Set(),n:0,age:0,serial:1};
+  rites.waves.push(projectile);
+ }
+ rites.update(1/120,{from:{x:0,y:0,z:0},target:null,others:[]});
+ return{active:kind==='generic'?rites.energies.length:rites.waves.length,projectile,events};
+}
+test('ondas viajantes interrompem a trajetória visual ao cruzar parede de 1 cm',()=>{
+ for(const kind of ['generic','eclipse']){
+  const blocked=thinWallTravelingProjectileScenario(kind,true);
+  assert.equal(blocked.active,0,kind+': projétil deve ser removido ao encontrar a parede');
+  const end=blocked.events.find(e=>e.type===(kind==='generic'?'energyEnd':'waveEnd'));
+  assert.ok(end,kind+': término por obstrução deve ser registrado');
+  const stop=kind==='generic'?end.data.blockedAt:end.data.p.z;
+  assert.ok(stop>=1.005&&stop<=1.015,kind+': ponto de parada precisa ficar dentro da parede, recebeu '+stop);
+  const clear=thinWallTravelingProjectileScenario(kind,false);
+  assert.equal(clear.active,1,kind+': corredor livre mantém a onda ativa');
+  assert.ok(clear.projectile.travel>1.09,kind+': corredor livre permite deslocamento');
+ }
+});

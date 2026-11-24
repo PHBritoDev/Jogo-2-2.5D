@@ -292,7 +292,7 @@ export class SwordRites {
   // Mod 302: volumes de energia (setor que se expande / onda que viaja). O dano sai quando a FRENTE visível toca o corpo;
   // compartilha o "acertou" do golpe (híbrido nunca dá dano dobrado) e respeita parede/linha de visão.
   for(let i=this.energies.length-1;i>=0;i--){const e=this.energies[i],owner=e.owner;
-   if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt);for(let d=e.travel;d<=end+1e-6&&!e.done;d+=Math.max(.05,Math.min(.06,end-d||.06)))for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}
+   if(e.kind==='wave'){const fx=Math.sin(e.yaw),fz=Math.cos(e.yaw),end=Math.min(e.range,e.travel+e.speed*dt),span=Math.max(0,end-e.travel),steps=Math.max(1,Math.ceil(span/ENERGY_OCCLUSION_STEP));for(let j=1;j<=steps&&!e.done;j++){const d=e.travel+span*j/steps;for(const k of [-1,0,1]){const off=k*e.radius*.7*Math.cos(e.roll);if(this.api.blocked({x:e.x+fx*d+fz*off,y:e.y,z:e.z+fz*d-fx*off})){e.done=true;e.blockedAt=d;break;}}}}
    // A energia pode expirar AO ALCANÇAR a distância final neste quadro; esse último contato ainda é válido.
    // Capturar o estado após a checagem de parede, antes de energyStep marcar o fim do alcance.
    const unblockedThisFrame=!e.done;
@@ -317,7 +317,7 @@ export class SwordRites {
    }
    if(e.done){this.api.event('energyEnd',e);this.energies.splice(i,1);}
   }
-  for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/.06));let gone=false;Object.assign(w.previous,w.p);
+  for(let i=this.waves.length-1;i>=0;i--){const w=this.waves[i];w.age+=dt;const distance=Math.min(w.speed*dt,w.range-w.travel),steps=Math.max(1,Math.ceil(distance/ENERGY_OCCLUSION_STEP));let gone=false;Object.assign(w.previous,w.p);
    for(let j=0;j<steps;j++){
     const delta=distance/steps;w.p.x+=w.direction.x*delta;w.p.z+=w.direction.z*delta;w.travel+=delta;w.radius=w.maxRadius*(.28+.72*Math.min(1,w.travel/2.2));
     // Sweep the width as well as the centre, so a wave cannot hit through a wall.
