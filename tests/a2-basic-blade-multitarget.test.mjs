@@ -577,7 +577,7 @@ test('release não cria crescente quando a origem do herói já está dentro de 
 
 test('pose estacionária reutiliza a varredura de parede em vez de repetir probes a 120 Hz',()=>{
  const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0;
- const blocked=p=>{blockedCalls++;return p.x>-.95-4&&p.x<-.94-4;};
+ const blocked=p=>{blockedCalls++;return p.x> -4.95&&p.x< -4.94;};
  const rites=new SwordRites({
   moveset:()=>({id:'stationary-pose',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
   blocked,pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}}),
@@ -594,7 +594,7 @@ test('cache de pose estacionária expira e detecta parede que aparece na lâmina
  const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0,bladeWall=false;
  const blocked=p=>{
   blockedCalls++;
-  return (p.x>-.95-4&&p.x<-.94-4)||(bladeWall&&p.z>2.4&&p.z<2.5);
+  return (p.x> -4.95&&p.x< -4.94)||(bladeWall&&p.z>2.4&&p.z<2.5);
  };
  const rites=new SwordRites({
   moveset:()=>({id:'stationary-wall-change',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
