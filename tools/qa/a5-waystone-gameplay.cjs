@@ -61,7 +61,8 @@ const report = {
   consoleErrors: [],
   httpErrors: [],
   input: { joystickPointerTypes: [], joystickPointerMoves: [], joystickLifecycle: [], interactionPointerTypes: [] },
-  routes: []
+  routes: [],
+  worldReadiness: []
 };
 
 let browser = null, context = null, page = null, video = null, cdp = null, fatal = null;
@@ -129,6 +130,24 @@ async function waitRuntime() {
     return !loading || loading.classList.contains('hidden') || getComputedStyle(loading).display === 'none';
   }, null, { timeout: 240000 });
   await waitForGameFrames(2, 12000);
+}
+async function waitForWorldCollisionReady(phase) {
+  // O pilar central da PassarelaSuspensaEldoria só recebia collider no callback do GLB.
+  // O overlay de loading pode fechar antes desse callback; não planejar rota antes do collider existir.
+  await page.waitForFunction(() => {
+    const dressing = window.EldoriaCityDressingQA;
+    return dressing?.walkable === true &&
+      Array.isArray(dressing.pylon) && dressing.pylon.length === 2 &&
+      dressing.pylon.every(Number.isFinite);
+  }, null, { timeout: 120000 });
+  const readiness = await page.evaluate(() => {
+    const dressing = window.EldoriaCityDressingQA;
+    const blocker = window.SevenSinsDebug3D.whyBlocked(dressing.pylon[0], dressing.pylon[1]);
+    return { ...dressing, pylonBlocker: blocker };
+  });
+  assert.equal(readiness.pylonBlocker.walk, 'pilar da passarela',
+    'marcador do GLB apareceu sem o collider do pilar estar registrado: ' + JSON.stringify(readiness));
+  report.worldReadiness.push({ phase, ...readiness });
 }
 async function beginJoystick() {
   const box = await page.locator('#stick').boundingBox();
@@ -493,6 +512,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
+    await waitForWorldCollisionReady('initial');
     const pathfinderReady = await page.evaluate(async () => {
       const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
       window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
@@ -536,6 +556,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
+    await waitForWorldCollisionReady('after-two-waystones-reload');
     await wait(1800);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(700);
@@ -562,6 +583,7 @@ async function registerStone(stone, expectedProgress, mapKey) {
 
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
+    await waitForWorldCollisionReady('after-final-reload');
     await wait(1800);
     const final = await qa();
     assert.equal(final.side.abrigos.state, 'ready', 'estado ready não sobreviveu ao reload final');
