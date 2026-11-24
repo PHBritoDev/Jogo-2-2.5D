@@ -54,9 +54,11 @@ async function main(){
     await p.waitForFunction(()=>{const d=SevenSinsDebug3D,s=d.dimState();return !s.hydra&&!s.moonFlames&&!s.cinematic&&!d.dimensionVisualState()?.swordPhase;},null,{timeout:180000,polling:100});
   }
   report.restored=await p.evaluate(()=>SevenSinsDebug3D.dimensionVisualState());assert.ok(report.restored.architectureVisible.every(Boolean));
-  await p.evaluate(()=>{SevenSinsDebug3D.speed(1);const buttons=[...document.querySelectorAll('#dim-test-panel button')];buttons.find(b=>b.textContent.includes('Sair da dimensão')).click();});
-  await p.waitForFunction(()=>!SevenSinsDebug3D.dimState().voidMode&&!SevenSinsDebug3D.dimState().battle,null,{timeout:30000});report.exit=await p.evaluate(()=>({visual:SevenSinsDebug3D.dimensionVisualState(),memory:SevenSinsDebug3D.rinfo()}));assert.equal(report.exit.visual,null);
-  await p.evaluate(()=>{const buttons=[...document.querySelectorAll('#dim-test-panel button')];buttons.find(b=>b.textContent.includes('Reiniciar luta')).click();});await active();await p.waitForFunction(()=>{const d=SevenSinsDebug3D,y=d.cam()[1]+2000,v=d.dimensionVisualState();return y>1&&y<12&&v?.time>0&&v.quality==='low';},null,{timeout:60000});
+  await p.evaluate(()=>{SevenSinsDebug3D.speed(1);const buttons=[...document.querySelectorAll('#dim-test-panel button')];const toggle=buttons.find(b=>b.textContent.includes('TESTE DAS DIMENSÕES'));if(!toggle)throw new Error('dimension test toggle missing');toggle.click();});
+  await p.waitForFunction(()=>{const menu=document.querySelector('#dim-test-panel > div');return !!menu&&getComputedStyle(menu).display!=='none';},null,{timeout:5000});
+  await p.evaluate(()=>{const button=[...document.querySelectorAll('#dim-test-panel button')].find(b=>b.textContent.includes('Dimensão III'));if(!button)throw new Error('Bispo 3 re-entry button missing');button.click();});
+  await p.waitForFunction(()=>{const s=SevenSinsDebug3D.dimState();return !s.voidMode&&!s.battle;},null,{timeout:30000,polling:100});report.exit=await p.evaluate(()=>({visual:SevenSinsDebug3D.dimensionVisualState(),memory:SevenSinsDebug3D.rinfo()}));assert.equal(report.exit.visual,null);
+  await active();await p.waitForFunction(()=>{const d=SevenSinsDebug3D,y=d.cam()[1]+2000,v=d.dimensionVisualState();return y>1&&y<12&&v?.time>0&&v.quality==='low';},null,{timeout:60000});
   report.reentry=await p.evaluate(()=>SevenSinsDebug3D.dimensionVisualState());assert.equal(report.reentry.eyes,336);assert.equal(report.reentry.disposed,false);assert.equal(report.reentry.visible,true);
   await p.setViewportSize({width:393,height:852});await p.waitForTimeout(1200);await shot('04-reentrada-retrato');
   const center=await p.screenshot({clip:{x:126,y:426,width:98,height:153}});assert.ok(center.length>1500,'reentry scene is blank behind HUD');
