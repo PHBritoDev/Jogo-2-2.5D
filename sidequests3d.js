@@ -125,7 +125,7 @@ export function refreshSide(state, ctx) {
     const rawStep = ctx?.questStep;
     const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
     const step = validStep ? Number(rawStep) : NaN;
-    const hasStep = Number.isSafeInteger(step);
+    const hasStep = Number.isSafeInteger(step) && step >= 0;
     // Um save não pode manter uma missão disponível se a campanha foi restaurada para antes do desbloqueio.
     if (s.state === 'available' && hasStep && step < q.minStep) {
       s.state = 'locked';
