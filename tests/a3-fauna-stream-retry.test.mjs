@@ -418,3 +418,66 @@ test('fauna: timeout durante a leitura do corpo GLB também aborta e libera a va
   assert.equal(parses, 0);
   fauna.dispose();
 });
+
+
+test('fauna: dispose aborta requisições pendentes e bloqueia novos carregamentos', async () => {
+  let requests = 0, aborts = 0;
+  const fetchImpl = (_url, { signal }) => new Promise((_, reject) => {
+    requests++;
+    const abort = () => { aborts++; reject(Object.assign(new Error('aborted'), { name: 'AbortError' })); };
+    if (signal.aborted) abort();
+    else signal.addEventListener('abort', abort, { once: true });
+  });
+  class Loader {
+    register() {}
+    parseAsync() { assert.fail('um fetch abortado não pode chegar ao GLTFLoader'); }
+  }
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 1000 });
+  const pending = fauna.load('grilo');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests, 1);
+  assert.equal(fauna.stats.activeLoads, 1);
+
+  fauna.dispose();
+  const failure = await pending;
+  assert.match(failure.failed, /aborted/);
+  assert.equal(aborts, 1);
+  assert.equal(fauna.stats.activeLoads, 0);
+  assert.deepEqual(fauna.stats.loaded, []);
+  assert.equal(await fauna.load('grilo'), null);
+  tick(fauna, 1);
+  assert.equal(requests, 1, 'um controlador descartado não pode reiniciar o scanner');
+});
+
+test('fauna: descarta e libera GLB que termina o parse depois do dispose', async () => {
+  let finishParse, parseStarted = false;
+  const counts = { geometry: 0, material: 0, texture: 0, image: 0, skeleton: 0 };
+  const texture = {
+    isTexture: true,
+    image: { close() { counts.image++; } },
+    dispose() { counts.texture++; }
+  };
+  const geometry = { dispose() { counts.geometry++; } };
+  const material = { map: texture, dispose() { counts.material++; } };
+  const skeleton = { dispose() { counts.skeleton++; } };
+  const loadedScene = { traverse(fn) { fn({ geometry, material, skeleton }); } };
+  class Loader {
+    register() {}
+    parseAsync() {
+      parseStarted = true;
+      return new Promise(resolve => { finishParse = () => resolve({ scene: loadedScene }); });
+    }
+  }
+  const fetchImpl = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 1000 });
+  const pending = fauna.load('grilo');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(parseStarted, true);
+
+  fauna.dispose();
+  finishParse();
+  assert.equal(await pending, null);
+  assert.deepEqual(counts, { geometry: 1, material: 1, texture: 1, image: 1, skeleton: 1 });
+  assert.deepEqual(fauna.stats.loaded, []);
+  assert.equal(fauna.stats.activeLoads, 0);
+});

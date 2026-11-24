@@ -87,13 +87,37 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         : new Promise((ok, no) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = size; c.getContext('2d').drawImage(im, 0, 0, size, size); ok(c); }; im.onerror = no; im.src = URL.createObjectURL(blob); }));
     }).then(src => { const tx = new T.Texture(src); tx.flipY = false; tx.colorSpace = T.SRGBColorSpace; tx.needsUpdate = true; return tx; });
   } });
-  const pending = {}, loadState = Object.create(null);
+  const pending = {}, loadState = Object.create(null), activeControllers = new Set();
+  let disposed = false;
+  function releaseGltf(gltf) {
+    const loadedScene = gltf?.scene;
+    if (!loadedScene?.traverse) return;
+    const geometries = new Set(), materials = new Set(), textures = new Set(), skeletons = new Set();
+    loadedScene.traverse(o => {
+      if (o.geometry && !geometries.has(o.geometry)) { geometries.add(o.geometry); o.geometry.dispose?.(); }
+      const list = Array.isArray(o.material) ? o.material : [o.material];
+      for (const material of list) {
+        if (!material || materials.has(material)) continue;
+        materials.add(material);
+        for (const value of Object.values(material)) {
+          if (value?.isTexture && !textures.has(value)) {
+            textures.add(value);
+            value.dispose?.();
+            value.image?.close?.();
+          }
+        }
+        material.dispose?.();
+      }
+      if (o.skeleton && !skeletons.has(o.skeleton)) { skeletons.add(o.skeleton); o.skeleton.dispose?.(); }
+    });
+  }
   const requestTimeoutMs = Number.isFinite(loadTimeoutMs) && loadTimeoutMs > 0 ? loadTimeoutMs : FAUNA_LOAD_TIMEOUT_MS;
   // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
   // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
   async function loadGLB(loader, url) {
     if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);
     const controller = new AbortController();
+    activeControllers.add(controller);
     let timer = null;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => {
@@ -115,10 +139,11 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       return await loader.parseAsync(data, base);
     } finally {
       if (timer !== null) clearTimeout(timer);
+      activeControllers.delete(controller);
     }
   }
   function load(kind) {
-    if (!FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
+    if (disposed || !FAUNA[kind] || !budget(kind, low)) return Promise.resolve(null);
     if (assets[kind]) return Promise.resolve(assets[kind]);
     if (pending[kind]) return pending[kind];
     if (activeLoads >= FAUNA_MAX_CONCURRENT_LOADS) return Promise.resolve(null);
@@ -136,6 +161,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       return loadGLB(L, base + S.file);
     });
     return pending[kind] = request.then(g => {
+      if (disposed) { releaseGltf(g); return null; }
       let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
       const old = mesh.material, mat = new T.MeshLambertMaterial({ map: old.map || null, color: old.map ? 0xffffff : old.color }); old.dispose();
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
@@ -352,6 +378,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   return {
     root, stats,
     update(dt, { px, pz, hour = 12, camera = null, hidden = false }) {
+      if (disposed) return;
       t += dt; root.visible = !hidden; if (hidden) return;
       scanT -= dt; if (scanT <= 0) { scanT = .6; scan(px, pz, hour, camera); }
       const counts = {}; let draws = 0, tris = 0;
@@ -360,13 +387,24 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       stats.live = live.size; stats.draws = draws; stats.tris = Math.round(tris); stats.counts = counts;
     },
     /** QA: força o carregamento e o spawn imediato (ignora o "não nascer na cara"). */
-    debugSpawnAt(kind, x, z, yaw = 0) { if (!assets[kind] || assets[kind].failed || !budget(kind, low) || !habitatOk(kind, x, z, ctx)) return false;
+    debugSpawnAt(kind, x, z, yaw = 0) { if (disposed || !assets[kind] || assets[kind].failed || !budget(kind, low) || !habitatOk(kind, x, z, ctx)) return false;
       const same = [...live].filter(([, a]) => a.kind === kind);
       if (same.length >= budget(kind, low)) despawn(same[0][0]);
       spawn({ kind, cell: 'qa' + x.toFixed(1) + z.toFixed(1), x, z, yaw, seed: .5, qa: true }); return true; },
     load,
     list() { return [...live.values()].map(a => ({ kind: a.kind, state: a.state, yaw: a.yaw, qa: !!a.qa, perch:!!a.perch, x: +a.x.toFixed(2), z: +a.z.toFixed(2), y: +a.y.toFixed(2) })); },
-    dispose() { for (const k of [...live.keys()]) despawn(k); for (const A of Object.values(assets)) { if (A.im) { A.im.geometry.dispose(); A.im.dispose(); root.remove(A.im); }
-        if (A.proto) A.proto.traverse(o => { if (o.isSkinnedMesh) { o.geometry.dispose(); o.skeleton.dispose(); } }); if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); } } scene.remove(root); }
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const controller of activeControllers) controller.abort();
+      activeControllers.clear();
+      for (const k of [...live.keys()]) despawn(k);
+      for (const A of Object.values(assets)) {
+        if (A.im) { A.im.geometry.dispose(); A.im.dispose(); root.remove(A.im); }
+        if (A.proto) A.proto.traverse(o => { if (o.isSkinnedMesh) { o.geometry.dispose(); o.skeleton.dispose(); } });
+        if (A.mat) { A.mat.map?.dispose(); A.mat.dispose(); }
+      }
+      scene.remove(root);
+    }
   };
 }
