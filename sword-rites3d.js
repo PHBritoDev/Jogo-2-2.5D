@@ -33,7 +33,8 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06)),frames=[];
  for(let i=0;i<=n;i++){
   const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
-  if(segmentBlocked(base,tip,blocked))return{frames,blocked:true};
+  // A thin wall may contain the hilt at the first pose while later samples are already outside it.
+  if(blocked(base)||segmentBlocked(base,tip,blocked))return{frames,blocked:true};
   frames.push({base,tip});
  }
  return{frames,blocked:false};
