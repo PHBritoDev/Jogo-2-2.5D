@@ -278,10 +278,15 @@ for (const fps of [20, 30, 60, 120]) {
     assert.ok(result.impacts.every(e => e.by === 'blade' && e.secondary === true));
     assert.ok(result.impacts.every(e => e.hitstop === 0 && e.shake === 0));
     for (const impact of result.impacts) {
-      assert.ok(Math.abs(impact.p.x - impact.target.x) < .05,
-        `VFX de ${impact.target.id} precisa ficar no ponto próprio da cápsula atingida, não em um ponto compartilhado do arco`);
-      assert.ok(Math.abs(impact.p.z - impact.target.z) < .05,
-        `VFX de ${impact.target.id} precisa acompanhar a profundidade do contato`);
+      const surfaceDistance = Math.hypot(
+        impact.p.x - impact.target.x,
+        impact.p.y - impact.target.y,
+        impact.p.z - impact.target.z
+      );
+      assert.ok(Math.abs(surfaceDistance - impact.target.radius) < .02,
+        `VFX de ${impact.target.id} precisa ficar na superfície da cápsula, não dentro do corpo`);
+      assert.ok(impact.p.z > impact.target.z,
+        `VFX de ${impact.target.id} precisa ficar na face voltada ao protagonista`);
     }
     const impactXs = result.impacts.map(e => e.p.x).sort((a, b) => a - b);
     assert.ok(impactXs[1] - impactXs[0] >= .65,
