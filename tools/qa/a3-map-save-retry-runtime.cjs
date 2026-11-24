@@ -14,7 +14,7 @@ assert.ok(mapKeyMatch, 'map3d.js precisa expor MAP_STORE_KEY');
 const mapKey = mapKeyMatch[1];
 const eventsKey = '__a3_map_save_events';
 const failKey = '__a3_map_save_fail_once';
-const viewport = { width: 393, height: 852 };
+const viewport = { width: 852, height: 393 };
 const report = {
   schema: 1,
   agent: 'A3',
@@ -25,6 +25,7 @@ const report = {
   branch: process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || null,
   testedSha: null,
   viewport,
+  orientation: 'landscape',
   mapStoreKey: mapKey,
   firstPage: null,
   afterReload: null,
@@ -242,6 +243,19 @@ async function main() {
     };
   });
   const registrationLabel = await page.locator('#talk-button').innerText();
+  const registrationHit = await page.locator('#talk-button').evaluate(element => {
+    const rect = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return {
+      buttonReceivesTouch: !!hit?.closest('#talk-button'),
+      hitId: hit?.id || hit?.closest('button')?.id || null,
+      hitText: (hit?.textContent || '').trim().slice(0, 80),
+      interceptor: hit?.closest('#actions')?.id || null
+    };
+  });
+  assert.equal(registrationHit.buttonReceivesTouch, true,
+    'o botão contextual precisa receber o toque; possível sobreposição do #actions: ' + JSON.stringify(registrationHit));
+  report.registrationHit = registrationHit;
   await page.locator('#talk-button').tap();
   await page.waitForFunction(() => {
     const toast = document.getElementById('quest-toast');
