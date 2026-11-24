@@ -3436,7 +3436,10 @@ function renderHeroPortrait(){
   const S=160,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
   const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
   ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
-  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),size=box.getSize(new THREE.Vector3()),top=box.max.y;
+  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),center=box.getCenter(new THREE.Vector3());
+  // O GLB pode ter a origem deslocada: centraliza o retrato sem mover o modelo de gameplay.
+  clone.position.x-=center.x;clone.position.z-=center.z;clone.updateMatrixWorld(true);
+  const centered=measureModelBounds(clone),size=centered.getSize(new THREE.Vector3()),top=centered.max.y;
   const cam=new THREE.PerspectiveCamera(28,1,.01,50),headY=top-size.y*.12;cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
   const prevTarget=renderer.getRenderTarget();renderer.setRenderTarget(rt);renderer.render(ps,cam);
   const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);renderer.setRenderTarget(prevTarget);rt.dispose();
