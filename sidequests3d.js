@@ -89,7 +89,14 @@ export function refreshSide(state, ctx) {
     }
     const rawStep = ctx?.questStep;
     const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
-    if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
+    const step = validStep ? Number(rawStep) : NaN;
+    const hasStep = Number.isFinite(step);
+    // Um save não pode manter uma missão disponível se a campanha foi restaurada para antes do desbloqueio.
+    if (s.state === 'available' && hasStep && step < q.minStep) {
+      s.state = 'locked';
+      s.progress = 0;
+    }
+    if (s.state === 'locked' && hasStep && step >= q.minStep) s.state = 'available';
     if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state)) {
       // A missão pertence a Eldória: abrigos da jornada/Ato II não contam para ela.
       const registered = ctx?.waystones;
