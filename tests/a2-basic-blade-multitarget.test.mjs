@@ -286,6 +286,7 @@ test('squadHitFx shows a dodge label without a false hit flash',async()=>{
  assert.equal(calls.numbers[0].label,'ESQUIVOU','the dodge feedback must remain visible');
  assert.equal(calls.sparks,0);
  assert.equal(calls.audio,0);
+ assert.match(source,/if\(n>0\)squadRT\.flash\(f\.id\)/,'legacy proxy bridge must not flash when damageActor rejects the hit');
  sandbox.squadHitFx({id:'hit',x:2,y:0,z:3},12);
  assert.deepEqual(calls.flashes,['hit']);
  assert.equal(calls.numbers[1].label,'12');
