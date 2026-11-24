@@ -364,7 +364,8 @@ As falas abaixo definem intenção e voz. Não são texto aprovado nem devem ser
 - Kensinger (2009), memória emocional: revisão; emoção pode priorizar detalhes centrais, não garantir lembrança de todos os detalhes. Aplicação: poucos motivos recorrentes.
 - Cohen (2001), identificação com personagens: discussão conceitual; não confundir identificação, simpatia e vínculo.
 - Zaini et al. (2025): scoping review de 69 estudos sobre design de personagens em jogos; 48% dos estudos mapeados eram empíricos e 52% não empíricos. É um mapa do campo, não uma estimativa causal; útil para organizar motivação, relações e função lúdica.
-- Holl & Melzer (2022): estudo de caso de Detroit: Become Human sobre decisões morais; não generalizar para todo jogador.
+- Arrambide et al. (2022), CHI '22: estudo misto com N=19 participantes que já tinham experiência com Detroit: Become Human; entrevistas semiestruturadas + Moral Foundations Questionnaire (MFQ30). Os autores relatam que intuições morais da vida real e o quanto os participantes se importavam com personagens influenciaram decisões. Amostra pequena, um jogo e seleção de participantes; evidência exploratória, não regra universal.
+- Holl & Melzer (2022): análise quantitativa de conteúdo/estatísticas de Detroit: Become Human; 73,21% das decisões catalogadas foram moralmente relevantes. Isso descreve a arquitetura de escolhas do jogo, não mede diretamente empatia ou comportamento de todos os jogadores.
 - Zaini et al. (2026): piloto com N=15; achado exploratório, não evidência definitiva.
 
 **Referências:**  
@@ -378,6 +379,11 @@ https://doi.org/10.1207/S15327825MCS0403_01
 https://doi.org/10.1177/15554120251380423  
 https://doi.org/10.1027/1864-1105/a000323  
 https://doi.org/10.1145/3772363.3799339
+https://doi.org/10.1145/3491102.3502019
+
+**Referências adicionais verificadas:**
+- Arrambide, K., Yoon, J., MacArthur, C., Rogers, K., Luz, A., & Nacke, L. E. (2022). *“I Don’t Want To Shoot The Android”: Players Translate Real-Life Moral Intuitions to In-Game Decisions in Detroit: Become Human*. CHI '22. https://doi.org/10.1145/3491102.3502019.
+- Holl, E. & Melzer, A. (2022). *Moral Minds in Gaming: A Quantitative Case Study of Moral Decisions in Detroit: Become Human*. Journal of Media Psychology, 34(5), 287–298. https://doi.org/10.1027/1864-1105/a000323.
 
 ## 16. Decisões que precisam de aprovação
 
