@@ -85,14 +85,13 @@ test('A/B identifies the exact Zar’khael fill by world position and source par
   assert.match(qa,/const lighting=await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.perfProbe\(1\)\)/);
   assert.match(qa,/lighting\.lights\?\.slots,4/);
   assert.match(qa,/lighting\.lights\?\.activeDetails\?\.find/);
-  assert.match(qa,/Math\.abs\(source\.position\[0\]-1200\)/);
-  assert.match(qa,/Math\.abs\(source\.distance-36\)/);
-  assert.match(qa,/Math\.abs\(source\.intensity-16\)/);
-  assert.match(qa,/fill\.slotIntensity>15/);
+  assert.match(qa,/Math\.abs\(source\.position\[0\]-expectedFill\.position\[0\]\)/);
+  assert.match(qa,/Math\.abs\(source\.distance-expectedFill\.distance\)<\.01/);
+  assert.match(qa,/Math\.abs\(source\.intensity-expectedFill\.intensity\)<=expectedFill\.intensity\*\.051/);
+  assert.match(qa,/fill\.slotIntensity>expectedFill\.minSlotIntensity/);
   assert.doesNotMatch(qa,/active\?\.includes\('luz'\)/);
   assert.match(budget,/activeDetails: selected\.map/);
 });
-
 test('light-budget telemetry reports the real selected source, world position and shader-slot intensity',()=>{
   class Obj {
     constructor(){this.children=[];this.parent=null;this.isObject3D=true;this.visible=true;this.matrixWorld={elements:new Array(16).fill(0)};this.matrixWorld.elements[15]=1;}
@@ -158,13 +157,13 @@ test('A/B restores the production camera after motionQA freezes the loop and acc
   const lightProbe=qa.indexOf('const lighting=await page.evaluate(()=>window.SevenSinsDebug3D.perfProbe(1));',cameraWait);
   assert.ok(placed>=0&&resumed>placed&&cameraWait>resumed&&lightProbe>cameraWait,
     'resume the real frame loop and let the production camera follow the actors before measuring light slots');
-  assert.match(qa,/Math\.abs\(source\.intensity-16\)<=\.81/,
+  assert.match(qa,/Math\.abs\(source\.intensity-expectedFill\.intensity\)<=expectedFill\.intensity\*\.051/,
     'the production dimLight has a deliberate ±5% pulse, not a constant 16.00');
   assert.match(qa,/state\.hero\?\.visible/,'the candidate frame must retain the protagonist');
-  assert.match(qa,/Math\.hypot\(state\.camera\[0\]-state\.game\.x,state\.camera\[2\]-state\.game\.z\)<12/,
-    'the measured camera must be near the protagonist in the arena');
+  assert.match(qa,/Math\.hypot\(c\[0\]-s\.x,c\[1\]-s\.y,c\[2\]-s\.z\)<14/,
+    'the measured camera must be near the protagonist in full 3D');
+  assert.match(qa,/actorFrame\.hero\.camToHero<=14/);
 });
-
 test('A/B rejects captures where either combatant is outside the camera viewport',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   assert.match(qa,/hero:d\.camView\(\)/,'the production camera must project the protagonist');
@@ -172,9 +171,9 @@ test('A/B rejects captures where either combatant is outside the camera viewport
   assert.match(qa,/assert\.equal\(actorFrame\.hero\?\.onScreen,true/);
   assert.match(qa,/actorFrame\.boss\[0\]>=0/);
   assert.match(qa,/actorFrame\.boss\[1\]>=0/);
-  assert.match(qa,/actorFrame,screenshot:path\.basename\(screenshot\)/,'the report must retain the frame projection');
+  assert.match(qa,/actorFrame,lightingCheck,screenshot:path\.basename\(screenshot\)/,
+    'the report must retain actor projection, lighting measurements and screenshot path');
 });
-
 test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   assert.match(qa,/function expectedFillFor\(label\)/);
