@@ -8604,7 +8604,7 @@ const rites=new SwordRites({
 const protaOthersList=[];
 function protaOthers(){protaOthersList.length=0;if(!squadOn)return protaOthersList;for(const a of squadAlive()){if(a===squadFocus)continue;const h=squadRT.body(a.id)?.height||a.T.height;protaOthersList.push({id:a.id,x:a.x,y:a.y+h*.5,z:a.z,radius:a.T.radius,height:h,alive:true});}return protaOthersList;}
 function protaSideHit(damage,id,x){const sq=squadSq();if(!sq)return;const a=sq.actor(id);if(!a||!a.alive)return;const dealt=sq.damageActor(a,damage,{x:player.position.x,z:player.position.z,kind:'melee',by:'hero',knock:.3});
- if(dealt>0){if(!x?.energy&&!x?.wave&&x?.by!=='blade'){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});worldAudio.hit();}squadRT.flash?.(a.id);}}
+ if(dealt>0){if(!x?.energy&&!x?.wave&&x?.by!=='blade'){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});}squadRT.flash?.(a.id);worldAudio.hit();}}
 function riteReady(){return model&&mixer&&swordRoot&&Object.keys(COMBAT_MOVES).every(k=>riteClips[k])&&!!riteClips.Rite_Judgment&&!!riteClips.Rite_Eclipse;}
 function updateRiteLocomotion(dt){
  if(rites.active?.kind!=='basic'||!rites.active.layered||!grounded||!riteLayers){if(riteLower){riteLower.fadeOut(.08);riteLower=null;}return;}
