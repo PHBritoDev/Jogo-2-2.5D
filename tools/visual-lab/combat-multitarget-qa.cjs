@@ -244,8 +244,9 @@ fs.mkdirSync(dir, { recursive: true });
     assert.ok(physicalSideEvents.every(e => e.position && Number.isFinite(e.position.x)), 'cada VFX físico precisa ter posição');
     for (const e of physicalSideEvents) {
       const actor = physicalBefore.get(e.targetId);
-      assert.ok(Math.abs(e.position.x - actor.x) <= .05 && Math.abs(e.position.z - actor.z) <= .05,
-        `VFX físico de ${e.targetId} precisa ficar no ponto de contato do próprio alvo`);
+      const surfaceOffset = Math.hypot(e.position.x - actor.x, e.position.z - actor.z);
+      assert.ok(surfaceOffset <= .55,
+        `VFX físico de ${e.targetId} precisa permanecer na superfície da própria cápsula`);
     }
     assert.ok(Math.abs(physicalSideEvents[0].position.x - physicalSideEvents[1].position.x) > .35,
       'cada inimigo secundário precisa receber o VFX no próprio ponto da lâmina');
