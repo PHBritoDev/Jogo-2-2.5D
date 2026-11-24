@@ -253,6 +253,7 @@ test('production primary squad bridge returns actual damage and keeps the proxy 
  runInNewContext(executable,sandbox);
  actor.act={iframes:true};
  assert.equal(sandbox.protaPrimaryRiteHit(20,99,'basic',{by:'blade'}),false);
+ assert.equal(flashes.length,0,'rejected primary hit must not flash as if damage landed');
  assert.equal(actor.hp,actor.maxHp,'i-frames must reject the primary hit');
  assert.equal(sandbox.enemyHP,actor.hp);
  actor.act=null;
@@ -263,7 +264,33 @@ test('production primary squad bridge returns actual damage and keeps the proxy 
  assert.equal(received.x,0);assert.equal(received.z,actor.z-1);
  assert.equal(sandbox.enemyHP,actor.hp);
  assert.equal(sandbox.squadProxy.hp,actor.hp,'proxy HP must match actor HP to prevent a second delta hit');
- assert.equal(flashes.length,2);
+ assert.equal(flashes.length,1,'only the accepted primary hit may flash');
+});
+
+test('squadHitFx shows a dodge label without a false hit flash',async()=>{
+ const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
+ const start=source.indexOf('function squadHitFx('),end=source.indexOf('\n/* 21/11',start);
+ assert.ok(start>=0&&end>start,'squad hit feedback helper must exist');
+ const helper=source.slice(start,end).replace('function squadHitFx','globalThis.squadHitFx=function squadHitFx');
+ const calls={flashes:[],numbers:[],sparks:0,audio:0};
+ const sandbox={
+  squadRT:{flash:id=>calls.flashes.push(id)},
+  THREE:{Vector3:class{constructor(x,y,z){Object.assign(this,{x,y,z});}}},
+  damageNumber:(p,label,style)=>calls.numbers.push({x:p.x,y:p.y,z:p.z,label,style}),
+  burstSparks:()=>calls.sparks++,
+  worldAudio:{hit:()=>calls.audio++}
+ };
+ runInNewContext(helper,sandbox);
+ sandbox.squadHitFx({id:'dodged',x:1,y:0,z:2},0);
+ assert.deepEqual(calls.flashes,[],'zero damage must not trigger the red/purple hit flash');
+ assert.equal(calls.numbers[0].label,'ESQUIVOU','the dodge feedback must remain visible');
+ assert.equal(calls.sparks,0);
+ assert.equal(calls.audio,0);
+ sandbox.squadHitFx({id:'hit',x:2,y:0,z:3},12);
+ assert.deepEqual(calls.flashes,['hit']);
+ assert.equal(calls.numbers[1].label,'12');
+ assert.equal(calls.sparks,1);
+ assert.equal(calls.audio,1);
 });
 
 test('primary physical, judgment, generic-energy and Eclipse impacts require accepted damage',()=>{

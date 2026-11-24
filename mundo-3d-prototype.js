@@ -4639,7 +4639,7 @@ function squadProjectileHit(p){
  for(const a of squadAlive()){if(a===squadFocus)continue;if(Math.hypot(p.group.position.x-a.x,p.group.position.z-a.z)<r&&Math.abs(p.group.position.y-(a.y+1))<1.8){p.hit=true;const n=s.damageActor(a.id,p.damage,{x:p.group.position.x,z:p.group.position.z,kind:'spell',by:'hero'});squadHitFx(a,n);return true;}}
  return false;
 }
-function squadHitFx(a,n){if(!squadRT)return;squadRT.flash(a.id);const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){burstSparks(p,0xffc860);worldAudio.hit();}}
+function squadHitFx(a,n){if(!squadRT)return;const p=new THREE.Vector3(a.x,a.y+1.5,a.z);damageNumber(p,n>0?String(n):'ESQUIVOU',n>0?'':'blocked');if(n>0){squadRT.flash(a.id);burstSparks(p,0xffc860);worldAudio.hit();}}
 /* 21/11 — Fera dos Mil Olhos (ZAR'KHAEL): QUALQUER magia ofensiva do herói a desfaz com um acerto (as magias miram a fera
    quando ela é a ameaça mais próxima ou está à frente; o acerto vem da colisão real de cada poder); a ESPADA não mata,
    só provoca um salto; HUD do debuff da mordida (−20 % de dano causado, 30 s de jogo, renova sem acumular). */
@@ -8618,7 +8618,7 @@ function protaPrimaryRiteHit(damage,id,kind,meta){
   const dealt=sq.damageActor(a,amount,{...source,by:'hero'});
   // Keep the legacy focus proxy in sync so updateSquad cannot apply this hit twice.
   enemyHP=a.hp;squadProxy.hp=a.hp;
-  squadRT?.flash?.(a.id);
+  if(dealt>0)squadRT?.flash?.(a.id);
   if(dealt<amount){const p=new THREE.Vector3(a.x,a.y+2,a.z);damageNumber(p,dealt>0?'DEFENDEU':'ESQUIVOU','blocked');}
   // Preserve the existing skill-area spillover when another area skill is active.
   const R=squadAreaRadius();
