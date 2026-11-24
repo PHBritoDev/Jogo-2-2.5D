@@ -8575,7 +8575,7 @@ const rites=new SwordRites({
   const blade=equippedSword==='prota'?swordRoot:swordHands[equippedSword];if(!blade)return null;
   if(equippedSword==='prota'||equippedSword==='aurora'){const bd=blade.userData.blade;riteBase.set(0,bd?bd.base[1]:.40,0);riteTip.set(0,bd?bd.tip[1]:-.951,0);blade.localToWorld(riteBase);blade.localToWorld(riteTip);}else{const geometryRoot=blade.getObjectByName(equippedSword==='quantum'?'Quantum':'LaminaCelestial');riteBase.set(0,equippedSword==='quantum'?.48:.26,0);riteTip.set(0,1.38,0);geometryRoot.localToWorld(riteBase);geometryRoot.localToWorld(riteTip);}return riteBlade;
  },
- hit:(damage,id,kind,x)=>{if(kind==='energy-side'){protaSideHit(damage,id,x);return;}if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
+ hit:(damage,id,kind,x)=>{if(kind==='energy-side')return protaSideHit(damage,id,x);if(id!==siegeEpoch||!enemyAlive)return;hurtEnemy(damage,false,true,true);if(kind==='basic')({mana:playerMana,lastGainAt:manaHitAt}=manaFromHit(playerMana,manaHitAt,performance.now()));},
  event:(type,e)=>{
   if(window.SevenSinsDebug3D&&['judgment','wave','impact'].includes(type)){const rawTargetId=e.target?.id??null;const targetId=squadOn&&squadFocus&&rawTargetId===siegeEpoch?squadFocus.id:rawTargetId;riteAudit.push({type,n:e.n,at:rites.active?.t,targetId,secondary:!!e.secondary,waveSerial:e.energy?.serial??e.wave?.serial??e.serial??null,by:e.by??null,position:e.p?{...e.p}:null});if(riteAudit.length>80)riteAudit.shift();}
   riteVFX.event(type,e);
@@ -8605,8 +8605,8 @@ const rites=new SwordRites({
 /** MOD 315: outros inimigos da esquadra (além do foco) que a onda pode atingir, com altura/raio reais. */
 const protaOthersList=[];
 function protaOthers(){protaOthersList.length=0;if(!squadOn)return protaOthersList;for(const a of squadAlive()){if(a===squadFocus)continue;const h=squadRT.body(a.id)?.height||a.T.height;protaOthersList.push({id:a.id,x:a.x,y:a.y+h*.5,z:a.z,radius:a.T.radius,height:h,alive:true});}return protaOthersList;}
-function protaSideHit(damage,id,x){const sq=squadSq();if(!sq)return;const a=sq.actor(id);if(!a||!a.alive)return;const source=swordSideHitContext(x,a,player.position);const dealt=sq.damageActor(a,damage,{...source,by:'hero',knock:.3});
- if(dealt>0){if(!x?.energy&&!x?.wave&&x?.by!=='blade'){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});worldAudio.hit();}squadRT.flash?.(a.id);}}
+function protaSideHit(damage,id,x){const sq=squadSq();if(!sq)return false;const a=sq.actor(id);if(!a||!a.alive)return false;const source=swordSideHitContext(x,a,player.position);const dealt=sq.damageActor(a,damage,{...source,by:'hero',knock:.3});
+ if(dealt>0){if(!x?.energy&&!x?.wave&&x?.by!=='blade'){const t=x&&x.target;slashVFX.impact(t?{x:t.x,y:t.y,z:t.z}:{x:a.x,y:a.y+1,z:a.z},{x:Math.sin(playerYaw),y:.2,z:Math.cos(playerYaw)},{style:'prota',power:.4});worldAudio.hit();}squadRT.flash?.(a.id);}return dealt>0;}
 function riteReady(){return model&&mixer&&swordRoot&&Object.keys(COMBAT_MOVES).every(k=>riteClips[k])&&!!riteClips.Rite_Judgment&&!!riteClips.Rite_Eclipse;}
 function updateRiteLocomotion(dt){
  if(rites.active?.kind!=='basic'||!rites.active.layered||!grounded||!riteLayers){if(riteLower){riteLower.fadeOut(.08);riteLower=null;}return;}

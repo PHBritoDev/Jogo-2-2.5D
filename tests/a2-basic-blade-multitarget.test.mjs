@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { SwordRites, swordSideHitContext } from '../sword-rites3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
+import { makeEnergy } from '../combat-energy3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -112,6 +113,10 @@ test('production squad bridge consumes the projectile-aware side-hit context',as
  const bridge=source.slice(start,end);
  assert.match(bridge,/swordSideHitContext\(x,a,player\.position\)/);
  assert.match(bridge,/sq\.damageActor\(a,damage,\{\.\.\.source,by:'hero',knock:\.3\}\)/);
+ assert.match(bridge,/return dealt>0/);
+ const hitStart=source.indexOf("hit:(damage,id,kind,x)=>{"),hitEnd=source.indexOf("event:(type,e)=>",hitStart);
+ assert.ok(hitStart>=0&&hitEnd>hitStart);
+ assert.match(source.slice(hitStart,hitEnd),/return protaSideHit\(damage,id,x\)/);
 });
 
 test('degenerate wave direction and sector-center hits keep deterministic knockback',()=>{
@@ -146,4 +151,43 @@ test('real Eclipse wave metadata drives secondary squad knockback along travel',
  assert.deepEqual(result.direction,{x:0,y:0,z:1});
  assert.ok(actor.kz>0,'the actor must be pushed forward along the wave');
  assert.ok(Math.abs(actor.kx)<1e-9,'the moved hero must not inject a sideways knockback');
+});
+
+test('rejected physical secondary contact does not emit a false impact',()=>{
+ const squad=new Enemy1Squad({seed:13}),[actor]=squad.spawn([{x:0,z:3}]);
+ actor.act={iframes:true};
+ const side={id:actor.id,x:actor.x,y:actor.y+(actor.T.height||1.7)*.5,z:actor.z,
+  radius:actor.T.radius,height:actor.T.height,alive:true};
+ const focus=enemy(99,10,10),impacts=[];
+ const rites=new SwordRites({
+  pose:()=>({base:{x:-1,y:1,z:3},tip:{x:1,y:1,z:3}}),
+  hit:(damage,id,kind,meta)=>{
+   if(kind!=='energy-side')return undefined;
+   const source=swordSideHitContext(meta,actor,{x:0,z:1});
+   return squad.damageActor(id,damage,{...source,by:'hero',knock:.3})>0;
+  },
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('aurora',{target:focus,yaw:0}),true);
+ const ctx={from:{x:0,y:0,z:1},target:focus,others:[side],sword:'aurora',grounded:true};
+ for(let i=0;i<24;i++)rites.update(1/60,ctx);
+ assert.equal(actor.hp,actor.maxHp,'iframe precisa rejeitar o dano físico lateral');
+ assert.equal(impacts.filter(e=>e.secondary&&e.target?.id===actor.id).length,0,
+  'sem dano aplicado, não deve aparecer um impacto de espada falso');
+});
+test('rejected generic energy secondary contact does not emit a false impact',()=>{
+ const impacts=[],rites=new SwordRites({hit:()=>0,event:(type,data)=>{if(type==='impact')impacts.push(data);}});
+ const e=makeEnergy({kind:'wave',speed:12,range:3,radius:1.2,life:10,roll:0,band:.7},{x:0,y:1,z:0},0,0);
+ e.travel=2.9;e.owner={damage:24,def:{multiplier:1},targetId:'primary'};
+ rites.energies.push(e);
+ rites.update(1/60,{from:{x:0,y:0,z:0},target:null,others:[enemy('side',0,3)]});
+ assert.equal(impacts.length,0,'energia rejeitada pelo receptor não deve gerar impacto visual');
+});
+test('rejected Eclipse wave secondary contact does not emit a false impact',()=>{
+ const impacts=[],rites=new SwordRites({hit:()=>0,event:(type,data)=>{if(type==='impact')impacts.push(data);}});
+ rites.waves.push({p:{x:0,y:1,z:2.9},origin:{x:0,y:1,z:0},direction:{x:0,y:0,z:1},
+  previous:{x:0,y:1,z:2.9},yaw:0,roll:0,maxRadius:1.55,radius:1.55,travel:2.9,
+  speed:12,range:3.2,damage:20,hits:new Set(),n:0,age:0,serial:1});
+ rites.update(1/60,{from:{x:0,y:0,z:0},target:null,others:[enemy('side',0,3)]});
+ assert.equal(impacts.length,0,'Eclipse rejeitado pelo receptor não deve gerar impacto visual');
 });
