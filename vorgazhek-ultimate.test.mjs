@@ -90,9 +90,9 @@ test('Mod 262 — interrupção restaura tudo, kit só com poderes autorais, int
   assert.ok(src.includes("bossUlt.kind==='cosmic'?tickCosmicUlt:") && src.includes("function endBossUlt(){if(bossUlt.kind==='cosmic')stopCosmicUlt();") && src.includes('clearHazards();stopCosmicUlt();stopEclipseSword();'), 'limpa no fim, na interrupção e ao sair da dimensão');
   assert.ok(src.includes('undoCosmicShake();updatePlayerCamera(dt);'), 'tremor aditivo desfeito antes da câmera do próximo quadro');
   assert.ok(src.includes('||cineActive||cosmicLock()){axisX=0;') && src.includes('if(cosmicLock())return;'), 'trava só enquanto a cena pede');
-  assert.ok(src.includes("if(tornadoRitual||portalSwords||eclipseSword)return; // MOD 262"), 'não sobrepõe as outras habilidades');
+  assert.ok(src.includes("if(tornadoRitual||portalSwords||eclipseSword)return false;"), 'não sobrepõe as outras habilidades');
   assert.ok(src.includes("if(name==='bishop2')attachCosmicSword(model);") && !src.includes("'./EspadaBispo2.glb"), 'espada cósmica permanente; a antiga não aparece');
-  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('testUltBispo2=1'));
+  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes('data-dim="bishop2"') && src.includes("has('testUltBispo2')"));
 });
 
 test('Mod 265 (refino) — presença rubra por espaço negativo, sem criaturas; chamas negras presas à espada; explosão em estágios', () => {
