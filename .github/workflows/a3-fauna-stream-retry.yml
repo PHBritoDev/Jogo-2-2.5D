@@ -1,5 +1,14 @@
 name: A3 — retry limitado de fauna
 on:
+  push:
+    branches:
+      - 'agentes/a3/**'
+    paths:
+      - 'fauna3d.js'
+      - 'tests/a3-fauna-stream-retry.test.mjs'
+      - 'tests/mod327.test.mjs'
+      - 'tools/qa/a3-fauna-retry-runtime.cjs'
+      - '.github/workflows/a3-fauna-stream-retry.yml'
   pull_request:
     paths:
       - 'fauna3d.js'
