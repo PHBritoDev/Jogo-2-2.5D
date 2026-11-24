@@ -16,14 +16,20 @@ const report={
   viewport:{width:852,height:480,deviceScaleFactor:1,quality:'low'},
   baseline:null,candidate:null,errors:[],assets:[],ok:false
 };
-function expectedFillFor(label) {
-  // Main keeps the pre-A4 warm/wide fill; the candidate must prove the new local/cool fill.
+function expectedFillFor(label,arenaOrigin) {
+  // Presets store offsets relative to the arena floor; telemetry reports world coordinates.
+  const localOffset = label === '01-main' ? [0,18,4] : [0,7,0];
+  const position = [
+    arenaOrigin.x + localOffset[0],
+    arenaOrigin.y + localOffset[1],
+    arenaOrigin.z + localOffset[2]
+  ];
   if (label === '01-main') return {
-    position:[1200,18,4], intensity:3.5, distance:110, decay:1.1,
+    position, localOffset, intensity:3.5, distance:110, decay:1.1,
     color:[1,.863157,.737910], minSlotIntensity:3.1
   };
   return {
-    position:[1200,7,0], intensity:16, distance:36, decay:1.1,
+    position, localOffset, intensity:16, distance:36, decay:1.1,
     color:[.737910,.791298,.887923], minSlotIntensity:15
   };
 }
@@ -102,12 +108,15 @@ async function capture(label,url,browser){
       actorFrame.boss[1]>=0&&actorFrame.boss[1]<=actorFrame.viewport.height,
       label+': boss target is outside the camera frame');
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
-    const expectedFill=expectedFillFor(label);
+    const arenaOrigin={x:state.game.x,y:state.game.y,z:state.game.z-10};
+    assert.ok(Number.isFinite(arenaOrigin.y)&&Math.abs(arenaOrigin.y+2000)<.5,
+      label+': player is not on the known dimension floor; world-space fill cannot be compared');
+    const expectedFill=expectedFillFor(label,arenaOrigin);
     const fill=lighting.lights?.activeDetails?.find(source=>
-      source.position&&
-      Math.abs(source.position[0]-expectedFill.position[0])<.5&&
-      Math.abs(source.position[1]-expectedFill.position[1])<.5&&
-      Math.abs(source.position[2]-expectedFill.position[2])<.5&&
+      source.positionSpace==='world'&&source.worldPosition?.length===3&&
+      Math.abs(source.worldPosition[0]-expectedFill.position[0])<.5&&
+      Math.abs(source.worldPosition[1]-expectedFill.position[1])<.5&&
+      Math.abs(source.worldPosition[2]-expectedFill.position[2])<.5&&
       Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
       Math.abs(source.distance-expectedFill.distance)<.01&&
       Math.abs(source.decay-expectedFill.decay)<.001&&
@@ -118,8 +127,8 @@ async function capture(label,url,browser){
     assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
     assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
     const lightingCheck={expected:expectedFill,observed:{
-      name:fill.name,position:fill.position,intensity:fill.intensity,distance:fill.distance,
-      color:fill.color,slotIntensity:fill.slotIntensity,slotColor:fill.slotColor,slotDistance:fill.slotDistance,slotDecay:fill.slotDecay
+      name:fill.name,positionSpace:fill.positionSpace,position:fill.worldPosition,intensity:fill.intensity,distance:fill.distance,
+      localOffset:expectedFill.localOffset,color:fill.color,slotIntensity:fill.slotIntensity,slotColor:fill.slotColor,slotDistance:fill.slotDistance,slotDecay:fill.slotDecay
     }};
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
