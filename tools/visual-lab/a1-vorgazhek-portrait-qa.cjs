@@ -298,9 +298,26 @@ async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
 }
 
 async function assertManualZoom(page, label) {
-  const before = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
   const box = await page.locator('#look-area').boundingBox();
   assert.ok(box && box.width > 100 && box.height > 100, label + ': área real de câmera disponível');
+  const pitchBefore = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  // Arraste vertical touch real do handler: o fit precisa considerar a profundidade projetada pelo pitch.
+  await page.evaluate(() => {
+    const area = document.querySelector('#look-area'), rect = area.getBoundingClientRect();
+    const x = rect.left + rect.width * .55, startY = rect.top + rect.height * .18, endY = Math.min(rect.bottom - 24, startY + 220);
+    const fire = (type, clientY) => area.dispatchEvent(new PointerEvent(type, {
+      pointerId: 103, pointerType: 'touch', isPrimary: true, clientX: x, clientY, bubbles: true, cancelable: true
+    }));
+    fire('pointerdown', startY); fire('pointermove', endY); fire('pointerup', endY);
+  });
+  await page.waitForTimeout(400);
+  const afterTilt = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.ok(afterTilt.cameraPitch > pitchBefore.cameraPitch + .35, label + ': arraste vertical inclinou a câmera');
+  assert.ok(Math.max(Math.abs(afterTilt.player.center.x), Math.abs(afterTilt.enemy.center.x)) <= .76, label + ': inclinação mantém ambos dentro da margem horizontal');
+  assert.ok(afterTilt.player.center.onScreen && afterTilt.enemy.center.onScreen, label + ': centros continuam visíveis após inclinar');
+  assert.ok(afterTilt.player.head.onScreen && afterTilt.enemy.head.onScreen, label + ': cabeças continuam visíveis após inclinar');
+  assert.ok(Math.abs(afterTilt.player.center.x - afterTilt.enemy.center.x) >= .22, label + ': separação continua legível após inclinar');
+  const before = afterTilt;
 
   // Dois PointerEvents touch reproduzem a pinça no mesmo handler usado pelo celular.
   await page.evaluate(() => {
@@ -343,7 +360,7 @@ async function assertManualZoom(page, label) {
   assert.equal(afterReturn.manualZoomOverride, false, label + ': retorno limpa o override antigo');
   assert.equal(afterReturn.requestedDistance, 8.5, label + ': terceira pessoa restaura a distância-base solicitada');
   assert.ok(afterReturn.distance >= 10.2, label + ': fit adaptativo volta a afastar a câmera no duelo');
-  return { before, afterPinch, afterWheel, perspectiveRoundTrip: { firstPerson, afterReturn } };
+  return { pitch: { before: pitchBefore, after: afterTilt }, before, afterPinch, afterWheel, perspectiveRoundTrip: { firstPerson, afterReturn } };
 }
 
 async function runFreshPortrait(browser, url, stage) {
