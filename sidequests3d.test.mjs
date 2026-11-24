@@ -44,20 +44,59 @@ test('recompensa pendente sobrevive reload e recupera crash antes do save da cam
   assert.equal(restored.ervas.state, 'done');
   assert.deepEqual(restored.pendingReward, state.pendingReward);
   let applied = 0;
-  assert.equal(settleSideReward(restored, 50, pending => { applied++; return pending.afterXp; }), 'applied');
+  assert.equal(settleSideReward(restored, null, pending => { applied++; return { coins: pending.afterCoins, xp: pending.afterXp }; }), 'applied');
   assert.equal(applied, 1);
   assert.equal(restored.pendingReward, null);
   assert.equal(turnInSide(restored, 'ervas'), null);
 });
 
 test('recompensa já persistida limpa pendência sem creditar novamente', () => {
+  const pending = pendingFor('ervas');
   const state = createSideState({
     ervas: { state: 'done', progress: 4 },
-    pendingReward: pendingFor('ervas')
+    pendingReward: pending
   });
   let applied = 0;
-  assert.equal(settleSideReward(state, 80, () => { applied++; return 80; }), 'already-applied');
+  assert.equal(settleSideReward(state, { coins: pending.afterCoins + 5, xp: pending.afterXp + 30 }, () => { applied++; return null; }), 'already-applied');
   assert.equal(applied, 0);
+  assert.equal(state.pendingReward, null);
+});
+
+test('XP salvo acima da meta não descarta recibo quando as moedas ainda não foram persistidas', () => {
+  const pending = pendingFor('ervas');
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pending
+  });
+  let applied = 0;
+  const result = settleSideReward(state, {
+    coins: pending.beforeCoins,
+    xp: pending.afterXp + 25
+  }, receipt => {
+    applied++;
+    return { coins: receipt.afterCoins, xp: receipt.afterXp };
+  });
+  assert.equal(result, 'applied');
+  assert.equal(applied, 1);
+  assert.equal(state.pendingReward, null);
+});
+
+test('moedas salvas acima da meta não descartam recibo quando o XP ainda não foi persistido', () => {
+  const pending = pendingFor('ervas');
+  const state = createSideState({
+    ervas: { state: 'done', progress: 4 },
+    pendingReward: pending
+  });
+  let applied = 0;
+  const result = settleSideReward(state, {
+    coins: pending.afterCoins + 25,
+    xp: pending.beforeXp
+  }, receipt => {
+    applied++;
+    return { coins: receipt.afterCoins, xp: receipt.afterXp };
+  });
+  assert.equal(result, 'applied');
+  assert.equal(applied, 1);
   assert.equal(state.pendingReward, null);
 });
 
@@ -66,9 +105,9 @@ test('falha temporária do save mantém transação pendente e permite retry', (
     ervas: { state: 'done', progress: 4 },
     pendingReward: pendingFor('ervas')
   });
-  assert.equal(settleSideReward(state, 50, () => 50), 'pending');
+  assert.equal(settleSideReward(state, { coins: 100, xp: 50 }, () => ({ coins: 100, xp: 50 })), 'pending');
   assert.ok(state.pendingReward);
-  assert.equal(settleSideReward(state, 50, pending => pending.afterXp), 'applied');
+  assert.equal(settleSideReward(state, { coins: 100, xp: 50 }, pending => ({ coins: pending.afterCoins, xp: pending.afterXp })), 'applied');
   assert.equal(state.pendingReward, null);
 });
 
@@ -352,6 +391,15 @@ test('Pedras que Lembram conta somente os três IDs de Eldória', () => {
   assert.equal(state.abrigos.state, 'ready');
   refreshSide(state, { questStep: 2, waystones: [...SIDE_QUEST_WAYSTONES] });
   assert.equal(state.abrigos.state, 'ready', 'arrays com IDs canônicos também são aceitos');
+});
+
+test('recuperação de recompensa usa moedas e XP do mesmo snapshot V6', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  assert.ok(runtime.includes('function savedCampaignProgress(){'));
+  assert.ok(runtime.includes('Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)'));
+  assert.ok(runtime.includes('settleSideReward(sideState,savedCampaignProgress(),pending=>{'));
+  assert.ok(runtime.includes('save3DProgress();return savedCampaignProgress();'));
+  assert.ok(!runtime.includes('function savedCampaignXp(){'));
 });
 
 test('runtime fornece o Set de IDs registrados, não a contagem global', () => {

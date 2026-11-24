@@ -4069,15 +4069,15 @@ function updateVillagers(dt){
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
 function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
-function savedCampaignXp(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.xp)?saved.xp:null;}catch(_){return null;}}
+function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&Number.isFinite(saved.coins)&&Number.isFinite(saved.xp)?{coins:saved.coins,xp:saved.xp}:null;}catch(_){return null;}}
 function settlePendingSideReward(){
- const result=settleSideReward(sideState,savedCampaignXp(),pending=>{
+ const result=settleSideReward(sideState,savedCampaignProgress(),pending=>{
   if(!pending.appliedInMemory){
    coins=Math.max(coins,pending.afterCoins);
    const delta=Math.max(0,pending.afterXp-playerXp);if(delta>0)gainXp(delta);
    pending.appliedInMemory=true;
   }
-  save3DProgress();return savedCampaignXp();
+  save3DProgress();return savedCampaignProgress();
  });
  if(result!=='pending'&&result!=='none')saveSide();
  return result;

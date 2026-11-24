@@ -88,18 +88,21 @@ export function createSideState(saved) {
   return out;
 }
 
-export function settleSideReward(state, persistedXp, applyReward) {
+export function settleSideReward(state, persistedCampaign, applyReward) {
   const pending = state && state.pendingReward;
   if (!pending) return 'none';
-  // XP só cresce no save da campanha; ele confirma que moedas + XP já foram persistidos juntos.
-  if (Number.isFinite(persistedXp) && persistedXp >= pending.afterXp) {
+  // XP isolado não comprova a transação: moedas e XP são gravados no mesmo snapshot V6.
+  const includesReward = snapshot =>
+    snapshot && Number.isFinite(snapshot.coins) && Number.isFinite(snapshot.xp) &&
+    snapshot.coins >= pending.afterCoins && snapshot.xp >= pending.afterXp;
+  if (includesReward(persistedCampaign)) {
     state.pendingReward = null;
     return 'already-applied';
   }
   if (typeof applyReward !== 'function') return 'pending';
-  let nextXp = null;
-  try { nextXp = applyReward(pending); } catch (_) { return 'pending'; }
-  if (Number.isFinite(nextXp) && nextXp >= pending.afterXp) {
+  let nextCampaign = null;
+  try { nextCampaign = applyReward(pending); } catch (_) { return 'pending'; }
+  if (includesReward(nextCampaign)) {
     state.pendingReward = null;
     return 'applied';
   }
