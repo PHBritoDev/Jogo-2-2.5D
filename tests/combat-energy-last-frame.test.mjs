@@ -287,6 +287,8 @@ for (const fps of [20, 30, 60, 120]) {
         `VFX de ${impact.target.id} precisa ficar na superfície da cápsula, não dentro do corpo`);
       assert.ok(impact.p.z > impact.target.z,
         `VFX de ${impact.target.id} precisa ficar na face voltada ao protagonista`);
+      assert.ok(Math.abs(impact.p.y - impact.target.y) < .02,
+        `VFX de ${impact.target.id} não pode cair para os pés quando a lâmina cruza o eixo`);
     }
     const impactXs = result.impacts.map(e => e.p.x).sort((a, b) => a - b);
     assert.ok(impactXs[1] - impactXs[0] >= .65,
