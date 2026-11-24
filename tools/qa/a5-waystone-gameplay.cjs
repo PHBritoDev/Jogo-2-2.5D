@@ -15,12 +15,40 @@ const OUT = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a5-way
 const BASE = (process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
 const SIDE_KEY = 'seven-sins-3d-side';
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function createProgressWatch(initialDistance, { threshold = 0.04, now = Date.now() } = {}) {
+  let bestDistance = Number.isFinite(initialDistance) ? initialDistance : Infinity;
+  let lastProgressAt = Number.isFinite(now) ? now : Date.now();
+  return {
+    sample(distance, timestamp = Date.now()) {
+      const at = Number.isFinite(timestamp) ? timestamp : lastProgressAt;
+      const progressed = Number.isFinite(distance) &&
+        (bestDistance === Infinity || bestDistance - distance >= threshold);
+      if (progressed) {
+        bestDistance = distance;
+        lastProgressAt = at;
+      }
+      return { progressed, bestDistance, stalledMs: Math.max(0, at - lastProgressAt) };
+    }
+  };
+}
+
+// Regressão local: progresso subamostrado acumula; só o tempo sem avanço real conta como parada.
+{
+  const watch = createProgressWatch(1, { threshold: 0.05, now: 1000 });
+  assert.equal(watch.sample(0.98, 1250).progressed, false);
+  assert.equal(watch.sample(0.96, 1500).progressed, false);
+  const advanced = watch.sample(0.94, 1750);
+  assert.equal(advanced.progressed, true);
+  assert.equal(advanced.stalledMs, 0);
+  assert.equal(watch.sample(0.94, 9750).stalledMs, 8000);
+}
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch input on the shipped #stick joystick; A* routes from navCatalog/whyBlocked avoid world obstacles; viewQA aligns yaw; real talk-button registration; no shelter-to-shelter teleport',
+  method: 'real CDP touch input on the shipped #stick joystick; frame-synchronized movement sampling (two RAF frames); cumulative progress detection; A* routes from navCatalog/whyBlocked; real talk-button registration; no shelter-to-shelter teleport',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touchStart/touchMove on #stick with pointermove/knob verification; A* waypoints from runtime collision queries; Playwright tap on #talk-button; viewQA only aligns camera yaw/pitch/distance; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per movement sample; cumulative 0.04m progress window; A* waypoints from runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
   narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -71,6 +99,23 @@ async function installThreeRoutes(ctx) {
     else await route.continue();
   });
 }
+async function waitForGameFrames(count = 2, timeoutMs = 6000) {
+  const completed = await page.evaluate(({ count, timeoutMs }) => new Promise(resolve => {
+    let frames = 0, settled = false;
+    const timer = setTimeout(() => { settled = true; resolve(false); }, timeoutMs);
+    const next = () => {
+      if (settled) return;
+      frames++;
+      if (frames >= count) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(true);
+      } else requestAnimationFrame(next);
+    };
+    requestAnimationFrame(next);
+  }), { count, timeoutMs });
+  assert.equal(completed, true, 'renderer não completou ' + count + ' frames em ' + timeoutMs + 'ms');
+}
 async function waitRuntime() {
   await page.waitForFunction(() =>
     !!window.SevenSinsDebug3D?.riteState?.().ready &&
@@ -78,6 +123,11 @@ async function waitRuntime() {
     typeof window.SevenSinsDebug3D?.viewQA === 'function',
     null, { timeout: 240000 }
   );
+  await page.waitForFunction(() => {
+    const loading = document.getElementById('loading');
+    return !loading || loading.classList.contains('hidden') || getComputedStyle(loading).display === 'none';
+  }, null, { timeout: 240000 });
+  await waitForGameFrames(2, 12000);
 }
 async function beginJoystick() {
   const box = await page.locator('#stick').boundingBox();
@@ -264,33 +314,38 @@ async function walkTo(stone, label) {
   try {
     for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
       const waypoint = selected.plan.points[waypointIndex];
-      let stalled = 0, reached = false;
+      const progressWatch = createProgressWatch(Math.hypot(waypoint.x - (await playerState()).x, waypoint.z - (await playerState()).z), { threshold: 0.04, now: Date.now() });
+      let reached = false;
       for (let step = 0; step < 180; step++) {
         const p = await playerState();
         const distance = Math.hypot(waypoint.x - p.x, waypoint.z - p.z);
         if (distance <= .38) { reached = true; break; }
         await aimJoystick(waypoint.x - p.x, waypoint.z - p.z, 0);
-        await wait(260);
+        const frameWaitStarted = Date.now();
+        await waitForGameFrames(2, 6000);
+        const frameWaitMs = Date.now() - frameWaitStarted;
         const after = await playerState();
         const nextDistance = Math.hypot(waypoint.x - after.x, waypoint.z - after.z);
         const delta = Math.hypot(after.x - p.x, after.z - p.z);
         travelled += delta; totalSteps++;
+        const progress = progressWatch.sample(nextDistance, Date.now());
         report.legs.push({
           label, waypoint: waypointIndex, step: totalSteps,
           distance: +distance.toFixed(2), nextDistance: +nextDistance.toFixed(2),
           delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
+          progressed: progress.progressed, bestDistance: +progress.bestDistance.toFixed(2),
+          stalledMs: progress.stalledMs, frameWaitMs,
           control: 'touch #stick'
         });
-        if (nextDistance < distance - .045) stalled = 0;
-        else stalled++;
-        if (stalled >= 8) {
+        if (progress.stalledMs >= 9000) {
           const diagnostics = await page.evaluate(({ x, z, dx, dz }) => ({
             current: window.SevenSinsDebug3D.whyBlocked(x, z),
             ahead: [0.25, 0.5, 0.9, 1.4].map(d => ({ d, why: window.SevenSinsDebug3D.whyBlocked(x + dx * d, z + dz * d) }))
           }), { x: after.x, z: after.z, dx: waypoint.x - after.x, dz: waypoint.z - after.z });
           const controls = await controlState();
-          throw new Error(label + ': rota bloqueada no waypoint ' + waypointIndex +
-            '; distância=' + nextDistance.toFixed(2) + '; diagnóstico=' + JSON.stringify({ diagnostics, controls }));
+          throw new Error(label + ': sem progresso acumulado por ' + (progress.stalledMs / 1000).toFixed(1) +
+            's no waypoint ' + waypointIndex + '; distância=' + nextDistance.toFixed(2) +
+            '; nenhum bloqueio de colisão presumido; diagnóstico=' + JSON.stringify({ diagnostics, controls }));
         }
       }
       const afterWaypoint = await playerState();
