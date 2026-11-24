@@ -10,7 +10,7 @@ const out = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a1-vor
 fs.mkdirSync(out, { recursive: true });
 const report = {
   ok: false,
-  method: 'batalha real bishop2; sem SevenSinsDebug3D.view; paisagem → rotação 393×852 + portrait inicial',
+  method: 'batalha real bishop2; sem SevenSinsDebug3D.view; paisagem → rotação 393×852 + portrait inicial + retorno da câmera 1ª/3ª pessoa',
   renderer: 'Chromium SwiftShader — não representa FPS Android',
   screenshots: [],
   errors: { baseline: [], head: [] },
@@ -241,7 +241,18 @@ async function assertManualZoom(page, label) {
   assert.equal(after.manualZoomOverride, true, label + ': zoom manual ativa override do duelo');
   assert.ok(after.requestedDistance >= before.requestedDistance + 4.5, label + ': roda altera distância solicitada');
   assert.ok(after.distance >= before.distance + 1.6, label + ': câmera real acompanha o zoom após a interpolação');
-  return { before, after };
+
+  await page.locator('#camera-toggle-3d').click();
+  await page.waitForTimeout(350);
+  const firstPerson = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.ok(firstPerson.requestedDistance < 1.05, label + ': alternância entrou em primeira pessoa');
+  await page.locator('#camera-toggle-3d').click();
+  await page.waitForTimeout(2000);
+  const afterReturn = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.equal(afterReturn.manualZoomOverride, false, label + ': retorno limpa o override antigo');
+  assert.equal(afterReturn.requestedDistance, 8.5, label + ': terceira pessoa restaura a distância-base solicitada');
+  assert.ok(afterReturn.distance >= 10.2, label + ': fit adaptativo volta a afastar a câmera no duelo');
+  return { before, after, perspectiveRoundTrip: { firstPerson, afterReturn } };
 }
 
 async function runFreshPortrait(browser, url, stage) {

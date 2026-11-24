@@ -2256,6 +2256,8 @@ function syncCameraToggle3D(){
 }
 if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
  cameraDistance=cameraDistance<1.05?8.5:.72;
+  // O retorno à terceira pessoa reativa o fit automático do duelo em retrato.
+  portraitZoomOverride=false;
  cameraPitch=THREE.MathUtils.clamp(cameraPitch,-1.05,1.05);
  syncCameraToggle3D();
  const status=document.getElementById('status');

@@ -151,3 +151,18 @@ test('probe do alvo exige malha realmente visível e helper compatível com load
   assert.match(world, /visibleMeshes,meshCount/);
   assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
 });
+
+test('alternar perspectiva limpa o override de zoom manual do duelo em retrato', () => {
+  const toggleStart = world.indexOf("if(cameraToggle3D)bindInstantTap(cameraToggle3D");
+  const toggleEnd = world.indexOf("const lookPointers", toggleStart);
+  assert.ok(toggleStart >= 0 && toggleEnd > toggleStart, 'handler da alternância de perspectiva delimitado');
+  const toggle = world.slice(toggleStart, toggleEnd);
+  assert.ok(toggle.includes("cameraDistance=cameraDistance<1.05?8.5:.72;"));
+  assert.ok(toggle.includes("portraitZoomOverride=false;"), 'perspectiva descarta override antigo');
+  const zoomQaStart = qa.indexOf('async function assertManualZoom');
+  const zoomQaEnd = qa.indexOf('async function runFreshPortrait', zoomQaStart);
+  const zoomQa = qa.slice(zoomQaStart, zoomQaEnd);
+  assert.ok(zoomQa.includes("page.locator('#camera-toggle-3d').click()"), 'QA alterna primeira e terceira pessoa');
+  assert.ok(zoomQa.includes("afterReturn.manualZoomOverride, false"), 'QA verifica limpeza do override');
+  assert.ok(zoomQa.includes("afterReturn.distance >= 10.2"), 'QA verifica retorno do fit adaptativo');
+});
