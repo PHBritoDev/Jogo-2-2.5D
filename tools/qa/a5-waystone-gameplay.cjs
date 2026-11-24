@@ -62,6 +62,7 @@ const report = {
   httpErrors: [],
   input: { joystickPointerTypes: [], joystickPointerMoves: [], joystickLifecycle: [], interactionPointerTypes: [] },
   routes: [],
+  approaches: [],
   worldReadiness: []
 };
 
@@ -319,24 +320,61 @@ async function findWalkPath(start, target, stone) {
     };
   }, { start, target, stone });
 }
+async function inspectShelterApproaches(stone) {
+  const result = await page.evaluate(({ x, z, radius, stepUp, centerY }) => {
+    const api = window.SevenSinsDebug3D;
+    const surfaces = api.navCatalog(x, z, 7).surfaces;
+    const deck = surfaces.find(s => s.n === 'abrigo-degrau1' && Math.hypot(s.x - x, s.z - z) < .05);
+    if (!deck) return { error: 'superfície abrigo-degrau1 não encontrada', surfaces };
+    const sides = window.__a5RankShelterApproaches({
+      center: { x, z }, radius, deckY: deck.y, stepUp, walkLimit: -5.5,
+      sample: ({ x: sx, z: sz }) => {
+        const cell = api.heightGrid(sx, sx, sz, sz, 1)?.[0]?.[0];
+        return cell ? { height: cell[0], edge: cell[1], water: !!cell[2] } : { height: NaN, edge: NaN, water: true };
+      }
+    });
+    return { deckY: deck.y, centerY, centerDeckDelta: +(centerY - deck.y).toFixed(3), sides };
+  }, { x: stone.x, z: stone.z, radius: SHELTER.r1, stepUp: STEP_UP, centerY: stone.centerY });
+  assert.ok(!result.error, stone.id + ': ' + (result.error || 'geometria indisponível'));
+  assert.ok(Math.abs(result.centerDeckDelta - SHELTER.step) < .03,
+    stone.id + ': cota do anel diverge do contrato SHELTER.step: ' + JSON.stringify(result));
+  assert.equal(result.sides.length, 8, stone.id + ': auditoria não cobriu oito lados');
+  report.approaches.push({
+    id: stone.id, radius: SHELTER.r1, stepUp: STEP_UP, deckY: +result.deckY.toFixed(3),
+    centerY: +result.centerY.toFixed(3),
+    sides: result.sides.map(side => ({
+      index: side.index, angle: side.angle, staging: side.staging, entry: side.entry,
+      groundY: side.groundY, rise: side.rise, ok: side.ok, reason: side.reason, samples: side.samples
+    }))
+  });
+  return result.sides;
+}
 async function walkTo(stone, label) {
   const start = await playerState();
   const originDistance = Math.hypot(stone.x - start.x, stone.z - start.z);
-  const angles = Array.from({ length: 8 }, (_, i) => i * Math.PI / 4);
-  const approaches = angles.map(angle => ({
-    x: stone.x + Math.cos(angle) * .9,
-    z: stone.z + Math.sin(angle) * .9
-  })).sort((a, b) => Math.hypot(a.x - start.x, a.z - start.z) - Math.hypot(b.x - start.x, b.z - start.z));
-  let selected = null;
+  const sides = await inspectShelterApproaches(stone);
+  const candidates = sides.filter(side => side.ok).sort((a, b) => {
+    const targetFor = side => ({ x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 });
+    const ta = targetFor(a), tb = targetFor(b);
+    return a.rise - b.rise || Math.hypot(ta.x - start.x, ta.z - start.z) - Math.hypot(tb.x - start.x, tb.z - start.z);
+  });
   const rejected = [];
-  for (const target of approaches) {
+  let selected = null;
+  for (const side of candidates) {
+    const target = { x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 };
     const plan = await findWalkPath(start, target, stone);
-    if (plan.ok) { selected = { target, plan }; break; }
-    rejected.push({ target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled });
+    if (plan.ok) { selected = { target, plan, side }; break; }
+    rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled });
   }
-  if (!selected) throw new Error(label + ': nenhum acesso caminhável ao abrigo; tentativas=' + JSON.stringify(rejected));
+  if (!selected) {
+    const summary = sides.map(side => ({ side: side.index, rise: side.rise, ok: side.ok, reason: side.reason }));
+    throw new Error(label + ': nenhum dos oito lados oferece subida dentro de STEP_UP=' + STEP_UP +
+      ' ou rota livre; lados=' + JSON.stringify(summary) + '; rotas=' + JSON.stringify(rejected));
+  }
   report.routes.push({
-    label, target: selected.target, points: selected.plan.points, rawPoints: selected.plan.rawPoints,
+    label, target: selected.target, approachSide: selected.side.index,
+    approachRise: selected.side.rise, approachGroundY: selected.side.groundY,
+    points: selected.plan.points, rawPoints: selected.plan.rawPoints,
     explored: selected.plan.explored, sampled: selected.plan.sampled,
     goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
   });
@@ -402,9 +440,12 @@ async function walkTo(stone, label) {
     const p = await playerState(), support = await walkState();
     const nearStone = Math.hypot(stone.x - p.x, stone.z - p.z);
     assert.ok(nearStone <= 1.35, label + ': personagem fora do raio do abrigo (' + nearStone.toFixed(2) + 'm)');
-    // centerY é o pivô/centro visual do objeto, não a cota do piso sob os pés do jogador.
-    // A chegada válida é comprovada pelo raio XZ, suporte físico e prompt real de interação.
     assert.ok(support.grounded, label + ': personagem não está apoiado no chão');
+    assert.ok(['abrigo-degrau1', 'abrigo-degrau2'].includes(support.surface),
+      label + ': chegou ao raio XZ, mas continua em ' + (support.surface || 'terreno') +
+      '; y=' + p.y.toFixed(3) + '; piso=' + support.surfaceY + '; terreno=' + support.terrain);
+    assert.ok(p.y > stone.centerY - .25,
+      label + ': pés abaixo do gate de registro; y=' + p.y.toFixed(3) + '; mínimo=' + (stone.centerY - .25).toFixed(3));
     const netDistance = Math.hypot(p.x - start.x, p.z - start.z);
     assert.ok(originDistance <= 1.5 || netDistance >= originDistance - 1.5,
       label + ': deslocamento líquido insuficiente para comprovar joystick (' + netDistance.toFixed(2) + 'm de ' + originDistance.toFixed(2) + 'm)');
@@ -412,6 +453,8 @@ async function walkTo(stone, label) {
       label, from: { x: start.x, z: start.z }, to: { x: p.x, y: p.y, z: p.z },
       playerY: +p.y.toFixed(3), stoneCenterY: +stone.centerY.toFixed(3),
       verticalDelta: +(p.y - stone.centerY).toFixed(3), grounded: !!support.grounded,
+      surface: support.surface, surfaceY: support.surfaceY, terrain: support.terrain,
+      approachSide: selected.side.index, approachRise: selected.side.rise,
       originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
       travelled: +travelled.toFixed(2), steps: totalSteps,
       routePoints: selected.plan.points.length, rawPoints: selected.plan.rawPoints, control: 'touch #stick'
@@ -427,6 +470,10 @@ async function registerStone(stone, expectedProgress, mapKey) {
   const d = Math.hypot(stone.x - p.x, stone.z - p.z);
   assert.ok(d <= 1.35, stone.id + ': personagem fora do raio de registro (' + d.toFixed(2) + 'm)');
   assert.ok(support.grounded, stone.id + ': personagem não está apoiado no chão para interagir');
+  assert.ok(['abrigo-degrau1', 'abrigo-degrau2'].includes(support.surface),
+    stone.id + ': interação fora da superfície do abrigo (' + (support.surface || 'terreno') + ')');
+  assert.ok(p.y > stone.centerY - .25,
+    stone.id + ': pés abaixo do gate nearestWaystone; y=' + p.y.toFixed(3) + '; mínimo=' + (stone.centerY - .25).toFixed(3));
   const buttonBefore = await page.evaluate(() => {
     const b = document.getElementById('talk-button');
     return { exists: !!b, hidden: !!b?.classList.contains('hidden'), text: b?.textContent?.trim() || '' };
@@ -434,7 +481,8 @@ async function registerStone(stone, expectedProgress, mapKey) {
   report.interactionChecks.push({
     id: stone.id, x: +p.x.toFixed(3), y: +p.y.toFixed(3), z: +p.z.toFixed(3),
     centerY: +stone.centerY.toFixed(3), verticalDelta: +(p.y - stone.centerY).toFixed(3),
-    distance: +d.toFixed(3), grounded: !!support.grounded, buttonBefore
+    distance: +d.toFixed(3), grounded: !!support.grounded,
+    surface: support.surface, surfaceY: support.surfaceY, terrain: support.terrain, buttonBefore
   });
   await shot(stone.id + '-approach');
   await page.waitForFunction(() => {
@@ -472,6 +520,9 @@ async function registerStone(stone, expectedProgress, mapKey) {
     fs.mkdirSync(OUT, { recursive: true });
     const { SIDE_QUESTS, SIDE_QUEST_WAYSTONES } = await import('../../sidequests3d.js');
     const { MAP_STORE_KEY } = await import('../../map3d.js');
+    const { SHELTER } = await import('../../eldoria-shelter3d.js');
+    const { STEP_UP } = await import('../../eldoria-walkable.js');
+    assert.ok(Number.isFinite(SHELTER.r1) && Number.isFinite(STEP_UP), 'geometria/STEP_UP de produção indisponível');
     const quest = SIDE_QUESTS.find(q => q.id === 'abrigos');
     assert.ok(quest && quest.goal.count === 3);
     assert.deepEqual(SIDE_QUEST_WAYSTONES, ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);
@@ -516,7 +567,9 @@ async function registerStone(stone, expectedProgress, mapKey) {
     const pathfinderReady = await page.evaluate(async () => {
       const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
       window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
-      return typeof window.__a5AxisSeparatedSegmentClear === 'function';
+      window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
+      return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
+        typeof window.__a5RankShelterApproaches === 'function';
     });
     assert.equal(pathfinderReady, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
     await wait(2200);

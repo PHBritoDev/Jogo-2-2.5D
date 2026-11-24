@@ -75,3 +75,48 @@ test('exige encerramento real do mesmo pointer touch após touchEnd', () => {
     valid[0], valid[1], { type: 'pointerdown', pointerType: 'touch', pointerId: 9, ending: false }
   ]), false);
 });
+
+
+test('classifica oito lados e prioriza o primeiro degrau com menor desnível', async () => {
+  const { rankShelterApproaches } = await import('./a5-waystone-pathfinding.mjs');
+  const sides = rankShelterApproaches({
+    center: { x: 0, z: 0 }, radius: 3.35, deckY: 1.1, stepUp: 0.55,
+    sample: ({ x }) => ({ height: x > 0 ? 0.8 : 0.3, edge: -20, water: false })
+  });
+  assert.equal(sides.length, 8);
+  assert.equal(sides[0].index, 0);
+  assert.equal(sides[0].rise, 0.3);
+  assert.ok(sides[0].ok);
+  assert.ok(sides.every(side => side.samples.length >= 5));
+  assert.ok(sides.some(side => !side.ok && side.reason === 'step-exceeds-limit'));
+});
+
+test('não declara acesso caminhável quando todos os lados excedem STEP_UP', async () => {
+  const { rankShelterApproaches } = await import('./a5-waystone-pathfinding.mjs');
+  const sides = rankShelterApproaches({
+    center: { x: 6.5, z: -79 }, radius: 3.35, deckY: 1.328, stepUp: 0.55,
+    sample: () => ({ height: 0.474, edge: -20, water: false })
+  });
+  assert.equal(sides.length, 8);
+  assert.ok(sides.every(side => !side.ok && side.reason === 'step-exceeds-limit'));
+  assert.ok(sides.every(side => Math.abs(side.rise - 0.854) < 1e-9));
+});
+
+test('rejeita lado com água, borda não caminhável ou amostra inválida', async () => {
+  const { rankShelterApproaches } = await import('./a5-waystone-pathfinding.mjs');
+  const water = rankShelterApproaches({
+    center: { x: 0, z: 0 }, radius: 3, deckY: 1, stepUp: 0.55,
+    sample: () => ({ height: 0.8, edge: -20, water: true })
+  });
+  assert.ok(water.every(side => side.reason === 'water'));
+  const edge = rankShelterApproaches({
+    center: { x: 0, z: 0 }, radius: 3, deckY: 1, stepUp: 0.55,
+    sample: () => ({ height: 0.8, edge: -2, water: false })
+  });
+  assert.ok(edge.every(side => side.reason === 'outside-walkable-area'));
+  const invalid = rankShelterApproaches({
+    center: { x: 0, z: 0 }, radius: 3, deckY: 1, stepUp: 0.55,
+    sample: () => ({ height: NaN, edge: -20, water: false })
+  });
+  assert.ok(invalid.every(side => side.reason === 'non-finite-sample'));
+});
