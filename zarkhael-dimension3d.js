@@ -97,7 +97,7 @@ function surfaceMaterial(THREE, kind, uniforms) {
         // A tiny corneal catchlight, shaded together with the PBR specular.
         eyeball*=.6+.4*sqrt(max(.05,1.-dot(p*.82,p*.82)));
         vec2 glint=(irisP-vec2(-.10,.12))*vec2(1.,1.5);eyeball+=vec3(.65)*exp(-dot(glint,glint)*650.);
-        diffuseColor.rgb=mix(eyeball,flesh(vOrganic*.85),lid);
+        diffuseColor.rgb=mix(eyeball,flesh(vOrganic*.85,n),lid);
         diffuseColor.rgb*=mix(.38,1.,smoothstep(0.,.09,abs(abs(p.y)-gap)));`;
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + color);
     shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
