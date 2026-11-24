@@ -314,7 +314,8 @@ async function walkTo(stone, label) {
   try {
     for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
       const waypoint = selected.plan.points[waypointIndex];
-      const progressWatch = createProgressWatch(Math.hypot(waypoint.x - (await playerState()).x, waypoint.z - (await playerState()).z), { threshold: 0.04, now: Date.now() });
+      const waypointStart = await playerState();
+      const progressWatch = createProgressWatch(Math.hypot(waypoint.x - waypointStart.x, waypoint.z - waypointStart.z), { threshold: 0.04, now: Date.now() });
       let reached = false;
       for (let step = 0; step < 180; step++) {
         const p = await playerState();
