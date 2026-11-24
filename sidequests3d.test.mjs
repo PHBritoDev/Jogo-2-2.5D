@@ -406,7 +406,7 @@ test('recuperação de recompensa usa moedas e XP do mesmo snapshot V6', () => {
 test('recuperação real da campanha faz retry após falha e não duplica após crash', () => {
   const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
   const begin = runtime.indexOf('function savedCampaignProgress(){');
-  const end = runtime.indexOf('\\nconst sideRewardRecovery', begin);
+  const end = runtime.indexOf('\nconst sideRewardRecovery', begin);
   assert.ok(begin >= 0 && end > begin, 'bloco de recuperação transacional não foi localizado');
   const recovery = runtime.slice(begin, end);
   const pending = pendingFor('ervas');
@@ -435,7 +435,7 @@ test('recuperação real da campanha faz retry após falha e não duplica após 
     if (context.allowSave) storage.set(context.PROGRESS_KEY, JSON.stringify({ coins: context.coins, xp: context.playerXp }));
   };
   context.saveSide = () => { context.sideSaveCount++; return true; };
-  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', context);
+  runInNewContext(recovery + '\nthis.__settle = settlePendingSideReward;', context);
 
   assert.equal(context.__settle(), 'pending', 'falha do primeiro save mantém o recibo');
   assert.equal(context.coins, pending.afterCoins, 'moedas são aplicadas em memória antes do save');
@@ -457,7 +457,7 @@ test('recuperação real da campanha faz retry após falha e não duplica após 
   });
   const recoveryAfterCrash = { ...context, sideState: reloaded, allowSave: false, saveCount: 0, sideSaveCount: 0 };
   delete recoveryAfterCrash.__settle;
-  runInNewContext(recovery + '\\nthis.__settle = settlePendingSideReward;', recoveryAfterCrash);
+  runInNewContext(recovery + '\nthis.__settle = settlePendingSideReward;', recoveryAfterCrash);
   assert.equal(recoveryAfterCrash.__settle(), 'already-applied');
   assert.equal(reloaded.pendingReward, null);
   assert.equal(recoveryAfterCrash.coins, pending.afterCoins);
