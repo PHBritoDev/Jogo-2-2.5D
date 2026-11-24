@@ -13,7 +13,10 @@ test('Bispo 3 runtime QA enters after the cutscene and polls without repeated ac
   assert.ok(activeStart >= 0 && shotStart > activeStart);
   const active = runtime.slice(activeStart, shotStart);
   assert.match(active, /const pre=await p\.evaluate/);
-  assert.match(active, /if\(pre\.vs\)await p\.evaluate/);
+  const ready=active.indexOf("await p.waitForFunction(()=>{const button=document.querySelector('#vs-go');return !!button&&!button.disabled;");
+  const launch=active.indexOf("SevenSinsDebug3D.vsGo()",ready);
+  const battle=active.indexOf("s.battle?.active",launch);
+  assert.ok(ready>=0&&launch>ready&&battle>launch,"runtime QA must wait for the real VS button to enable before starting exactly once");
   assert.match(active, /!s\.cineActive&&!s\.menuGate&&!s\.paused/);
   assert.doesNotMatch(active, /if\(s\.vs\)d\.vsGo/);
 
@@ -36,6 +39,10 @@ test('six-seals QA launches once, proves the safe annulus and records cleanup', 
   const activeStart = sixSeals.indexOf('const pre=await page.evaluate');
   const launchStart = sixSeals.indexOf('const launch=await page.evaluate', activeStart);
   assert.ok(activeStart >= 0 && launchStart > activeStart);
+  const vsReady=sixSeals.indexOf('await page.waitForFunction(()=>{const button=document.querySelector("#vs-go");return !!button&&!button.disabled;');
+  const vsLaunch=sixSeals.indexOf('window.SevenSinsDebug3D.vsGo()',vsReady);
+  const battleReady=sixSeals.indexOf('s.battle?.active',vsLaunch);
+  assert.ok(vsReady>=0&&vsLaunch>vsReady&&battleReady>vsLaunch,"six-seals QA must wait for the real VS button before launching");
   assert.match(sixSeals, /!s\.cineActive&&!s\.menuGate&&!s\.paused/);
   assert.match(sixSeals, /window\.__qaManualBossSkills=true/);
   assert.match(sixSeals, /d\.teleport\(x,z\)/);
