@@ -7418,7 +7418,7 @@ function updateUltimateFx(dt){
 let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false,portraitZoomOverride=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
- if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>16)return null;
+ if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>22)return null;
  return{shoulder:.08,focusBlend:.5,minDistance:Math.min(12.5,Math.max(10.8,9.8+Math.max(0,sep-12)*.3)),idleMs:450,deadZone:.04,parallaxBias:.38,turnRate:3.2};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */

@@ -11,7 +11,7 @@ const squadRuntime = fs.readFileSync(new URL('../enemy1-squad-runtime3d.js', imp
 test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não altera paisagem', () => {
   assert.match(world, /function portraitBishop2Profile\(foeOn,sep\)/);
   assert.match(world, /dimKey!=='bishop2'/);
-  assert.match(world, /camera\.aspect>=\.78/);
+  assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
   assert.match(world, /focusBlend:\.5/);
   assert.match(world, /minDistance:Math\.min\(12\.5,Math\.max\(10\.8/);
   assert.match(world, /sep<12\|\|!!portrait/);
@@ -19,6 +19,12 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
   assert.match(world, /deadZone:\.04,parallaxBias:\.38,turnRate:3\.2/);
   assert.match(world, /actorScreen\(\)\{\s*camera\.updateMatrixWorld\(true\)/);
+});
+
+test('distância adaptativa alcança 12,5 m antes de soltar o foco em separações longas', () => {
+  const at21m = Math.min(12.5, Math.max(10.8, 9.8 + Math.max(0, 21 - 12) * .3));
+  assert.equal(at21m, 12.5);
+  assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
 });
 
 test('entrada reinicia o foco antigo e saída remove o escopo visual da dimensão', () => {
