@@ -86,7 +86,7 @@ test('QA inicia a apresentação uma vez e mantém a espera da batalha somente l
   assert.match(block, /await page\.evaluate\(\(\) => window\.SevenSinsDebug3D\.vsGo\(\)\)/);
   assert.match(block, /querySelector\('#vs-go'\)/);
   const pollBodies = [...block.matchAll(/await page\.waitForFunction\(\(\) => \{([\s\S]*?)\}, null,/g)].map(match => match[1]);
-  assert.equal(pollBodies.length, 3, 'três estados observados sem side effects, incluindo imagens do cartão');
+  assert.equal(pollBodies.length, 2, 'estado da apresentação e imagens observados sem side effects');
   assert.ok(pollBodies.every(body => !body.includes('.vsGo(')), 'polling permanece somente leitura');
 });
 
@@ -194,6 +194,7 @@ test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do
   assert.match(css, /#vs-go\{[^}]*width:min\(220px,72vw\);min-width:0/);
   assert.match(qa, /async function inspectVsCard/);
   assert.match(qa, /function assertVsPortrait/);
+  assert.match(qa, /return \\{ context, page, vsCard \\};/);
   assert.match(qa, /assertVsPortrait\(vsCard/);
   assert.match(qa, /shot\(page, stage \+ '-vs-retrato'\)/);
   assert.match(qa, /vsCard, manualZoom/);

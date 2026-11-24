@@ -89,7 +89,7 @@ async function openBattle(browser, url, stage, viewport) {
     });
     await page.waitForTimeout(7600);
     await page.addStyleTag({ content: '#dim-test-panel,#admin-panel,#adm-panel,[id^="adm-"],[id^="admin-"]{display:none!important}' });
-    return { context, page };
+    return { context, page, vsCard };
   } catch (err) {
     try { await page.close(); } catch (_) {}
     try { await context.close(); } catch (_) {}
