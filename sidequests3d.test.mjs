@@ -6,6 +6,24 @@ import { WAYSTONES, createMapState, serializeMapState } from './map3d.js';
 
 const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
 
+test('desbloqueio e aceite nunca herdam progresso anterior', () => {
+  const unlocked = createSideState();
+  unlocked.ervas.progress = 3; // simula estado residual/corrompido enquanto ainda bloqueada
+  refreshSide(unlocked, { questStep: 1 });
+  assert.equal(unlocked.ervas.state, 'available');
+  assert.equal(unlocked.ervas.progress, 0, 'desbloqueio zera qualquer progresso anterior');
+
+  const accepted = createSideState();
+  accepted.ervas.state = 'available';
+  accepted.ervas.progress = 3; // defesa também na fronteira de aceite em memória
+  assert.equal(acceptSide(accepted, 'ervas'), true);
+  assert.equal(accepted.ervas.state, 'active');
+  assert.equal(accepted.ervas.progress, 0, 'aceite começa sempre em zero');
+  collectSide(accepted, 'flor');
+  assert.equal(accepted.ervas.progress, 1, 'só a coleta após o aceite conta');
+  assert.equal(accepted.ervas.state, 'active');
+});
+
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
   const s = createSideState();
   refreshSide(s, { questStep: 0 });
