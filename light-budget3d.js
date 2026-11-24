@@ -193,8 +193,11 @@ export function createLightBudget(T, scene, { slots = 4, hiddenLayer = 31, resca
       // Debug/QA only: identify the actual source behind each fixed shader slot.
       activeDetails: selected.map(p => {
         const s = p.src;
+        const worldPosition = activePosition(s);
         return {
           name: s.name || 'luz',
+          positionSpace: 'world',
+          worldPosition,
           intensity: s.intensity,
           distance: s.distance,
           decay: s.decay,
