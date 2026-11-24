@@ -155,14 +155,14 @@ async function main(){
      data.video={file:"ultimate-bispo3-281.webm",bytes,header,available:true};
      if(data.status!=="failed"){
       data.status="approved";
-      process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 blast, faixa segura, limpeza, WebM válido.\\n");
+      process.stdout.write("[BISPO3 281] "+mode+" -> 6 selos, 1 blast, faixa segura, limpeza, WebM válido.\n");
      }
     }catch(e){
      const message="Vídeo obrigatório indisponível: "+String(e).slice(0,160);
      data.video={available:false,error:message};
      data.jsErrors.push(message);
      data.status="failed";
-     data.failure=(data.failure?data.failure+"\\n":"")+message;
+     data.failure=(data.failure?data.failure+"; ":"")+message;
      process.exitCode=1;
     }
    }
