@@ -43,3 +43,5 @@ O ensaio da revisão `04a1d7d` começou no save pós-vulcão, passou pela mestra
 As pranchas comparam os enquadramentos da transferência com os da PR #673. O bosque ganhou troncos ramificados, o pagode tem varandas sob os beirais e a nave conserva um eixo livre até o trono. O desenho do castelo segue a escadaria frontal e a silhueta de agulhas da referência. A correspondência artística final depende da revisão do criador. [Bosque](evidencias-ato3/bosque-antes-depois.jpg) · [Pagode](evidencias-ato3/pagode-antes-depois.jpg) · [Nave](evidencias-ato3/nave-antes-depois.jpg)
 
 [Castelo no PC](evidencias-ato3/castelo-pc.jpg) · [Dojo em retrato](evidencias-ato3/retrato-dojo.jpg) · [Inverno em paisagem](evidencias-ato3/inverno-paisagem.jpg)
+
+Na revisão de física, o mesmo ensaio passou por teclado e por toque simultâneo no direcional e no botão de pulo. No Mirante da Lua, os pés ficaram em 93,456 m no tablado e 94,016 m no banco. Após a descida voltaram a 93,456 m. No dojo, a caminhada parou em z = −1599,73 m e a esquiva manteve essa posição contra a parede. [Vídeo do ensaio com toque](evidencias-ato3/fisica-toque.mp4)
