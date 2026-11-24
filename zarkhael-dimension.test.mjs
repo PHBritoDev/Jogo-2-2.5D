@@ -161,3 +161,13 @@ test('A/B restores the production camera after motionQA freezes the loop and acc
   assert.match(qa,/Math\.hypot\(state\.camera\[0\]-state\.game\.x,state\.camera\[2\]-state\.game\.z\)<12/,
     'the measured camera must be near the protagonist in the arena');
 });
+
+test('A/B rejects captures where either combatant is outside the camera viewport',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.match(qa,/hero:d\\.camView\\(\\)/,'the production camera must project the protagonist');
+  assert.match(qa,/boss:d\\.projectBoss\\(\\)/,'the production target selector must project the boss');
+  assert.match(qa,/assert\\.equal\\(actorFrame\\.hero\\?\\.onScreen,true/);
+  assert.match(qa,/actorFrame\\.boss\\[0\\]>=0/);
+  assert.match(qa,/actorFrame\\.boss\\[1\\]>=0/);
+  assert.match(qa,/actorFrame, screenshot:path\\.basename\\(screenshot\\)/,'the report must retain the frame projection');
+});
