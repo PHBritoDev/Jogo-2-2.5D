@@ -98,17 +98,6 @@ function bladeSweepFrames(a,b,c,d,blocked=()=>false){
  }
  return{frames,blocked:false};
 }
-const samePoint3=(a,b)=>!!a&&!!b&&a.x===b.x&&a.y===b.y&&a.z===b.z;
-/** Reuse an identical sweep briefly; moving poses or a changed blocker always force a fresh wall check. */
-function bladeSweepCached(a,fromBase,fromTip,toBase,toTip,blocked,now){
- const old=a.bladeSweepCache;
- if(old&&old.blocked===blocked&&now-old.time<BLADE_COLLISION_CACHE_TTL&&
-  samePoint3(old.fromBase,fromBase)&&samePoint3(old.fromTip,fromTip)&&
-  samePoint3(old.toBase,toBase)&&samePoint3(old.toTip,toTip))return old.result;
- const result=bladeSweepFrames(fromBase,fromTip,toBase,toTip,blocked);
- a.bladeSweepCache={fromBase:copy(fromBase),fromTip:copy(fromTip),toBase:copy(toBase),toTip:copy(toTip),blocked,time:now,result};
- return result;
-}
 /** Returns the capsule-surface point at first contact, only before the first wall crossed. */
 function bladeContactPoint(frames,target,hitRadius=.48,origin=null){
  if(!frames?.length)return null;
@@ -253,7 +242,7 @@ export class SwordRites {
      }
      // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
      if(primarySweepCandidate||sideSweepCandidates.length){
-      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepCached(a,prev.base,prevTip,blade.base,currentTip,this.api.blocked,this.time);
+      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
       if(physicalSweep.blocked)a.bladeBlocked=true;
      }
     }
