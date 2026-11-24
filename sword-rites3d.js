@@ -55,11 +55,19 @@ function closestOnSegment(p,a,b){
 /** Builds the unoccluded part of the swept blade and remembers the first wall crossed. */
 function bladeSweepFrames(a,b,c,d,blocked=()=>false){
  const travel=Math.max(Math.hypot(c.x-a.x,c.y-a.y,c.z-a.z),Math.hypot(d.x-b.x,d.y-b.y,d.z-b.z)),n=Math.max(1,Math.ceil(travel/.06)),frames=[];
+ let previous=null;
  for(let i=0;i<=n;i++){
   const u=i/n,base={x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u},tip={x:b.x+(d.x-b.x)*u,y:b.y+(d.y-b.y)*u,z:b.z+(d.z-b.z)*u};
+  // Trace five rails through the moving blade between poses; coarse 6cm pose samples
+  // alone can tunnel through a 1cm wall even when each endpoint pose is clear.
+  if(previous)for(const rail of [0,.25,.5,.75,1]){
+   const from={x:previous.base.x+(previous.tip.x-previous.base.x)*rail,y:previous.base.y+(previous.tip.y-previous.base.y)*rail,z:previous.base.z+(previous.tip.z-previous.base.z)*rail};
+   const to={x:base.x+(tip.x-base.x)*rail,y:base.y+(tip.y-base.y)*rail,z:base.z+(tip.z-base.z)*rail};
+   if(segmentBlocked(from,to,blocked,.008))return{frames,blocked:true};
+  }
   // A thin wall may contain the hilt at the first pose while later samples are already outside it.
   if(blocked(base)||segmentBlocked(base,tip,blocked,.008))return{frames,blocked:true};
-  frames.push({base,tip});
+  previous={base,tip};frames.push(previous);
  }
  return{frames,blocked:false};
 }
