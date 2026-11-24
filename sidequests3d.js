@@ -123,8 +123,9 @@ export function refreshSide(state, ctx) {
       s.state = 'active';
     }
     const rawStep = ctx?.questStep;
-    const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
-    const step = validStep ? Number(rawStep) : NaN;
+    // Saves legados podem usar strings decimais; Number() sozinho também aceita hexadecimal e expoente.
+    const decimalStep = typeof rawStep === 'string' && /^\d+$/.test(rawStep.trim());
+    const step = typeof rawStep === 'number' ? rawStep : decimalStep ? Number(rawStep.trim()) : NaN;
     const hasStep = Number.isSafeInteger(step) && step >= 0;
     // Um save não pode manter uma missão disponível se a campanha foi restaurada para antes do desbloqueio.
     if (s.state === 'available' && hasStep && step < q.minStep) {
