@@ -98,7 +98,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  model('Estátuas da memória',54,m=>{for(const s of [-1,1]){
   m.box(6*s,.55,0,3.2,1.1,3.2,0x8094a5);m.tube([6*s,1,0],[6*s,5.4,0],1.44,.65,0x667888,7);
   m.tube([6*s,5.3,0],[6*s,7.4,0],.78,.19,0xa9bbc6,8);m.tube([6*s,4.2,.4],[5.2*s,3.5,1.2],.32,.19,0x8798a5,6);
- }});
+ }},310,Math.atan2(CASTLE.x-ROUTE[54].x,CASTLE.z-ROUTE[54].z));
  // A sequence of individual cut-stone treads on the ascent; no curb walls along the centre.
  for(const [start,end,step,span] of [[17,21,1.65,3.4],[56,57,2.6,5.2]]){
   for(let idx=start;idx<end;idx++){const a=ROUTE[idx],b=ROUTE[idx+1],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz),cs=dz/len,sn=dx/len;

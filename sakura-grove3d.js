@@ -11,7 +11,7 @@ export function blossomTexture(T){return atlas(T,128,(ctx,n)=>{
  for(let i=0;i<290;i++){const a=r()*6.283,rad=Math.sqrt(r()),x=64+Math.cos(a)*rad*(45+7*Math.cos(a*5)),y=63+Math.sin(a)*rad*(43+8*Math.sin(3*a));
   buds.push([x,y,2+r()*4]);}
  buds.sort((a,b)=>a[1]-b[1]);
- for(const [x,y,rad] of buds){const t=(1-y/n)*.56+r()*.44;
+ for(const [x,y,rad] of buds){const t=(1-y/n)*.58+r()*.49;
   ctx.fillStyle=t<.32?'#924e76':t<.51?'#c4779c':t<.70?'#edabbe':t<.87?'#ffd6dd':'#fff3e7';
   for(let k=0;k<5;k++){const a=1.2566*k;ctx.beginPath();ctx.ellipse(x+rad*.52*Math.cos(a),y+rad*.52*Math.sin(a),rad*.61,rad*.43,a,0,6.29);ctx.fill();}
   ctx.fillStyle='#e9a68c';ctx.fillRect(x-1,y-1,1.9,1.9);}
@@ -27,7 +27,7 @@ export function treeLibrary(T){
  });
  const needles=new T.MeshLambertMaterial({map:needleMap,alphaTest:.37,side:T.DoubleSide,vertexColors:true,emissive:0x28373f,emissiveIntensity:.12});
  const solid=new T.MeshLambertMaterial({vertexColors:true,side:T.DoubleSide});
- const leaves=new T.MeshLambertMaterial({map:flowerMap,alphaTest:.41,side:T.DoubleSide,vertexColors:true,emissive:0x875666,emissiveIntensity:.32});
+ const leaves=new T.MeshLambertMaterial({map:flowerMap,alphaTest:.41,side:T.DoubleSide,vertexColors:true,emissive:0xa97886,emissiveIntensity:.34});
  for(const mat of [leaves,needles])mat.onBeforeCompile=sh=>{
   sh.uniforms.groveTime=wind;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float groveTime;').replace('#include <begin_vertex>',`#include <begin_vertex>
    #ifdef USE_INSTANCING
@@ -48,22 +48,39 @@ export function treeLibrary(T){
     c.set([0xeec5d8,0xffe0e7,0xffc2d6,0xe7b6db][n]).multiplyScalar(.88+r()*.24);
     for(const i of (far?[0,1,2,0,2,3]:[0,1,4,1,2,4,2,3,4,3,0,4])){
      pos.push(p[0]+pts[i][0],p[1]+pts[i][1],p[2]+pts[i][2]);
-     uv.push(...uvRing[i]);const shade=i<2?.79:i===4?1.04:1;
+     uv.push(...uvRing[i]);const shade=i<2?.81:i===4?1.10:1.19;
      col.push(c.r*shade,c.g*shade,c.b*shade);
     }
    }
   }
   const color=barkColors[n],lean=[-.8,1.35,-1.5,.48][n],top=[lean,4.7*h,.49];
-  const spine=[[0,-.1,0],[-lean*.42,1.65,-.2],[lean*.34,3,.28],top];
-  for(let j=1;j<spine.length;j++)m.tube(spine[j-1],spine[j],(.83-j*.10)*w,(.73-j*.1)*w,color,far?7:10);
-  if(!far)for(let j=0;j<5;j++){const a=j*Math.PI*.4;
-   const fluting=spine.map(([x,y,z],i)=>[x+(.63-i*.09)*w*Math.cos(a+i*.54),y,z+(.63-i*.09)*w*Math.sin(a+i*.54)]);
-   m.rib(fluting,.083,0x634a4c,5);}
-
+  // Continuous rings follow the leaning bole. The buttresses taper into the
+  // same trunk, including at forks where capped cylinders used to meet.
+  const spine=[[0,-.18,0,1.08],[-lean*.21,.78,-.09,.76],[-lean*.40,1.62,-.2,.64],
+   [lean*.10,2.56,.12,.57],[lean*.42,3.28,.32,.49],[...top,.33]];
+  const sides=far?8:14,ring=(level,i)=>{
+   const [x,y,z,rad]=spine[level],a=i*2*Math.PI/sides+level*.105;
+   const flute=(.10+.21*(1-level/5))*Math.cos(5*a+level*.38);
+   return [x+Math.cos(a)*rad*w*(1+flute),y,z+Math.sin(a)*rad*w*(1+flute)];
+  };
+  for(let level=0;level<spine.length-1;level++)for(let i=0;i<sides;i++){
+   const shade=.86+.16*Math.cos(i*1.72+level*.16);
+   m.quad(ring(level,i+1),ring(level,i),ring(level+1,i),ring(level+1,i+1),color,shade);
+  }
+  if(!far)for(let j=0;j<5;j++){
+   const ribs=spine.map((_,i)=>ring(i,j*3));
+   m.rib(ribs,.044,0x93746e,4);
+  }
   for(let j=0;j<6;j++){const a=j*1.047+r()*.4;m.tube([0,1,0],[Math.cos(a)*1.7,.02,Math.sin(a)*1.7],.34,.06,color,7);}
   for(let j=0;j<(far?6:9);j++){const a=(j+n*.21)*2.4,rise=(j%3)*.9;
    const A=[lean*(.10+rise*.32),2.4+rise*.8,.12],B=[w*1.8*Math.cos(a),4.1*h+rise,w*1.8*Math.sin(a)],C=[w*3.7*Math.cos(a+.25),5.2*h+rise,w*3.7*Math.sin(a+.25)];
    m.tube(A,B,.36*w,.21,color,7);m.tube(B,C,.22,.12,color,6);
+   if(!far && (j+n)%3===0){
+    const shoulder=[C[0]+.32*Math.cos(a),C[1]+.5,C[2]+.32*Math.sin(a)];
+    cluster(shoulder,1.62);
+    const tip=[shoulder[0]+1.18*Math.cos(a+.64),shoulder[1]-.77,shoulder[2]+1.18*Math.sin(a+.64)];
+    m.tube(shoulder,tip,.082,.023,color,5);cluster(tip,.84);
+   }
    for(let k=0;k<(far?2:4);k++){const ang=a+(k-1.5)*.60,reach=(1.05+r()*1.9)*w,D=[C[0]+reach*Math.cos(ang),C[1]+.75+r()*1.5,C[2]+reach*Math.sin(ang)];
     m.tube(C,D,.14,.045,color,5);cluster(D,(far?2.9:2.13)*(.86+r()*.3));
     if(!far){const E=[D[0]+.63*Math.cos(ang+1),D[1]+.57,D[2]+.74*Math.sin(ang+1)];m.tube(D,E,.055,.012,color,4);cluster(E,1.18);}

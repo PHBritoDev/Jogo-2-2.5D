@@ -78,6 +78,24 @@ export function dojoBuilding(m){
     m.box(x,lift+.30,z+sz*reach,.48,.22,.39,bark);
    }
   }
+  if(n>0){
+   // Projecting galleries sit above the lower hip roof. The red posts carry
+   // the upper rail while the shoji are recessed behind the walking boards.
+   for(const sign of [-1,1]){
+    const rimZ=sign*(d+1.05),rimX=sign*(w+1.05);
+    m.box(0,y+.03,rimZ,2*w+2.55,.28,1.65,wood);
+    m.box(rimX,y+.03,0,1.65,.28,2*d+.45,wood);
+    for(const lift of [.48,1.13]){
+     m.box(0,y+lift,rimZ+sign*.63,2*w+3.5,.13,.16,vermilion);
+     m.box(rimX+sign*.63,y+lift,0,.16,.13,2*d+3.5,vermilion);
+    }
+    for(let j=0;j<=8;j++){
+     const t=j/4-1;
+     m.box(t*(w+1.68),y+.65,rimZ+sign*.63,.14,1.22,.14,bark);
+     if(j>0&&j<8)m.box(rimX+sign*.63,y+.65,t*(d+1.68),.14,1.22,.14,bark);
+    }
+   }
+  }
   m.box(0,y+h,0,2*w+1.6,.38,2*d+1.6,wood);roof(m,y+h+.15,w+3.4,d+3.2,n===3?3.6:2.7);
  }
  m.tube([0,27,0],[0,33.4,0],.23,.035,brass,10);
@@ -90,19 +108,58 @@ export function dojoBuilding(m){
  }
  for(let x=-9;x<=9;x+=4.5)m.box(x,5.27,0,.34,.42,22,bark);
  m.box(0,.28,8.4,7,.54,2.2,wood);m.box(0,3.05,10.3,2.7,3.3,.17,0xdbc8ae);
+ // Brush-painted moon and mountain on the hanging scroll in the tokonoma.
+ const moon=(a,rad)=>[.45+Math.cos(a)*rad,3.98+Math.sin(a)*rad,10.188];
+ for(let i=0;i<21;i++){
+  const a=i*Math.PI*2/21,b=(i+1)*Math.PI*2/21;
+  m.quad(moon(a,.38),moon(b,.38),moon(b,.30+.046*Math.sin(2*b)),moon(a,.30+.046*Math.sin(2*a)),0x766258);
+ }
+ for(const y of [1.38,4.72])m.tube([-1.51,y,10.14],[1.51,y,10.14],.072,.072,wood,7);
  m.rib([[-.82,1.9,10.15],[-.32,2.5,10.15],[.4,3.3,10.15],[.75,4.2,10.15]],.07,0x57494e);
  for(const z of [-3.7,-2.8])m.box(-8.7,.7,z,.35,1.4,.36,wood);
  for(let i=0;i<3;i++)m.tube([-8.7,.5+i*.35,-4.5],[-8.7,.6+i*.35,-2],.062,.04,brass);
  for(const s of [-1,1]){lantern(m,s*5.6,0,-9.6);lantern(m,s*9,0,7);}
 }
 const rock=0x435b74,edge=0x8094a8,snow=0xc8d6df,deep=0x2c4058,ice=0x8ecce1;
-function spire(m,x,y,z,r,h){
- const p=(dy)=>[x,y+dy,z];m.tube(p(0),p(h*.09),r*1.22,r,rock,8,Math.PI/8);
- m.tube(p(h*.08),p(h*.59),r,r*.91,rock,8,Math.PI/8);
- for(const n of [.24,.45,.58])m.tube(p(h*n),p(h*n+.65),r*1.12,r*1.08,edge,8,Math.PI/8);
- m.tube(p(h*.59),p(h*.64),r*1.23,r*1.06,snow,8,Math.PI/8);m.tube(p(h*.64),p(h*.83),r*1.06,r*.36,deep,8,Math.PI/8);m.tube(p(h*.83),p(h),r*.36,.04,ice,8,Math.PI/8);
- for(let k=0;k<8;k++){const a=k*Math.PI/4+Math.PI/8,c=Math.cos(a),s=Math.sin(a);
-  m.rib([[x+c*r,y+h*.12,z+s*r],[x+c*r*.95,y+h*.54,z+s*r*.78],[x+c*r*1.05,y+h*.64,z+s*r*1.05],[x,y+h,z]],.13,edge,5);}
+// The campanile has an open lantern between the main shaft and the roof.
+// Its piers carry the roof even when the observer can see sky through the bells.
+function belfry(m,x,y,z,r,h,distant=false){
+ const at=(a,rad,level)=>[x+Math.cos(a)*rad,y+h*level,z+Math.sin(a)*rad];
+ const levels=[.53,.63,.72],cap=0x697f97,shade=0x283e56;
+ for(let j=0;j<8;j++){
+  const a=Math.PI*j/4,b=a+Math.PI/4,mid=(a+b)/2;
+  m.tube(at(a,r*.81,levels[0]),at(a,r*.79,levels[1]),r*.13,r*.115,rock,distant?4:7);
+  m.quad(at(a,r*.79,.627),at(mid,r*.75,.704),at(mid,r*.70,.72),at(a,r*.80,.67),cap);
+  m.quad(at(mid,r*.75,.704),at(b,r*.79,.627),at(b,r*.80,.67),at(mid,r*.70,.72),cap);
+  m.quad(at(a,r*.99,.70),at(b,r*.99,.70),at(b,r*.90,.72),at(a,r*.90,.72),shade);
+  const ridge=at(a,r*.93,.715),apex=[x,y+h,z];
+  m.tri(ridge,at(b,r*.93,.715),apex,j%3?0x465e78:0x596f84);
+  if(distant)continue;
+  // Snow follows the hip; the steep slate facets stay exposed between ridges.
+  m.tri(at(a-.085,r*.94,.715),at(a+.10,r*.94,.715),apex,snow);
+  if(j%2===0){
+   m.tube(at(a,r*.97,.47),at(a,r*1.12,.65),r*.14,r*.115,edge,6);
+   m.tube(at(a,r*1.12,.64),at(a,r*1.12,.74),r*.21,.025,cap,6);
+  }
+ }
+}
+function spire(m,x,y,z,r,h,distant=false){
+ const p=dy=>[x,y+dy,z];
+ m.tube(p(0),p(h*.10),r*1.22,r,rock,8);
+ m.tube(p(h*.10),p(h*.53),r,r*.89,rock,8);
+ for(const n of [.26,.51])m.tube(p(h*n),p(h*n+.52),r*1.04,r,edge,8);
+ if(h<48){
+  m.tube(p(h*.53),p(h*.58),r*1.15,r,snow,8);
+  m.tube(p(h*.58),p(h),r,.035,deep,8);
+  return;
+ }
+ belfry(m,x,y,z,r,h,distant);
+ if(distant)return;
+ for(let k=0;k<8;k+=2){
+  const a=k*Math.PI/4,at=(rad,dy)=>[x+Math.cos(a)*rad,y+dy*h,z+Math.sin(a)*rad];
+  m.tube(at(r,0),at(r*.92,.42),r*.21,r*.12,edge,7);
+  m.tube(at(r*.92,.42),at(r*.87,.51),r*.16,.05,snow,6);
+ }
 }
 function arch(m,x,y,z,half,h,axis='x',r=.48,tone=edge){
  // Pointed two-centred arch rather than a semicircle. Span is left open.
@@ -226,8 +283,7 @@ export function distantCastle(m){
  westFront(m,true);
  m.box(0,12,13,55,24,108,rock);
  for(const s of [-1,1]){for(const [x,z,r,h] of FLANK_TOWERS){
-  m.tube([s*x,0,z],[s*x,h*.62,z],r,r*.87,rock,7);
-  m.tube([s*x,h*.62,z],[s*x,h,z],r*1.12,.04,0x9faebc,7);}
+  spire(m,s*x,0,z,r,h,true);}
   m.quad([0,33,-42],[s*28,22,-42],[s*28,22,68],[0,33,68],deep);}
- m.tube([0,28,41],[0,87,41],8,6.4,rock,8);m.tube([0,87,41],[0,134,41],8.2,.04,ice,8);
+ spire(m,0,29,41,8,106,true);
 }

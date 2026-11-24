@@ -137,10 +137,10 @@ try{
  }else{
   const shots=[
    ['01-cinzas',-1568,-545,-1690,-660],['02-torii',-1732,-812,-1740,-833],['03-bosque',-1480,-1219,-1484,-1244],
-   ['04-lago',-1368,-1461,-1223,-1464],['04b-pagode-distante',-1274,-1253,-1040,-1610],['05-templo',-1040,-1662,-1040,-1605],
+   ['04-lago',-1368,-1461,-1223,-1464],['04b-pagode-distante',-1274,-1253,-1013,-1610],['05-templo',-1040,-1662,-1040,-1605],
    ['06-dojo',-1040,-1618,-1039,-1604],['07-geada',-607,-1684,-542,-1700],
    ['08-pinhal',-72,-2090,0,-1980],['09-vale',51,-1644,255,-1690],['10-espelho',753,-1847,931,-1730],
-   ['10b-castelo-distante',734,-493,564,-254],['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
+   ['10b-castelo-distante',734,-493,564,-254],['11-cidadela',564,-435,564,-226],['11b-escada',564,-361,564,-285],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
    ['14-bairro',145,-37,162,-34]
   ];
   if(mobile){
@@ -164,9 +164,9 @@ try{
     const d=SevenSinsDebug3D;d.placeAt(x,d.groundAt(x,z),z);d.viewQA(true,Math.atan2(x-tx,z-tz),name==='11-cidadela'?-.24:name==='12-nave'?-.20:name==='05-templo'?-.22:0);
 
     const y=d.groundAt(x,z),top=name==='11-cidadela'?33:name==='12-nave'?10:name==='13-trono'?6:name==='05-templo'?12:name==='06-dojo'?1.8:2;
-    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?81+top:name==='04b-pagode-distante'?147:name==='05-templo'?127+top:name==='10b-castelo-distante'?144:d.groundAt(tx,tz)+top,tz]);
+    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?133:name==='11b-escada'?104:name==='04b-pagode-distante'?139:name==='05-templo'?127+top:name==='10b-castelo-distante'?144:d.groundAt(tx,tz)+top,tz]);
     for(let i=0;i<24;i++){if(!document.querySelector('#dialog-panel').classList.contains('hidden'))document.querySelector('#dialog-continue').click();await new Promise(requestAnimationFrame);}
-    const ts=[];let prev=performance.now();for(let i=0;i<9;i++){const t=await new Promise(requestAnimationFrame);ts.push(t-prev);prev=t;}
+    const ts=[];let prev=await new Promise(requestAnimationFrame);for(let i=0;i<9;i++){const t=await new Promise(requestAnimationFrame);ts.push(t-prev);prev=t;}
     return {pos:d.walkState(),render:d.squadRender(),framesMs:ts,heapBytes:performance.memory?.usedJSHeapSize};
    },{name,x,z,tx,tz});
    await page.evaluate(({name,result})=>window.recordStop(name,result),{name,result});
