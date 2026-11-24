@@ -3001,7 +3001,7 @@ function updateWorldAudio(dt){
 const MAP_STORE=MAP_STORE_KEY;
 const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
-function saveMapState(force){if(!mapDirty&&!force)return;mapDirty=false;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));}catch(_){}}
+function saveMapState(force){if(!mapDirty&&!force)return true;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));mapDirty=false;return true;}catch(_){mapDirty=true;return false;}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
    o registro só acontece com o herói no CENTRO da plataforma. */
 const waystoneVisuals=WAYSTONES.map((w,i)=>{const c0=groundHeightAt(w.x,w.z),hs=[];for(let k=0;k<12;k++){const a=k/12*Math.PI*2;hs.push(groundHeightAt(w.x+Math.sin(a)*3.35,w.z+Math.cos(a)*3.35));}const y=Math.min(Math.max(c0,...hs),c0+.35),skirt=Math.max(.25,y-Math.min(c0,...hs)+.15),sh=buildShelter(THREE,{x:w.x,y,z:w.z,yaw:i*.7,seed:i+1,walk:eldoriaWalk,lowSpec:terrainLowSpec,skirt});scene.add(sh.group);return{data:w,group:sh.group,shelter:sh};});
@@ -4115,7 +4115,7 @@ function trySideQuestTalk(vendor){
  refreshSideQuests();const q=questForGiver(sideState,vendor.shortName);if(!q)return false;const s=sideState[q.id];
  if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
  if(s.state==='ready'){showDialogue(q.turnIn,()=>{
-  const r=turnInSide(sideState,q.id);if(r){
+  const r=turnInSide(sideState,q.id,q.goal.type==='waystones'?{waystones:mapState.waystones,persistWaystones:()=>saveMapState(true)}:undefined);if(!r&&q.goal.type==='waystones'){status.textContent='Não foi possível confirmar o salvamento das três pedras. A recompensa continua disponível; tente novamente.';refreshSideQuests();return;}if(r){
    sideState.pendingReward={claimId:'side:'+q.id+':v2',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
    if(!saveSide()){sideState[q.id].state='ready';sideState.pendingReward=null;status.textContent='Não foi possível salvar a entrega. Tente novamente.';refreshSideQuests();return;}
    const settled=settlePendingSideReward();

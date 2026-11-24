@@ -6,6 +6,7 @@ import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, accept
 import { WAYSTONES, createMapState, serializeMapState } from './map3d.js';
 
 const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
+const committedWaystones = (persist = () => true, count = 3) => ({ waystones: eldoriaWaystones(count), persistWaystones: persist });
 const pendingFor = (id, beforeCoins = 100, beforeXp = 50) => {
   const q = SIDE_QUESTS.find(item => item.id === id);
   return {
@@ -170,7 +171,7 @@ test('contadores de missão rejeitam frações e coerções numéricas não deci
   const legacy = createSideState({ abrigos: { state: 'ready', progress: ' 03 ' } });
   assert.equal(legacy.abrigos.progress, 3, 'inteiro decimal legado com espaços continua válido');
   assert.equal(legacy.abrigos.state, 'ready');
-  assert.deepEqual(turnInSide(legacy, 'abrigos'), SIDE_QUESTS.find(q => q.id === 'abrigos').reward);
+  assert.deepEqual(turnInSide(legacy, 'abrigos', committedWaystones()), SIDE_QUESTS.find(q => q.id === 'abrigos').reward);
 });
 
 test('missões abrem conforme a campanha e só contam itens quando ativas', () => {
@@ -256,6 +257,35 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
 });
 
 
+test('Pedras que Lembram só entrega após os três IDs locais e save do mapa confirmado', () => {
+  const s = createSideState();
+  refreshSide(s, { questStep: 1, waystones: eldoriaWaystones(0) });
+  assert.equal(acceptSide(s, 'abrigos'), true);
+  refreshSide(s, { questStep: 1, waystones: eldoriaWaystones(3) });
+  assert.equal(s.abrigos.state, 'ready');
+
+  let saves = 0;
+  assert.equal(turnInSide(s, 'abrigos', {
+    waystones: eldoriaWaystones(2),
+    persistWaystones: () => { saves++; return true; }
+  }), null, 'dois abrigos não podem ser entregues');
+  assert.equal(saves, 0, 'não tenta salvar uma coleção incompleta');
+  assert.equal(s.abrigos.state, 'ready');
+
+  assert.equal(turnInSide(s, 'abrigos', {
+    waystones: eldoriaWaystones(3),
+    persistWaystones: () => { saves++; return false; }
+  }), null, 'falha de storage mantém a recompensa bloqueada');
+  assert.equal(saves, 1);
+  assert.equal(s.abrigos.state, 'ready', 'falha de save não consome a missão');
+
+  assert.deepEqual(turnInSide(s, 'abrigos', committedWaystones(() => { saves++; return true; })), SIDE_QUESTS[2].reward);
+  assert.equal(saves, 2);
+  assert.equal(s.abrigos.state, 'done');
+  assert.equal(turnInSide(s, 'abrigos', committedWaystones(() => { saves++; return true; })), null);
+  assert.equal(saves, 2, 'missão concluída não grava nem paga novamente');
+});
+
 test('save inconsistente não permite entregar missão sem progresso comprovado', () => {
   const s = createSideState({
     ervas: { state: 'ready', progress: 1 },
@@ -271,7 +301,7 @@ test('save inconsistente não permite entregar missão sem progresso comprovado'
   assert.equal(turnInSide(s, 'abrigos'), null, 'save ready não paga sem os três abrigos locais');
   refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
-  assert.deepEqual(turnInSide(s, 'abrigos'), SIDE_QUESTS[2].reward);
+  assert.deepEqual(turnInSide(s, 'abrigos', committedWaystones()), SIDE_QUESTS[2].reward);
   assert.equal(turnInSide(s, 'abrigos'), null);
   for (let i = 0; i < 3; i++) collectSide(s, 'flor');
   assert.equal(s.ervas.state, 'ready');

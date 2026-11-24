@@ -1,0 +1,60 @@
+name: A3 — retry da persistência do mapa
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'mundo-3d-prototype.html'
+      - 'map3d.test.mjs'
+      - 'map3d.js'
+      - 'tests/a3-map-save-retry.test.mjs'
+      - 'tools/qa/a3-map-save-retry-runtime.cjs'
+      - '.github/workflows/a3-map-save-retry.yml'
+  workflow_dispatch:
+jobs:
+  map-save-retry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe
+        run: node --check mundo-3d-prototype.js && node --check tests/a3-map-save-retry.test.mjs && node --check tools/qa/a3-map-save-retry-runtime.cjs
+      - name: Testar persistência e compatibilidade do mapa
+        run: node --test tests/a3-map-save-retry.test.mjs map3d.test.mjs
+      - name: Instalar Playwright e Chromium
+        run: npm install --prefix tools/visual-lab --no-audit --no-fund && tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servidor local do jogo
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/a3-map-save-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl --silent --fail http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/a3-map-save-http.log
+          exit 1
+      - name: Retry real da persistência e reload mobile
+        env:
+          VISUAL_BASE_URL: http://127.0.0.1:4173
+          VISUAL_OUTPUT: visual-lab-results
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: NODE_PATH=tools/visual-lab/node_modules node tools/qa/a3-map-save-retry-runtime.cjs
+      - name: Entregar relatório do runtime
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a3-map-save-retry-${{ github.run_number }}
+          path: visual-lab-results/a3-map-save-retry/
+          retention-days: 7
+          if-no-files-found: warn

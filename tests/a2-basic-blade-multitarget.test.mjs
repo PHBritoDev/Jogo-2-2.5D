@@ -349,7 +349,7 @@ test('physical sweep skips obstacle sampling when every living target is outside
  assert.equal(blockedCalls,0,'distant living actors must not trigger the expensive 8 mm/five-rail wall sweep');
 });
 
-test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
+test('occluded side target reuses the exact-endpoint LOS result for less than one 60Hz frame',()=>{
  const focus=enemy('far-focus',40,40),side=enemy('occluded',0,3),hits=[],impacts=[];
  let blockedCalls=0,losCalls=0;
  const blocked=p=>{
@@ -368,8 +368,8 @@ test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
  for(let i=0;i<48;i++)rites.update(1/120,ctx);
  assert.deepEqual(hits,[],'a target behind the wall must never receive damage');
  assert.deepEqual(impacts,[],'a target behind the wall must never receive impact VFX');
- assert.ok(losCalls<=8,'unchanged blocked endpoints should be ray-tested at most once per 50ms');
- assert.ok(blockedCalls<14500,'the 50ms blocked-ray cache and duplicate-pose elimination must remove repeated 8mm scans');
+ assert.ok(losCalls<=24,'unchanged blocked endpoints should be ray-tested at most once per 60Hz frame');
+ assert.ok(blockedCalls<6000,'the short blocked-ray cache and duplicate-pose elimination must remove repeated 8mm scans');
 });
 
 test('occlusion cache invalidates immediately when the hero moves around the wall',()=>{
@@ -388,14 +388,15 @@ test('occlusion cache invalidates immediately when the hero moves around the wal
  const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
  for(let i=0;i<4;i++)rites.update(1/120,ctx);
  assert.deepEqual(hits,[]);
- assert.equal(losCalls,1,'the initial wall must be detected once');
+ assert.ok(losCalls>=1,'the initial wall must be detected before caching');
+ const beforeMoveLos=losCalls;
  ctx.from.x=1;
  rites.update(1/120,ctx);
  assert.deepEqual(hits,['side'],'moving to the clear side of the wall must invalidate the cached obstruction');
- assert.equal(losCalls,1,'the clear ray must not reuse the old blocked result');
+ assert.equal(losCalls,beforeMoveLos,'the clear ray must not reuse the old blocked result');
 });
  
-test('occlusion cache expires when a dynamic obstacle opens',()=>{
+test('occlusion cache notices a wall opening within one 60Hz frame while the cached result is still live',()=>{
  const focus=enemy('far-focus',40,40),side=enemy('side',0,3),hits=[];
  let wall=true,losCalls=0;
  const blocked=p=>{
@@ -409,11 +410,36 @@ test('occlusion cache expires when a dynamic obstacle opens',()=>{
  });
  assert.equal(rites.attack('prota',{target:focus}),true);
  const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
- for(let i=0;i<4;i++)rites.update(1/120,ctx);
- assert.equal(losCalls,1);
+ rites.update(1/120,ctx);
+ rites.update(1/120,ctx);
+ assert.equal(losCalls,1,'the first live pose must detect and cache the wall');
  wall=false;
- for(let i=0;i<8;i++)rites.update(1/120,ctx);
- assert.deepEqual(hits,['side'],'a wall that opens must be observed after the short cache TTL');
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,[],'the still-live blocked result may be reused for its remaining sub-frame TTL');
+ assert.equal(losCalls,1,'the cached result must avoid another LOS ray before expiry');
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,['side'],'the opened wall must be observed on the first tick after the 15.7ms TTL');
+});
+
+test('stationary visible blade sweep probes its hilt once because segmentBlocked checks the start point',()=>{
+ const focus=enemy('focus',0,3),hits=[];
+ const base={x:-1,y:1,z:2.6},tip={x:1,y:1,z:3.4};
+ let baseProbes=0;
+ const blocked=p=>{
+  if(p.x===base.x&&p.y===base.y&&p.z===base.z)baseProbes++;
+  return false;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'stationary-base-probe',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{...base},tip:{...tip}}),
+  hit:(damage,id)=>{hits.push(id);return true;}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[],sword:'prota',grounded:true};
+ rites.update(1/120,ctx);
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,['focus'],'removing the redundant probe must preserve the physical hit');
+ assert.equal(baseProbes,1,'the start point must be checked exactly once per stationary pose');
 });
 
 test('boss hit bridge rejects zero damage but still finalizes a pending death',async()=>{
@@ -573,4 +599,66 @@ test('release não cria crescente quando a origem do herói já está dentro de 
  const result=thinWallStartReleaseScenario();
  assert.equal(result.energies,0,'a energia não pode nascer do outro lado de uma parede que contém a origem');
  assert.ok(result.events.includes('obstructed'),'a obstrução inicial precisa ser registrada');
+});
+
+test('pose estacionária evita varredura repetida quando todos os contatos já estão obstruídos',()=>{
+ const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0;
+ const blocked=p=>{blockedCalls++;return p.x> -4.95&&p.x< -4.94;};
+ const rites=new SwordRites({
+  moveset:()=>({id:'stationary-pose',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}}),
+  hit:(damage,id)=>{hits.push(id);return true;}
+ });
+ rites.attack('prota',{target:focus,yaw:0});
+ const ctx={from:{x:-5,y:0,z:0},target:focus,others:[],sword:'prota',grounded:true};
+ for(let i=0;i<48;i++)rites.update(1/120,ctx);
+ assert.deepEqual(hits,[],'a linha de visão obstruída continua impedindo dano');
+ assert(blockedCalls<2500,'a pose fixa deve reduzir os 9.002 probes do baseline; recebeu '+blockedCalls);
+});
+
+test('parede nova na lâmina é detectada imediatamente sem cachear uma pose livre',()=>{
+ const focus=enemy('focus',0,3),hits=[],impacts=[];let blockedCalls=0,bladeWall=false;
+ const blocked=p=>{
+  blockedCalls++;
+  return bladeWall&&Math.abs(p.x)<.005&&p.z>2.4&&p.z<2.5;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'stationary-wall-change',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}}),
+  hit:(damage,id)=>{hits.push(id);return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ rites.attack('prota',{target:focus,yaw:0});
+ const ctx={from:{x:-5,y:0,z:0},target:focus,others:[],sword:'prota',grounded:true};
+ rites.update(1/120,ctx);
+ bladeWall=true;
+ rites.update(1/120,ctx);
+ assert.equal(rites.active?.bladeBlocked,true,'a parede que surgiu no corpo da lâmina deve bloquear no primeiro tick ativo');
+ assert.deepEqual(hits,[],'a pose livre anterior não pode permitir dano após a parede aparecer');
+ assert.deepEqual(impacts,[],'a parede nova não pode produzir falso impacto');
+ assert(blockedCalls>0,'a parede nova precisa ser consultada');
+});
+
+test('cache de linha de visão invalida quando a origem viva do herói se desloca',()=>{
+ const focus=enemy('focus',.3,3),hits=[];let blockedCalls=0,originX=-5,newOriginProbe=false;
+ const from={x:-5,y:0,z:0};
+ const blocked=p=>{
+  blockedCalls++;
+  if(originX===-4.5&&p.x>originX+.02&&p.x<originX+.05)newOriginProbe=true;
+  return p.x>originX+.02&&p.x<originX+.05;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'moving-origin',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:0,y:1,z:2},tip:{x:0,y:1,z:3.5}}),
+  hit:(damage,id)=>{hits.push(id);return true;}
+ });
+ rites.attack('prota',{target:focus,yaw:0});
+ const ctx={from,target:focus,others:[],sword:'prota',grounded:true};
+ for(let i=0;i<3;i++)rites.update(1/120,ctx);
+ const before=blockedCalls;
+ originX=-4.5;from.x=originX;
+ rites.update(1/120,ctx);
+ assert(blockedCalls>before,'mudar a origem deve invalidar a LOS cacheada e reconsultar a parede');
+ assert.equal(newOriginProbe,true,'a nova origem precisa produzir uma consulta de colisão');
+ assert.deepEqual(hits,[],'a linha de visão continua obstruída na nova origem');
 });

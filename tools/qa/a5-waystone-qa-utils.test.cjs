@@ -41,6 +41,14 @@ test('pathfinder rejeita bloqueio no passo Z depois de aceitar X', async () => {
   assert.equal(isAxisSeparatedSegmentClear({ x: 0, z: 0 }, { x: 0.3, z: -0.3 }, blocked, 0.3), false);
 });
 
+test('pathfinder rejeita caminho bruto se uma aresta adjacente falha no passo X→Z', async () => {
+  const { isAxisSeparatedPathClear } = await import('./a5-waystone-pathfinding.mjs');
+  const blocked = (x, z) => Math.abs(x - 0.15) < 1e-8 && Math.abs(z) < 1e-8;
+  const raw = [{ x: 0, z: 0 }, { x: 0.3, z: -0.3 }];
+  assert.equal(isAxisSeparatedPathClear(raw, blocked, 0.3), false);
+  assert.equal(isAxisSeparatedPathClear([{ x: 0, z: 0 }], blocked), true);
+});
+
 test('pathfinder mantém reta quando os dois passos reais estão livres', async () => {
   const { isAxisSeparatedSegmentClear } = await import('./a5-waystone-pathfinding.mjs');
   const blocked = (x, z) => x > 2 && z < -2;

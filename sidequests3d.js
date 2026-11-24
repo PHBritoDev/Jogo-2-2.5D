@@ -178,9 +178,19 @@ export function collectSide(state, item) {
 }
 
 /** Entrega: devolve a recompensa uma única vez. */
-export function turnInSide(state, id) {
+export function turnInSide(state, id, options) {
   const q = SIDE_QUESTS.find(x => x.id === id), s = state[id];
-  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress !== q.goal.count) return null;
+  if (!q || !s || s.state !== 'ready' || !Number.isSafeInteger(s.progress) || s.progress !== q.goal.count) return null;
+  if (q.goal.type === 'waystones') {
+    const registered = options?.waystones;
+    const has = registered instanceof Set
+      ? (waystoneId) => registered.has(waystoneId)
+      : Array.isArray(registered) ? (waystoneId) => registered.includes(waystoneId) : null;
+    if (!has || SIDE_QUEST_WAYSTONES.some(waystoneId => !has(waystoneId)) || typeof options.persistWaystones !== 'function') return null;
+    let persisted = false;
+    try { persisted = options.persistWaystones() === true; } catch (_) {}
+    if (!persisted) return null;
+  }
   s.state = 'done';
   return q.reward;
 }

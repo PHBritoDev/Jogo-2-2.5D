@@ -31,6 +31,15 @@ export function isAxisSeparatedSegmentClear(a, b, blocked, maxStep = 0.12) {
   return true;
 }
 
+/** Valida todas as arestas adjacentes de um caminho bruto antes da compressão. */
+export function isAxisSeparatedPathClear(points, blocked, maxStep = 0.12) {
+  if (!Array.isArray(points) || points.length === 0) return false;
+  for (let i = 1; i < points.length; i++) {
+    if (!isAxisSeparatedSegmentClear(points[i - 1], points[i], blocked, maxStep)) return false;
+  }
+  return true;
+}
+
 /**
  * Classifica oito entradas radiais do abrigo usando a altura real do terreno e
  * a cota do primeiro anel caminhável. O teste ainda precisa confirmar o lado

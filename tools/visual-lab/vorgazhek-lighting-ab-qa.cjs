@@ -24,7 +24,8 @@ const report={
   ok:false,
   baseSha:process.env.VISUAL_BASE_SHA||null,
   headSha:process.env.VISUAL_BRANCH_SHA||null,
-  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, runtime-relative actor positions, fixed side camera and t=2000ms',
+  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose and clock; compare moderate-angle and grazing-angle water ROIs',
+  cameraProtocol:{moderate:{position:[18,10,15],target:[-.35,1.1,8.8]},grazing:{position:[12,3.5,18],target:[-.35,1.2,8.8]}},
   proxy:'real current VORGAZHEK squad GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
   baseline:null,
   branch:null,
@@ -107,7 +108,7 @@ async function capture(browser,label,baseUrl){
 
       q.cam.fov=56;
       q.cam.updateProjectionMatrix();
-      q.cam.position.set(18,3.4,15);
+      q.cam.position.set(18,10,15);
       q.cam.lookAt(-.35,1.1,8.8);
       const metrics=q.frame(2000);
       q.scene.updateMatrixWorld(true);
@@ -156,16 +157,30 @@ async function capture(browser,label,baseUrl){
       };
     });
     await page.screenshot({path:path.join(output,label+'-side.png'),timeout:60000});
-    await page.evaluate(()=>{
+    const obliqueRoi=await page.evaluate(()=>{
       const q=window.abyssQA;
       q.cam.position.set(12,3.5,18);
       q.cam.lookAt(-.35,1.2,8.8);
       q.frame(2000);
+      const canvas=document.createElement('canvas');
+      canvas.width=q.renderer.domElement.width;canvas.height=q.renderer.domElement.height;
+      const ctx=canvas.getContext('2d');ctx.drawImage(q.renderer.domElement,0,0);
+      const stats=rect=>{
+        const d=ctx.getImageData(rect.x,rect.y,rect.width,rect.height).data,values=[];
+        let sum=0,bright=0;
+        for(let i=0;i<d.length;i+=4){const l=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];values.push(l);sum+=l;if(l>20)bright++;}
+        values.sort((a,b)=>a-b);
+        return {mean:+(sum/values.length).toFixed(3),p95:+values[Math.floor((values.length-1)*.95)].toFixed(3),visiblePct:+(100*bright/values.length).toFixed(2)};
+      };
+      return {
+        water:stats({x:40,y:430,width:880,height:100}),
+        horizon:stats({x:40,y:20,width:880,height:120})
+      };
     });
     await page.screenshot({path:path.join(output,label+'-oblique.png'),timeout:60000});
     assert.deepEqual(errors,[]);
     assert.deepEqual(networkFailures,[]);
-    return {...data,errors,networkFailures};
+    return {...data,obliqueRoi,errors,networkFailures};
   }finally{
     await context.close();
   }
@@ -177,32 +192,42 @@ async function main(){
     report.baseline=await capture(browser,'baseline',baselineUrl);
     report.branch=await capture(browser,'branch',branchUrl);
     const b=report.baseline,h=report.branch;
-    assert.equal(b.env.hemi[2],.8,'baseline hemisphere intensity must match main');
-    assert.equal(b.env.sun[1],.38,'baseline directional intensity must match main');
-    assert.equal(b.env.light[1],1.2,'baseline local fill must match main');
-    assert.equal(h.env.hemi[2],1.1,'branch hemisphere intensity must match PR');
-    assert.equal(h.env.sun[1],.48,'branch directional intensity must match PR');
-    assert.deepEqual(h.env.light,[0xe7e7ec,8,170,[0,8,7]],'branch local fill must match PR');
+    // PR #674 is already in the base (Mod 358): isolate only the new water shader.
+    assert.deepEqual(b.env.hemi,[0xa3abb1,0x030304,1.1],'baseline hemisphere preset must match current main');
+    assert.deepEqual(b.env.sun,[0xc1cad1,.48],'baseline directional preset must match current main');
+    assert.deepEqual(b.env.light,[0xe7e7ec,8,170,[0,8,7]],'baseline local fill must match current main');
+    assert.equal(b.env.exposure,1.12,'baseline exposure must match current main');
+    assert.deepEqual(h.env,b.env,'water sheen must not change the production lighting preset');
     assert.equal(b.lights,3);assert.equal(h.lights,3);
     assert.ok(!rectsOverlap(b.rects.boss,b.rects.hero),'baseline boss/hero ROIs must not overlap');
     assert.ok(!rectsOverlap(h.rects.boss,h.rects.hero),'branch boss/hero ROIs must not overlap');
     assert.equal(b.metrics.calls,h.metrics.calls,'draw calls must remain unchanged');
     assert.equal(b.metrics.triangles,h.metrics.triangles,'triangle count must remain unchanged');
-    assert.ok(h.roi.boss.mean>b.roi.boss.mean+2,'real VORGAZHEK squad model must gain a meaningful luminance increase');
-    assert.ok(h.roi.boss.p95>b.roi.boss.p95+8,'armor highlights must gain a meaningful upper-tail luminance increase');
-    assert.ok(h.roi.boss.visiblePct>b.roi.boss.visiblePct+3,'more of the real VORGAZHEK squad model must clear the visible-pixel threshold');
-    assert.ok(h.roi.hero.mean>b.roi.hero.mean-.5,'hero proxy must not become darker');
-    assert.ok(Math.abs(h.roi.water.mean-b.roi.water.mean)<1.5,'water brightness must remain stable');
-    assert.ok(Math.abs(h.roi.horizon.mean-b.roi.horizon.mean)<1.5,'black horizon must remain stable');
+    assert.equal(b.metrics.geometries,h.metrics.geometries,'geometry count must remain unchanged');
+    assert.equal(b.metrics.textures,h.metrics.textures,'texture count must remain unchanged');
+    assert.deepEqual(h.rects.boss,b.rects.boss,'real VORGAZHEK model framing must remain identical');
+    assert.deepEqual(h.rects.hero,b.rects.hero,'hero framing must remain identical');
+    assert.ok(h.roi.water.mean>=b.roi.water.mean-.5,'moderate-angle water must not become darker');
+    const sideWaterDelta=h.roi.water.mean-b.roi.water.mean;
+    const obliqueWaterDelta=h.obliqueRoi.water.mean-b.obliqueRoi.water.mean;
+    assert.ok(obliqueWaterDelta>1.0,'grazing-angle water ROI must gain a visible camera-aware silver sheen');
+    assert.ok(h.obliqueRoi.water.p95>b.obliqueRoi.water.p95+2.5,'grazing-angle silver highlights must remain visible');
+    assert.ok(obliqueWaterDelta>sideWaterDelta+.4,'grazing angle must respond more strongly than the moderate angle');
+    assert.ok(Math.abs(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean)<1.5,'black horizon must remain stable');
     report.comparison={
       bossMeanDelta:+(h.roi.boss.mean-b.roi.boss.mean).toFixed(3),
       bossP95Delta:+(h.roi.boss.p95-b.roi.boss.p95).toFixed(3),
       bossVisiblePctDelta:+(h.roi.boss.visiblePct-b.roi.boss.visiblePct).toFixed(2),
       heroMeanDelta:+(h.roi.hero.mean-b.roi.hero.mean).toFixed(3),
       waterMeanDelta:+(h.roi.water.mean-b.roi.water.mean).toFixed(3),
-      horizonMeanDelta:+(h.roi.horizon.mean-b.roi.horizon.mean).toFixed(3),
+      obliqueWaterMeanDelta:+(h.obliqueRoi.water.mean-b.obliqueRoi.water.mean).toFixed(3),
+      obliqueWaterP95Delta:+(h.obliqueRoi.water.p95-b.obliqueRoi.water.p95).toFixed(3),
+      obliqueHorizonMeanDelta:+(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean).toFixed(3),
+      angleWaterMeanDelta:+(obliqueWaterDelta-sideWaterDelta).toFixed(3),
       drawCallsDelta:h.metrics.calls-b.metrics.calls,
-      trianglesDelta:h.metrics.triangles-b.metrics.triangles
+      trianglesDelta:h.metrics.triangles-b.metrics.triangles,
+      geometriesDelta:h.metrics.geometries-b.metrics.geometries,
+      texturesDelta:h.metrics.textures-b.metrics.textures
     };
     report.ok=true;
   }catch(err){

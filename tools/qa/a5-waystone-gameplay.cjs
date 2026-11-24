@@ -285,6 +285,8 @@ async function findWalkPath(start, target, stone) {
         if (closed[ni]) continue;
         const next = point(nx, nz);
         if (ni !== startIndex && blocked(next.x, next.z)) continue;
+        const previous = ci === startIndex ? start : point(cx, cz);
+        if (!window.__a5AxisSeparatedSegmentClear(previous, next, blocked, .12)) continue;
         if (dx && dz) {
           const sideA = point(cx + dx, cz), sideB = point(cx, cz + dz);
           if (blocked(sideA.x, sideA.z) || blocked(sideB.x, sideB.z)) continue;
@@ -305,6 +307,9 @@ async function findWalkPath(start, target, stone) {
     if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled };
     nodes.reverse();
     const raw = [{ x: start.x, z: start.z }, ...nodes];
+    if (!window.__a5AxisSeparatedPathClear(raw, blocked, .12)) {
+      return { ok: false, reason: 'segmento adjacente do caminho bruto não é caminhável no eixo X→Z', explored, sampled };
+    }
     // O controlador de produção testa X e depois Z; uma reta só é válida se ambos os passos forem livres.
     const clearLine = (a, b) => window.__a5AxisSeparatedSegmentClear(a, b, blocked, .12);
     const points = [];
@@ -526,8 +531,10 @@ async function exposePathfinder() {
   const ready = await page.evaluate(async () => {
     const pathfinder = await import('/tools/qa/a5-waystone-pathfinding.mjs');
     window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
+    window.__a5AxisSeparatedPathClear = pathfinder.isAxisSeparatedPathClear;
     window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
     return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
+      typeof window.__a5AxisSeparatedPathClear === 'function' &&
       typeof window.__a5RankShelterApproaches === 'function';
   });
   assert.equal(ready, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
