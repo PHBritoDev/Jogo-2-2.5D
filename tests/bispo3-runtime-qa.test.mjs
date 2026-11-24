@@ -18,6 +18,9 @@ test('Bispo 3 runtime QA enters after the cutscene and polls without repeated ac
   const battle=active.indexOf("s.battle?.active",launch);
   assert.ok(ready>=0&&launch>ready&&battle>launch,"runtime QA must wait for the real VS button to enable before starting exactly once");
   assert.match(active, /!s\.cineActive&&!s\.menuGate&&!s\.paused/);
+  assert.match(runtime,/report\.clockRestored=await p\.evaluate\(\(\)=>SevenSinsDebug3D\.speed\(1\)\)/);
+  assert.match(runtime,/assert\.equal\(report\.clockRestored,1/);
+
   assert.doesNotMatch(active, /if\(s\.vs\)d\.vsGo/);
 
   const exitStart=runtime.indexOf("TESTE DAS DIMENSÕES");
