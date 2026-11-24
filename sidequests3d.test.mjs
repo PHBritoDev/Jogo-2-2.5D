@@ -72,6 +72,15 @@ test('falha temporária do save mantém transação pendente e permite retry', (
   assert.equal(state.pendingReward, null);
 });
 
+test('pendência não sobrevive a save done sem progresso completo', () => {
+  const state = createSideState({
+    ervas: { state: 'done', progress: 0 },
+    pendingReward: pendingFor('ervas')
+  });
+  assert.equal(state.ervas.state, 'done');
+  assert.equal(state.pendingReward, null, 'estado done sem objetivo completo não comprova direito à recompensa');
+});
+
 test('pending reward inválido ou sem missão done é descartado', () => {
   const valid = pendingFor('ervas');
   const invalid = [
