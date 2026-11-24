@@ -120,3 +120,16 @@ test('rejeita lado com água, borda não caminhável ou amostra inválida', asyn
   });
   assert.ok(invalid.every(side => side.reason === 'non-finite-sample'));
 });
+
+
+test('mede a altura junto à borda do anel, não usa terreno mais alto no ponto de aproximação', async () => {
+  const { rankShelterApproaches } = await import('./a5-waystone-pathfinding.mjs');
+  const sides = rankShelterApproaches({
+    center: { x: 0, z: 0 }, radius: 3.35, deckY: 1.1, stepUp: 0.55,
+    sample: ({ radius }) => ({ height: radius > 3.35 ? 0.8 : 0.3, edge: -20, water: false })
+  });
+  assert.ok(sides.every(side => !side.ok && side.reason === 'step-exceeds-limit'));
+  assert.equal(sides[0].groundY, 0.3);
+  assert.equal(sides[0].maxApproachGroundY, 0.8);
+  assert.equal(sides[0].rise, 0.8);
+});

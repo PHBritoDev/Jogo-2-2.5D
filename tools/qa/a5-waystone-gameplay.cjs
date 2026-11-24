@@ -43,6 +43,8 @@ function createProgressWatch(initialDistance, { threshold = 0.04, now = Date.now
   assert.equal(advanced.stalledMs, 0);
   assert.equal(watch.sample(0.94, 9750).stalledMs, 8000);
 }
+let shelterGeometry = null, stepUpLimit = null;
+
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
@@ -334,17 +336,17 @@ async function inspectShelterApproaches(stone) {
       }
     });
     return { deckY: deck.y, centerY, centerDeckDelta: +(centerY - deck.y).toFixed(3), sides };
-  }, { x: stone.x, z: stone.z, radius: SHELTER.r1, stepUp: STEP_UP, centerY: stone.centerY });
+  }, { x: stone.x, z: stone.z, radius: shelterGeometry.r1, stepUp: stepUpLimit, centerY: stone.centerY });
   assert.ok(!result.error, stone.id + ': ' + (result.error || 'geometria indisponível'));
-  assert.ok(Math.abs(result.centerDeckDelta - SHELTER.step) < .03,
+  assert.ok(Math.abs(result.centerDeckDelta - shelterGeometry.step) < .03,
     stone.id + ': cota do anel diverge do contrato SHELTER.step: ' + JSON.stringify(result));
   assert.equal(result.sides.length, 8, stone.id + ': auditoria não cobriu oito lados');
   report.approaches.push({
-    id: stone.id, radius: SHELTER.r1, stepUp: STEP_UP, deckY: +result.deckY.toFixed(3),
+    id: stone.id, radius: shelterGeometry.r1, stepUp: stepUpLimit, deckY: +result.deckY.toFixed(3),
     centerY: +result.centerY.toFixed(3),
     sides: result.sides.map(side => ({
       index: side.index, angle: side.angle, staging: side.staging, entry: side.entry,
-      groundY: side.groundY, rise: side.rise, ok: side.ok, reason: side.reason, samples: side.samples
+      groundY: side.groundY, maxApproachGroundY: side.maxApproachGroundY, rise: side.rise, ok: side.ok, reason: side.reason, samples: side.samples
     }))
   });
   return result.sides;
@@ -368,7 +370,7 @@ async function walkTo(stone, label) {
   }
   if (!selected) {
     const summary = sides.map(side => ({ side: side.index, rise: side.rise, ok: side.ok, reason: side.reason }));
-    throw new Error(label + ': nenhum dos oito lados oferece subida dentro de STEP_UP=' + STEP_UP +
+    throw new Error(label + ': nenhum dos oito lados oferece subida dentro de STEP_UP=' + stepUpLimit +
       ' ou rota livre; lados=' + JSON.stringify(summary) + '; rotas=' + JSON.stringify(rejected));
   }
   report.routes.push({
@@ -523,6 +525,8 @@ async function registerStone(stone, expectedProgress, mapKey) {
     const { SHELTER } = await import('../../eldoria-shelter3d.js');
     const { STEP_UP } = await import('../../eldoria-walkable.js');
     assert.ok(Number.isFinite(SHELTER.r1) && Number.isFinite(STEP_UP), 'geometria/STEP_UP de produção indisponível');
+    shelterGeometry = SHELTER;
+    stepUpLimit = STEP_UP;
     const quest = SIDE_QUESTS.find(q => q.id === 'abrigos');
     assert.ok(quest && quest.goal.count === 3);
     assert.deepEqual(SIDE_QUEST_WAYSTONES, ['abrigo-vila', 'abrigo-mata', 'abrigo-caverna']);

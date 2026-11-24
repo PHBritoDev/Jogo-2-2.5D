@@ -79,7 +79,8 @@ export function rankShelterApproaches({
     const finite = points.every(point => Number.isFinite(point.height) && Number.isFinite(point.edge));
     const wet = points.some(point => point.water);
     const outside = points.some(point => !Number.isFinite(point.edge) || point.edge >= walkLimit);
-    const groundY = finite ? Math.max(...points.map(point => point.height)) : null;
+    const groundY = finite ? points[points.length - 1].height : null;
+    const maxApproachGroundY = finite ? Math.max(...points.map(point => point.height)) : null;
     const rise = finite ? deckY - groundY : null;
     const ok = finite && !wet && !outside && rise <= stepUp + 1e-6;
     const reason = !finite ? 'non-finite-sample'
@@ -98,6 +99,7 @@ export function rankShelterApproaches({
         z: +(center.z + dz * (radius - innerOffset)).toFixed(3)
       },
       deckY: +deckY.toFixed(3), groundY: groundY === null ? null : +groundY.toFixed(3),
+      maxApproachGroundY: maxApproachGroundY === null ? null : +maxApproachGroundY.toFixed(3),
       rise: rise === null ? null : +rise.toFixed(3), stepUp, ok, reason, samples: points
     };
   });
