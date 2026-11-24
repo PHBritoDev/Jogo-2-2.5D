@@ -38,9 +38,11 @@ function bladeContactPoint(a,b,c,d,target,hitRadius=.48,origin=null){
  // Point from the capsule axis toward the blade: place the slash on the visible contact surface.
  let nx=bestBladePoint.x-bestAxisPoint.x,ny=bestBladePoint.y-bestAxisPoint.y,nz=bestBladePoint.z-bestAxisPoint.z,len=bestDistance;
  if(len<1e-5&&origin){nx=origin.x-bestAxisPoint.x;ny=(origin.y??bestAxisPoint.y)-bestAxisPoint.y;nz=origin.z-bestAxisPoint.z;len=Math.hypot(nx,ny,nz);}
- if(len<1e-5){
-  const dx=d.x-a.x,dz=d.z-a.z;nx=-dz;nz=dx;ny=0;len=Math.hypot(nx,nz)||1;
-  if(origin&&(nx*(origin.x-bestAxisPoint.x)+nz*(origin.z-bestAxisPoint.z))<0){nx=-nx;nz=-nz;}
+ if(!Number.isFinite(len)||len<1e-5){
+  const dx=d.x-c.x,dz=d.z-c.z;nx=-dz;nz=dx;ny=0;len=Math.hypot(nx,nz);
+  if(len<1e-5){nx=0;ny=0;nz=1;len=1;}
+  if(origin&&Number.isFinite(origin.x)&&Number.isFinite(origin.z)&&
+    nx*(origin.x-bestAxisPoint.x)+nz*(origin.z-bestAxisPoint.z)<0){nx=-nx;nz=-nz;}
  }
  const surfaceRadius=target.radius||.48;
  return{x:bestAxisPoint.x+nx/len*surfaceRadius,y:bestAxisPoint.y+ny/len*surfaceRadius,z:bestAxisPoint.z+nz/len*surfaceRadius};
