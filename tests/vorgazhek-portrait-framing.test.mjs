@@ -22,7 +22,7 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
 
 test('entrada reinicia o foco antigo e saída remove o escopo visual da dimensão', () => {
   assert.match(world, /document\.body\.classList\.toggle\('bishop2-battle',key==='bishop2'\)/);
-  assert.match(world, /if\(abyssEntry\|\|key==='bishop2'\)\{camFocusReady=false;lastLookInputAt=0;\}/);
+  assert.match(world, /if\(abyssEntry\|\|key==='bishop2'\)\{camFocusReady=false;lastLookInputAt=0;if\(key==='bishop2'\)portraitZoomOverride=false;\}/);
   assert.match(world, /document\.body\.classList\.remove\('bishop2-battle'\)/);
 });
 
