@@ -245,6 +245,8 @@ test('A/B supports main legacy light telemetry and verifies the baseline worktre
   assert.ok(qa.includes('A4_BASELINE_ROOT'));
   assert.ok(qa.includes("if(label==='01-main')"));
   assert.ok(qa.includes('objectsNear(1200,4,1)'));
+  assert.ok(qa.includes("item.endsWith('@1200.0,4.0')"));
+  assert.ok(qa.includes("item.startsWith('orcamento-luz-')"));
   assert.ok(qa.includes('baselineSourceVerified:true'));
   assert.ok(qa.includes("baselineTelemetry:'legacy-main-no-activeDetails'"));
   assert.ok(qa.includes('source.slotWorldPosition?.length===3'));

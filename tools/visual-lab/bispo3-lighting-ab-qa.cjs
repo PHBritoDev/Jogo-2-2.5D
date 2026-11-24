@@ -136,12 +136,13 @@ async function capture(label,url,browser){
       // location through the legacy debug API; do not demand candidate-only fields.
       const baselineSource=verifyBaselinePreset();
       const nearby=await page.evaluate(()=>window.SevenSinsDebug3D.objectsNear(1200,4,1));
-      const scenePointLight=nearby.find(item=>item.includes('PointLight @1200.0,4.0'));
-      assert.ok(scenePointLight,label+': original main dimension PointLight is missing at the expected world X/Z');
-      assert.ok(Array.isArray(lighting.lights?.active)&&lighting.lights.active.includes('luz'),
-        label+': no unnamed dimension fill is reported among selected legacy light sources');
+      const colocatedLights=nearby.filter(item=>item.endsWith('@1200.0,4.0'));
+      assert.ok(colocatedLights.some(item=>item.startsWith('PointLight @')),
+        label+': original main dimension PointLight is missing at the expected world X/Z');
+      assert.ok(colocatedLights.some(item=>item.startsWith('orcamento-luz-')),
+        label+': legacy shader slot is not colocated with the original dimension fill');
       lightingCheck={expected:expectedFill,observed:{
-        ...baselineSource,scenePointLight,activeSources:lighting.lights.active,
+        ...baselineSource,colocatedLights,activeSources:lighting.lights.active,
         shaderPointLights:lighting.shaderPointLights,localOffset:expectedFill.localOffset
       }};
     }else{
