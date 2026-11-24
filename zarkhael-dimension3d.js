@@ -177,9 +177,9 @@ export function getZarkhaelLighting() {
   return {
     bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
     hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
-    // Raise and move the existing fill over Zar’khael: stronger on the boss, softer across the floor.
-    // The player and 30m arena remain in range; the 36m cutoff still excludes the distant corridor.
-    light:[0xdfe6f2,16,36,[0,7,-2]], exposure:.85
+    // Keep the existing fill between both combatants, with a modest bias toward Zar’khael.
+    // The player stays within 12m; the full 30m disc remains inside the 36m cutoff and the corridor stays outside.
+    light:[0xdfe6f2,16,36,[0,7,0]], exposure:.85
   };
 }
 export function buildMushroomDimension(THREE,group,spec,ctx) {

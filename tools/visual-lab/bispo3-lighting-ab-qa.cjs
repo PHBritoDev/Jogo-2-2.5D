@@ -29,6 +29,8 @@ async function capture(label,url,browser){
   try{
     await page.goto(url.replace(/\/$/,'')+'/mundo-3d-prototype.html?testeDimensao=bishop3&debug3d=1',{waitUntil:'domcontentloaded',timeout:60000});
     await page.waitForFunction(()=>window.SevenSinsDebug3D,null,{timeout:180000});
+    // Freeze automatic boss skills before the VS transition, not after combat has already begun.
+    await page.evaluate(()=>{window.__qaManualBossSkills=true;window.SevenSinsDebug3D.god();});
     await page.waitForFunction(()=>{
       const s=window.SevenSinsDebug3D.dimState();
       return s.vs||s.battle?.active;
@@ -42,8 +44,6 @@ async function capture(label,url,browser){
     await page.waitForFunction(()=>!document.querySelector('#portal-veil').classList.contains('on'),null,{timeout:30000});
     await page.evaluate(()=>{
       const d=window.SevenSinsDebug3D;
-      window.__qaManualBossSkills=true;
-      d.god(true);
       const quality=document.querySelector('#graphics-profile-3d');
       if(quality){quality.value='low';quality.dispatchEvent(new Event('change'));}
       d.motionQA({x:1200,z:10,enemyDistance:12,sword:'prota'});

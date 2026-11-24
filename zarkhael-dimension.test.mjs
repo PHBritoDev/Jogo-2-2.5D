@@ -37,16 +37,16 @@ test('Zar’khael biases the existing fill toward the boss while preserving play
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,7,-2]]);
+  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,7,0]]);
   assert.ok(env.light[1]>=16&&env.light[3][1]>=6&&env.light[3][1]<=8,'fill must be elevated above the boss rather than washing the floor');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
   const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
   const playerDistance=distanceTo(spots.player),bossDistance=distanceTo(spots.boss);
-  assert.ok(playerDistance<env.light[2],'player spawn must remain inside the local fill');
-  assert.ok(bossDistance<env.light[2],'boss spawn must remain inside the local fill');
-  assert.ok(bossDistance+6<playerDistance,'the boss must be substantially closer to the fill than the player');
-  assert.ok(playerDistance/bossDistance>2.2,'the boss must receive a clear geometric priority over the player');
+  assert.ok(playerDistance<12,'player spawn must stay in the near field of the existing fill');
+  assert.ok(bossDistance<6,'boss spawn must remain inside the brighter core');
+  assert.ok(bossDistance<playerDistance,'the boss keeps a modest geometric priority over the player');
+  assert.ok(playerDistance/bossDistance>1.8&&playerDistance/bossDistance<2.1,'the fill must favor the boss without starving the player');
   const edgeDistances=[[30,0],[-30,0],[0,30],[0,-30]].map(([x,z])=>Math.hypot(x-lx,1.7-ly,z-lz));
   assert.ok(Math.max(...edgeDistances)<env.light[2],'the full 30m combat disc must remain inside the fill');
   assert.ok(Math.hypot(lx,3.5-ly,-210-lz)>env.light[2],'distant corridor must remain outside the local fill');
@@ -77,12 +77,15 @@ test('production runtime and preview consume the exact Zar’khael preset throug
   assert.match(preview,/new THREE\.PointLight\(e\.light\[0\],e\.light\[1\],e\.light\[2\],1\.1\)/);
 });
 
-test('A/B harness starts the VS transition once and freezes boss automation for comparable frames',()=>{
+test('A/B harness freezes boss automation before the VS transition and starts it once',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
-  const waitStart=qa.indexOf('await page.waitForFunction(()=>{');
+  const apiReady=qa.indexOf('await page.waitForFunction(()=>window.SevenSinsDebug3D');
+  const manualGate=qa.indexOf('window.__qaManualBossSkills=true;',apiReady);
+  const waitStart=qa.indexOf('await page.waitForFunction(()=>{',apiReady);
   const preStart=qa.indexOf('const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());',waitStart);
+  assert.ok(apiReady>=0&&manualGate>apiReady&&manualGate<waitStart,'automatic boss skills must be disabled before the VS transition');
   assert.ok(waitStart>=0&&preStart>waitStart,'battle readiness wait must be separate from the VS action');
   assert.doesNotMatch(qa.slice(waitStart,preStart),/vsGo\(\)/,'polling must not repeat the VS transition');
   assert.match(qa,/if\(pre\.vs\)await page\.evaluate\(\(\)=>window\.SevenSinsDebug3D\.vsGo\(\)\)/,'VS transition must be issued once');
-  assert.match(qa,/window\.__qaManualBossSkills=true;[\s\S]*?d\.god\(true\)/,'comparison must suppress automatic boss skills and enable god mode explicitly');
+  assert.match(qa,/window\.__qaManualBossSkills=true;window\.SevenSinsDebug3D\.god\(\)/,'comparison must suppress automatic boss skills and enable god mode before combat');
 });
