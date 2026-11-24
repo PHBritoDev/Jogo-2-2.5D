@@ -686,6 +686,6 @@ test('production blade impacts forward their yaw and both impact cuts use the re
  const branch=vfx.slice(start,end);
  assert.match(branch,/const cue=swordImpactCue\(e\),yaw=swordImpactYaw\(e\)/);
  assert.match(branch,/cut\(p,e\.sword,cue\.scale,Math\.PI\*\.5,yaw,cue\.life\)/);
- assert.match(branch,/cut\(p,e\.sword,cue\.secondScale,-Math\.PI\*\.5,yaw,cue\.secondLife\)/);
+ assert.match(branch,/cut\(p,e\.sword,cue\.secondScale,-Math\.PI\*\.5,yaw\+Math\.PI\/2,cue\.secondLife\)/);
  assert.doesNotMatch(branch,/time\*3/,'impact orientation must not depend on global elapsed time');
 });

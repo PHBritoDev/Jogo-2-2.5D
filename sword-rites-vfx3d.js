@@ -72,7 +72,7 @@ export function createSwordRitesVFX(T,scene){
    if(e.final)cut(p,'prota',2,roll+Math.PI/2,n*.91,.38);
    burst(p,'prota',e.final?24:4);
   }
-  else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw,cue.secondLife);}
+  else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw+Math.PI/2,cue.secondLife);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
   else if(type==='cancel')clear();
  }
