@@ -62,7 +62,7 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
 const BLADE_COLLISION_CACHE_TTL=.05;
-/** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
+/** Cache only occluded LOS rays for unchanged endpoints; never cache a clear collision result. */
 function bladeOcclusionCached(a,target,from,now){
  const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
  if(!entry)return false;
@@ -237,9 +237,8 @@ export class SwordRites {
    if(blade){if(live)this.api.event('blade',{a,blade});
     if(a.kind==='basic'&&a.def.energy&&!a.energyOut&&a.t>=a.def.energy.at)this.release(a,blade,ctx);
     if(a.def?.drive&&live&&target?.alive){let m=Infinity;for(let j=0;j<=4;j++)m=Math.min(m,segmentDistance({x:target.x,y:target.y+(j/4-.5)*(target.height||1.7),z:target.z},blade.base,blade.tip));a.closest=Math.min(a.closest??Infinity,m-(target.radius||.48)-.2);}
-    // Build one wall-clipped sweep for every physical swing. The primary target must
-    // obey the same first-wall cutoff as side targets; checking only the final blade pose
-    // allowed a fast swing to tunnel through a wall between two animation samples.
+    // Moving blades and stationary contacts with clear LOS still use the full wall-clipped sweep.
+    // A stationary contact already hidden by an occluded LOS cannot damage, so its five rails are unnecessary.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
     const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
     const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
