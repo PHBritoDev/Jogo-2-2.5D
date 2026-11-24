@@ -85,14 +85,14 @@ Os nomes dos chefes dos mundos 2–7 são rótulos de trabalho. Não devem apare
 
 ### Os quatro Bispos da Ganância
 
-| Bispo | Dado estabelecido | Função dramática proposta |
+| Bispo | Nome/epíteto em material atual (confirmar) | Função dramática proposta |
 |---|---|---|
 | VHAZRAEL — O Ceifador dos Condenados | Primeiro Bispo; cobra dívidas com almas. | A cobrança coercitiva: transforma sofrimento em “contrato cumprido”. Acredita que medo mantém a ordem. |
 | VORGAZHEK — Arauto das Almas Endividadas | Segundo Bispo; livros de dívida e juros. | A burocracia da exploração: chama crueldade de cálculo e diz que ninguém é inocente por dever. |
 | ZAR'KHAEL — Carrasco do Juízo Eterno | Terceiro Bispo; dimensão distorcida e julgamento. | A moralização da exploração: convence vítimas de que merecem o que sofrem. |
 | VÉRAXION — Custódio do Último Selo | Quarto Bispo; passado humano ligado à Terra, meteorito, perda da mãe e justiça comprada. | A lei corrompida: foi vítima de uma injustiça real e escolheu impedir que qualquer um tenha poder de contestá-lo. |
 
-Os quatro não devem repetir a mesma fala de “sou forte”. Cada um apresenta uma justificativa diferente para servir à Ganância e deixa uma pista concreta sobre o próximo.
+Os nomes aparecem no PDF/runtime/M1–M14; os epítetos devem ser conferidos no roteiro aprovado antes de virarem UI. Os quatro não devem repetir a mesma fala de “sou forte”. Cada um apresenta uma justificativa diferente para servir à Ganância e deixa uma pista concreta sobre o próximo.
 
 ### Ganância
 
