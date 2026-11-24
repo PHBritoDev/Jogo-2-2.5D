@@ -35,12 +35,12 @@ test('VORGAZHEK lighting remains a fixed three-source setup without new lights o
 
 
 test('water adds a camera-local grazing reflection without allocating another scene light', () => {
-  assert.match(source, /uCamera:\\{value:new T\\.Vector3\\(0,8,12\\)\\}/);
-  assert.match(source, /uniform vec3 uCamera;/);
-  assert.match(source, /float viewDistance=max\\(length\\(vec3\\(uCamera\\.xy-p,uCamera\\.z\\)\\),\\.001\\);/);
-  assert.match(source, /float fresnel=pow\\(1\\.0-viewCos,3\\.0\\);/);
-  assert.match(source, /water\\.uniforms\\.uCamera\\.value\\.set\\(cameraPos\\.x,-cameraPos\\.z,cameraPos\\.y\\)/);
-  assert.doesNotMatch(source, /new T\\.(?:PointLight|DirectionalLight|HemisphereLight)/);
+  assert.ok(source.includes('uCamera:{value:new T.Vector3(0,8,12)}'));
+  assert.ok(source.includes('uniform vec3 uCamera;'));
+  assert.ok(source.includes('float viewDistance=max(length(vec3(uCamera.xy-p,uCamera.z)),.001);'));
+  assert.ok(source.includes('float fresnel=pow(1.0-viewCos,3.0);'));
+  assert.ok(source.includes('water.uniforms.uCamera.value.set(cameraPos.x,-cameraPos.z,cameraPos.y)'));
+  assert.doesNotMatch(source, /new T\.(?:PointLight|DirectionalLight|HemisphereLight)/);
 });
 
 test('abyss preview consumes the exact production lighting preset', () => {
