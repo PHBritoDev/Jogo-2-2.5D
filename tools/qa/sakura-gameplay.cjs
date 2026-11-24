@@ -4,8 +4,8 @@ fs.mkdirSync(out,{recursive:true});
 (async()=>{const b=await chromium.launch({args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader','--autoplay-policy=no-user-gesture-required']});
 let recordingContext,recording;
 try{
- const mobile=['mobile','portrait'].includes(mode);
- const width=mode==='walk'?480:mode==='portrait'?393:mobile?852:1200, height=mode==='walk'?270:mode==='portrait'?852:mobile?393:675;
+ const mobile=['mobile','portrait','contacts-touch'].includes(mode);
+ const width=['walk','contacts'].includes(mode)?480:mode==='portrait'?393:mobile?852:1200, height=['walk','contacts'].includes(mode)?270:mode==='portrait'?852:mobile?393:675;
  const tier=process.env.GRAPHICS||'low';
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
  recordingContext=ctx;
@@ -30,7 +30,9 @@ try{
   console.log(name,metrics.seconds||'',metrics.pos?.x,metrics.pos?.z,metrics.render?.calls);
   if(metrics.framesMs)console.log('FRAME_METRICS',JSON.stringify({name,...metrics}));
  });
- if(mode==='survey'){
+ if(mode==='contacts'||mode==='contacts-touch'){
+  await require('./sakura-contacts.cjs')(page,out,mode==='contacts-touch');
+ }else if(mode==='survey'){
   const issues=await page.evaluate(async()=>{
    const d=SevenSinsDebug3D,{ROUTE,CITY_ROAD,FROM_CITY,DETOURS}=await import('/sakura-route3d.js');
    const issues=[];for(const [name,road] of [['cinzaria',FROM_CITY],['eixo',ROUTE],['bairro',CITY_ROAD],...DETOURS.map(t=>[t.name,t.points])]){
@@ -72,7 +74,7 @@ try{
   await page.waitForFunction(()=>window.SevenSinsDebug3D?.storyState().sub===1&&Math.abs(SevenSinsDebug3D.walkState().x+1040)<4,null,{timeout:240000});
   await at(583,-236);const gallery=await page.evaluate(()=>SevenSinsDebug3D.walkState());
   if(Math.abs(gallery.y-88)>.65)throw Error('Galeria sem apoio físico '+gallery.y);
-  await at(564,-194);for(let i=0;i<9;i++){if(await button.isVisible())await button.click();if(await page.evaluate(()=>SevenSinsDebug3D.storyState().sub===2))break;await page.waitForTimeout(450);}
+  await at(564,-197);for(let i=0;i<9;i++){if(await button.isVisible())await button.click();if(await page.evaluate(()=>SevenSinsDebug3D.storyState().sub===2))break;await page.waitForTimeout(450);}
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().sub===2);await at(150,-40);
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().scene==='cidade-neve');await page.evaluate(()=>SevenSinsDebug3D.skipStory());
   await page.waitForFunction(()=>SevenSinsDebug3D.storyState().q===16);

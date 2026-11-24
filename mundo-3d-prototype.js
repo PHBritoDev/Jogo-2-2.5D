@@ -2326,7 +2326,7 @@ stick.addEventListener('lostpointercapture',endJoy);
 /* Mod 319+ — matéria da vila com colisão ajustada à forma (barracas inteiras, balcões, sebes, banco, bordas de casa):
    máscara medida no jogo real (eldoria-village-solids.js). `?solidos=0` volta ao estado anterior (só círculos). */
 const villageSolidAt=new URLSearchParams(location.search).get('solidos')==='0'?()=>false:createVillageSolidQuery();
-function blockedAt(x,z,skipRocks=false){
+function blockedAt(x,z,skipRocks=false,feet=player.position.y){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
@@ -2335,7 +2335,7 @@ function blockedAt(x,z,skipRocks=false){
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
  const road=sampleRoad(x,z);
- if(road&&(leavesVolcano(z,road)||regionWeight(x,z,road)>.15)){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z)||road.d>164;}
+ if(road&&(leavesVolcano(z,road)||regionWeight(x,z,road)>.15)){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z,feet,grounded ? undefined : .025)||road.d>164;}
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
 /* MOD 321 */ if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;
@@ -2467,7 +2467,7 @@ if(firstPerson){
   if(!voidMode)for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
   if(!voidMode&&sakuraWorld&&sakuraWorld.root.visible){
    for(let i=1;i<=16;i++){const f=i/16*limit,x=target.x+camOffset.x*f,z=target.z+camOffset.z*f;
-    if(roadBlocked(x,z)||sakuraWorld.solidAt(x,z)){limit=Math.max(.12,(i-1)/16*limit);break;}}
+    if(roadBlocked(x,z)||sakuraWorld.solidAt(x,z,target.y+camOffset.y*f-.15,0,.3)){limit=Math.max(.12,(i-1)/16*limit);break;}}
   }
   if(!voidMode&&cameraOccluders.length){const L=Math.hypot(camOffset.x,camOffset.y,camOffset.z)*limit;for(const oc of cameraOccluders){if(Math.hypot(target.x-oc.x,target.z-oc.z)>oc.r)continue;camRay.set(camRayO.copy(target),camRayD.copy(camOffset).normalize());camRay.far=L+.3;const h=camRay.intersectObject(oc.obj,true)[0];if(h)limit=Math.max(.14,Math.min(limit,(h.distance-.35)/Math.max(.01,L/limit)));}}
   // RENASCIMENTO F1: o braço da câmera também não atravessa guarda-corpos/parapeitos (deques, escadas, ponte) nem rochas altas
@@ -2591,6 +2591,14 @@ if(!ascVoidFall&&!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.po
 if(!ascVoidFall&&!caveWalk&&!voidMode){const rs=rockSupportAt(rockObstacles,player.position.x,player.position.z,player.position.y+(grounded?0:.05),terrainHeightAt);if(rs&&rs.y>floorY){floorY=rs.y;
  // pousou no flanco íngreme de uma rocha alta: escorrega para fora (não fica grudado na parede da pedra)
  if(rs.steep&&grounded){const sx=player.position.x+rs.nx*dt*3.2,sz=player.position.z+rs.nz*dt*3.2;if(!blockedAt(sx,sz,true)){player.position.x=sx;player.position.z=sz;}}}}
+if(!voidMode&&sakuraWorld?.root.visible){
+ const P=player.position;
+ floorY=Math.max(floorY,sakuraWorld.heightAt(P.x,P.z,P.y+(grounded ? .55 : .025)));
+ if(verticalVelocity>0){
+  const ceiling=sakuraWorld.heightAt(P.x,P.z,P.y+1.95,true);
+  if(P.y+1.95+verticalVelocity*dt>=ceiling){P.y=ceiling-1.95;verticalVelocity=0;}
+ }
+}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
  if(newHero){prota302.airborneT+=dt;const hang=rites.active?.kind==='basic'&&rites.active.mode==='air'&&rites.active.t<=rites.active.def.close;verticalVelocity-=(hang?PROTA_JUMP.gravity*.35:PROTA_JUMP.gravity)*dt;}else verticalVelocity-=gravity*dt;
@@ -8969,7 +8977,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
  walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},
  walkBusy(){return !!qaMove;},
- sakuraProbe(x,z){const p=sampleRoad(x,z);return {blocked:blockedAt(x,z),playerBlocked:playerBlockedAt(x,z),height:terrainHeightAt(x,z),water:terrain3D.waterDepth(x,z),stage:questStep,part:act1Sub,stream:sakuraWorld?.stats()};},
+ sakuraProbe(x,z){const p=sampleRoad(x,z);return {blocked:blockedAt(x,z,false,terrainHeightAt(x,z)),playerBlocked:playerBlockedAt(x,z),height:terrainHeightAt(x,z),water:terrain3D.waterDepth(x,z),stage:questStep,part:act1Sub,stream:sakuraWorld?.stats()};},
  snapCam(){for(let i=0;i<10;i++)updatePlayerCamera(1);return camera.position.toArray().map(v=>+v.toFixed(2));},
  whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
  walkJump(){action('jump');return true;},

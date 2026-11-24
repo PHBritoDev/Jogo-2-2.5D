@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createContacts} from './sakura-contacts3d.js';
 import {interiorLights} from './sakura-interiors3d.js';
 import {createSakuraWorld} from './sakura-world3d.js';
 import assert from 'node:assert/strict';
@@ -104,4 +105,27 @@ test('o tabuleiro e os dois corrimãos acompanham a inclinação até às duas c
   const t=i/250;
   assert.equal(roadBlocked(a.x+(beyond.x-a.x)*t,a.z+(beyond.z-a.z)*t),false);
  }
+});
+
+test('o banco rotacionado recebe o salto, preserva a altura livre e sai com o setor',()=>{
+ const contacts=createContacts(),yaw=Math.PI/4;
+ const top=[-1,1,-.5, 1,1,-.5, 1,1,.5, -1,1,-.5, 1,1,.5, -1,1,.5];
+ const remove=contacts.add(top,{x:-8,y:7,z:4},yaw);
+ assert.equal(contacts.height(-8,4,7.55),-Infinity);
+ assert.equal(contacts.blocked(-8,4,7),true);
+ assert.equal(contacts.height(-8,4,8),8);
+ assert.equal(contacts.blocked(-8,4,8),false);
+ assert.equal(contacts.blocked(-8,4,5.8),false);
+ assert.equal(contacts.height(-8,4,7.4,true),8);
+ assert.equal(contacts.height(-6.9,5.1,8),-Infinity);
+ remove();assert.equal(contacts.height(-8,4,8),-Infinity);
+});
+
+test('uma parede fina detém o corpo na borda de setor e permite passar pela lateral',()=>{
+ const contacts=createContacts();
+ contacts.add([4,0,-1, 4,3,-1, 4,3,1, 4,0,-1, 4,3,1, 4,0,1]);
+ assert.equal(contacts.blocked(3.8,0,0),true);
+ assert.equal(contacts.blocked(4.2,0,0),true);
+ assert.equal(contacts.blocked(3.8,1.6,0),false);
+ assert.equal(contacts.height(4,0,4),-Infinity);
 });

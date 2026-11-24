@@ -6,6 +6,8 @@ on:
       - 'sakura-*.js'
       - 'sakura-*.test.mjs'
       - 'tools/qa/sakura-gameplay.cjs'
+      - 'tools/qa/sakura-contacts.cjs'
+      - 'tools/qa/sakura-solids.mjs'
       - 'tools/qa/sakura-pranchas.py'
       - '.github/workflows/sakura-journey.yml'
   workflow_dispatch:
@@ -28,6 +30,8 @@ jobs:
           - {mode: portrait, tier: low}
           - {mode: survey, tier: low}
           - {mode: walk, tier: low}
+          - {mode: contacts, tier: low}
+          - {mode: contacts-touch, tier: low}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +45,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Regressão de mapas, jornada e campanha
         run: node --test sakura-route3d.test.mjs map3d.test.mjs act1-flow.test.mjs act2-flow.test.mjs act3-flow.test.mjs tests/jornada-mod*.test.mjs
+      - name: Verificar as malhas de colisão de todos os caminhos
+        if: matrix.mode == 'survey'
+        run: node tools/qa/sakura-solids.mjs
       - name: Percorrer e gravar o jogo
         env:
           OUT: evidence

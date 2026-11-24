@@ -1,6 +1,6 @@
 // Named scenes with geological silhouettes and small-scale landmarks. Coordinates
 // are local to the same basins used by the player's floor and the streamed tiles.
-import {ROUTE,DETOURS,DOJO,CASTLE,SPRING_LAKE,GLACIER_BRIDGE,INLET_BRIDGE} from './sakura-route3d.js';
+import {ROUTE,DETOURS,TRAIL_SITES,DOJO,CASTLE,SPRING_LAKE,GLACIER_BRIDGE,INLET_BRIDGE} from './sakura-route3d.js';
 import {lantern,arch} from './sakura-masonry3d.js';
 import {seeded} from './sakura-grove3d.js';
 export function dressBasins(T,{feature,ground,lib,root,landmarks,register}){
@@ -89,7 +89,7 @@ export function dressBasins(T,{feature,ground,lib,root,landmarks,register}){
    for(const s of [-1,1]){arch(m,s*3,-22+y,z,b.len/8,21,'z',1.15,0x556c80);
     m.box(s*3,-16+y,z-b.len/8,2.3,32,3,0x526476);}}
  },610).rotation.y=Math.atan2(GLACIER_BRIDGE.dx,GLACIER_BRIDGE.dz);
- const grotto=DETOURS[6].points[2];feature('Abóbada da gruta de vidro',{x:grotto.x+10,z:grotto.z+3},m=>{
+ feature('Abóbada da gruta de vidro',TRAIL_SITES[6],m=>{
   for(let i=0;i<13;i++){const a=i*Math.PI/12;crag(m,Math.cos(a)*6.8,-1,Math.sin(a)*6,2.8,3.4,7+(i%4),i,true);}
   for(let i=0;i<16;i++){const a=r()*Math.PI;const x=Math.cos(a)*5.6,z=Math.sin(a)*5.7;
    m.tube([x,-.3,z],[x*.8,1.4+r()*3,z*.82],.46+r()*.45,.015,i%2?0x9cced7:0x7ea7c8,5);}

@@ -1,4 +1,5 @@
-import {ROUTE,DETOURS,CITY_ROAD,SHELTERS,DOJO,DOJO_BRIDGE,bridgeSection,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
+import {createContacts} from './sakura-contacts3d.js';
+import {ROUTE,DETOURS,TRAIL_SITES,CITY_ROAD,SHELTERS,DOJO,DOJO_BRIDGE,bridgeSection,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
 import {batch,lantern,torii,dojoBuilding,castleBuilding,distantCastle,distantPagoda,glacierHouse,spire,arch} from './sakura-masonry3d.js';
 import {treeLibrary,seeded,distantGrove} from './sakura-grove3d.js';
 import {surfaceFinish,hallDetails} from './sakura-interiors3d.js';
@@ -14,11 +15,15 @@ export function createSakuraWorld(T,scene,{ground,low}){
  const {lib,solid,wind}=treeLibrary(T), terrainMat=underfoot(T);
  const focus={value:new T.Vector2(1e5,1e5)},middleRadius=low?62:91,farGrove=distantGrove(T,focus,middleRadius);
  const dummy=new T.Object3D(),c=new T.Color(),tone=new T.Color(),shadow=new T.Color(0x667e88);
- const tileCache=new Map(),buildings=[],landmarks=[],landmarkSolids=[],groveSolids=new Map();
+ const tileCache=new Map(),buildings=[],landmarks=[],landmarkSolids=[],clearings=[],groveSolids=new Map();
+ const contacts=createContacts(),physicalFeatures=[];
+ const solidFeatures=new Set([...DETOURS.map(d=>d.name),'Torii dos peregrinos','Bairro da muralha','Estátuas da memória','Guarita dos passos','Escada de peregrinação','Passarela da nascente','Falésia estratificada do dojo','Abóbada da gruta de vidro','Ponte de pedra da Vigia']);
  const summer=new T.Color(0xdebdcb),winter=new T.Color(0x829bb3),night=new T.Color(0x424c67),air=new T.Color();
  function feature(name,p,fn,reach=300,mat=solid){
   const m=batch(T);fn(m);const o=new T.Mesh(m.geometry(),mat);o.name=name;o.position.set(p.x,p.y??ground(p.x,p.z),p.z);
-  root.add(o);landmarks.push({o,reach});return o;
+  root.add(o);landmarks.push({o,reach});
+  if(solidFeatures.has(name))physicalFeatures.push({o,remove:null});
+  return o;
  }
  function model(name,i,fn,reach=310,yaw){const p=ROUTE[i],o=feature(name,p,fn,reach);o.rotation.y=yaw??sampleRoad(p.x,p.z).tangent;return o;}
  function register(x,z,r){landmarkSolids.push({x,z,r});}
@@ -75,11 +80,11 @@ export function createSakuraWorld(T,scene,{ground,low}){
   }
  }
  for(const [i,s] of [[5,1.24],[9,.94],[18,1],[21,.68]])model('Torii dos peregrinos',i,m=>{torii(m,s);lantern(m,-4.5*s,0,-1,true,s);lantern(m,4.5*s,0,-1,true,s);});
- for(const [k,d] of DETOURS.entries()){const p=d.points[2],o=feature(d.name,{x:p.x+6,z:p.z+4},m=>{
+ for(const [k,d] of DETOURS.entries()){const o=feature(d.name,TRAIL_SITES[k],m=>{
    if(k===7||k===8){spire(m,0,0,0,3.4,18+k*.7);arch(m,6,0,0,2.7,6,'x',.5);return;}
    if(k===6){for(let j=0;j<15;j++){const a=j*2.4,r=1.5+(j%4)*.57;m.tube([Math.cos(a)*r,-.6,Math.sin(a)*r],[Math.cos(a)*(r+1.2),2+(j%5)*.7,Math.sin(a)*(r+1.2)],.6,.03,j%2?0x8ac9dd:0xa4d7de,6);}return;}
    trailFeature(m,k);
-  });o.rotation.y=.4*k;register(o.position.x,o.position.z,k>=7?3.2:1.3);}
+  });o.rotation.y=.4*k;clearings.push(o.position); }
  function building(name,p,farModel,richModel,wood){
   const haze={value:new T.Color(0xa5b8c9)},mix={value:0},mat=new T.MeshBasicMaterial({vertexColors:true,side:T.DoubleSide,fog:false});
   mat.onBeforeCompile=shader=>{shader.uniforms.distanceTint=haze;shader.uniforms.tintWeight=mix;
@@ -93,20 +98,25 @@ export function createSakuraWorld(T,scene,{ground,low}){
  building('Cidadela e salão do trono',CASTLE,distantCastle,castleBuilding,false);
  // Exterior streets on either side of the central stair, at the same altitude as their pavement.
  for(const s of [-1,1])for(let j=0;j<5;j++){const x=CASTLE.x+s*(34+j%2*5),z=CASTLE.z-72+j*20;
-  const o=feature('Bairro da muralha',{x,z},m=>glacierHouse(m,j%3),300);o.rotation.y=s*1.26;register(x,z,3.3);}
+  const o=feature('Bairro da muralha',{x,z},m=>glacierHouse(m,j%3),300);o.rotation.y=s*1.26;}
  model('Guarita dos passos',48,m=>{spire(m,8,0,0,2.8,22);arch(m,0,0,0,3.4,6,'x',.43);});
- model('Estátuas da memória',54,m=>{for(const s of [-1,1]){
-  m.box(6*s,.55,0,3.2,1.1,3.2,0x8094a5);m.tube([6*s,1,0],[6*s,5.4,0],1.44,.65,0x667888,7);
-  m.tube([6*s,5.3,0],[6*s,7.4,0],.78,.19,0xa9bbc6,8);m.tube([6*s,4.2,.4],[5.2*s,3.5,1.2],.32,.19,0x8798a5,6);
- }},310,Math.atan2(CASTLE.x-ROUTE[54].x,CASTLE.z-ROUTE[54].z));
+ const lookout=ROUTE[54],viewYaw=Math.atan2(CASTLE.x-lookout.x,CASTLE.z-lookout.z);
+ for(const side of [-1,1]){
+  const x=lookout.x+10*Math.sin(viewYaw)+side*11*Math.cos(viewYaw);
+  const z=lookout.z+10*Math.cos(viewYaw)-side*11*Math.sin(viewYaw);
+  const statue=feature('Estátuas da memória',{x,z},m=>{
+   m.box(0,.55,0,3.2,1.1,3.2,0x8094a5);m.tube([0,1,0],[0,5.4,0],1.44,.65,0x667888,7);
+   m.tube([0,5.3,0],[0,7.4,0],.78,.19,0xa9bbc6,8);m.tube([0,4.2,.4],[-.8*side,3.5,1.2],.32,.19,0x8798a5,6);
+  });statue.rotation.y=viewYaw;
+ }
  // A sequence of individual cut-stone treads on the ascent; no curb walls along the centre.
  for(const [start,end,step,span] of [[17,21,1.65,3.4],[56,57,2.6,5.2]]){
   for(let idx=start;idx<end;idx++){const a=ROUTE[idx],b=ROUTE[idx+1],dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz),cs=dz/len,sn=dx/len;
    const o=feature('Escada de peregrinação',{x:a.x,z:a.z,y:a.y},m=>{
-    for(let dist=0,count=0;dist<len;dist+=step,count++){const u=dist/len,w=span*(.93+.11*Math.sin(count*7.35));
+    for(let dist=span+2,count=0;dist<len-span-2;dist+=step,count++){const u=dist/len,w=span*(.93+.11*Math.sin(count*7.35));
      const yy=ground(a.x+dx*u,a.z+dz*u)-a.y;
      m.box(0,yy-.055,dist,w*2,.27,step*.93,count%4?0x837c78:0x99918b);
-     if(count%17===0)lantern(m,(count%2?1:-1)*(w+1.1),yy,dist,true,.88);}
+     if(count%17===0&&dist>6&&len-dist>6)lantern(m,(count%2?1:-1)*(w+1.1),yy,dist,true,.88);}
    },430);o.rotation.y=Math.atan2(sn,cs);
   }
  }
@@ -115,7 +125,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  const water=lakes(T),snow=weather(T,low),sky=skyVeil(T);root.add(water.group,snow.mesh,sky.mesh);
  const relative=(x,z)=>[x-CASTLE.x,z-CASTLE.z];
  function reserve(x,z){const [dx,dz]=relative(x,z);
-  return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(dx)<25&&dz>=-190&&dz<-110||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||SHELTERS.some(s=>near(x,z,s,6))||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
+  return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(dx)<25&&dz>=-190&&dz<-110||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||SHELTERS.some(s=>near(x,z,s,6))||clearings.some(s=>near(x,z,s,5))||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
  // Keep a framed opening down the two approach valleys. Clear only crowns
  // tall enough to break the ray from a standing traveller to the landmark.
  const overlooks=[
@@ -160,7 +170,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
  function plantTile(ix,iz){
   const group=new T.Group(),clusters=new Map(),obstacles=[],seed=Math.imul(ix,991)^Math.imul(iz,733),r=seeded(seed),px=ix*TILE,pz=iz*TILE;
   const tiles=groundTile(ix,iz,low?16:24);group.add(tiles);const trace=batch(T),pebbles=batch(T);
-  const paths=[ROUTE,...DETOURS.map(d=>d.points),CITY_ROAD];let drawn=false;
+  const paths=[ROUTE,...DETOURS.map(d=>d.points),CITY_ROAD];let drawn=false;const stones=batch(T);
   for(const path of paths)for(let j=1;j<path.length;j++){
    const a=path[j-1],b=path[j],dx=b.x-a.x,dz=b.z-a.z;
    if(Math.min(a.x,b.x)>px+TILE+4||Math.max(a.x,b.x)<px-4||Math.min(a.z,b.z)>pz+TILE+4||Math.max(a.z,b.z)<pz-4)continue;
@@ -187,7 +197,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
    if(masksVista(x,y,z))continue;
    if(!clusters.has(type))clusters.set(type,[]);clusters.get(type).push([x,y,z,size,r()*6.283]);
    obstacles.push({x,z,r:type<4?.54*size:.39*size});
-   if(j%4===0){const h=.42+r()*.56;trace.tube([x+2,y-.18,z+1],[x+2.4,y+h,z+1],h*1.4,.22,h>.68?0x7b8490:0x8f8b8b,7);drawn=true;}
+   if(j%4===0){const h=.42+r()*.56;stones.tube([x+2,y-.18,z+1],[x+2.4,y+h,z+1],h*1.4,.22,h>.68?0x7b8490:0x8f8b8b,7);drawn=true;}
   }
   // Ground cover shares the pebble batch. Patches gather along damp banks and
   // under the outer canopy, leaving the walked centre and architectural floors clear.
@@ -204,6 +214,9 @@ export function createSakuraWorld(T,scene,{ground,low}){
    }drawn=true;
   }
   if(drawn){group.add(new T.Mesh(pebbles.geometry(),solid),new T.Mesh(trace.geometry(),solid));}
+  const rocks=stones.geometry();let removeRocks;
+  if(rocks.attributes.position.count){group.add(new T.Mesh(rocks,solid));removeRocks=contacts.add(rocks.attributes.position.array);}
+  else rocks.dispose();
   const draws=[];if(clusters.size)group.add(farGrove(clusters));
   for(const [type,entries] of clusters){
    for(let lod=0;lod<2;lod++){const parts=lib[type][lod];for(const [geo,mat] of parts){
@@ -211,7 +224,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
     entries.forEach(([x,y,z,s,rot],i)=>{dummy.position.set(x,y,z);dummy.rotation.set(0,rot,0);dummy.scale.setScalar(s);dummy.updateMatrix();o.setMatrixAt(i,dummy.matrix);});
     o.computeBoundingSphere();group.add(o);draws.push({o,lod,entries,matrices:o.instanceMatrix.array.slice()});}}
   }
-  root.add(group);return {group,draws,obstacles};
+  root.add(group);return {group,draws,obstacles,removeRocks};
  }
  // Three mountain chains with fluted faces, snow cornices and separate shadowed foothills.
  feature('Cordilheiras do norte',{x:0,y:0,z:0},m=>{
@@ -229,7 +242,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
   }
  },Infinity);
  let cellX=Infinity,cellZ=Infinity,pending=[],seen=new Set(),active=false;
- function clearCell(k,cell){root.remove(cell.group);cell.group.traverse(o=>{if(o.isMesh){if(o.isInstancedMesh)o.dispose();else if(!o.userData.shared)o.geometry.dispose();}});tileCache.delete(k);groveSolids.delete(k);}
+ function clearCell(k,cell){cell.removeRocks?.();root.remove(cell.group);cell.group.traverse(o=>{if(o.isMesh){if(o.isInstancedMesh)o.dispose();else if(!o.userData.shared)o.geometry.dispose();}});tileCache.delete(k);groveSolids.delete(k);}
  function vegetationLOD(cell){
   const near2=(low?24:39)**2,mid2=middleRadius**2,P=focus.value;
   for(const {o,lod,entries,matrices} of cell.draws){let n=0;
@@ -260,10 +273,11 @@ export function createSakuraWorld(T,scene,{ground,low}){
   root.visible=active;
   if(!active){
    if(wasActive){
+    for(const feature of physicalFeatures){feature.remove?.();feature.remove=null;}
     for(const [k,cell] of tileCache)clearCell(k,cell);
     for(const o of coarse.values())if(o){root.remove(o);o.geometry.dispose();}
     coarse.clear();pending=[];seen.clear();cellX=cellZ=Infinity;
-    for(const b of buildings)if(b.rich){root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}
+    for(const b of buildings)if(b.rich){b.removeContacts?.();b.removeContacts=null;root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}
    }return;
   }
   const ix=Math.floor(P.x/TILE),iz=Math.floor(P.z/TILE);
@@ -272,6 +286,14 @@ export function createSakuraWorld(T,scene,{ground,low}){
   const task=pending.shift();if(task){const part=plantTile(task.a,task.b);tileCache.set(task.k,part);groveSolids.set(task.k,part.obstacles);coarse.get(task.k).visible=false;
    vegetationLOD(part);}
   for(const l of landmarks)l.o.visible=l.reach===Infinity||Math.hypot(l.o.position.x-P.x,l.o.position.z-P.z)<l.reach;
+  for(const feature of physicalFeatures){
+   const {o}=feature;
+   const dist=Math.hypot(o.position.x-P.x,o.position.z-P.z);
+   // Stair flights can extend well beyond their origin.
+   if(!feature.remove&&dist<o.geometry.boundingSphere.radius*2+28){
+    feature.remove=contacts.add(o.geometry.attributes.position.array,o.position,o.rotation.y);
+   }else if(feature.remove&&dist>o.geometry.boundingSphere.radius*2+48){feature.remove();feature.remove=null;}
+  }
   const cold=snowAt(p.i),blossom=bloomAt(p.i),inside=Math.abs(P.x-DOJO.x)<11&&Math.abs(P.z-DOJO.z)<10||Math.abs(P.x-CASTLE.x)<27&&P.z>CASTLE.z-40&&P.z<CASTLE.z+67;
   lightHall(P,nightK);
   animateBasins(now*.001);wind.value=now*.001;air.copy(summer).lerp(winter,cold).lerp(night,nightK*.66);
@@ -279,15 +301,24 @@ export function createSakuraWorld(T,scene,{ground,low}){
   sky.update(camera,now*.001,cold,blossom,nightK,w,air);
   for(const b of buildings){const d=Math.hypot(b.p.x-P.x,b.p.z-P.z),within=d<(b.wood?200:310);
    if(within&&!b.rich){const m=batch(T);b.richModel(m);b.surface??=surfaceFinish(T,b.wood);b.rich=new T.Mesh(m.geometry(),b.surface);b.rich.position.copy(b.far.position);b.rich.name=b.name;root.add(b.rich);}
-   if(b.rich){b.rich.visible=within;if(d>(b.wood?410:610)){root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}}
+   if(b.rich&&d<(b.wood?32:110)&&!b.removeContacts){
+    b.removeContacts=contacts.add(b.rich.geometry.attributes.position.array,b.rich.position,0,b.wood?9:17);
+   }
+   if(b.rich){b.rich.visible=within;if(d>(b.wood?410:610)){b.removeContacts?.();b.removeContacts=null;root.remove(b.rich);b.rich.geometry.dispose();b.rich=null;}}
    b.far.visible=!within&&d<(b.wood?1100:2250);b.haze.value.copy(air);b.mix.value=.34+.58*smooth(250,1960,d);
   }
   water.update(now*.001,fog?.color||air,640);for(let i=0;i<2;i++)water.group.children[i].visible=near(P.x,P.z,i?ICE_LAKE:SPRING_LAKE,i?520:425);
   snow.update(P,now*.001,cold,inside?0:Math.max(blossom*.78,cold*.92)*w,innerHeight);
  }
- function solidAt(x,z){
-  if(!active)return false;const list=groveSolids.get(key(Math.floor(x/TILE),Math.floor(z/TILE)))||[];
-  for(const items of [list,landmarkSolids])for(const p of items)if((p.x-x)**2+(p.z-z)**2<p.r*p.r)return true;return false;
+ function solidAt(x,z,y,step,head){
+  if(!active)return false;
+  if(Number.isFinite(y)&&contacts.blocked(x,z,y,step,head))return true;
+  const hits=p=>(p.x-x)**2+(p.z-z)**2<(p.r+.18)**2;
+  if(landmarkSolids.some(hits))return true;
+  for(let ix=Math.floor((x-2)/TILE);ix<=Math.floor((x+2)/TILE);ix++)
+   for(let iz=Math.floor((z-2)/TILE);iz<=Math.floor((z+2)/TILE);iz++)
+    if(groveSolids.get(key(ix,iz))?.some(hits))return true;
+  return false;
  }
- return {update,solidAt,root,stats:()=>({active,nearTiles:tileCache.size,farTiles:[...coarse.values()].filter(Boolean).length,waiting:pending.length})};
+ return {update,solidAt,heightAt:(x,z,limit,ceiling=false)=>active?contacts.height(x,z,limit,ceiling):(ceiling?Infinity:-Infinity),root,stats:()=>({active,nearTiles:tileCache.size,farTiles:[...coarse.values()].filter(Boolean).length,waiting:pending.length})};
 }

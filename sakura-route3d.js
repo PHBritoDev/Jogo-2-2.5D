@@ -13,7 +13,7 @@ export const FLANK_TOWERS = [
  [45,-57,7,60],[75,-23,6,80],[67,38,8,92],[42,75,8,107],
  [25,-38,5.5,73],[26,58,5,97],[12,70,4.8,112]
 ];
-export const THRONE = {x:CASTLE.x,z:CASTLE.z+60};
+export const THRONE = {x:CASTLE.x,z:CASTLE.z+57};
 export const SPRING_LAKE = {x:-1260,z:-1450,rx:95,rz:68,y:39};
 export const INLET_BRIDGE = {x:SPRING_LAKE.x+25,z:SPRING_LAKE.z-64,y:SPRING_LAKE.y+.28};
 export const ICE_LAKE = {x:785,z:-1765,rx:211,rz:119,y:60};
@@ -32,14 +32,14 @@ const authored = [
  [1082,-1540,88],[1038,-1363,100],[882,-1320,112],[836,-1180,125],[1004,-1060,136],
  [1088,-865,122],[946,-735,107],[822,-804,116],[676,-721,121],[637,-576,99],
  [734,-493,83],[722,-398,69],[616,-385,67],[564,-355,69],[564,-322,75],[564,-295,81],
- [564,-254,81],[564,-213,81],[564,-194,84]
+ [564,-254,81],[564,-213,81],[564,-197,84]
 ];
 export const ROUTE = authored.map(p=>node(...p));
 export const DEPARTURE_NOTE = {x:CITY2.x+25,z:CITY2.z-10};
 // Follow the surveyed alleys around Cinzária's furnaces and occupied buildings.
 const alleys=[[-1255,-92],[-1271,-103],[-1278,-106],[-1281,-109],[-1281,-110],[-1284,-113]];
 export const FROM_CITY = [{x:DEPARTURE_NOTE.x+1.2,z:DEPARTURE_NOTE.z+1},...[...alleys,...TRAIL2.slice(0,-1)].map(([x,z])=>({x,z}))];
-export const CITY_ROAD = [[564,-194,84],[564,-224,81],[564,-267,81],[564,-304,79],[564,-355,69],[534,-361,68],[492,-337,70],[485,-295,74],[448,-261,66],
+export const CITY_ROAD = [[564,-197,84],[564,-224,81],[564,-267,81],[564,-304,79],[564,-355,69],[534,-361,68],[492,-337,70],[485,-295,74],[448,-261,66],
  [426,-176,52],[348,-117,34],[287,-55,19],[244,-39,11],[218,-38,7],[202,-37,5],[186,-35,4],[165,-36,4],[148,-40,4]].map(p=>node(...p));
 const paths=[
  [7,[[-1512,-1064,66],[-1635,-1105,94],[-1620,-1202,81]],10,'Jardim das raízes'],
@@ -53,6 +53,10 @@ const paths=[
  [52,[[510,-777,137],[401,-654,152],[431,-512,119],[518,-421,89]],56,'Atalaia do ocaso']
 ];
 export const DETOURS = paths.map(([a,ps,b,name])=>({name,points:[ROUTE[a],...ps.map(p=>node(...p)),ROUTE[b]]}));
+// Surveyed on the flatter bank of each bend. The grotto mouth, watchtowers
+// and observation decks leave the continuous walking line unobstructed.
+export const TRAIL_SITES=[[-1641,-1098],[-1914,-1403],[-1412,-1307],[-928,-1502],
+ [-449,-1508],[-144,-1566],[1011,-2012],[606,-1196],[392,-656]].map(([x,z])=>({x,z}));
 export const POIS = [
  [0,'cinza-fria','Costas de Cinzária'],[5,'porta-primavera','Portão da Primavera'],[9,'bosque-antigo','Galeria das cerejeiras'],
  [13,'lago-petalas','Lagos das Pétalas'],[19,'escadaria-lua','Escadaria da Lua'],[23,'dojo-sakura','Dojo da Lua Suspensa'],
