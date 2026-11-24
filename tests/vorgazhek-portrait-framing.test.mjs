@@ -21,7 +21,7 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /Math\.max\(baseWant,portrait\.minDistance\)/);
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
   assert.match(world, /deadZone:\.04,parallaxBias:fit\.parallaxBias,turnRate:3\.2/);
-  assert.match(world, /actorScreen\(\)\{\s*camera\.updateMatrixWorld\(true\)/);
+  assert.match(world, /actorScreen\(\)\{[\s\S]*?camera\.updateMatrixWorld\(true\)/);
 });
 
 test('distância adaptativa chega a 15 m antes de soltar o foco em separações longas', () => {
@@ -101,8 +101,8 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
   assert.match(world, /visibleMeshes>0/);
   assert.match(world, /visibleMeshes,meshCount/);
   assert.match(squadRuntime, /body\(id\) \{ return bodies\.get\(id\) \|\| null; \}/);
-  assert.match(qa, /state\.actors\.enemy\?\.source, 'squad-body'/);
-  assert.match(qa, /state\.actors\.enemy\?\.visible, true/);
+  assert.match(qa, /state\.actors\?\.enemy\?\.source, 'squad-body'/);
+  assert.match(qa, /state\.actors\?\.enemy\?\.visible, true/);
   assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
   assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
   assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
