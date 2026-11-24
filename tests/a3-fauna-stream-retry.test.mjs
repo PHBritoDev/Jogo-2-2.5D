@@ -638,11 +638,11 @@ test('fauna: descarta e libera GLB que termina o parse depois do dispose', async
 
 test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias carregadas', async () => {
   const counts = {
-    mainGeometry: 0, extraGeometry: 0, instancedGeometry: 0,
+    mainGeometry: 0, extraGeometry: 0, instancedGeometry: 0, instancedExtraGeometry: 0,
     mainOriginalMaterial: 0, extraMaterial: 0, instancedOriginalMaterial: 0,
-    replacementMaterial: 0,
-    mainTexture: 0, extraTexture: 0, instancedTexture: 0,
-    mainImage: 0, extraImage: 0, instancedImage: 0,
+    instancedExtraMaterial: 0, replacementMaterial: 0,
+    mainTexture: 0, extraTexture: 0, instancedTexture: 0, instancedExtraTexture: 0,
+    mainImage: 0, extraImage: 0, instancedImage: 0, instancedExtraImage: 0,
     skeleton: 0, instancedMesh: 0
   };
   const texture = (name) => ({
@@ -657,12 +657,15 @@ test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias
   const mainTexture = texture('main');
   const extraTexture = texture('extra');
   const instancedTexture = texture('instanced');
+  const instancedExtraTexture = texture('instancedExtra');
   const mainGeometry = geometry('main');
   const extraGeometry = geometry('extra');
   const instancedGeometry = geometry('instanced');
+  const instancedExtraGeometry = geometry('instancedExtra');
   const mainOriginal = { map: mainTexture, color: 0xffffff, dispose() { counts.mainOriginalMaterial++; } };
   const extraMaterial = { map: extraTexture, dispose() { counts.extraMaterial++; } };
   const instancedOriginal = { map: instancedTexture, color: 0xffffff, dispose() { counts.instancedOriginalMaterial++; } };
+  const instancedExtraMaterial = { map: instancedExtraTexture, dispose() { counts.instancedExtraMaterial++; } };
   const skeleton = { dispose() { counts.skeleton++; } };
   const mainMesh = { isMesh: true, isSkinnedMesh: true, geometry: mainGeometry, material: mainOriginal, skeleton };
   const accessoryMesh = { isMesh: true, geometry: extraGeometry, material: extraMaterial };
@@ -671,7 +674,8 @@ test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias
     updateMatrixWorld() {}
   };
   const griloMesh = { isMesh: true, geometry: instancedGeometry, material: instancedOriginal };
-  const griloScene = { traverse(fn) { fn(griloMesh); }, updateMatrixWorld() {} };
+  const griloAccessoryMesh = { isMesh: true, geometry: instancedExtraGeometry, material: instancedExtraMaterial };
+  const griloScene = { traverse(fn) { fn(griloMesh); fn(griloAccessoryMesh); }, updateMatrixWorld() {} };
   class Loader {
     register() {}
     loadAsync(url) {
@@ -697,11 +701,11 @@ test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias
     fauna.dispose();
 
     assert.deepEqual(counts, {
-      mainGeometry: 1, extraGeometry: 1, instancedGeometry: 1,
-      mainOriginalMaterial: 1, extraMaterial: 1, instancedOriginalMaterial: 1,
+      mainGeometry: 1, extraGeometry: 1, instancedGeometry: 1, instancedExtraGeometry: 1,
+      mainOriginalMaterial: 1, extraMaterial: 1, instancedOriginalMaterial: 1, instancedExtraMaterial: 1,
       replacementMaterial: 2,
-      mainTexture: 1, extraTexture: 1, instancedTexture: 1,
-      mainImage: 1, extraImage: 1, instancedImage: 1,
+      mainTexture: 1, extraTexture: 1, instancedTexture: 1, instancedExtraTexture: 1,
+      mainImage: 1, extraImage: 1, instancedImage: 1, instancedExtraImage: 1,
       skeleton: 1, instancedMesh: 1
     });
   } finally {
