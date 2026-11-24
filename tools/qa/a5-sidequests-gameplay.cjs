@@ -81,6 +81,8 @@ async function acceptMission({ id, giver, title, phrase, screenshot }) {
   const allText = pages.map(p => p.text).join(' ');
   assert.ok(allText.includes(phrase), id + ': fala de oferta ausente: ' + allText);
   assert.ok(pages.every(p => p.who === vendor.name), id + ': falante não corresponde ao NPC: ' + JSON.stringify(pages));
+  assert.equal(pages.length, byId[id].offer.length, id + ': quantidade de páginas da oferta divergente');
+  assert.deepEqual(pages.map(p => p.text.replace(/\\s+/g, ' ').trim()), byId[id].offer.map(p => p.text.replace(/\\s+/g, ' ').trim()), id + ': texto da oferta diverge do módulo');
   const state = await sideState();
   assert.equal(state[id]?.state, 'active', id + ': missão não foi aceita ao fechar o diálogo');
   report.missions[id] = { title, giver, offerPages: pages, accepted: true };
@@ -93,9 +95,11 @@ async function deliverMission({ id, giver, title, reward, screenshot }) {
   const pages = await readDialogue();
   assert.ok(pages.length > 0, id + ': diálogo de entrega vazio');
   assert.ok(pages.every(p => p.who === vendor.name), id + ': falante de entrega incorreto');
+  assert.equal(pages.length, byId[id].turnIn.length, id + ': quantidade de páginas da entrega divergente');
+  assert.deepEqual(pages.map(p => p.text.replace(/\\s+/g, ' ').trim()), byId[id].turnIn.map(p => p.text.replace(/\\s+/g, ' ').trim()), id + ': texto da entrega diverge do módulo');
   await page.waitForFunction(id => JSON.parse(localStorage.getItem('seven-sins-3d-side') || '{}')[id]?.state === 'done', id, { timeout: 20000 });
   const after = await qaState();
-  assert.equal(after.side[id].progress, after.side[id].progress, id + ': estado inválido');
+  assert.equal(after.side[id].progress, reward.goalCount ?? after.side[id].progress, id + ': estado inválido');
   assert.equal(after.coins - before.coins, reward.coins, id + ': recompensa de moedas divergente');
   assert.equal(after.xp - before.xp, reward.xp, id + ': recompensa de XP divergente');
   await shot(screenshot + '-done');
@@ -252,6 +256,10 @@ async function collectPendant() {
     }
     await shot('sem-recompensa-duplicada');
     report.final = await qaState();
+    const criticalConsole = report.consoleErrors.filter(e => !/WebGL|KHR_parallel|PropertyBinding|Shader Error/i.test(e));
+    assert.equal(report.errors.length, 0, 'erros JavaScript no navegador: ' + report.errors.join(' | '));
+    assert.equal(report.httpErrors.length, 0, 'falha ao carregar asset JS/GLB: ' + report.httpErrors.join(' | '));
+    assert.equal(criticalConsole.length, 0, 'erros de console: ' + criticalConsole.join(' | '));
     report.status = 'passed';
   } catch (e) {
     fatal = e;
