@@ -115,6 +115,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   // Three.js 0.160.0 não expõe abort no GLTFLoader. Buscar o GLB com AbortController
   // e entregar os bytes ao parseAsync permite liberar a vaga se a rede ficar pendurada.
   async function loadGLB(loader, url) {
+    if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB load'), { name: 'AbortError' });
     const controller = new AbortController();
     activeControllers.add(controller);
     let timer = null, timedOut = false;
@@ -128,6 +129,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       }, requestTimeoutMs);
     });
     const operation = Promise.resolve().then(async () => {
+      if (disposed) throw Object.assign(new Error('fauna controller disposed before GLB request'), { name: 'AbortError' });
       // O fallback mantém compatibilidade com loaders antigos/mocks, mas também
       // fica sob o mesmo limite total e descarta o GLB se terminar tarde.
       if (typeof loader.parseAsync !== 'function') return loader.loadAsync(url);

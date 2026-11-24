@@ -145,9 +145,9 @@ test('fauna: scanner de produção tenta novamente após o backoff no habitat at
 
 test('fauna: uma requisição lenta não bloqueia outras espécies e respeita o limite de concorrência', async () => {
   assert.equal(FAUNA_MAX_CONCURRENT_LOADS, 2);
-  const coelho = cellCandidate('coelho', 29, -15);
-  const montanha = cellCandidate('montanha', 29, -15);
-  const lava = cellCandidate('lava', 29, -15);
+  const coelho = cellCandidate('coelho', -100, -92);
+  const montanha = cellCandidate('montanha', -100, -92);
+  const lava = cellCandidate('lava', -100, -92);
   assert.ok(coelho && montanha && lava, 'a célula de regressão precisa conter os três candidatos');
 
   const habitat = {
@@ -266,9 +266,9 @@ test('fauna: falhas transitórias têm teto de seis tentativas por espécie', as
 
 test('fauna: GLBs pendurados são abortados e liberam as duas vagas para retry', async () => {
   assert.equal(FAUNA_LOAD_TIMEOUT_MS, 20000);
-  const coelho = cellCandidate('coelho', 29, -15);
-  const montanha = cellCandidate('montanha', 29, -15);
-  const lava = cellCandidate('lava', 29, -15);
+  const coelho = cellCandidate('coelho', -100, -92);
+  const montanha = cellCandidate('montanha', -100, -92);
+  const lava = cellCandidate('lava', -100, -92);
   assert.ok(coelho && montanha && lava);
 
   const habitat = {
@@ -483,6 +483,23 @@ test('fauna: timeout do fallback loadAsync também libera a vaga e descarta o GL
   assert.deepEqual(counts, { geometry: 1, material: 1 },
     'o fallback loadAsync também precisa liberar recursos quando termina tarde');
   fauna.dispose();
+});
+
+test('fauna: dispose imediato antes do microtask não inicia uma requisição GLB', async () => {
+  let requests = 0;
+  const fetchImpl = async () => { requests++; throw new Error('fetch não deveria iniciar após dispose'); };
+  class Loader {
+    register() {}
+    parseAsync() { assert.fail('parseAsync não pode iniciar após dispose imediato'); }
+  }
+  const fauna = create(Loader, ctx, { fetchImpl, loadTimeoutMs: 1000 });
+  const pending = fauna.load('grilo');
+  fauna.dispose();
+  const failure = await pending;
+  assert.match(failure.failed, /disposed before GLB/i);
+  assert.equal(requests, 0, 'o microtask de load não pode iniciar rede depois do dispose');
+  assert.equal(fauna.stats.activeLoads, 0);
+  assert.deepEqual(fauna.stats.loaded, []);
 });
 
 test('fauna: dispose aborta requisições pendentes e bloqueia novos carregamentos', async () => {
