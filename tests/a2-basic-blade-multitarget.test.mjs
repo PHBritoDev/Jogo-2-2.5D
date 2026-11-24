@@ -348,3 +348,49 @@ test('physical sweep skips obstacle sampling when every living target is outside
  assert.equal(hitCalls,0,'actors outside the swept blade volume must not be hit');
  assert.equal(blockedCalls,0,'distant living actors must not trigger the expensive 8 mm/five-rail wall sweep');
 });
+
+test('occluded side target reuses the exact-endpoint LOS result for 50ms',()=>{
+ const focus=enemy('far-focus',40,40),side=enemy('occluded',0,3),hits=[],impacts=[];
+ let blockedCalls=0,losCalls=0;
+ const blocked=p=>{
+  blockedCalls++;
+  if(p.z>1.4&&p.z<1.6&&Math.abs(p.x)<.02){losCalls++;return true;}
+  return false;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'occlusion-cache',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:-1,y:1,z:3},tip:{x:1,y:1,z:3}}),
+  hit:(damage,id,kind)=>hits.push({id,kind}),
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ for(let i=0;i<48;i++)rites.update(1/120,ctx);
+ assert.deepEqual(hits,[],'a target behind the wall must never receive damage');
+ assert.deepEqual(impacts,[],'a target behind the wall must never receive impact VFX');
+ assert.ok(losCalls<=8,'unchanged blocked endpoints should be ray-tested at most once per 50ms');
+ assert.ok(blockedCalls<14500,'the cached ray must remove repeated 8mm line-of-sight scans');
+});
+
+test('occlusion cache invalidates immediately when the hero moves around the wall',()=>{
+ const focus=enemy('far-focus',40,40),side=enemy('side',0,3),hits=[];
+ let losCalls=0;
+ const blocked=p=>{
+  if(p.z>1.4&&p.z<1.6&&p.x<.1){losCalls++;return true;}
+  return false;
+ };
+ const rites=new SwordRites({
+  moveset:()=>({id:'occlusion-move',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:-1,y:1,z:3},tip:{x:1,y:1,z:3}}),
+  hit:(damage,id,kind)=>hits.push(id)
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ for(let i=0;i<4;i++)rites.update(1/120,ctx);
+ assert.deepEqual(hits,[]);
+ assert.equal(losCalls,1,'the initial wall must be detected once');
+ ctx.from.x=1;
+ rites.update(1/120,ctx);
+ assert.deepEqual(hits,['side'],'moving to the clear side of the wall must invalidate the cached obstruction');
+ assert.equal(losCalls,1,'the clear ray must not reuse the old blocked result');
+});
