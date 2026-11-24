@@ -113,3 +113,37 @@ test('production squad bridge consumes the projectile-aware side-hit context',as
  assert.match(bridge,/swordSideHitContext\(x,a,player\.position\)/);
  assert.match(bridge,/sq\.damageActor\(a,damage,\{\.\.\.source,by:'hero',knock:\.3\}\)/);
 });
+
+test('degenerate wave direction and sector-center hits keep deterministic knockback',()=>{
+ const target={x:10,z:20},fallback={x:90,z:-40};
+ assert.deepEqual(swordSideHitContext({wave:{direction:{x:0,z:0},yaw:Math.PI/2}},target,fallback),
+  {x:9,z:20,kind:'spell'});
+ assert.deepEqual(swordSideHitContext({energy:{kind:'sector',x:10,z:20,yaw:0}},target,fallback),
+  {x:10,z:19,kind:'spell'});
+ const squad=new Enemy1Squad({seed:12}),[actor]=squad.spawn([{x:10,z:20}]);
+ const source=swordSideHitContext({energy:{kind:'sector',x:10,z:20,yaw:0}},actor,fallback);
+ squad.damageActor(actor,10,{...source,by:'hero',knock:.3});
+ assert.ok(actor.kz>0,'sector centered on an overlapping actor should push along its authored yaw');
+});
+test('real Eclipse wave metadata drives secondary squad knockback along travel',()=>{
+ const primary=enemy(1,0,3),squad=new Enemy1Squad({seed:11}),[actor]=squad.spawn([{x:.7,z:3}]);
+ const side={id:actor.id,x:actor.x,y:actor.y+(actor.T.height||1.7)*.5,z:actor.z,
+  radius:actor.T.radius,height:actor.T.height,alive:true};
+ let result=null;
+ const rites=new SwordRites({
+  pose:()=>null,
+  hit:(damage,id,kind,meta)=>{
+   if(kind!=='energy-side'||id!==actor.id)return;
+   const source=swordSideHitContext(meta,actor,{x:90,z:-40});
+   const dealt=squad.damageActor(actor,damage,{...source,by:'hero',knock:.3});
+   result={dealt,source,direction:meta?.wave?.direction};
+  }
+ });
+ assert.deepEqual(rites.cast('aurora',{mana:100,from:{x:0,y:0,z:0},target:primary,yaw:0,damage:25}),{ok:true,cost:38});
+ const ctx={from:{x:0,y:0,z:0},target:primary,others:[side],sword:'aurora'};
+ for(let i=0;i<120&&!result;i++)rites.update(1/120,ctx);
+ assert.ok(result?.dealt>0,'the real Eclipse wave must hit the secondary squad actor');
+ assert.deepEqual(result.direction,{x:0,y:0,z:1});
+ assert.ok(actor.kz>0,'the actor must be pushed forward along the wave');
+ assert.ok(Math.abs(actor.kx)<1e-9,'the moved hero must not inject a sideways knockback');
+});
