@@ -32,7 +32,10 @@ async function main(){
     await page.waitForFunction(()=>typeof window.SevenSinsDebug3D?.dimState==="function",null,{timeout:110000});
     await page.waitForFunction(()=>{const s=window.SevenSinsDebug3D.dimState();return s.vs||s.battle?.active;},null,{timeout:110000,polling:125});
     const pre=await page.evaluate(()=>window.SevenSinsDebug3D.dimState());
-    if(pre.vs)await page.evaluate(()=>window.SevenSinsDebug3D.vsGo());
+    if(pre.vs){
+     await page.waitForFunction(()=>{const button=document.querySelector("#vs-go");return !!button&&!button.disabled;},null,{timeout:110000,polling:125});
+     data.vs=await page.evaluate(()=>({label:window.SevenSinsDebug3D.vsGo(),buttonDisabled:document.querySelector("#vs-go")?.disabled??null}));
+    }
     await page.waitForFunction(()=>{
      const d=window.SevenSinsDebug3D,s=d.dimState();
      return s.battle?.active&&s.visible&&s.profile==="zarkhael"&&!s.vs&&!s.cineActive&&!s.menuGate&&!s.paused&&
