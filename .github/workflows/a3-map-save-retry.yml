@@ -1,8 +1,13 @@
 name: A3 — retry da persistência do mapa
 on:
-  push:
+  pull_request:
     branches:
-      - 'agentes/a3/**'
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
     paths:
       - 'mundo-3d-prototype.js'
       - 'mundo-3d-prototype.html'
@@ -21,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -44,7 +49,7 @@ jobs:
         env:
           VISUAL_BASE_URL: http://127.0.0.1:4173
           VISUAL_OUTPUT: visual-lab-results
-          PR_HEAD_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: NODE_PATH=tools/visual-lab/node_modules node tools/qa/a3-map-save-retry-runtime.cjs
       - name: Entregar relatório do runtime
         if: always()
