@@ -111,12 +111,15 @@ async function capture(label,url,browser){
       Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
       Math.abs(source.distance-expectedFill.distance)<.01&&
       Math.abs(source.decay-expectedFill.decay)<.001&&
-      source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012));
+      source.color?.length===3&&source.color.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
+      source.slotColor?.length===3&&source.slotColor.every((value,i)=>Math.abs(value-expectedFill.color[i])<.012)&&
+      Math.abs(source.slotDistance-expectedFill.distance)<.01&&
+      Math.abs(source.slotDecay-expectedFill.decay)<.001);
     assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
     assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
     const lightingCheck={expected:expectedFill,observed:{
       name:fill.name,position:fill.position,intensity:fill.intensity,distance:fill.distance,
-      color:fill.color,slotIntensity:fill.slotIntensity
+      color:fill.color,slotIntensity:fill.slotIntensity,slotColor:fill.slotColor,slotDistance:fill.slotDistance,slotDecay:fill.slotDecay
     }};
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
