@@ -1,7 +1,16 @@
-name: QA direcionado A5 — regressão de produção
+name: QA direcionado A5 — regressão de missões
 on:
   pull_request:
     paths:
+      - 'sidequests3d.js'
+      - 'sidequests3d.test.mjs'
+      - 'map3d.js'
+      - 'map3d.test.mjs'
+      - 'mundo-3d-prototype.js'
+      - 'tools/qa/a5-waystone-gameplay.cjs'
+      - 'tools/qa/a5-waystone-qa-utils.cjs'
+      - 'tools/qa/a5-waystone-qa-utils.test.cjs'
+      - 'tools/qa/a5-waystone-pathfinding.mjs'
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
       - 'act2-flow.js'
@@ -13,14 +22,39 @@ permissions:
   contents: read
 jobs:
   regressao:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verificar arquivo JS
-        run: node --check act1-flow.js && node --check act2-flow.js
-      - name: Executar teste específico e contrato base
-        run: node --test tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
+      - name: Verificar sintaxe dos módulos
+        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --check tools/qa/a5-waystone-gameplay.cjs && node --check tools/qa/a5-waystone-qa-utils.cjs && node --check tools/qa/a5-waystone-pathfinding.mjs && node --input-type=module --check < mundo-3d-prototype.js
+      - name: Executar regressões de missões, mapa e campanha
+        run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs tools/qa/a5-waystone-qa-utils.test.cjs
+      - name: Instalar Chromium e Three para QA de gameplay
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Caminhada e registro real dos três abrigos
+        env:
+          NODE_PATH: ${{ github.workspace }}/work/qa/node_modules
+          A5_QA_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          VISUAL_OUTPUT: ${{ github.workspace }}/work/a5-waystones
+          VISUAL_BASE_URL: 'http://127.0.0.1:4173'
+        run: |
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/a5-world.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:4173/mundo-3d-prototype.html" >/dev/null; then break; fi
+            sleep 1
+          done
+          node tools/qa/a5-waystone-gameplay.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a5-waystone-gameplay-${{ github.event.pull_request.head.sha || github.sha }}
+          path: work/a5-waystones/
+          retention-days: 14

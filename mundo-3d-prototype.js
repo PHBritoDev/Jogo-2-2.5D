@@ -103,7 +103,7 @@ import { iconSvg } from './shop-icons3d.js';
 import { DIMENSIONS, dimensionForProfile, arenaSpec, vsCard, arenaSpots } from './dimensions3d.js';
 import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.js';
 import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, MISSION_PROLOGUE, GUIDE_NAME, GUIDE_PUBLIC_NAME } from './prologue-flow.js';
-import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, settleSideReward, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
 import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
@@ -1601,6 +1601,7 @@ new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
  if(renderer.compileAsync)renderer.compileAsync(imported,camera,scene).then(attach,attach);else attach();
 },undefined,err=>{console.error('AnjoGuiador-otimizado.glb não carregou:',err);status.textContent='Não foi possível carregar o Anjo-Guia (AnjoGuiador-otimizado.glb)';});
 const PROGRESS_KEY='sevenSins3DCampaignV6';
+let sideRewardClaims=(()=>{try{const raw=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null'),claims=Array.isArray(raw?.sideRewardClaims)?raw.sideRewardClaims:[];return [...new Set(claims.filter(id=>typeof id==='string'&&/^side:[a-z0-9_-]+:v2$/.test(id)))].slice(-32);}catch(_){return[];}})();
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){let raw=null;try{raw=JSON.parse(localStorage.getItem(key)||'null');}catch(_){continue;}/* A1-SAVE-FALLBACK-02: slot corrompido não esconde um slot antigo válido */if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
 let sideReady=false;
@@ -1674,7 +1675,7 @@ function warmJourneyPrograms(){
  let p=null;force();try{p=renderer.compileAsync?renderer.compileAsync(scene,camera):null;}catch(e){p=null;}restore();
  if(p)p.then(draw,draw);else draw();
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now(),sideRewardClaims:[...sideRewardClaims]};let persisted=false;try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));persisted=true;}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}return persisted;}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -4087,7 +4088,23 @@ function updateVillagers(dt){
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
-function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));}catch(_){}}
+function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
+function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&typeof saved==='object'&&!Array.isArray(saved)?{coins:saved.coins,xp:saved.xp,sideRewardClaims:Array.isArray(saved.sideRewardClaims)?saved.sideRewardClaims:[]}:null;}catch(_){return null;}}
+function settlePendingSideReward(){
+ const result=settleSideReward(sideState,savedCampaignProgress(),pending=>{
+  if(!pending.appliedInMemory){
+   coins+=pending.coins;
+   gainXp(pending.xp);
+   pending.appliedInMemory=true;
+  }
+  if(!sideRewardClaims.includes(pending.claimId))sideRewardClaims=[...sideRewardClaims,pending.claimId].slice(-32);
+  save3DProgress();return savedCampaignProgress();
+ });
+ if(result!=='pending'&&result!=='none')saveSide();
+ return result;
+}
+const sideRewardRecovery=settlePendingSideReward();
+if(sideRewardRecovery==='pending')status.textContent='Uma recompensa está em recuperação; ela será salva antes de outra entrega.';
 const SIDE_ITEMS=[];
 {
  const petal=new THREE.MeshStandardMaterial({color:0xcfe8ff,emissive:0x7fb8ff,emissiveIntensity:1.6,roughness:.5}),stem=mat(0x3d5a2e);
@@ -4106,16 +4123,27 @@ const SIDE_ITEMS=[];
 // Itens já entregues/coletados não reaparecem.
 {const taken={flor:sideState.ervas.progress+(sideState.ervas.state==='done'?99:0),pingente:sideState.pingente.progress+(sideState.pingente.state==='done'?99:0)};for(const it of SIDE_ITEMS){if(taken[it.item]>0){it.taken=true;taken[it.item]--;}}}
 function syncSideItems(){for(const it of SIDE_ITEMS){const q=SIDE_QUESTS.find(x=>x.goal.item===it.item);it.group.visible=!it.taken&&sideState[q.id].state==='active';}}
-function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
+function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
 function updateSideItems(dt,now){
  for(const it of SIDE_ITEMS){if(!it.group.visible)continue;it.glow.material.opacity=.5+Math.sin(now*.004+it.group.position.x)*.25;
   if(Math.hypot(it.group.position.x-player.position.x,it.group.position.z-player.position.z)<1.5){const q=collectSide(sideState,it.item);if(!q)continue;it.taken=true;it.group.visible=false;saveSide();worldAudio.reveal();showRewardPop(q.title+' · '+sideState[q.id].progress+'/'+q.goal.count);refreshSideQuests();}}
 }
 /** Conversa nas bancas: oferta, lembrete ou entrega da missão opcional daquele vendedor. */
 function trySideQuestTalk(vendor){
+ if(sideState.pendingReward&&settlePendingSideReward()==='pending'){status.textContent='A recompensa anterior ainda está sendo salva. Tente novamente antes de entregar outra missão.';return true;}
  refreshSideQuests();const q=questForGiver(sideState,vendor.shortName);if(!q)return false;const s=sideState[q.id];
  if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
- if(s.state==='ready'){showDialogue(q.turnIn,()=>{const r=turnInSide(sideState,q.id);if(r){coins+=r.coins;gainXp(r.xp);showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');save3DProgress();updateQuestHud();}saveSide();refreshSideQuests();});return true;}
+ if(s.state==='ready'){showDialogue(q.turnIn,()=>{
+  const r=turnInSide(sideState,q.id,q.goal.type==='waystones'?{waystones:mapState.waystones,persistWaystones:()=>saveMapState(true)}:undefined);if(!r&&q.goal.type==='waystones'){status.textContent='Não foi possível confirmar o salvamento das três pedras. A recompensa continua disponível; tente novamente.';refreshSideQuests();return;}if(r){
+   sideState.pendingReward={claimId:'side:'+q.id+':v2',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
+   if(!saveSide()){sideState[q.id].state='ready';sideState.pendingReward=null;status.textContent='Não foi possível salvar a entrega. Tente novamente.';refreshSideQuests();return;}
+   const settled=settlePendingSideReward();
+   if(settled==='pending')status.textContent='Recompensa registrada; a persistência será recuperada antes de outra entrega.';
+   else showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');
+   updateQuestHud();
+  }
+  saveSide();refreshSideQuests();
+ });return true;}
  showDialogue([{who:vendor.name,text:q.progressLine+'. ('+s.progress+'/'+q.goal.count+')'}]);return true;
 }
 sideReady=true;refreshSideQuests();
@@ -8854,9 +8882,11 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  collisionAt(x,z){return playerBlockedAt(x,z);},
  /** MOD 214 — valida o mesmo carregador e os clipes usados pela Sandra na campanha. */
  async inspectSandra(){await loadRig('sandra');const r=rigs.sandra;return{roles:Object.keys(r.actions),clips:Object.fromEntries(Object.entries(r.actions).map(([k,a])=>[k,{name:a.getClip().name,duration:a.getClip().duration}])),height:measureModelBounds(r.model).getSize(new THREE.Vector3()).y};},
- teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
+ teleport(x,z,yaw,height){player.position.set(x,Number.isFinite(height)?height:terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
  state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state,dim:{vs:vsOpen,battle:!!dimBattle,active:!!(dimBattle&&dimBattle.active),key:dimKey,sent:handoffSent,pull:!!portalPull,pt:portalPull&&portalPull.t,paused:gamePaused,gate:menuGate,voidMode:!!voidMode,hour:+gameClock.hour.toFixed(2),enemyHP,enemyMaxHP,hp:playerHP}};},
+ /* QA A5 — leitura somente; só existe com ?debug3d=1, sem controles ou efeitos no gameplay normal. */
+ sideQuestQA(){return{questStep,coins,xp:playerXp,side:JSON.parse(JSON.stringify(sideState)),vendors:villageVendors.map(v=>({name:v.name,shortName:v.shortName,x:+v.x.toFixed(2),z:+v.z.toFixed(2)})),items:SIDE_ITEMS.map(it=>({item:it.item,x:+it.group.position.x.toFixed(2),z:+it.group.position.z.toFixed(2),visible:it.group.visible,taken:it.taken})),waystones:WAYSTONES.map(w=>{const v=waystoneVisuals.find(q=>q.data.id===w.id);return{id:w.id,x:w.x,z:w.z,centerY:v?.shelter.center.y??null};}),registeredWaystones:[...mapState.waystones]};},
  setNight(on){setDayNightMode(on?'night':'day');dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);},
  /** MOD 311: entra numa zona da ascensão (cave|ascent) já pronta; at em coordenadas locais. */
  ascension(key,at){if(!key){if(ascKey)ascLeaveToWorld();return null;}return ascWhenReady(key).then(()=>{ascEnter(key,at||(key==='cave'?ASC_CAVE.spawn:ASC_ASCENT.spawn));return this.ascState();});},
