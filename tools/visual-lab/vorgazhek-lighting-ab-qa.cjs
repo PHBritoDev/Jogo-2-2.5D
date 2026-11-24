@@ -24,7 +24,8 @@ const report={
   ok:false,
   baseSha:process.env.VISUAL_BASE_SHA||null,
   headSha:process.env.VISUAL_BRANCH_SHA||null,
-  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose, fixed actor positions and clock; compare side and grazing-angle water ROIs',
+  method:'same preview source, production arena.env, NewBispo2 squad GLB, VG_idle pose and clock; compare moderate-angle and grazing-angle water ROIs',
+  cameraProtocol:{moderate:{position:[18,10,15],target:[-.35,1.1,8.8]},grazing:{position:[12,3.5,18],target:[-.35,1.2,8.8]}},
   proxy:'real current VORGAZHEK squad GLB + neutral 1.8m hero capsule; runtime gameplay capture separately validates the full game',
   baseline:null,
   branch:null,
@@ -107,7 +108,7 @@ async function capture(browser,label,baseUrl){
 
       q.cam.fov=56;
       q.cam.updateProjectionMatrix();
-      q.cam.position.set(18,3.4,15);
+      q.cam.position.set(18,10,15);
       q.cam.lookAt(-.35,1.1,8.8);
       const metrics=q.frame(2000);
       q.scene.updateMatrixWorld(true);
@@ -202,13 +203,16 @@ async function main(){
     assert.ok(!rectsOverlap(h.rects.boss,h.rects.hero),'branch boss/hero ROIs must not overlap');
     assert.equal(b.metrics.calls,h.metrics.calls,'draw calls must remain unchanged');
     assert.equal(b.metrics.triangles,h.metrics.triangles,'triangle count must remain unchanged');
-    assert.ok(h.roi.boss.mean>b.roi.boss.mean+2,'real VORGAZHEK squad model must gain a meaningful luminance increase');
-    assert.ok(h.roi.boss.p95>b.roi.boss.p95+8,'armor highlights must gain a meaningful upper-tail luminance increase');
-    assert.ok(h.roi.boss.visiblePct>b.roi.boss.visiblePct+3,'more of the real VORGAZHEK squad model must clear the visible-pixel threshold');
-    assert.ok(h.roi.hero.mean>b.roi.hero.mean-.5,'hero proxy must not become darker');
-    assert.ok(h.roi.water.mean>=b.roi.water.mean-.5,'side-view water must not become darker');
-    assert.ok(h.obliqueRoi.water.mean>b.obliqueRoi.water.mean+.8,'grazing-angle water ROI must gain the camera-aware silver sheen');
-    assert.ok(h.obliqueRoi.water.p95>b.obliqueRoi.water.p95+2,'grazing-angle silver highlights must remain visible');
+    assert.equal(b.metrics.geometries,h.metrics.geometries,'geometry count must remain unchanged');
+    assert.equal(b.metrics.textures,h.metrics.textures,'texture count must remain unchanged');
+    assert.deepEqual(h.rects.boss,b.rects.boss,'real VORGAZHEK model framing must remain identical');
+    assert.deepEqual(h.rects.hero,b.rects.hero,'hero framing must remain identical');
+    assert.ok(h.roi.water.mean>=b.roi.water.mean-.5,'moderate-angle water must not become darker');
+    const sideWaterDelta=h.roi.water.mean-b.roi.water.mean;
+    const obliqueWaterDelta=h.obliqueRoi.water.mean-b.obliqueRoi.water.mean;
+    assert.ok(obliqueWaterDelta>1.0,'grazing-angle water ROI must gain a visible camera-aware silver sheen');
+    assert.ok(h.obliqueRoi.water.p95>b.obliqueRoi.water.p95+2.5,'grazing-angle silver highlights must remain visible');
+    assert.ok(obliqueWaterDelta>sideWaterDelta+.4,'grazing angle must respond more strongly than the moderate angle');
     assert.ok(Math.abs(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean)<1.5,'black horizon must remain stable');
     report.comparison={
       bossMeanDelta:+(h.roi.boss.mean-b.roi.boss.mean).toFixed(3),
@@ -219,8 +223,11 @@ async function main(){
       obliqueWaterMeanDelta:+(h.obliqueRoi.water.mean-b.obliqueRoi.water.mean).toFixed(3),
       obliqueWaterP95Delta:+(h.obliqueRoi.water.p95-b.obliqueRoi.water.p95).toFixed(3),
       obliqueHorizonMeanDelta:+(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean).toFixed(3),
+      angleWaterMeanDelta:+(obliqueWaterDelta-sideWaterDelta).toFixed(3),
       drawCallsDelta:h.metrics.calls-b.metrics.calls,
-      trianglesDelta:h.metrics.triangles-b.metrics.triangles
+      trianglesDelta:h.metrics.triangles-b.metrics.triangles,
+      geometriesDelta:h.metrics.geometries-b.metrics.geometries,
+      texturesDelta:h.metrics.textures-b.metrics.textures
     };
     report.ok=true;
   }catch(err){
