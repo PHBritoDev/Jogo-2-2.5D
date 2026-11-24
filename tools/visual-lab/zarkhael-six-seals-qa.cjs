@@ -48,13 +48,14 @@ async function main(){
       throw new Error("Arena do Bispo 3 indisponível no debug state");
      window.__qaManualBossSkills=true;
      d.god(true);d.skills();d.power();
+     const timeScale=d.speed(0.1);
      const x=a.center[0]+a.radius*.95,z=a.center[1];
-     d.teleport(x,z);d.god(false);d.speed(2);
+     d.teleport(x,z);d.god(false);
      const p=d.state(),safeDistance=Math.hypot(p.x-a.center[0],p.z-a.center[1]),dangerRadius=a.radius*Math.sqrt(.8);
      if(Math.abs(p.y-a.floorY)>1)throw new Error("Jogador saiu do piso da dimensão: y="+p.y+" floor="+a.floorY);
      if(!(safeDistance>dangerRadius+.25&&safeDistance<a.radius-.25))
       throw new Error("Jogador não ficou na faixa segura externa: "+safeDistance+" / "+dangerRadius+" / "+a.radius);
-     return {arena:a,player:{x:p.x,y:p.y,z:p.z},safeDistance,dangerRadius,hpBefore:s.hp};
+     return {arena:a,player:{x:p.x,y:p.y,z:p.z},safeDistance,dangerRadius,hpBefore:s.hp,timeScale};
     });
     const launch=await page.evaluate(()=>{
      const d=window.SevenSinsDebug3D,response=d.kitMove("ult"),s=d.dimState();
@@ -96,10 +97,10 @@ async function main(){
      ["14-apice-uma-explosao",14.40,"EXPLOSAO_ORGANICA_3_4"],
      ["15-dissipacao",15.03,"EXPLOSAO_ORGANICA_3_4"]];
     for(const [name,target,expectedShot] of schedule){
-     const h=await page.waitForFunction(t=>{
+     const h=await page.waitForFunction(({target,expectedShot})=>{
       const state=window.SevenSinsDebug3D?.dimState()?.cinematic;
-      return state&&state.t>=t?state:null;
-     },target,{timeout:120000,polling:125});
+      return state&&state.shot===expectedShot&&state.t>=target?state:null;
+     },{target,expectedShot},{timeout:120000,polling:125});
      const state=await h.jsonValue();
      const image=path.join(folder,name+".png");
      await page.screenshot({path:image,animations:"disabled",timeout:30000});
