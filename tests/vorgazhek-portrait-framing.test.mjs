@@ -134,7 +134,7 @@ test('QA exercita pinça touch, roda do mouse e retorno de perspectiva', () => {
 
 test('zoom manual no retrato preserva a distância escolhida pelo jogador', () => {
   assert.equal((world.match(/portraitZoomOverride=true/g) || []).length, 2, 'pinça e roda ativam o override no retrato VORGAZHEK');
-  assert.match(world, /portraitZoomOverride\?cameraDistance:Math\.max\(baseWant,portrait\.minDistance\)/);
+  assert.match(world, /portraitZoomOverride\?cameraDistance:baseWant\+\(fittedWant-baseWant\)\*\(portrait\.release\?\?1\)/);
   assert.match(world, /manualZoomOverride:portraitZoomOverride/);
   assert.match(world, /if\(key==='bishop2'\)portraitZoomOverride=false/);
 });
