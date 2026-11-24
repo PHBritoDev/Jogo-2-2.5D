@@ -7726,8 +7726,8 @@ function fxVortex(dur,speed,dmg,c1,c2){
   if(t>dur+.5){fxDispose(g);return false;}});
 }
 /** O herói machuca o chefe (efeitos amigos): mesma regra de morte do resto do combate. */
-function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&enemy.visible&&enemyAlive))return false;enemyHP=Math.max(0,enemyHP-dmg);if(!silent){if(celestial){const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(dmg),'');hitStop(35);cameraShake(.04);}else onEnemyDamaged(dmg,!!big);}
- if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(!silent&&!(zarkSword&&zarkSword.holdBoss)&&!(zarkUlt&&zarkUlt.holdBoss)&&!(vxSwords&&vxSwords.holdBoss)&&!(cySkill&&cySkill.holdBoss))playEnemyAnimation('hit',.05,true);return true;}
+function hurtEnemy(dmg,big,celestial=false,silent=false){if(!(combatStepNow()&&enemy.visible&&enemyAlive))return false;const amount=Number.isFinite(dmg)?Math.max(0,dmg):0,before=enemyHP;enemyHP=Math.max(0,enemyHP-amount);const applied=Math.max(0,before-enemyHP);if(applied>0&&!silent){if(celestial){const p=enemy.position.clone();p.y+=1.4;damageNumber(p,String(dmg),'');hitStop(35);cameraShake(.04);}else onEnemyDamaged(dmg,!!big);}
+ if(enemyHP===0){enemyAlive=false;const hud=document.getElementById('enemy-hud');if(hud)hud.style.display='none';if(!playEnemyAnimation('death',.06,true))enemyHasDeathClip=false;setTimeout(()=>advanceAfterEnemyDefeat(),850);}else if(applied>0&&!silent&&!(zarkSword&&zarkSword.holdBoss)&&!(zarkUlt&&zarkUlt.holdBoss)&&!(vxSwords&&vxSwords.holdBoss)&&!(cySkill&&cySkill.holdBoss))playEnemyAnimation('hit',.05,true);return applied>0;}
 /** Executa um poder do kit (habilidade ou golpe de espada) com os números já ajustados ao nível. */
 function runFoeMove(m,k){
  if(meleeOnlyProfile(encounterProfile))return;
