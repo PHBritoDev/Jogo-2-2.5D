@@ -90,10 +90,10 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
   const pending = {}, loadState = Object.create(null), activeControllers = new Set();
   let disposed = false;
   function releaseGltf(gltf) {
-    const loadedScene = gltf?.scene;
-    if (!loadedScene?.traverse) return;
+    const scenes = new Set([gltf?.scene, ...(Array.isArray(gltf?.scenes) ? gltf.scenes : [])].filter(scene => scene?.traverse));
+    if (!scenes.size) return;
     const geometries = new Set(), materials = new Set(), textures = new Set(), skeletons = new Set();
-    loadedScene.traverse(o => {
+    for (const loadedScene of scenes) loadedScene.traverse(o => {
       if (o.geometry && !geometries.has(o.geometry)) { geometries.add(o.geometry); o.geometry.dispose?.(); }
       const list = Array.isArray(o.material) ? o.material : [o.material];
       for (const material of list) {
@@ -224,7 +224,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
       let mesh = null; g.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });
       const old = mesh.material, mat = new T.MeshLambertMaterial({ map: old.map || null, color: old.map ? 0xffffff : old.color }); old.dispose();
       const box = new T.Box3().setFromBufferAttribute(mesh.geometry.attributes.position), size = box.getSize(new T.Vector3()), k = S.len / Math.max(size.x, size.z);
-      const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3 };
+      const A = { kind, k, mat, tris: (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3, scenes: Array.isArray(g.scenes) && g.scenes.length ? g.scenes : [g.scene] };
       if (S.skinned) { mesh.material = mat; mesh.frustumCulled = false; A.proto = g.scene; A.bones = n => { const b = {}; n.traverse(o => { if (o.isBone) b[o.name] = o; }); return b; }; g.scene.updateMatrixWorld(true); A.rigFrames = Object.fromEntries(Object.entries(A.bones(g.scene)).map(([name, joint]) => [name, joint.getWorldQuaternion(new T.Quaternion()).invert()])); }
       else { mesh.material = mat; A.proto = g.scene; A.im = new T.InstancedMesh(mesh.geometry, mat, budget(kind, low) || 1); A.im.count = 0; A.im.frustumCulled = false; A.im.name = 'fauna-' + kind; root.add(A.im); }
       assets[kind] = A; delete loadState[kind];
@@ -467,7 +467,7 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
         }
         // A cena-fonte mantém também meshes auxiliares que não entram na InstancedMesh.
         // Ela é a única dona da geometria/material compartilhados com A.im.
-        if (A.proto) releaseGltf({ scene: A.proto });
+        if (A.proto) releaseGltf({ scene: A.proto, scenes: A.scenes });
       }
       scene.remove(root);
     }

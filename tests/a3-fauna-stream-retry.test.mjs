@@ -636,13 +636,16 @@ test('fauna: descarta e libera GLB que termina o parse depois do dispose', async
 });
 
 
-test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias carregadas', async () => {
+test('fauna: dispose libera meshes auxiliares de todas as cenas GLTF, materiais, texturas e instâncias carregadas', async () => {
   const counts = {
     mainGeometry: 0, extraGeometry: 0, instancedGeometry: 0, instancedExtraGeometry: 0,
+    coelhoAltGeometry: 0, griloAltGeometry: 0,
     mainOriginalMaterial: 0, extraMaterial: 0, instancedOriginalMaterial: 0,
-    instancedExtraMaterial: 0, replacementMaterial: 0,
+    instancedExtraMaterial: 0, coelhoAltMaterial: 0, griloAltMaterial: 0, replacementMaterial: 0,
     mainTexture: 0, extraTexture: 0, instancedTexture: 0, instancedExtraTexture: 0,
+    coelhoAltTexture: 0, griloAltTexture: 0,
     mainImage: 0, extraImage: 0, instancedImage: 0, instancedExtraImage: 0,
+    coelhoAltImage: 0, griloAltImage: 0,
     skeleton: 0, instancedMesh: 0
   };
   const texture = (name) => ({
@@ -676,10 +679,16 @@ test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias
   const griloMesh = { isMesh: true, geometry: instancedGeometry, material: instancedOriginal };
   const griloAccessoryMesh = { isMesh: true, geometry: instancedExtraGeometry, material: instancedExtraMaterial };
   const griloScene = { traverse(fn) { fn(griloMesh); fn(griloAccessoryMesh); }, updateMatrixWorld() {} };
+  const coelhoAltMesh = { isMesh: true, geometry: geometry('coelhoAlt'), material: { map: texture('coelhoAlt'), dispose() { counts.coelhoAltMaterial++; } } };
+  const griloAltMesh = { isMesh: true, geometry: geometry('griloAlt'), material: { map: texture('griloAlt'), dispose() { counts.griloAltMaterial++; } } };
+  const coelhoAltScene = { traverse(fn) { fn(coelhoAltMesh); } };
+  const griloAltScene = { traverse(fn) { fn(griloAltMesh); } };
   class Loader {
     register() {}
     loadAsync(url) {
-      return Promise.resolve({ scene: url.endsWith('Coelhinho.glb') ? coelhoScene : griloScene });
+      const coelho = url.endsWith('Coelhinho.glb');
+      const scene = coelho ? coelhoScene : griloScene;
+      return Promise.resolve({ scene, scenes: [scene, coelho ? coelhoAltScene : griloAltScene] });
     }
   }
 
@@ -702,10 +711,13 @@ test('fauna: dispose libera meshes auxiliares, materiais, texturas e instâncias
 
     assert.deepEqual(counts, {
       mainGeometry: 1, extraGeometry: 1, instancedGeometry: 1, instancedExtraGeometry: 1,
+      coelhoAltGeometry: 1, griloAltGeometry: 1,
       mainOriginalMaterial: 1, extraMaterial: 1, instancedOriginalMaterial: 1, instancedExtraMaterial: 1,
-      replacementMaterial: 2,
+      coelhoAltMaterial: 1, griloAltMaterial: 1, replacementMaterial: 2,
       mainTexture: 1, extraTexture: 1, instancedTexture: 1, instancedExtraTexture: 1,
+      coelhoAltTexture: 1, griloAltTexture: 1,
       mainImage: 1, extraImage: 1, instancedImage: 1, instancedExtraImage: 1,
+      coelhoAltImage: 1, griloAltImage: 1,
       skeleton: 1, instancedMesh: 1
     });
   } finally {
