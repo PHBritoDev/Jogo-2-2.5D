@@ -7,7 +7,6 @@ on:
       - opened
       - synchronize
       - reopened
-      - ready_for_review
     paths:
       - 'mundo-3d-prototype.js'
       - 'mundo-3d-prototype.html'
