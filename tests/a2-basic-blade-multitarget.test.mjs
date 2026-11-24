@@ -334,3 +334,17 @@ test('legacy primary hit callbacks returning undefined remain accepted',()=>{
  for(let i=0;i<90;i++)rites.update(1/120,{from:{x:0,y:0,z:0},target,sword:'prota'});
  assert.equal(impacts.length,1,'legacy adapters without a return value must preserve their impact cue');
 });
+
+test('physical sweep skips obstacle sampling when every living target is outside swept blade bounds',()=>{
+ const focus=enemy('far-focus',40,40),side=enemy('far-side',-40,40);let blockedCalls=0,hitCalls=0;
+ const rites=new SwordRites({
+  blocked:()=>{blockedCalls++;return false;},
+  pose:()=>({base:{x:-.5,y:1,z:0},tip:{x:.5,y:1,z:0}}),
+  hit:()=>{hitCalls++;}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ for(let i=0;i<90;i++)rites.update(1/120,ctx);
+ assert.equal(hitCalls,0,'actors outside the swept blade volume must not be hit');
+ assert.equal(blockedCalls,0,'distant living actors must not trigger the expensive 8 mm/five-rail wall sweep');
+});

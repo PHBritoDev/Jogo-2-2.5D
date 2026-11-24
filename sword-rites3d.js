@@ -52,6 +52,14 @@ function closestOnSegment(p,a,b){
  const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;
  return{x:a.x+x*t,y:a.y+y*t,z:a.z+z*t};
 }
+/** Conservative broadphase: the interpolated blade quad must overlap the target capsule AABB. */
+function bladeSweepMayTouch(bounds,target,hitRadius=.6){
+ if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.y)||!Number.isFinite(target.z))return false;
+ const r=Number.isFinite(hitRadius)&&hitRadius>0?hitRadius:.6,half=(target.height||1.7)*.5;
+ return target.x+r>=bounds.minX&&target.x-r<=bounds.maxX&&
+  target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
+  target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
+}
 /** Returns the capsule-surface point facing the swept blade, not an occluded point inside the actor. */
 /** Builds the unoccluded part of the swept blade and remembers the first wall crossed. */
 function bladeSweepFrames(a,b,c,d,blocked=()=>false){
@@ -199,14 +207,28 @@ export class SwordRites {
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
     const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
     const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
-    let physicalSweep=null;
+    let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[];
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
      const extend=b=>{const d=a.def.trail||0,l=Math.hypot(b.tip.x-b.base.x,b.tip.y-b.base.y,b.tip.z-b.base.z)||1,k=1+d/l;return{x:b.base.x+(b.tip.x-b.base.x)*k,y:b.base.y+(b.tip.y-b.base.y)*k,z:b.base.z+(b.tip.z-b.base.z)*k};};
-     physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,extend(prev),blade.base,extend(blade),this.api.blocked);
-     if(physicalSweep.blocked)a.bladeBlocked=true;
+     const prevTip=extend(prev),currentTip=extend(blade);
+     const bounds={
+      minX:Math.min(prev.base.x,prevTip.x,blade.base.x,currentTip.x),maxX:Math.max(prev.base.x,prevTip.x,blade.base.x,currentTip.x),
+      minY:Math.min(prev.base.y,prevTip.y,blade.base.y,currentTip.y),maxY:Math.max(prev.base.y,prevTip.y,blade.base.y,currentTip.y),
+      minZ:Math.min(prev.base.z,prevTip.z,blade.base.z,currentTip.z),maxZ:Math.max(prev.base.z,prevTip.z,blade.base.z,currentTip.z)
+     };
+     if(needsPrimarySweep)primarySweepCandidate=bladeSweepMayTouch(bounds,target,(target.radius||.48)+(a.def.drive?.2:.12));
+     if(needsSideSweep)for(const other of ctx.others){
+      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      if(bladeSweepMayTouch(bounds,other,(other.radius||.48)+.12))sideSweepCandidates.push(other);
+     }
+     // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
+     if(primarySweepCandidate||sideSweepCandidates.length){
+      physicalSweep=a.bladeBlocked?{frames:[],blocked:true}:bladeSweepFrames(prev.base,prevTip,blade.base,currentTip,this.api.blocked);
+      if(physicalSweep.blocked)a.bladeBlocked=true;
+     }
     }
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsPrimarySweep){
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
      if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked,.008)){
       a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
@@ -214,8 +236,8 @@ export class SwordRites {
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
     // A per-swing set prevents repeated damage from 120 Hz substeps.
-    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&needsSideSweep){
-     for(const other of ctx.others){
+    if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&sideSweepCandidates.length){
+     for(const other of sideSweepCandidates){
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
       if(!contact||segmentBlocked(ctx.from,other,this.api.blocked,.008))continue;
