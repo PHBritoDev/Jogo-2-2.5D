@@ -8,6 +8,8 @@ on:
       - 'map3d.test.mjs'
       - 'mundo-3d-prototype.js'
       - 'tools/qa/a5-waystone-gameplay.cjs'
+      - 'tools/qa/a5-waystone-qa-utils.cjs'
+      - 'tools/qa/a5-waystone-qa-utils.test.cjs'
       - 'tests/a5-save-coins-finite.test.mjs'
       - 'act1-flow.js'
       - 'act2-flow.js'
@@ -27,9 +29,9 @@ jobs:
         with:
           node-version: '22'
       - name: Verificar sintaxe dos módulos
-        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --input-type=module --check < mundo-3d-prototype.js
+        run: node --check sidequests3d.js && node --check act1-flow.js && node --check act2-flow.js && node --check tools/qa/a5-waystone-gameplay.cjs && node --check tools/qa/a5-waystone-qa-utils.cjs && node --input-type=module --check < mundo-3d-prototype.js
       - name: Executar regressões de missões, mapa e campanha
-        run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs
+        run: node --test sidequests3d.test.mjs map3d.test.mjs tests/a5-save-coins-finite.test.mjs act1-flow.test.mjs act2-flow.test.mjs tools/qa/a5-waystone-qa-utils.test.cjs
       - name: Instalar Chromium e Three para QA de gameplay
         run: |
           npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0

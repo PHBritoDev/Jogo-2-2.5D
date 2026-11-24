@@ -1,13 +1,15 @@
 'use strict';
 /* QA A5 — progressão real dos três abrigos de Eldória.
  * A missão é pré-semeada como ativa para isolar a correção técnica sem canonizar givers provisórios.
- * Caminhada usa walkMove do QA, que atravessa updatePlayerMovement/colisão/terreno; registro usa #talk-button real.
- * Não valida oferta/entrega do NPC nem joystick Android.
+ * Caminhada usa CDP touch no #stick de produção; o harness orienta apenas o yaw da câmera.
+ * Registro usa #talk-button real; sem walkMove, teleport ou sprint helper entre abrigos.
+ * Não valida oferta/entrega do NPC nem certifica Android físico.
  */
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { isRuntimeAssetUrl } = require('./a5-waystone-qa-utils.cjs');
 
 const OUT = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a5-waystones');
 const BASE = (process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173').replace(/\/$/, '');
@@ -236,10 +238,10 @@ async function registerStone(stone, expectedProgress, mapKey) {
     page.on('pageerror', e => report.errors.push(String(e.message || e).slice(0, 700)));
     page.on('console', m => { if (m.type() === 'error') report.consoleErrors.push(m.text().slice(0, 700)); });
     page.on('response', r => {
-      if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url())) report.httpErrors.push('HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
+      if (r.status() >= 400 && isRuntimeAssetUrl(r.url())) report.httpErrors.push('HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
     });
     page.on('requestfailed', r => {
-      if (/\\.(?:glb|js)(?:\\?|$)/i.test(r.url())) report.httpErrors.push('FAILED ' + r.url().slice(0, 220) + ' ' + (r.failure()?.errorText || ''));
+      if (isRuntimeAssetUrl(r.url())) report.httpErrors.push('FAILED ' + r.url().slice(0, 220) + ' ' + (r.failure()?.errorText || ''));
     });
 
     await page.goto(BASE + '/mundo-3d-prototype.html?debug3d=1&a5waystones=1', { waitUntil: 'domcontentloaded', timeout: 90000 });
