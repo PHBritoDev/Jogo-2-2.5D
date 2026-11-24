@@ -35,3 +35,11 @@ O Ato II continua responsável por Cinzária, pelo vulcão, por VORGAZHEK e pelo
 A ação **Jornada de Invernália · gameplay** grava a caminhada contínua e as galerias de PC e celular. A caminhada começa com um save pós-vulcão e usa o movimento e a colisão do protagonista. Os ensaios de captura e de retomada também posicionam a câmera em marcos individuais. Cada artefato leva o SHA testado, o vídeo e seus dados. O navegador de teste usa renderização por software. O FPS de um Android físico exige medição no aparelho.
 
 A gravação abaixo parte de um save no início da ponte. Mostra a corrida pelo tabuleiro, a entrada no dojo, a conversa e o retorno pela margem leste. O personagem foi conduzido pelo teclado, com a velocidade normal da campanha. O vídeo usa o runtime `0e83690` em Chromium com renderização por software. [Assistir à travessia do dojo](evidencias-ato3/ponte-mestra-saida.mp4)
+
+## Capturas e percurso verificados
+
+O ensaio da revisão `04a1d7d` começou no save pós-vulcão, passou pela mestra e pelo trono e chegou ao bairro após 6.044 segundos de relógio em Chromium com renderização por software. A gravação integral e os dados por marco estão no artefato da ação. [Caminhada integral](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45323985574/artifacts/14913072863)
+
+As pranchas comparam os enquadramentos da transferência com os da PR #673. O bosque ganhou troncos ramificados, o pagode tem varandas sob os beirais e a nave conserva um eixo livre até o trono. O desenho do castelo segue a escadaria frontal e a silhueta de agulhas da referência. A correspondência artística final depende da revisão do criador. [Bosque](evidencias-ato3/bosque-antes-depois.jpg) · [Pagode](evidencias-ato3/pagode-antes-depois.jpg) · [Nave](evidencias-ato3/nave-antes-depois.jpg)
+
+[Castelo no PC](evidencias-ato3/castelo-pc.jpg) · [Dojo em retrato](evidencias-ato3/retrato-dojo.jpg) · [Inverno em paisagem](evidencias-ato3/inverno-paisagem.jpg)
