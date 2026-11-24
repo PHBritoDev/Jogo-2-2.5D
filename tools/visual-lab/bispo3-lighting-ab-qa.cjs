@@ -16,6 +16,15 @@ const report={
   viewport:{width:852,height:480,deviceScaleFactor:1,quality:'low'},
   baseline:null,candidate:null,errors:[],assets:[],ok:false
 };
+function expectedFillFor(label) {
+  // Main keeps the pre-A4 warm/wide fill; the candidate must prove the new local/cool fill.
+  if (label === '01-main') return {
+    position:[1200,18,4], intensity:3.5, distance:110, minSlotIntensity:3.1
+  };
+  return {
+    position:[1200,7,0], intensity:16, distance:36, minSlotIntensity:15
+  };
+}
 async function capture(label,url,browser){
   const context=await browser.newContext({
     viewport:{width:852,height:480},deviceScaleFactor:1,hasTouch:true,isMobile:true,
@@ -89,11 +98,20 @@ async function capture(label,url,browser){
       actorFrame.boss[1]>=0&&actorFrame.boss[1]<=actorFrame.viewport.height,
       label+': boss target is outside the camera frame');
     assert.equal(lighting.lights?.slots,4,label+': mobile light budget slot count changed');
+    const expectedFill=expectedFillFor(label);
     const fill=lighting.lights?.activeDetails?.find(source=>
-      source.position&&Math.abs(source.position[0]-1200)<.5&&Math.abs(source.position[2])<.5&&
-      Math.abs(source.intensity-16)<=.81&&Math.abs(source.distance-36)<.01);
-    assert.ok(fill,label+': Zar’khael dimension fill is not selected in the active shader slots');
-    assert.ok(fill.slotIntensity>15,label+': selected dimension fill has not reached its configured intensity');
+      source.position&&
+      Math.abs(source.position[0]-expectedFill.position[0])<.5&&
+      Math.abs(source.position[1]-expectedFill.position[1])<.5&&
+      Math.abs(source.position[2]-expectedFill.position[2])<.5&&
+      Math.abs(source.intensity-expectedFill.intensity)<=expectedFill.intensity*.051&&
+      Math.abs(source.distance-expectedFill.distance)<.01);
+    assert.ok(fill,label+': expected Zar’khael fill is not selected in the active shader slots');
+    assert.ok(fill.slotIntensity>expectedFill.minSlotIntensity,label+': selected dimension fill has not reached its expected shader intensity');
+    const lightingCheck={expected:expectedFill,observed:{
+      name:fill.name,position:fill.position,intensity:fill.intensity,distance:fill.distance,
+      color:fill.color,slotIntensity:fill.slotIntensity
+    }};
     assert.equal(lighting.shaderPointLights,4,label+': shader point-light count changed');
     assert.equal(state.dim.battle?.key,'bishop3',label+': wrong dimension');
     assert.equal(state.dim.battle?.active,true,label+': battle inactive');
@@ -111,7 +129,7 @@ async function capture(label,url,browser){
     await page.waitForTimeout(1600);
     const videoPath=await page.video().path();
     await context.close();
-    return {state,lighting,actorFrame,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
+    return {state,lighting,actorFrame,lightingCheck,screenshot:path.basename(screenshot),video:path.relative(out,videoPath),errors,assets};
   }catch(error){
     await context.close().catch(()=>{});
     throw error;
