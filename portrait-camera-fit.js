@@ -1,6 +1,13 @@
 /** Enquadramento horizontal do duelo retrato: mantém o ator próximo dentro de uma margem segura. */
 const MAX_PORTRAIT_BIAS = .38;
 const SAFE_ACTOR_NDC = .72;
+const RELEASE_START = 22;
+const RELEASE_END = 28;
+
+function smoothstep01(value) {
+  const t = Math.min(1, Math.max(0, value));
+  return t * t * (3 - 2 * t);
+}
 
 export function computePortraitCameraFit(separation, aspect, fov = 56) {
   const sep = Number.isFinite(separation) ? Math.max(0, separation) : 0;
@@ -17,5 +24,15 @@ export function computePortraitCameraFit(separation, aspect, fov = 56) {
     if (nearNdc <= SAFE_ACTOR_NDC) low = bias;
     else high = bias;
   }
-  return { minDistance, parallaxBias: low };
+  const release = 1 - smoothstep01((sep - RELEASE_START) / (RELEASE_END - RELEASE_START));
+  return {
+    minDistance,
+    parallaxBias: low * release,
+    release,
+    shoulder: .42 - .34 * release,
+    focusBlend: .5 * release,
+    idleMs: 1200 - 750 * release,
+    deadZone: .35 - .31 * release,
+    turnRate: 2 + 1.2 * release
+  };
 }

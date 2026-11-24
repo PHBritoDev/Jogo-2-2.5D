@@ -7421,9 +7421,10 @@ function updateUltimateFx(dt){
 let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false,portraitZoomOverride=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
 function portraitBishop2Profile(foeOn,sep){
- if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>22)return null;
+ // Mantém o fit até 28 m e libera progressivamente entre 22–28 m, sem perder o enquadramento de uma vez.
+ if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>28)return null;
  const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov);
- return{shoulder:.08,focusBlend:.5,minDistance:fit.minDistance,idleMs:450,deadZone:.04,parallaxBias:fit.parallaxBias,turnRate:3.2};
+ return{shoulder:fit.shoulder,focusBlend:fit.focusBlend,minDistance:fit.minDistance,release:fit.release,idleMs:fit.idleMs,deadZone:fit.deadZone,parallaxBias:fit.parallaxBias,turnRate:fit.turnRate};
 }
 /** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
@@ -7443,7 +7444,8 @@ function effectiveCameraDistance(engaged,dt){
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
  const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
  const baseWant=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);
- const want=portrait&&!riteCinematicView?(portraitZoomOverride?cameraDistance:Math.max(baseWant,portrait.minDistance)):baseWant;
+ const fittedWant=Math.max(baseWant,portrait?.minDistance??baseWant);
+ const want=portrait&&!riteCinematicView?(portraitZoomOverride?cameraDistance:baseWant+(fittedWant-baseWant)*(portrait.release??1)):baseWant;
  camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;
 }
 /**

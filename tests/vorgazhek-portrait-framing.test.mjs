@@ -13,21 +13,31 @@ const loader = fs.readFileSync(new URL('../mod181-loader.js', import.meta.url), 
 test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não altera paisagem', () => {
   assert.match(world, /function portraitBishop2Profile\(foeOn,sep\)/);
   assert.match(world, /dimKey!=='bishop2'/);
-  assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
-  assert.match(world, /focusBlend:\.5/);
+  assert.match(world, /camera\.aspect>=\.78\|\|sep>28/);
+  assert.match(world, /focusBlend:fit\.focusBlend/);
   assert.match(world, /const fit=computePortraitCameraFit\(sep,camera\.aspect,camera\.fov\)/);
   assert.match(world, /minDistance:fit\.minDistance/);
   assert.match(world, /sep<12\|\|!!portrait/);
-  assert.match(world, /Math\.max\(baseWant,portrait\.minDistance\)/);
+  assert.match(world, /baseWant\+\(fittedWant-baseWant\)\*\(portrait\.release\?\?1\)/);
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
-  assert.match(world, /deadZone:\.04,parallaxBias:fit\.parallaxBias,turnRate:3\.2/);
+  assert.match(world, /release:fit\.release,idleMs:fit\.idleMs,deadZone:fit\.deadZone,parallaxBias:fit\.parallaxBias,turnRate:fit\.turnRate/);
   assert.match(world, /actorScreen\(\)\{[\s\S]*?camera\.updateMatrixWorld\(true\)/);
 });
 
-test('distância adaptativa chega a 15 m antes de soltar o foco em separações longas', () => {
+test('fit mantém 15 m e libera o foco progressivamente entre 22 e 28 m', () => {
   const at21m = computePortraitCameraFit(21, 320 / 852, 56);
+  const at22m = computePortraitCameraFit(22, 320 / 852, 56);
+  const at25m = computePortraitCameraFit(25, 320 / 852, 56);
+  const at28m = computePortraitCameraFit(28, 320 / 852, 56);
   assert.equal(at21m.minDistance, 15);
-  assert.match(world, /camera\.aspect>=\.78\|\|sep>22/);
+  assert.equal(at22m.release, 1);
+  assert.equal(at25m.release, .5);
+  assert.equal(at28m.release, 0);
+  assert.equal(at28m.parallaxBias, 0);
+  assert.ok(at22m.focusBlend > at25m.focusBlend && at25m.focusBlend > at28m.focusBlend);
+  assert.ok(at22m.shoulder < at25m.shoulder && at25m.shoulder < at28m.shoulder);
+  assert.match(world, /camera\.aspect>=\.78\|\|sep>28/);
+  assert.match(world, /baseWant\+\(fittedWant-baseWant\)\*\(portrait\.release\?\?1\)/);
 });
 
 test('entrada reinicia o foco antigo e saída remove o escopo visual da dimensão', () => {
@@ -63,7 +73,7 @@ test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewpo
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
-  assert.match(html, /hud3d\.css\?v=mod356-vorgazhek-portrait-compact-controls-v2/);
+  assert.match(html, /hud3d\.css\?v=a1-vorgazhek-portrait-compact-controls/);
   assert.match(world, /function portraitBishop2Profile/);
 });
 test('QA inicia a apresentação uma vez e mantém a espera da batalha somente leitura', () => {
@@ -112,6 +122,14 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
 test('zoom manual por pinça e roda suspende a recentralização automática', () => {
   assert.ok(world.includes("const next=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();"), 'pinça registra zoom e override manual de distância');
   assert.ok(world.includes("lookArea.addEventListener('wheel',e=>{const next=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();"), 'roda do mouse registra zoom e override manual de distância');
+});
+
+test('QA exercita pinça touch, roda do mouse e retorno de perspectiva', () => {
+  assert.match(qa, /fire\('pointerdown', 101/);
+  assert.match(qa, /fire\('pointermove', 102/);
+  assert.match(qa, /page\.mouse\.wheel\(0, -600\)/);
+  assert.match(qa, /afterPinch\.requestedDistance/);
+  assert.match(qa, /afterWheel\.requestedDistance/);
 });
 
 test('zoom manual no retrato preserva a distância escolhida pelo jogador', () => {

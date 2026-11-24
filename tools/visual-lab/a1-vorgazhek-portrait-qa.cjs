@@ -10,7 +10,7 @@ const out = path.resolve(process.env.VISUAL_OUTPUT || 'visual-lab-results/a1-vor
 fs.mkdirSync(out, { recursive: true });
 const report = {
   ok: false,
-  method: 'batalha real bishop2; sem SevenSinsDebug3D.view; paisagem → rotação 393×852 + portrait inicial + retorno da câmera 1ª/3ª pessoa',
+  method: 'batalha real bishop2; paisagem → rotação 393×852 + portrait inicial; pinch touch, roda e retorno 1ª/3ª pessoa',
   renderer: 'Chromium SwiftShader — não representa FPS Android',
   screenshots: [],
   errors: { baseline: [], head: [] },
@@ -234,13 +234,37 @@ async function assertManualZoom(page, label) {
   const before = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
   const box = await page.locator('#look-area').boundingBox();
   assert.ok(box && box.width > 100 && box.height > 100, label + ': área real de câmera disponível');
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.wheel(0, 600);
+
+  // Dois PointerEvents touch reproduzem a pinça no mesmo handler usado pelo celular.
+  await page.evaluate(() => {
+    const area = document.querySelector('#look-area');
+    const rect = area.getBoundingClientRect();
+    const y = rect.top + rect.height * .55;
+    const firstX = rect.left + 60;
+    const fire = (type, pointerId, clientX) => area.dispatchEvent(new PointerEvent(type, {
+      pointerId, pointerType: 'touch', isPrimary: pointerId === 101,
+      clientX, clientY: y, bubbles: true, cancelable: true
+    }));
+    fire('pointerdown', 101, firstX);
+    fire('pointerdown', 102, rect.right - 60);
+    fire('pointermove', 101, firstX + 20);
+    fire('pointermove', 102, firstX + 40);
+    fire('pointerup', 102, firstX + 40);
+    fire('pointerup', 101, firstX + 20);
+  });
   await page.waitForTimeout(1500);
-  const after = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
-  assert.equal(after.manualZoomOverride, true, label + ': zoom manual ativa override do duelo');
-  assert.ok(after.requestedDistance >= before.requestedDistance + 4.5, label + ': roda altera distância solicitada');
-  assert.ok(after.distance >= before.distance + 1.6, label + ': câmera real acompanha o zoom após a interpolação');
+  const afterPinch = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.equal(afterPinch.manualZoomOverride, true, label + ': pinça touch ativa override do duelo');
+  assert.ok(afterPinch.requestedDistance >= before.requestedDistance + 4.5, label + ': pinça altera distância solicitada');
+  assert.ok(afterPinch.distance >= before.distance + 1.6, label + ': câmera acompanha a pinça após interpolação');
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, -600);
+  await page.waitForTimeout(1500);
+  const afterWheel = await page.evaluate(() => window.SevenSinsDebug3D.actorScreen());
+  assert.equal(afterWheel.manualZoomOverride, true, label + ': roda mantém override manual');
+  assert.ok(afterWheel.requestedDistance <= afterPinch.requestedDistance - 4.5, label + ': roda aproxima a câmera');
+  assert.ok(afterWheel.distance <= afterPinch.distance - 1.6, label + ': câmera acompanha a roda após interpolação');
 
   await page.locator('#camera-toggle-3d').click();
   await page.waitForTimeout(350);
@@ -252,7 +276,7 @@ async function assertManualZoom(page, label) {
   assert.equal(afterReturn.manualZoomOverride, false, label + ': retorno limpa o override antigo');
   assert.equal(afterReturn.requestedDistance, 8.5, label + ': terceira pessoa restaura a distância-base solicitada');
   assert.ok(afterReturn.distance >= 10.2, label + ': fit adaptativo volta a afastar a câmera no duelo');
-  return { before, after, perspectiveRoundTrip: { firstPerson, afterReturn } };
+  return { before, afterPinch, afterWheel, perspectiveRoundTrip: { firstPerson, afterReturn } };
 }
 
 async function runFreshPortrait(browser, url, stage) {
