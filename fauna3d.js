@@ -105,7 +105,11 @@ export function createFauna({ T, scene, GLTFLoader, skClone, base = './', ground
     });
     try {
       const response = await Promise.race([fetchImpl(url, { signal: controller.signal }), timeout]);
-      if (response.ok === false) throw new Error(`fetch for ${url} responded with ${response.status}: ${response.statusText || 'HTTP error'}`);
+      if (response.ok === false) {
+        // Cancelar o corpo de respostas HTTP não utilizáveis libera a conexão sem consumir o payload.
+        controller.abort();
+        throw new Error(`fetch for ${url} responded with ${response.status}: ${response.statusText || 'HTTP error'}`);
+      }
       const data = await Promise.race([response.arrayBuffer(), timeout]);
       if (timer !== null) { clearTimeout(timer); timer = null; }
       return await loader.parseAsync(data, base);
