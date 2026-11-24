@@ -397,6 +397,26 @@ test('terminal-wave captura e testes usam o HEAD exato da PR', () => {
   assert.ok(terminalWorkflow.includes('persist-credentials: false'));
 });
 
+test('golpe físico para de consultar paredes após o foco já receber seu único hit', () => {
+  const hits = [];
+  let blockedCalls = 0;
+  const focus = { id: 'focus', x: 0, y: 1, z: -.5, radius: .45, height: 1.8, alive: true };
+  const blade = { base: { x: 0, y: 1, z: 0 }, tip: { x: 0, y: 1, z: -1 } };
+  const rites = new SwordRites({
+    pose: () => blade,
+    hit: (amount, id, kind) => hits.push({ amount, id, kind }),
+    blocked: () => { blockedCalls++; return false; },
+  });
+  assert.equal(rites.attack('aurora', { damage: 20, yaw: 0, target: focus, mode: 'ground' }), true);
+  const ctx = { from: { x: 0, y: 0, z: 1 }, target: focus, others: [], sword: 'aurora', grounded: true };
+  for (let i = 0; i < 60 && !hits.length; i++) rites.update(1 / 120, ctx);
+  assert.equal(hits.length, 1, 'o foco deve receber exatamente um hit');
+  const callsAfterHit = blockedCalls;
+  for (let i = 0; i < 24; i++) rites.update(1 / 120, ctx);
+  assert.equal(blockedCalls, callsAfterHit,
+    'sem alvos restantes, o swing não deve continuar amostrando colisão em cada substep');
+});
+
 test('Combat315 captura e testes usam o HEAD exato da PR', () => {
   const ref = 'ref: ${{ github.event.pull_request.head.sha || github.sha }}';
   assert.equal(combatWorkflow.split(ref).length - 1, 2);
