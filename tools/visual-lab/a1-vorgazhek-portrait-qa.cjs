@@ -61,7 +61,12 @@ async function openBattle(browser, url, stage, viewport) {
     await page.waitForFunction(() => {
       const d = window.SevenSinsDebug3D;
       const s = d && d.dimState ? d.dimState() : null;
-      if (s && s.vs && d.vsGo) d.vsGo();
+      const go = document.querySelector('#vs-go');
+      return !!(s && s.battle && s.battle.key === 'bishop2' && s.vs && go && !go.disabled);
+    }, null, { timeout: 180000, polling: 100 });
+    await page.evaluate(() => window.SevenSinsDebug3D.vsGo());
+    await page.waitForFunction(() => {
+      const d = window.SevenSinsDebug3D;
       const n = d && d.dimState ? d.dimState() : null;
       return !!(n && n.battle && n.battle.active && n.battle.key === 'bishop2' && !n.vs && n.voidMode && n.squad);
     }, null, { timeout: 180000, polling: 100 });
