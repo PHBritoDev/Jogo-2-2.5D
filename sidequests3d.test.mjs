@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SIDE_QUESTS, SIDE_QUEST_WAYSTONES, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
 import { WAYSTONES } from './map3d.js';
+import { VILLAGE_TALK } from './eldoria-village-talk.js';
 
 const eldoriaWaystones = (count) => new Set(SIDE_QUEST_WAYSTONES.slice(0, count));
 
@@ -41,7 +42,7 @@ test('abrigos acompanham as pedras registradas; diário mostra progresso', () =>
   assert.deepEqual(activeSideLines(s), ['Pedras que Lembram · 2/3']);
   refreshSide(s, { questStep: 2, waystones: eldoriaWaystones(3) });
   assert.equal(s.abrigos.state, 'ready');
-  assert.equal(questForGiver(s, 'ARTESANATO').id, 'abrigos');
+  assert.equal(questForGiver(s, 'PROVISÕES').id, 'abrigos');
   const back = createSideState(JSON.parse(JSON.stringify(s)));
   assert.equal(back.abrigos.state, 'ready');
 });
@@ -85,7 +86,7 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
   assert.equal(s.pingente.state, 'available');
   collectSide(s, 'flor');
   assert.equal(s.ervas.state, 'ready');
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
 });
 
 
@@ -238,7 +239,7 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Bento']);
 });
 
 
@@ -292,7 +293,7 @@ test('save available nao antecipa o desbloqueio quando a campanha volta de etapa
   assert.equal(state.pingente.progress, 0);
   assert.equal(acceptSide(state, 'ervas'), false);
   assert.equal(acceptSide(state, 'pingente'), false);
-  assert.equal(questForGiver(state, 'ERVAS'), null);
+  assert.equal(questForGiver(state, 'ALIMENTOS'), null);
 
   refreshSide(state, { questStep: 1 });
   assert.equal(state.ervas.state, 'available');
@@ -310,4 +311,24 @@ test('save available permanece intacto quando nao ha snapshot de campanha', () =
   refreshSide(state, {});
   assert.equal(state.ervas.state, 'available');
   assert.equal(acceptSide(state, 'ervas'), true);
+});
+
+
+test('todas as missões opcionais resolvem para vendedores e falas registrados no runtime', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const runtimeShortNames = new Set([...runtime.matchAll(/shortName:'([^']+)'/g)].map(match => match[1]));
+  const registeredNames = new Set(Object.values(VILLAGE_TALK).map(npc => npc.name));
+  const state = createSideState();
+  refreshSide(state, { questStep: 2 });
+  const expected = { ALIMENTOS: 'ervas', PROVISÕES: 'abrigos', FRUTAS: 'pingente' };
+
+  assert.equal(new Set(SIDE_QUESTS.map(q => q.giver)).size, SIDE_QUESTS.length, 'cada vendedor recebe uma missão');
+  for (const q of SIDE_QUESTS) {
+    assert.ok(runtimeShortNames.has(q.giver), q.id + ' precisa corresponder a villageVendors.shortName');
+    assert.equal(questForGiver(state, q.giver)?.id, expected[q.giver], q.id + ' precisa abrir no vendedor correto');
+    for (const line of [...q.offer, ...q.turnIn]) {
+      assert.ok(registeredNames.has(line.who), q.id + ' usa falante não registrado: ' + line.who);
+    }
+  }
+  assert.match(runtime, /questForGiver\(sideState,vendor\.shortName\)/, 'o controlador consulta o shortName real do vendedor');
 });
