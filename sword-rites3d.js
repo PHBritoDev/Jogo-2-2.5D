@@ -13,6 +13,21 @@ export const SWORD_COMBO=Object.freeze([
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
+/** Resolve the source and damage class for a secondary squad contact.
+ * Waves push along their travel direction; sectors push radially from their origin.
+ * Physical blade contacts keep the hero as their source.
+ */
+export function swordSideHitContext(meta,target,fallback){
+ const energy=meta?.wave||meta?.energy;
+ if(!energy)return{x:fallback.x,z:fallback.z,kind:'melee'};
+ const direction=energy.direction||(energy.kind==='wave'&&Number.isFinite(energy.yaw)?{x:Math.sin(energy.yaw),z:Math.cos(energy.yaw)}:null);
+ if(direction&&Number.isFinite(direction.x)&&Number.isFinite(direction.z)){
+  const len=Math.hypot(direction.x,direction.z)||1;
+  return{x:target.x-direction.x/len,z:target.z-direction.z/len,kind:'spell'};
+ }
+ if(Number.isFinite(energy.x)&&Number.isFinite(energy.z))return{x:energy.x,z:energy.z,kind:'spell'};
+ return{x:fallback.x,z:fallback.z,kind:'spell'};
+}
 export function segmentDistance(p,a,b){const x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,l=x*x+y*y+z*z,t=l?clamp(((p.x-a.x)*x+(p.y-a.y)*y+(p.z-a.z)*z)/l,0,1):0;return Math.hypot(p.x-a.x-x*t,p.y-a.y-y*t,p.z-a.z-z*t);}
 /** Includes the spawn segment: a blade reaching past a thin wall cannot emit behind it. */
 export function segmentBlocked(a,b,blocked){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.06));for(let i=1;i<=n;i++){const u=i/n;if(blocked({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u}))return true;}return false;}
