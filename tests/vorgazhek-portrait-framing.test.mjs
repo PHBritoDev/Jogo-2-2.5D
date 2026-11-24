@@ -153,8 +153,9 @@ test('fit geométrico do retrato mantém o ator próximo dentro da margem e os d
         const nearNdc = lateral / (nearDepth * tanHalfHorizontal);
         const farNdc = lateral / (farDepth * tanHalfHorizontal);
         assert.ok(nearNdc <= .721, aspect + ' / ' + fov + '° / ' + sep + 'm: ator próximo dentro da margem');
-        const minSeparation = sep < 1.3 ? .15 : sep < 2 ? .18 : .22;
+        const minSeparation = sep < 1.3 ? .17 : sep < 2 ? .22 : sep < 3 ? .34 : sep < 6 ? .45 : .22;
         assert.ok(nearNdc + farNdc >= minSeparation, aspect + ' / ' + fov + '° / ' + sep + 'm: separação horizontal legível');
+        if (sep === 2.4 && aspect > .45 && fov === 63) assert.ok(fit.parallaxBias > .51, 'curta distância usa o novo teto seguro de paralaxe');
         if (sep <= 1.5) assert.ok(fit.parallaxBias > .38, 'bias aumenta em curta distância enquanto a margem permite');
         assert.ok(fit.minDistance >= lastDistance && fit.minDistance <= 15, 'distância monotônica e limitada');
         assert.ok(fit.parallaxBias <= lastBias + 1e-6, 'paralaxe diminui quando a separação aumenta');
