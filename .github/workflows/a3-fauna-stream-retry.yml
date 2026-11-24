@@ -4,6 +4,7 @@ on:
     paths:
       - 'fauna3d.js'
       - 'tests/a3-fauna-stream-retry.test.mjs'
+      - 'tests/mod327.test.mjs'
       - 'tools/qa/a3-fauna-retry-runtime.cjs'
       - '.github/workflows/a3-fauna-stream-retry.yml'
   workflow_dispatch:
@@ -24,6 +25,8 @@ jobs:
         run: node --check fauna3d.js && node --check tests/a3-fauna-stream-retry.test.mjs && node --check tools/qa/a3-fauna-retry-runtime.cjs
       - name: Testar recuperação dos GLBs
         run: node --test tests/a3-fauna-stream-retry.test.mjs
+      - name: Validar integração da fauna no Mod327
+        run: node --test --test-name-pattern="fauna no jogo: controlador único" tests/mod327.test.mjs
       - name: Instalar Playwright e Chromium
         run: npm install --prefix tools/visual-lab --no-audit --no-fund && tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
       - name: Servidor local do jogo
