@@ -60,6 +60,21 @@ function bladeSweepMayTouch(bounds,target,hitRadius=.6){
   target.y+half+r>=bounds.minY&&target.y-half-r<=bounds.maxY&&
   target.z+r>=bounds.minZ&&target.z-r<=bounds.maxZ;
 }
+const BLADE_OCCLUSION_CACHE_TTL=.05;
+/** Cache only an occluded ray for unchanged endpoints; the blade sweep still checks walls every substep. */
+function bladeOcclusionCached(a,target,from,now){
+ const cache=a?.bladeOcclusion,entry=cache?.get(target?.id);
+ if(!entry)return false;
+ const same=from&&entry.from.x===from.x&&entry.from.y===from.y&&entry.from.z===from.z&&
+  entry.target.x===target.x&&entry.target.y===target.y&&entry.target.z===target.z;
+ if(same&&now-entry.time<BLADE_OCCLUSION_CACHE_TTL)return true;
+ cache.delete(target.id);return false;
+}
+function rememberBladeOcclusion(a,target,from,now){
+ if(!a||!target||target.id==null||!from)return;
+ const cache=a.bladeOcclusion||(a.bladeOcclusion=new Map());
+ cache.set(target.id,{from:copy(from),target:copy(target),time:now});
+}
 /** Returns the capsule-surface point facing the swept blade, not an occluded point inside the actor. */
 /** Builds the unoccluded part of the swept blade and remembers the first wall crossed. */
 function bladeSweepFrames(a,b,c,d,blocked=()=>false){
@@ -230,8 +245,10 @@ export class SwordRites {
     }
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&primarySweepCandidate){
      const contact=bladeContactPoint(physicalSweep?.frames,target,(target.radius||.48)+(a.def.drive?.2:.12),ctx.from);
-     if(contact&&!segmentBlocked(ctx.from,target,this.api.blocked,.008)){
-      a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});
+     if(contact){
+      if(bladeOcclusionCached(a,target,ctx.from,this.time))continue;
+      if(segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
+      else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,hitstop:a.def.hitstop,shake:a.def.shake});}
      }
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
@@ -240,7 +257,10 @@ export class SwordRites {
      for(const other of sideSweepCandidates){
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
-      if(!contact||segmentBlocked(ctx.from,other,this.api.blocked,.008))continue;
+      if(!contact)continue;
+      if(bladeOcclusionCached(a,other,ctx.from,this.time))continue;
+      if(segmentBlocked(ctx.from,other,this.api.blocked,.008)){rememberBladeOcclusion(a,other,ctx.from,this.time);continue;}
+      a.bladeOcclusion?.delete(other.id);
       a.bladeSideHits.add(other.id);
       // The world bridge routes secondary actors through its side-hit handler (primary 'basic' only accepts siegeEpoch).
       const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),other.id,'energy-side',{target:other,by:'blade'});
