@@ -177,9 +177,10 @@ export function getZarkhaelLighting() {
   return {
     bg:0x010102, fog:0x010102, fogNear:65, fogFar:265,
     hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
-    // Keep the existing fill between both combatants, with a modest bias toward Zar’khael.
-    // The player stays within 12m; the full 30m disc remains inside the 36m cutoff and the corridor stays outside.
-    light:[0xdfe6f2,16,36,[0,7,0]], exposure:.85
+    // Raise the shared fill and shift it toward the player-facing side.
+    // The 8m height softens the checker-floor hotspot; +2m Z improves the near-facing read of Zar’khael.
+    // Both combatants stay in the near field; the 30m disc remains inside 36m and the corridor stays outside.
+    light:[0xdfe6f2,16,36,[0,8,2]], exposure:.85
   };
 }
 export function buildMushroomDimension(THREE,group,spec,ctx) {

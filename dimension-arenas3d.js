@@ -9,7 +9,7 @@ import { createGreedAbyss } from './greed-abyss3d.js?v=colosso341';
 import { buildGoldenMeadow } from './bishop1-golden-meadow3d.js';
 import { buildVorgazhekAbyss } from './vorgazhek-abyss-dimension3d.js';
 import { buildHallDimension } from './veraxion-hall-dimension3d.js';
-import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=a4-zarkhael-fill-4';
+import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=a4-zarkhael-fill-5';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
 import { buildVolcanoCave } from './volcano-cave-scene.js';

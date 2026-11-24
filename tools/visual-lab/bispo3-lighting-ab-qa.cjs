@@ -18,7 +18,7 @@ const report={
 };
 function expectedFillFor(label,arenaOrigin) {
   // Presets store offsets relative to the arena floor; telemetry reports world coordinates.
-  const localOffset = label === '01-main' ? [0,18,4] : [0,7,0];
+  const localOffset = label === '01-main' ? [0,18,4] : [0,8,2];
   const position = [
     arenaOrigin.x + localOffset[0],
     arenaOrigin.y + localOffset[1],

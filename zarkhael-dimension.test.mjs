@@ -33,21 +33,21 @@ test('quality limits animation distance, density and target sampling without rem
   assert.ok(q[0].fraction>0);assert.equal(q[2].fraction,1);
 });
 
-test('Zar’khael biases the existing fill toward the boss while preserving player coverage and the black corridor',()=>{
+test('Zar’khael balances a raised camera-side fill across both combatants without washing the corridor',()=>{
   const env=getZarkhaelLighting();
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,7,0]]);
-  assert.ok(env.light[1]>=16&&env.light[3][1]>=6&&env.light[3][1]<=8,'fill must be elevated above the boss rather than washing the floor');
+  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,8,2]]);
+  assert.ok(env.light[1]>=16&&env.light[3][1]>=7.5&&env.light[3][1]<=8.5,'fill must stay elevated to reduce the checker-floor hotspot');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
   const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
   const playerDistance=distanceTo(spots.player),bossDistance=distanceTo(spots.boss);
-  assert.ok(playerDistance<12,'player spawn must stay in the near field of the existing fill');
-  assert.ok(bossDistance<6,'boss spawn must remain inside the brighter core');
+  assert.ok(playerDistance<11,'player spawn must stay in the near field of the existing fill');
+  assert.ok(bossDistance<8,'boss spawn must remain inside the brighter core');
   assert.ok(bossDistance<playerDistance,'the boss keeps a modest geometric priority over the player');
-  assert.ok(playerDistance/bossDistance>1.8&&playerDistance/bossDistance<2.1,'the fill must favor the boss without starving the player');
+  assert.ok(playerDistance/bossDistance>1.3&&playerDistance/bossDistance<1.4,'the fill must favor the boss modestly while keeping both actors readable');
   const edgeDistances=[[30,0],[-30,0],[0,30],[0,-30]].map(([x,z])=>Math.hypot(x-lx,1.7-ly,z-lz));
   assert.ok(Math.max(...edgeDistances)<env.light[2],'the full 30m combat disc must remain inside the fill');
   assert.ok(Math.hypot(lx,3.5-ly,-210-lz)>env.light[2],'distant corridor must remain outside the local fill');
@@ -60,7 +60,7 @@ test('the fill reuses the arena light rig without adding lights or render passes
   assert.doesNotMatch(source,/new\s+(?:THREE|T)\.(?:PointLight|SpotLight|DirectionalLight|HemisphereLight)\b/);
   assert.doesNotMatch(source,/WebGLRenderTarget|EffectComposer|ShadowMap/);
   assert.match(arenas,/mushrooms\(THREE,\s*g,\s*spec,\s*ctx\)\s*\{\s*return buildMushroomDimension/);
-  assert.match(arenas,/zarkhael-dimension3d\.js\?v=a4-zarkhael-fill-4/,'standalone preview must not reuse the stale Mod 296 module URL');
+  assert.match(arenas,/zarkhael-dimension3d\.js\?v=a4-zarkhael-fill-5/,'standalone preview must not reuse the stale Mod 296 module URL');
 });
 
 test('production runtime and preview consume the exact Zar’khael preset through existing lights',()=>{
@@ -182,7 +182,7 @@ test('A/B rejects captures where either combatant is outside the camera viewport
 test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   assert.match(qa,/function expectedFillFor\(label,arenaOrigin\)/);
-  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,7,0\]/);
+  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,8,2\]/);
   assert.match(qa,/arenaOrigin\.y \+ localOffset\[1\]/);
   assert.match(qa,/position, localOffset, intensity:3\.5, distance:110/);
   assert.match(qa,/position, localOffset, intensity:16, distance:36/);
@@ -226,7 +226,7 @@ test('A/B resolves arena-local light offsets into the dimension world floor',()=
   assert.equal(DIM_FLOOR_Y,-2000);
   const candidate=[spec.x+env.light[3][0],spec.y+env.light[3][1],spec.z+env.light[3][2]];
   const baseline=[spec.x,spec.y+18,spec.z+4];
-  assert.deepEqual(candidate,[1200,-1993,0]);
+  assert.deepEqual(candidate,[1200,-1992,2]);
   assert.deepEqual(baseline,[1200,-1982,4]);
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
