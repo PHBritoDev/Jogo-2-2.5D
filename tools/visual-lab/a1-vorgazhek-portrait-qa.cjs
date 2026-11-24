@@ -64,6 +64,19 @@ async function openBattle(browser, url, stage, viewport) {
       const go = document.querySelector('#vs-go');
       return !!(s && s.battle && s.battle.key === 'bishop2' && s.vs && go && !go.disabled);
     }, null, { timeout: 180000, polling: 100 });
+    let vsCard = null;
+    if (viewport.width < viewport.height) {
+      await page.waitForFunction(() => {
+        const panel = document.querySelector('#vs-panel');
+        const hero = document.querySelector('#vs-hero-img');
+        const boss = document.querySelector('#vs-boss-img');
+        return !!(panel && !panel.hidden && hero && boss && hero.complete && hero.naturalWidth > 0 && boss.complete && boss.naturalWidth > 0);
+      }, null, { timeout: 120000, polling: 100 });
+      await page.waitForTimeout(1500);
+      vsCard = await inspectVsCard(page);
+      assertVsPortrait(vsCard, stage + ' cartão VS portrait');
+      await shot(page, stage + '-vs-retrato');
+    }
     await page.evaluate(() => window.SevenSinsDebug3D.vsGo());
     await page.waitForFunction(() => {
       const d = window.SevenSinsDebug3D;
@@ -82,6 +95,57 @@ async function openBattle(browser, url, stage, viewport) {
     try { await context.close(); } catch (_) {}
     throw err;
   }
+}
+
+async function inspectVsCard(page) {
+  return page.evaluate(() => {
+    const rect = selector => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return {
+        left: +r.left.toFixed(1), top: +r.top.toFixed(1),
+        right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1),
+        width: +r.width.toFixed(1), height: +r.height.toFixed(1),
+        scrollWidth: el.scrollWidth, clientWidth: el.clientWidth
+      };
+    };
+    const image = selector => {
+      const el = document.querySelector(selector);
+      return el ? { complete: el.complete, naturalWidth: el.naturalWidth, naturalHeight: el.naturalHeight } : null;
+    };
+    const panel = document.querySelector('#vs-panel');
+    const stage = document.querySelector('.vs-stage');
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      visible: !!(panel && !panel.hidden && getComputedStyle(panel).display !== 'none'),
+      panel: rect('#vs-panel'), kicker: rect('.vs-kicker'), stage: rect('.vs-stage'),
+      hero: rect('.vs-hero'), heroFrame: rect('.vs-hero .vs-frame'), heroCaption: rect('.vs-hero figcaption'),
+      boss: rect('.vs-boss'), bossFrame: rect('.vs-boss .vs-frame'), bossCaption: rect('.vs-boss figcaption'),
+      mark: rect('.vs-mark'), line: rect('#vs-line'), go: rect('#vs-go'),
+      images: { hero: image('#vs-hero-img'), boss: image('#vs-boss-img') },
+      overflow: {
+        panelScrollWidth: panel?.scrollWidth ?? 0, panelClientWidth: panel?.clientWidth ?? 0,
+        stageScrollWidth: stage?.scrollWidth ?? 0, stageClientWidth: stage?.clientWidth ?? 0
+      }
+    };
+  });
+}
+
+function assertVsPortrait(state, label) {
+  const { width, height } = state.viewport;
+  assert.ok(width < height, label + ': viewport portrait');
+  assert.equal(state.visible, true, label + ': cartão VS visível');
+  const within = box => !!(box && box.width > 0 && box.height > 0 && box.left >= -1 && box.top >= -1 && box.right <= width + 1 && box.bottom <= height + 1);
+  for (const key of ['panel','kicker','stage','hero','heroFrame','heroCaption','boss','bossFrame','bossCaption','mark','line','go']) {
+    assert.ok(within(state[key]), label + ': ' + key + ' inteiro dentro do viewport');
+  }
+  assert.ok(state.images.hero?.complete && state.images.hero.naturalWidth > 0, label + ': retrato do protagonista carregado');
+  assert.ok(state.images.boss?.complete && state.images.boss.naturalWidth > 0, label + ': arte do Bispo carregada');
+  assert.ok(state.overflow.panelScrollWidth <= state.overflow.panelClientWidth + 1, label + ': painel sem overflow horizontal');
+  assert.ok(state.overflow.stageScrollWidth <= state.overflow.stageClientWidth + 1, label + ': cartões sem overflow horizontal');
+  assert.ok(state.hero.right <= state.mark.left + 1, label + ': protagonista antes do VS');
+  assert.ok(state.mark.right <= state.boss.left + 1, label + ': VS antes do Bispo');
 }
 
 async function inspect(page) {
@@ -280,7 +344,7 @@ async function assertManualZoom(page, label) {
 }
 
 async function runFreshPortrait(browser, url, stage) {
-  const { context, page } = await openBattle(browser, url, stage, { width: 393, height: 852 });
+  const { context, page, vsCard } = await openBattle(browser, url, stage, { width: 393, height: 852 });
   let portrait = null, videoPath = null, manualZoom = null;
   try {
     portrait = await inspect(page);
@@ -290,7 +354,7 @@ async function runFreshPortrait(browser, url, stage) {
   } finally {
     videoPath = await finish(context, page);
   }
-  return { portrait, manualZoom, videoPath };
+  return { portrait, vsCard, manualZoom, videoPath };
 }
 
 async function main() {

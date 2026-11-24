@@ -73,7 +73,7 @@ test('QA compara base e HEAD no fluxo normal, incluindo rotação real de viewpo
 });
 
 test('CSS recebe chave própria de cache; build-info e loader ficam reservados à integração', () => {
-  assert.match(html, /hud3d\.css\?v=a1-vorgazhek-portrait-compact-controls/);
+  assert.match(html, /hud3d\.css\?v=a1-vorgazhek-portrait-vs-fit/);
   assert.match(world, /function portraitBishop2Profile/);
 });
 test('QA inicia a apresentação uma vez e mantém a espera da batalha somente leitura', () => {
@@ -86,7 +86,7 @@ test('QA inicia a apresentação uma vez e mantém a espera da batalha somente l
   assert.match(block, /await page\.evaluate\(\(\) => window\.SevenSinsDebug3D\.vsGo\(\)\)/);
   assert.match(block, /querySelector\('#vs-go'\)/);
   const pollBodies = [...block.matchAll(/await page\.waitForFunction\(\(\) => \{([\s\S]*?)\}, null,/g)].map(match => match[1]);
-  assert.equal(pollBodies.length, 2, 'dois estados observados sem side effects');
+  assert.equal(pollBodies.length, 3, 'três estados observados sem side effects, incluindo imagens do cartão');
   assert.ok(pollBodies.every(body => !body.includes('.vsGo(')), 'polling permanece somente leitura');
 });
 
@@ -185,4 +185,16 @@ test('alternar perspectiva limpa o override de zoom manual do duelo em retrato',
   assert.ok(zoomQa.includes("page.locator('#camera-toggle-3d').click()"), 'QA alterna primeira e terceira pessoa');
   assert.ok(zoomQa.includes("afterReturn.manualZoomOverride, false"), 'QA verifica limpeza do override');
   assert.ok(zoomQa.includes("afterReturn.distance >= 10.2"), 'QA verifica retorno do fit adaptativo');
+});
+
+test('cartão VS do VORGAZHEK mantém protagonistas, arte, texto e CTA dentro do portrait', () => {
+  assert.match(css, /@media \(orientation:portrait\) and \(max-width:600px\)\{[\s\S]*?#vs-panel\{/);
+  assert.match(css, /\.vs-stage\{[^}]*display:grid;grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/);
+  assert.match(css, /\.vs-side\{[^}]*min-width:0/);
+  assert.match(css, /#vs-go\{[^}]*width:min\(220px,72vw\);min-width:0/);
+  assert.match(qa, /async function inspectVsCard/);
+  assert.match(qa, /function assertVsPortrait/);
+  assert.match(qa, /assertVsPortrait\(vsCard/);
+  assert.match(qa, /shot\(page, stage \+ '-vs-retrato'\)/);
+  assert.match(qa, /vsCard, manualZoom/);
 });
