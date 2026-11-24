@@ -133,6 +133,16 @@ export function buildingFloor(x,z){
 const ga=ROUTE[46],gb=ROUTE[47],bridgeLength=Math.hypot(gb.x-ga.x,gb.z-ga.z);
 export const GLACIER_BRIDGE={x:ga.x+(gb.x-ga.x)*.31,z:ga.z+(gb.z-ga.z)*.31,y:ga.y+(gb.y-ga.y)*.31,
  dx:(gb.x-ga.x)/bridgeLength,dz:(gb.z-ga.z)/bridgeLength,len:bridgeLength*.44,rise:(gb.y-ga.y)*.44};
+// The same stations describe the planks, inclines, flared landings and rails.
+export const DOJO_BRIDGE = {x:DOJO.x, start:-1686, end:-1623, halfWidth:3.6};
+export function bridgeSection(z){
+ const {start,end,halfWidth}=DOJO_BRIDGE;
+ if(z<start || z>end)return null;
+ const a=z<=ROUTE[21].z?ROUTE[20]:ROUTE[21];
+ const b=z<=ROUTE[21].z?ROUTE[21]:ROUTE[22];
+ return {height:a.y+(b.y-a.y)*(z-a.z)/(b.z-a.z),
+  width:halfWidth+2.8*(1-smooth(0,8,Math.min(z-start,end-z)))};
+}
 export function ravine(x,z){
  const b=GLACIER_BRIDGE,dx=x-b.x,dz=z-b.z;
  const t=(dx*b.dx+dz*b.dz)/b.len,side=dx*b.dz-dz*b.dx;
@@ -158,7 +168,8 @@ export function landscape(x,z,p=sampleRoad(x,z)){
 export function routeGround(x,z,p=sampleRoad(x,z)){
  const deck=inletFloor(x,z);if(deck!==null)return deck;
  if(p&&p.i>45&&p.i<49){const g=ravine(x,z);if(g.t>=0&&g.t<=1&&Math.abs(g.side)<3.55)return GLACIER_BRIDGE.y+g.t*GLACIER_BRIDGE.rise;}
- if(Math.abs(x-DOJO.x)<3&&z>=-1682&&z<=-1624)return p.y;
+ const section=bridgeSection(z);
+ if(section&&Math.abs(x-DOJO_BRIDGE.x)<=section.width+.2)return section.height;
  return landscape(x,z,p);
 }
 export function roadBlocked(x,z,p=sampleRoad(x,z)){
@@ -169,7 +180,8 @@ export function roadBlocked(x,z,p=sampleRoad(x,z)){
  if(X<12&&Z>=-11&&Z<=11){
   if(X>11.1||Z>10.3||(Z<-10.2&&X>2.4))return true;
  }
- if(z>=-1680&&z<=-1626&&X>2.45&&X<3.15)return true;
+ const section=bridgeSection(z);
+ if(section&&X>=section.width-.32&&X<=section.width+.65)return true;
  X=Math.abs(x-CASTLE.x);Z=z-CASTLE.z;
  if(X<85&&Z>-70&&Z<90){
   if(Math.abs(X-45)<1.35 && Z>=-49.5 && Z<=25.5)return true;

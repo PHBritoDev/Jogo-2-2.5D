@@ -2,7 +2,7 @@ import test from 'node:test';
 import {interiorLights} from './sakura-interiors3d.js';
 import {createSakuraWorld} from './sakura-world3d.js';
 import assert from 'node:assert/strict';
-import {ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,FLANK_TOWERS,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
+import {DOJO_BRIDGE,bridgeSection,ROUTE,CITY_ROAD,FROM_CITY,DETOURS,DOJO,CASTLE,FLANK_TOWERS,THRONE,SPRING_LAKE,ICE_LAKE,GLACIER_BRIDGE,LENGTHS,INLET_BRIDGE,SHELTERS,sampleRoad,routeGround,roadBlocked,landscape,lakeDepth,leavesVolcano,nextGuide} from './sakura-route3d.js';
 import {CITY2,GATE2} from './jornada3d.js';
 import {DISTRICT_SPOTS} from './act2-flow.js';
 import {migrateProgress} from './act1-flow.js';
@@ -83,4 +83,19 @@ test('torres e panos da muralha detêm o jogador, com o eixo do pórtico livre',
   assert.ok(roadBlocked(CASTLE.x+sign*45,CASTLE.z-12));
  }
  for(let z=-101;z<=61;z++)assert.equal(roadBlocked(CASTLE.x,CASTLE.z+z),false);
+});
+
+test('o tabuleiro e os dois corrimãos acompanham a inclinação até às duas cabeceiras',()=>{
+ const b=DOJO_BRIDGE;
+ for(let z=b.start;z<=b.end;z+=.25){
+  const section=bridgeSection(z);
+  for(const sign of [-1,1]){
+   const rail=b.x+sign*section.width;
+   assert.equal(roadBlocked(rail,z),true);
+   const inside=rail-sign*.5;
+   assert.equal(roadBlocked(inside,z),false);
+   assert.equal(routeGround(inside,z),section.height);
+  }
+ }
+ assert.equal(bridgeSection(-1650).height,125);
 });

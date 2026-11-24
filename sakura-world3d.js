@@ -1,4 +1,4 @@
-import {ROUTE,DETOURS,CITY_ROAD,SHELTERS,DOJO,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
+import {ROUTE,DETOURS,CITY_ROAD,SHELTERS,DOJO,DOJO_BRIDGE,bridgeSection,CASTLE,SPRING_LAKE,ICE_LAKE,smooth,noise,sampleRoad,regionWeight,bloomAt,snowAt,landscape,routeGround,lakeDepth,ellipse} from './sakura-route3d.js';
 import {batch,lantern,torii,dojoBuilding,castleBuilding,distantCastle,distantPagoda,glacierHouse,spire,arch} from './sakura-masonry3d.js';
 import {treeLibrary,seeded,distantGrove} from './sakura-grove3d.js';
 import {surfaceFinish,hallDetails} from './sakura-interiors3d.js';
@@ -55,14 +55,23 @@ export function createSakuraWorld(T,scene,{ground,low}){
    m.box(0,.17,.35,2.4,.22,2.6,timber);lantern(m,2.7,0,-1,true,.72);
   }
  }
- function bridge(m,len,w,dy,rope){
-  const parts=Math.ceil(len/1.1);for(let i=0;i<parts;i++){const z=i*len/parts,y=dy*i/parts;
-   m.box(0,y-.17,z,w,.34,len/parts*.96,i%4?0x72554e:0x937066);
-   if(i%5===0)for(const s of [-1,1])m.tube([s*w*.5,y-.8,z],[s*w*.5,y+1.65,z],.14,.11,0x574a49);
+ function dojoSpan(m){
+  const {start,end}=DOJO_BRIDGE, base=bridgeSection(start).height;
+  const count=Math.ceil((end-start)/1.05), step=(end-start)/count;
+  for(let i=0;i<count;i++){
+   const z=(i+.5)*step,{height,width}=bridgeSection(start+z);
+   m.box(0,height-base-.16,z,2*width,.32,step*.96,i%4?0x654a40:0x826052);
   }
-  for(const s of [-1,1]){
-   const pts=[];for(let i=0;i<=parts;i++){const u=i/parts;pts.push([s*w*.5,dy*u+1.45-(rope?.32:0)*Math.sin(Math.PI*u*parts/5)**2,u*len]);}
-   m.rib(pts,.10,0xbba17d,5);m.rib([[s*w*.43,-.42,0],[s*w*.43,dy-.42,len]],.27,0x433d43);
+  for(const side of [-1,1]){
+   const rail=[],beam=[];
+   for(let i=0;i<=count;i++){
+    const z=i*step,{height,width}=bridgeSection(i===count?end:start+z);
+    const x=side*width,y=height-base;
+    if(i%4===0||i===count)m.tube([x,y-.5,z],[x,y+1.5,z],.16,.11,0x52413c);
+    rail.push([x,y+1.37-.17*Math.sin(Math.PI*(i%4)/4)**2,z]);
+    beam.push([x*.92,y-.37,z]);
+   }
+   m.rib(rail,.10,0xb49a77,5);m.rib(beam,.22,0x51433b,5);
   }
  }
  for(const [i,s] of [[5,1.24],[9,.94],[18,1],[21,.68]])model('Torii dos peregrinos',i,m=>{torii(m,s);lantern(m,-4.5*s,0,-1,true,s);lantern(m,4.5*s,0,-1,true,s);});
@@ -80,7 +89,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
   buildings.push({name,p,far,rich:null,richModel,wood,haze,mix});
  }
  building('Dojo da Lua Suspensa',DOJO,distantPagoda,dojoBuilding,true);
- feature('Ponte suspensa', {x:DOJO.x,z:-1682,y:ROUTE[20].y+(ROUTE[21].y-ROUTE[20].y)*18/50},m=>bridge(m,58,5.1,7.1,true),500);
+ feature('Ponte suspensa',{x:DOJO.x,z:DOJO_BRIDGE.start,y:bridgeSection(DOJO_BRIDGE.start).height},dojoSpan,500);
  building('Cidadela e salão do trono',CASTLE,distantCastle,castleBuilding,false);
  // Exterior streets on either side of the central stair, at the same altitude as their pavement.
  for(const s of [-1,1])for(let j=0;j<5;j++){const x=CASTLE.x+s*(34+j%2*5),z=CASTLE.z-72+j*20;
@@ -107,6 +116,21 @@ export function createSakuraWorld(T,scene,{ground,low}){
  const relative=(x,z)=>[x-CASTLE.x,z-CASTLE.z];
  function reserve(x,z){const [dx,dz]=relative(x,z);
   return Math.abs(dx)<81&&dz>=-110&&dz<92||Math.abs(dx)<25&&dz>=-190&&dz<-110||Math.abs(x-DOJO.x)<22&&z>=-1686&&z<DOJO.z+25||SHELTERS.some(s=>near(x,z,s,6))||landmarkSolids.some(s=>near(x,z,s,s.r+3));}
+ // Keep a framed opening down the two approach valleys. Clear only crowns
+ // tall enough to break the ray from a standing traveller to the landmark.
+ const overlooks=[
+  {eye:DETOURS[2].points[3],landmark:DOJO,rise:20},
+  {eye:ROUTE[54],landmark:CASTLE,rise:63}
+ ];
+ function masksVista(x,y,z){
+  return overlooks.some(({eye,landmark,rise})=>{
+   const dx=landmark.x-eye.x,dz=landmark.z-eye.z,len2=dx*dx+dz*dz;
+   const t=((x-eye.x)*dx+(z-eye.z)*dz)/len2;
+   if(t<-.012||t>1)return false;
+   const across=Math.abs((x-eye.x)*dz-(z-eye.z)*dx)/Math.sqrt(len2);
+   return across<7+12*t && y+20>eye.y+1.7+(landmark.y+rise-eye.y-1.7)*t;
+  });
+ }
  function physical(x,z,p){if(p.i>=2.5&&(p.kind!=='town'||x>265))return landscape(x,z,p);
   const w=regionWeight(x,z,p);if(w>=.999)return landscape(x,z,p);
   return ground(x,z)-(routeGround(x,z,p)-landscape(x,z,p))*w;}
@@ -160,6 +184,7 @@ export function createSakuraWorld(T,scene,{ground,low}){
    const bloom=bloomAt(p.i),cold=snowAt(p.i);if(p.i>37&&p.i<56&&r()<.60||p.i<3&&r()<.7)continue;
    const type=bloom>r()&&p.i<33?Math.floor(r()*4):(cold<.42?7:4+Math.floor(r()*3));
    const size=(.60+r()*.70)*(p.i<5?.70:1)*(p.d<17?1.08:1),y=physical(x,z,p)-.12;
+   if(masksVista(x,y,z))continue;
    if(!clusters.has(type))clusters.set(type,[]);clusters.get(type).push([x,y,z,size,r()*6.283]);
    obstacles.push({x,z,r:type<4?.54*size:.39*size});
    if(j%4===0){const h=.42+r()*.56;trace.tube([x+2,y-.18,z+1],[x+2.4,y+h,z+1],h*1.4,.22,h>.68?0x7b8490:0x8f8b8b,7);drawn=true;}

@@ -5,7 +5,7 @@ fs.mkdirSync(out,{recursive:true});
 let recordingContext,recording;
 try{
  const mobile=['mobile','portrait'].includes(mode);
- const width=mode==='walk'?640:mode==='portrait'?393:mobile?852:1200, height=mode==='walk'?360:mode==='portrait'?852:mobile?393:675;
+ const width=mode==='walk'?480:mode==='portrait'?393:mobile?852:1200, height=mode==='walk'?270:mode==='portrait'?852:mobile?393:675;
  const tier=process.env.GRAPHICS||'low';
  const ctx=await b.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,recordVideo:{dir:out,size:{width,height}}});
  recordingContext=ctx;
@@ -90,6 +90,7 @@ try{
    for(const k of wanted)if(!down.has(k)){await page.keyboard.down(k);down.add(k);}
   }
   try{
+   let previous=points[0];
    for(const point of points){
     let best=Infinity,lastProgress=Date.now();
     while(true){
@@ -108,7 +109,12 @@ try{
       // Tangent evasion uses the same WASD controls if a corner arrests movement.
       const stalled=Date.now()-lastProgress;
       const sidestep=stalled<4500?0:(Math.floor((stalled-4500)/3200)%2?-.78:.78);
-      const heading=Math.atan2(dx,dz)-state.yaw+sidestep;
+      // Aim a few metres along the surveyed segment instead of cutting
+      // corners toward a distant waypoint outside the bridge entrance.
+      const sx=point.x-previous.x,sz=point.z-previous.z,length=Math.hypot(sx,sz);
+      const along=length ? ((state.pos.x-previous.x)*sx+(state.pos.z-previous.z)*sz)/length : 0;
+      const t=length ? Math.max(0,Math.min(1,(along+3.5)/length)) : 1;
+      const heading=Math.atan2(previous.x+t*sx-state.pos.x,previous.z+t*sz-state.pos.z)-state.yaw+sidestep;
       const ix=Math.sin(heading),iz=Math.cos(heading);
       const keys=['ShiftLeft'];if(Math.abs(ix)>.38)keys.push(ix>0?'d':'a');if(Math.abs(iz)>.38)keys.push(iz>0?'s':'w');
       await press(keys);
@@ -116,6 +122,7 @@ try{
      if(Date.now()-lastProgress>90000)throw Error('Caminhada parou em '+JSON.stringify({point,state}));
      await page.waitForTimeout(110);
     }
+    previous=point;
     if(point.name==='mestra'){
      await page.keyboard.press('e');
      for(let i=0;i<3;i++)await page.locator('#dialog-continue').click({timeout:12000});
@@ -130,10 +137,10 @@ try{
  }else{
   const shots=[
    ['01-cinzas',-1568,-545,-1690,-660],['02-torii',-1732,-812,-1740,-833],['03-bosque',-1480,-1219,-1484,-1244],
-   ['04-lago',-1368,-1461,-1223,-1464],['04b-pagode-distante',-1190,-1368,-1040,-1610],['05-templo',-1040,-1662,-1040,-1605],
+   ['04-lago',-1368,-1461,-1223,-1464],['04b-pagode-distante',-1274,-1253,-1040,-1610],['05-templo',-1040,-1662,-1040,-1605],
    ['06-dojo',-1040,-1618,-1039,-1604],['07-geada',-607,-1684,-542,-1700],
    ['08-pinhal',-72,-2090,0,-1980],['09-vale',51,-1644,255,-1690],['10-espelho',753,-1847,931,-1730],
-   ['10b-castelo-distante',637,-576,564,-254],['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
+   ['10b-castelo-distante',734,-493,564,-254],['11-cidadela',564,-361,564,-242],['12-nave',564,-283,564,-195],['13-trono',564,-223,564,-190],
    ['14-bairro',145,-37,162,-34]
   ];
   if(mobile){
@@ -155,9 +162,9 @@ try{
   for(const [name,x,z,tx,tz] of shots){
    const result=await page.evaluate(async({name,x,z,tx,tz})=>{
     const d=SevenSinsDebug3D;d.placeAt(x,d.groundAt(x,z),z);d.viewQA(true,Math.atan2(x-tx,z-tz),name==='11-cidadela'?-.24:name==='12-nave'?-.20:name==='05-templo'?-.22:0);
-    d.viewQA(false,Math.atan2(x-tx,z-tz),.10);
+
     const y=d.groundAt(x,z),top=name==='11-cidadela'?33:name==='12-nave'?10:name==='13-trono'?6:name==='05-templo'?12:name==='06-dojo'?1.8:2;
-    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?81+top:name==='05-templo'||name==='04b-pagode-distante'?127+top:name==='10b-castelo-distante'?128:d.groundAt(tx,tz)+top,tz]);
+    d.fly([x+.18,y+1.85,z+.2],[tx,name==='11-cidadela'?81+top:name==='04b-pagode-distante'?147:name==='05-templo'?127+top:name==='10b-castelo-distante'?144:d.groundAt(tx,tz)+top,tz]);
     for(let i=0;i<24;i++){if(!document.querySelector('#dialog-panel').classList.contains('hidden'))document.querySelector('#dialog-continue').click();await new Promise(requestAnimationFrame);}
     const ts=[];let prev=performance.now();for(let i=0;i<9;i++){const t=await new Promise(requestAnimationFrame);ts.push(t-prev);prev=t;}
     return {pos:d.walkState(),render:d.squadRender(),framesMs:ts,heapBytes:performance.memory?.usedJSHeapSize};

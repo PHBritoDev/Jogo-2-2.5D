@@ -17,7 +17,7 @@ export function blossomTexture(T){return atlas(T,128,(ctx,n)=>{
   ctx.fillStyle='#e9a68c';ctx.fillRect(x-1,y-1,1.9,1.9);}
  });}
 export function treeLibrary(T){
- const barkColors=[0x49343c,0x513b41,0x433444,0x554047],lib=[];
+ const barkColors=[0x73565d,0x6e554d,0x675367,0x795e55],lib=[];
  const flowerMap=blossomTexture(T),wind={value:0};
  const needleMap=atlas(T,96,(ctx,n)=>{const r=seeded(9913);ctx.lineCap='round';
   for(let i=0;i<290;i++){const u=r(),x=u*n,h=(1-u*.73)*(.48+.50*r())*n;
@@ -38,10 +38,19 @@ export function treeLibrary(T){
  function sakura(n,far){
   const m=batch(T),pos=[],uv=[],col=[],r=seeded(841+n*59),w=[1.10,1.22,.9,1.28][n],h=[1,1.18,1.05,.82][n];
   const c=new T.Color();function cluster(p,s){
-   for(let k=0;k<(far?2:3);k++){const a=r()*Math.PI,bend=.3+r()*.45,rx=Math.cos(a)*s,rz=Math.sin(a)*s;
-    const pts=[[-rx,-s*.53,-rz],[rx,-s*.5,rz],[rx*.88,s*.77,rz*.88+bend],[-rx*.89,s*.71,-rz*.89+bend]];
+   for(let k=0;k<(far?2:3);k++){
+    const a=r()*Math.PI,rx=Math.cos(a)*s,rz=Math.sin(a)*s;
+    // Four sloping petals around a raised centre keep nearby clusters
+    // rounded from underneath, without a second transparent material.
+    const pts=[[-rx,-s*.48,-rz],[rx,-s*.48,rz],[rx*.87,s*.67,rz*.87],[-rx*.87,s*.67,-rz*.87],
+     [-Math.sin(a)*s*.42,s*.24,Math.cos(a)*s*.42]];
+    const uvRing=[[0,0],[1,0],[1,1],[0,1],[.5,.56]];
     c.set([0xeec5d8,0xffe0e7,0xffc2d6,0xe7b6db][n]).multiplyScalar(.88+r()*.24);
-    for(const i of [0,1,2,0,2,3]){pos.push(p[0]+pts[i][0],p[1]+pts[i][1],p[2]+pts[i][2]);uv.push(i===0||i===3?0:1,i<2?0:1);col.push(c.r,c.g,c.b);}
+    for(const i of (far?[0,1,2,0,2,3]:[0,1,4,1,2,4,2,3,4,3,0,4])){
+     pos.push(p[0]+pts[i][0],p[1]+pts[i][1],p[2]+pts[i][2]);
+     uv.push(...uvRing[i]);const shade=i<2?.79:i===4?1.04:1;
+     col.push(c.r*shade,c.g*shade,c.b*shade);
+    }
    }
   }
   const color=barkColors[n],lean=[-.8,1.35,-1.5,.48][n],top=[lean,4.7*h,.49];

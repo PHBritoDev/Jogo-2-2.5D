@@ -1080,7 +1080,7 @@ let grassRefresh=null;
 function scatterGrassTufts(geometry){
  const lowSpec=terrainLowSpec,CHUNK=10,R=lowSpec?2:3,PER=lowSpec?22:26,cap=(2*R+1)*(2*R+1)*PER;
  const mesh=new THREE.InstancedMesh(geometry,grassMaterial,cap),dummy=new THREE.Object3D(),cache=new Map();
- const blocked=(x,z)=>{if(!dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true;if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<38||inDesert(x,z))return true; // MOD 206 — sem capim na neve
+ const blocked=(x,z)=>{if(regionWeight(x,z)>.05 || !dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true;if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<38||inDesert(x,z))return true; // MOD 206 — sem capim na neve
 if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx-2&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz-2&&((x*7.3+z*3.1)%5+5)%5>1.2)return true;if(Math.hypot(x,z-4)<5.8||Math.hypot(x-CLEARING.x,z-CLEARING.z)<6.8||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.6)return true;if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+.6)))return true;if(treeObstacles.some(o=>Math.abs(x-o.x)<o.radius+.5&&Math.hypot(x-o.x,z-o.z)<o.radius+.5))return true;if(rockObstacles.some(o=>Math.abs(x-o.x)<o.radius+.32&&Math.hypot(x-o.x,z-o.z)<o.radius+.32))return true;return marketObstacles.some(o=>o.shape==='box'?Math.abs(x-o.x)<o.halfX+.35&&Math.abs(z-o.z)<o.halfZ+.35:Math.hypot(x-o.x,z-o.z)<o.radius+.35);};
  function chunk(cx,cz){const key=cx+','+cz;let list=cache.get(key);if(list)return list;list=[];let seed=((cx*73856093)^(cz*19349663))>>>0||1;const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let i=0;i<PER*2&&list.length<PER;i++){const x=(cx+next())*CHUNK,z=(cz+next())*CHUNK;
@@ -1913,7 +1913,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
- player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
+ player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||act3Presentation(questStep,act1Sub)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.textContent='Não foi possível carregar '+(newHero?'Prota_otimizado_2K.glb':'Protagonista.glb')+'. ';const fallback=document.createElement('a');fallback.href=heroFallbackURL;fallback.textContent='Usar protagonista antigo';loading.append(fallback);status.textContent='Falha ao carregar modelo';});
 import { acceptsGameKey, bindMovementKeys } from './desktop-movement.js';
 const keys = bindMovementKeys(window, document);
