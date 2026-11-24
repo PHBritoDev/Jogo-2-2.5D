@@ -171,3 +171,15 @@ test('A/B rejects captures where either combatant is outside the camera viewport
   assert.match(qa,/actorFrame\.boss\[1\]>=0/);
   assert.match(qa,/actorFrame,screenshot:path\.basename\(screenshot\)/,'the report must retain the frame projection');
 });
+
+test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
+  const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
+  assert.match(qa,/function expectedFillFor\(label\)/);
+  assert.match(qa,/label === '01-main'[\s\S]*?position:\[1200,18,4\], intensity:3\.5, distance:110/);
+  assert.match(qa,/position:\[1200,7,0\], intensity:16, distance:36/);
+  assert.match(qa,/expectedFill\.position\[1\]/,'world height must distinguish the original high fill from the lower candidate fill');
+  assert.match(qa,/expectedFill\.intensity\*\.051/,'both production breathing pulses need the same relative tolerance');
+  assert.match(qa,/expectedFill\.minSlotIntensity/,'each side must prove its own light reaches the shader slot');
+  assert.match(qa,/lightingCheck=\{expected:expectedFill,observed:/,'the A/B report must retain the expected and observed source');
+  assert.match(qa,/actorFrame,lightingCheck,screenshot:/);
+});
