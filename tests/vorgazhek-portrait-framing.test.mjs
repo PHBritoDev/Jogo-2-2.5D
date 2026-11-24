@@ -116,7 +116,8 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
   assert.match(qa, /state\.actors\?\.enemy\?\.visibleMeshes > 0/);
   assert.match(qa, /state\.actors\?\.player\?\.center\?\.onScreen/);
   assert.match(qa, /state\.actors\.player\.head\.onScreen && state\.actors\.enemy\.head\.onScreen/);
-  assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= \.22/);
+  assert.match(qa, /const minProjectedSeparation = worldSeparation < 1\.3 \? \.17 : worldSeparation < 2 \? \.22 : worldSeparation < 3 \? \.34 : \.42/);
+  assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= minProjectedSeparation/);
 });
 
 test('zoom manual por pinça e roda suspende a recentralização automática', () => {
@@ -143,7 +144,7 @@ test('zoom manual no retrato preserva a distância escolhida pelo jogador', () =
 test('fit geométrico do retrato mantém o ator próximo dentro da margem e os dois separados', () => {
   for (const aspect of [320 / 852, 393 / 852]) {
     for (const fov of [56, 63]) {
-      let lastDistance = 0, lastBias = .42;
+      let lastDistance = 0, lastBias = .52;
       for (const sep of [1.2, 1.5, 2.4, 3.5, 6, 8, 12, 21, 22]) {
         const fit = computePortraitCameraFit(sep, aspect, fov);
         const half = sep * .5, tanHalfHorizontal = Math.tan(fov * Math.PI / 360) * aspect;
