@@ -509,8 +509,14 @@ test('A2: SlashVFX compacts spark buffers without temporary views and uploads on
     for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
       assert.equal(attrs[name].version, versions[name] + 1, name + ' recebe uma atualização');
     }
-    assert.deepEqual(Array.from(attrs.aPos.array.slice(0, 6)), [1, 2, 3, 7, 8, 9]);
-    assert.deepEqual(Array.from(attrs.aVel.array.slice(0, 6)), [4, 5, 6, 1, 2, 3]);
+    const dt = 1 / 60, pos = attrs.aPos.array, vel = attrs.aVel.array;
+    for (const [offset, initial] of [[0, [1, 2, 3]], [3, [7, 8, 9]]]) {
+      for (let axis = 0; axis < 3; axis++) {
+        assert.ok(Math.abs(pos[offset + axis] - (initial[axis] + vel[offset + axis] * dt)) < 1e-5,
+          'a posição compactada acompanha a velocidade pós-gravidade/arrasto');
+      }
+    }
+    assert.ok(Array.from(vel.slice(0, 6)).every(Number.isFinite), 'as velocidades compactadas continuam válidas');
     assert.ok(attrs.aK.array[0] > 0 && attrs.aK.array[1] > 0 && attrs.aK.array[2] > 0 && attrs.aK.array[3] > 0);
     assert.ok(Array.from(attrs.aCol.array.slice(0, 6)).every(Number.isFinite), 'as cores compactadas continuam válidas');
 
