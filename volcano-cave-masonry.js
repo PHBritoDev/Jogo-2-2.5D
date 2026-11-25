@@ -40,21 +40,21 @@ export function masonryShaderPatches(lavaEnabled) {
   'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);',
   'vec3 delta=spill-position;',
   lavaEnabled
-   ? \`float deltaLen2=dot(delta,delta);\nfloat wet=1./(1.+deltaLen2*\${glslNumber(cfg.distanceFalloff)});\`
-   : \`float wet=1./(1.+dot(delta,delta)*\${glslNumber(cfg.distanceFalloff)});\`,
+   ? 'float deltaLen2=dot(delta,delta);\nfloat wet=1./(1.+deltaLen2*'+glslNumber(cfg.distanceFalloff)+');'
+   : 'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');',
   'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));',
   'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);',
   ...(lavaEnabled ? [
-   \`float facing=max(dot(normalize(normal),delta)*inversesqrt(max(deltaLen2,0.00000001)),0.);\`,
-   \`float lavaRegion=smoothstep(\${glslNumber(cfg.regionStartZ)},\${glslNumber(cfg.regionFullZ)},position.z);\`,
-   \`vLavaBounce=wet*(\${glslNumber(cfg.facingFloor)}+\${glslNumber(cfg.facingGain)}*facing)*lavaRegion;\`
+   'float facing=max(dot(normalize(normal),delta)*inversesqrt(max(deltaLen2,0.00000001)),0.);',
+   'float lavaRegion=smoothstep('+glslNumber(cfg.regionStartZ)+','+glslNumber(cfg.regionFullZ)+',position.z);',
+   'vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing)*lavaRegion;'
   ] : [])
  ].join('\n')+'\n';
  const fragmentChunk=[
   'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));',
   'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);',
-  ...(lavaEnabled ? [\`diffuseColor.rgb+=vec3(\${color})*vLavaBounce*uLavaPulse;\`] : []),
-  \`diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint\${lavaEnabled?'*uLavaPulse':''}*smoothstep(.045,.32,relief);\`
+  ...(lavaEnabled ? ['diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse;'] : []),
+  'diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint'+(lavaEnabled?'*uLavaPulse':'')+'*smoothstep(.045,.32,relief);'
  ].join('\n')+'\n';
  return {
   vertexPrefix: lavaEnabled ? 'varying float wetGlint;\nvarying float vLavaBounce;\n' : 'varying float wetGlint;\n',
