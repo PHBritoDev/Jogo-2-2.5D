@@ -4481,7 +4481,8 @@ function storyMarketRayBlocked(from,to){
  storyMarketRay.near=.05;storyMarketRay.far=Math.max(.05,length-.35);
  for(const oc of storyMarketOccluders){
   oc.obj.updateWorldMatrix(true,true);
-  if(oc.bounds?.containsPoint(storyMarketFrom))return true;
+  // Não rejeitar um raio só porque o ponto inicial está dentro do AABB da banca:
+  // o vendedor pode estar sob a cobertura. A geometria real decide a oclusão.
   if(Math.hypot(storyMarketFrom.x-oc.x,storyMarketFrom.z-oc.z)>oc.r+length)continue;
   // GLBs de barraca podem ter faces FrontSide: testar os dois sentidos evita ignorar o verso da cobertura.
   const hit=storyMarketRay.intersectObject(oc.obj,true)[0];
