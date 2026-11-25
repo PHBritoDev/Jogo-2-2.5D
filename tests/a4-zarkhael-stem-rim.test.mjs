@@ -11,13 +11,14 @@ const material = source.slice(start, end);
 
 test('Zar’khael stem material gets a dedicated low-energy view rim', () => {
   assert.ok(material.includes("m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim1' : '');"));
-  const marker = "if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>'";
+  const marker = "if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>'";
   const rimStart = material.indexOf(marker);
-  assert.ok(rimStart >= 0, 'stem-only emissive rim must be injected');
+  assert.ok(rimStart >= 0, 'stem-only emissive rim must be injected after Three.js builds the view-space geometry');
   const rimEnd = material.indexOf("if (kind === 'floor') shader.fragmentShader", rimStart);
   assert.ok(rimEnd > rimStart, 'stem rim must end before the floor-only reflection');
   const rim = material.slice(rimStart, rimEnd);
-  assert.match(rim, /dot\(normal,\s*normalize\(vViewPosition\)\)/);
+  assert.match(rim, /dot\(normal,\s*geometry\.viewDir\)/);
+  assert.doesNotMatch(rim, /normalize\(vViewPosition\)/);
   assert.match(rim, /float stemRim = 1\. - stemViewCos/);
   assert.match(rim, /totalEmissiveRadiance\s*\+=\s*vec3\(\.018,\.0018,\.0028\)/);
   assert.match(rim, /\.55\s*\+\s*\.45\s*\*\s*n/);
