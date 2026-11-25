@@ -1,0 +1,69 @@
+name: A4 — Reflexo dinâmico de lava (A/B)
+on:
+  push:
+    branches:
+      - agentes/a4/volcano-lava-bounce
+  pull_request:
+    paths:
+      - 'volcano-cave-masonry.js'
+      - 'volcano-cave-scene.js'
+      - 'volcano-cave-lighting.test.mjs'
+      - 'tools/qa/a4-volcano-lava-bounce.*'
+      - '.github/workflows/a4-volcano-lava-bounce.yml'
+permissions:
+  contents: read
+jobs:
+  a4-volcano-ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          path: baseline
+          sparse-checkout: |
+            /*.js
+            /*.mjs
+            /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
+            /CristalCaverna01.glb
+            /TochaMedievalTripo.glb
+          sparse-checkout-cone-mode: false
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: candidate
+          sparse-checkout: |
+            /*.js
+            /*.mjs
+            /tools/qa/a4-volcano-lava-bounce.html
+            /tools/qa/a4-volcano-lava-bounce.cjs
+            /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
+            /CristalCaverna01.glb
+            /TochaMedievalTripo.glb
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Instalar Playwright, Three.js e PNG reader
+        run: npm install --prefix "$RUNNER_TEMP/qa" playwright@1.56.1 three@0.160.0 pngjs@7.0.0
+      - name: Instalar Chromium
+        run: '"$RUNNER_TEMP/qa/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Comparar main e candidata no mesmo enquadramento
+        env:
+          NODE_PATH: ${{ runner.temp }}/qa/node_modules
+          BASE_DIR: ${{ github.workspace }}/baseline
+          CANDIDATE_DIR: ${{ github.workspace }}/candidate
+          OUTPUT_DIR: ${{ github.workspace }}/candidate/artifacts/a4-volcano-lava-bounce
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'main' }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node candidate/tools/qa/a4-volcano-lava-bounce.cjs
+      - name: Publicar PNGs, WebM e relatório A/B
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a4-volcano-lava-bounce-${{ github.sha }}
+          path: candidate/artifacts/a4-volcano-lava-bounce/
+          if-no-files-found: warn
+          retention-days: 7
