@@ -116,7 +116,7 @@ async function main() {
     const candidate = await runVersion(browser, 'candidate', 4264, threeRoot);
     const comparisons = {};
     const budget = {};
-    for (const key of ['overlook-1000', 'overlook-1500', 'gallery-2000', 'grove-2500', 'spine-3000']) {
+    for (const key of ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'grove-2500', 'spine-3000']) {
       const a = baseline.frames.find(frame => frame.key + '-' + frame.now === key);
       const b = candidate.frames.find(frame => frame.key + '-' + frame.now === key);
       if (!a || !b) throw new Error('Captura A/B ausente: ' + key);
@@ -143,6 +143,13 @@ async function main() {
         candidate.frames.find(frame => frame.key === 'overlook' && frame.now === 1500).file
       )
     };
+    const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.baseline.meanRGB).toFixed(5));
+    if (comparisons['overlook-1000'].meanRGB < .6 || comparisons['overlook-1000'].changedPixelsPct < 1) {
+      throw new Error('Bounce localizado abaixo do limiar visual no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
+    }
+    if (temporalGainRGB < .015) {
+      throw new Error('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
+    }
     const report = {
       baseSha,
       candidateSha,
@@ -152,6 +159,7 @@ async function main() {
       candidate: { report: candidate.report, errors: candidate.errors },
       imageDelta: comparisons,
       temporalDelta: temporal,
+      temporalGainRGB,
       renderBudget: budget
     };
     fs.writeFileSync(path.join(outputDir, 'report.json'), JSON.stringify(report, null, 2));

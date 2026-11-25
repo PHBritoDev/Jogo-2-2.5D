@@ -18,6 +18,7 @@ test('bounce da lava cai com a distância e respeita a orientação da rocha', (
 test('pulsação é lenta, limitada e determinística', () => {
   const samples = Array.from({ length: 32 }, (_, i) => lavaBouncePulse(i * .15, .4));
   assert.ok(samples.every(value => value >= .76 && value <= 1.0));
+  assert.ok(LAVA_BOUNCE_CONFIG.color[0] >= .25);
   assert.ok(new Set(samples.map(value => value.toFixed(5))).size > 20);
   assert.equal(lavaBouncePulse(Infinity, Number.NaN), LAVA_BOUNCE_CONFIG.pulseBase);
   assert.equal(lavaBouncePulse(0, 0), LAVA_BOUNCE_CONFIG.pulseBase);
@@ -36,6 +37,8 @@ test('somente os lotes próximos do Santuário recebem o bounce', () => {
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('./volcano-cave-scene.js', import.meta.url), 'utf8');
+  const harness = readFileSync(new URL('./tools/qa/a4-volcano-lava-bounce.html', import.meta.url), 'utf8');
+  const capture = readFileSync(new URL('./tools/qa/a4-volcano-lava-bounce.cjs', import.meta.url), 'utf8');
   assert.match(masonry, /shader\.uniforms\.uLavaTime=lavaClock/);
   assert.match(masonry, /shader\.uniforms\.uLavaGain=lavaGain/);
   assert.match(masonry, /uniform float uLavaTime/);
@@ -47,4 +50,8 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(scene, /masonry\(T,s,862\+i,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,galleries,2491,\{stoneMap,clock\}\)/);
   assert.match(scene, /clock\.value=t/);
+  assert.match(harness, /node === 'upper-gallery' \? nodes\.vestibule : nodes\[node\]/);
+  assert.match(harness, /draw\('upper-gallery', 2000\)/);
+  assert.match(capture, /'upper-gallery-2000'/);
+  assert.match(capture, /temporalGainRGB < \.015/);
 });

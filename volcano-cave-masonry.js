@@ -6,7 +6,7 @@ export const LAVA_BOUNCE_CONFIG = Object.freeze({
  distanceFalloff: .003, facingFloor: .20, facingGain: .80,
  pulseBase: .88, pulseSlow: .08, pulseFast: .04,
  pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73,
- color: Object.freeze([.12, .032, .007])
+ color: Object.freeze([.28, .072, .012])
 });
 export function lavaBounceFalloff(distance, facing = 1) {
  const rawDistance=Number(distance), rawFacing=Number(facing);

@@ -68,7 +68,7 @@ try {
     scene.fog.far = env.fogFar;
   }
   function placeCamera(node) {
-    const point = nodes[node];
+    const point = node === 'upper-gallery' ? nodes.vestibule : nodes[node];
     camera.position.set(point[0], caveHeight(point[1]) + 2, point[1]);
     camera.lookAt(point[0], 2, point[1] - 25);
   }
@@ -112,7 +112,7 @@ try {
     const frames = [
       draw('overlook', 1000),
       draw('overlook', 1500),
-      draw('gallery', 2000),
+      draw('upper-gallery', 2000),
       draw('grove', 2500),
       draw('spine', 3000)
     ];
