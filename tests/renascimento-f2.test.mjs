@@ -81,6 +81,13 @@ test('integração: cobertura do vale continua ligada ao instancing real e ao A/
   }
   assert.match(qaScript, /VISUAL_BASELINE_URL/);
   assert.match(qaScript, /baselineSha/);
+  assert.match(qaScript, /D\.fly\(null\)/, 'reseta override da câmera antes de cada enquadramento');
+  assert.match(qaScript, /D\.snapCam\(\)/, 'força o enquadramento após teleporte e view');
+  assert.match(qaScript, /waitCameraStable/, 'não captura após um atraso fixo sem estabilizar a câmera');
+  assert.match(qaScript, /D\.cam\(\)/);
+  assert.match(qaScript, /D\.camView\(\)/, 'verifica oclusão da linha de visão');
+  assert.match(qaScript, /cameraDeltaFromBaseline/);
+  assert.match(qaScript, /sameViewportAndCamera = allStable && sameCamera/, 'só declara câmera idêntica após comparação medida');
 });
 
 test('integração: vale entra no mesmo instancing do cinturão, rollback por flag, relicário único salvo', () => {
