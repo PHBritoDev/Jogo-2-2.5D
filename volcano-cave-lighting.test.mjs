@@ -40,7 +40,7 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(masonry, /uniform float uLavaTime/);
   assert.match(masonry, /vLavaBounce/);
   assert.match(masonry, /if\(uLavaGain>\.001\)/);
-  assert.match(masonry, /group\.name\.includes\('Santuário'\)\|\|group\.name\.includes\('pisos'\)/);
+  assert.match(masonry, /lavaBounceEnabled\(group\.name,!!palette\.clock\)/);
   assert.doesNotMatch(masonry, /new T\.PointLight|shadowMap/);
   assert.match(scene, /masonry\(T,floors,971,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,s,862\+i,\{stoneMap,clock\}\)/);
