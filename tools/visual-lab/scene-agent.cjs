@@ -193,7 +193,8 @@ async function main() {
               const start = await page.evaluate(() => window.SevenSinsDebug3D.state());
               const yaw = core.walkYaw(start, segment.target);
               await page.evaluate(({yaw}) => window.SevenSinsDebug3D.view(yaw, .12, 5.5), {yaw});
-              await page.waitForTimeout(500);
+              // Espera a câmera de acompanhamento terminar a curva antes de medir o movimento.
+              const cameraSettleMs = await waitCameraStable(page, 9000);
               // Sem argumento, camView() verifica o protagonista; o argumento opcional é reservado a alvos de cenas livres.
               await page.evaluate(() => {
                 const D = window.SevenSinsDebug3D;
@@ -275,10 +276,10 @@ async function main() {
                 name: segment.name, key: segment.key, target: segment.target, yaw: +yaw.toFixed(3),
                 start: {x: +start.x.toFixed(2), y: +start.y.toFixed(2), z: +start.z.toFixed(2)},
                 end: {x: +end.x.toFixed(2), y: +end.y.toFixed(2), z: +end.z.toFixed(2)},
-                distance: +measured.distance.toFixed(2), remaining: +measured.remaining.toFixed(2), elapsedMs,
+                distance: +measured.distance.toFixed(2), remaining: +measured.remaining.toFixed(2), elapsedMs, cameraSettleMs,
                 minTravel: segment.minTravel, tolerance: segment.tolerance, timeoutMs: segment.timeoutMs,
                 trace, traceMetrics:metricsForReport,
-                reached: reached && traceMetrics.valid && measured.remaining <= segment.tolerance + .25 && measured.distance >= segment.minTravel
+                reached: cameraSettleMs >= 0 && reached && traceMetrics.valid && measured.remaining <= segment.tolerance + .25 && measured.distance >= segment.minTravel
               };
               const willContinue = record.reached && j < scene.walk.segments.length - 1;
               if (!willContinue && route.captureQuality?.applied && route.captureQuality.previous) {
@@ -293,12 +294,16 @@ async function main() {
                 route.captureQuality.fpsAfterRestore = await page.evaluate(() => document.getElementById("fps-badge")?.textContent?.trim() || null);
               }
               const r = await shoot(page, sharp, scene, { name: segment.name, mode: "camera-do-jogo", none: true }, prev, scene.shots.length + j);
-              r.res.controls = ["keyboard " + segment.key + " " + elapsedMs + " ms", "camera yaw " + yaw.toFixed(3)];
+              r.res.controls = ["keyboard " + segment.key + " " + elapsedMs + " ms", "camera yaw " + yaw.toFixed(3), "camera settle " + cameraSettleMs + " ms"];
               r.res.extra = { ...(r.res.extra || {}), walk: record };
               if (!record.reached) {
                 route.completed = false;
                 r.res.status = "falha";
-                r.res.reason = "Percurso " + segment.name + " não alcançou alvo: " + record.distance + " m percorridos, " + record.remaining + " m restantes; mínimo " + segment.minTravel + " m";
+                r.res.reason = cameraSettleMs < 0
+                  ? "Câmera não estabilizou após ajustar o yaw do trecho " + segment.name
+                  : !traceMetrics.valid
+                    ? "Trace inválido no trecho " + segment.name + ": " + (traceMetrics.reason || "métrica inconsistente")
+                    : "Percurso " + segment.name + " não alcançou alvo: " + record.distance + " m percorridos, " + record.remaining + " m restantes; mínimo " + segment.minTravel + " m";
               }
               shots.push(r.res); prev = r.sig; route.segments.push(record);
               if (!record.reached) break; // falha no primeiro trecho: preservar a causa, sem seguir de um ponto incorreto
