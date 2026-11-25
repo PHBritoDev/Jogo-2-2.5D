@@ -34,33 +34,44 @@ test("cenas reutilizáveis: vila, floresta, mundo, caverna (só leitura) e NPCs;
   assert.throws(() => core.validateShot({ name: "x" }), /at, cave, fly ou npc/);
   assert.throws(() => core.validateRequest(Array(9).fill("vila-praca")), /1 a 8/);
 });
-test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar à praça", () => {
+test("floresta-percurso contorna a árvore colossal pelo corredor oeste antes de chegar à abertura sul", async () => {
   const scene = core.validateRequest(["floresta-percurso"])[0];
   assert.deepEqual(scene.shots[0].at, [-14, -82, 0], "começa no campo exterior");
   assert.deepEqual(scene.shots.map(s => s.name), ["campo-inicio", "vau-lago-camera"]);
   assert.deepEqual(scene.shots[1].at, [-28.815, -94.586, 0], "repete a posição de água observada no artifact A4");
   assert.equal(scene.shots[1].pitch, 0); assert.equal(scene.shots[1].dist, 6);
   assert.deepEqual(scene.walk.start, [-14, -82, 0], "a caminhada retorna ao campo depois da tomada do vau");
-  assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca-entrada"]);
-  assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-13, -49.5]]);
+  assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-arvore-oeste", "vila-praca-entrada"]);
+  assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-20.5, -76], [-13, -49.5]]);
   assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,180000]);
-  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',26,3]]);
+  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,1],['KeyW',26,3]]);
   assert.equal(scene.walk.captureQuality, "low", "movimento usa perfil baixo para reduzir o custo do SwiftShader");
-  const market = {x:-13.2,z:-70.5,radius:3.9};
+  const [{ELDORIA_CENTER}, {ELDORIA_MAIN_TREE}, {ELDORIA_PROPS}] = await Promise.all([
+    import("../../act1-world-layout.js"), import("../../eldoria-city-layout.js"), import("../../eldoria-live-village3d.js")
+  ]);
+  const treeProp = ELDORIA_PROPS.find(p => p[0] === ELDORIA_MAIN_TREE.file && p[1] === ELDORIA_MAIN_TREE.x && p[2] === ELDORIA_MAIN_TREE.z);
+  assert.ok(treeProp && Number.isFinite(treeProp[5]), "a árvore colossal precisa expor seu colisor real");
+  const mainTree = {x:ELDORIA_CENTER.x+ELDORIA_MAIN_TREE.x,z:ELDORIA_CENTER.z+ELDORIA_MAIN_TREE.z,radius:treeProp[5]};
   const pointSegmentDistance = (p,a,b) => {
     const dx=b[0]-a[0], dz=b[1]-a[1], den=dx*dx+dz*dz;
     const t=Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.z-a[1])*dz)/den));
     return Math.hypot(p.x-(a[0]+dx*t),p.z-(a[1]+dz*t));
   };
-  const path=[[-14,-105],[-19,-76],[-14.2,-42.8]];
-  for(let i=1;i<path.length;i++) assert.ok(pointSegmentDistance(market,path[i-1],path[i])>market.radius+.7,
-    "cada trecho do desvio mantém margem além do colisor do mercado");
+  const path=[scene.walk.start.slice(0,2),...scene.walk.segments.map(s=>s.target)];
+  for(let i=1;i<path.length;i++) assert.ok(pointSegmentDistance(mainTree,path[i-1],path[i])>mainTree.radius+.7,
+    "cada trecho real mantém 0,7 m além do colisor da árvore colossal");
+  const waypoint=scene.walk.segments[1],finalTarget=scene.walk.segments[2].target;
+  for(const radius of [0,.25,.5,.75,1]) for(let i=0;i<72;i++){
+    const a=i*Math.PI/36,start=[waypoint.target[0]+Math.cos(a)*waypoint.tolerance*radius,waypoint.target[1]+Math.sin(a)*waypoint.tolerance*radius];
+    assert.ok(pointSegmentDistance(mainTree,start,finalTarget)>mainTree.radius+.7,
+      "a tolerância do desvio não pode permitir aproximação excessiva do tronco");
+  }
   assert.throws(() => core.validateWalk({captureQuality:"ultra",segments:[{name:"perfil-invalido",target:[0,1]}]}), /Perfil de captura inválido/);
   assert.throws(() => core.validateWalk({segments:[{name:"timeout-excessivo",target:[0,1],timeoutMs:300001}]}), /Timeout inválido/);
   assert.ok(Math.abs(core.walkYaw({x:-14,z:-82}, {x:-14,z:-105})) < 1e-12, "W segue para sul no primeiro trecho");
-  const westYaw = core.walkYaw({x:-14,z:-105}, {x:-19,z:-76});
-  assert.ok(westYaw > 2.9 && westYaw < Math.PI, "W vira para noroeste e contorna o mercado pelo oeste");
-  const plazaYaw = core.walkYaw({x:-19,z:-76}, {x:-13,z:-49.5});
+  const westYaw = core.walkYaw({x:-14,z:-105}, {x:-20.5,z:-76});
+  assert.ok(westYaw > 2.9 && westYaw < Math.PI, "W vira para noroeste e contorna a árvore pelo oeste");
+  const plazaYaw = core.walkYaw({x:-20.5,z:-76}, {x:-13,z:-49.5});
   assert.ok(plazaYaw < -2.8 && plazaYaw > -Math.PI, "W aponta para a abertura sul da praça sem tentar atravessar o poço central");
   assert.deepEqual(core.measureWalk({x:0,z:0}, {x:3,z:4}, [3,8]), {distance:5,remaining:4});
   assert.throws(() => core.validateWalk({segments:[{name:"alvo-invalido",target:[0],timeoutMs:5000}]}), /Alvo inválido/);

@@ -10,11 +10,11 @@ const env = {AGENT:'A1', SCENARIO:'floresta-percurso', VIDEO:'true', SETUP:'succ
 const cam = () => ({onScreen:true,blocked:null});
 const makeTrace = rows => rows.map(([t,x,z,y=0,grounded=true,surface=null,surfaceY=null,terrainY=y]) => ({t,x,z,y,grounded,surface,surfaceY,terrainY,camera:cam()}));
 const start1={x:-14,y:0,z:-82}, end1={x:-14,y:0,z:-105};
-const start2={x:-14,y:0,z:-105}, end2={x:-19,y:0,z:-76};
-const start3={x:-19,y:0,z:-76}, end3={x:-13,y:0,z:-49.5};
+const start2={x:-14,y:0,z:-105}, end2={x:-20.5,y:0,z:-76};
+const start3={x:-20.5,y:0,z:-76}, end3={x:-13,y:0,z:-49.5};
 const trace1=makeTrace([[0,-14,-82],[2000,-14,-86.6],[4000,-14,-91.2],[6000,-14,-95.8],[8000,-14,-100.4],[9800,-14,-105]]);
-const trace2=makeTrace([[0,-14,-105],[2000,-15,-99.2],[4000,-16,-93.4],[6000,-17,-87.6],[8000,-18,-81.8],[10000,-19,-76],[10800,-19,-76]]);
-const trace3=makeTrace([[0,-19,-76],[1000,-18.5,-73.7917],[2000,-18,-71.5833],[3000,-17.5,-69.375],[4000,-17,-67.1667],[5000,-16.5,-64.9583],[6000,-16,-62.75],[7000,-15.5,-60.5417],[8000,-15,-58.3333],[9000,-14.5,-56.125],[10000,-14,-53.9167],[11000,-13.5,-51.7083],[12000,-13,-49.5],[12800,-13,-49.5]]);
+const trace2=makeTrace([[0,-14,-105],[2000,-15.3,-99.2],[4000,-16.6,-93.4],[6000,-17.9,-87.6],[8000,-19.2,-81.8],[10000,-20.5,-76],[10800,-20.5,-76]]);
+const trace3=makeTrace([[0,-20.5,-76],[1000,-19.875,-73.7917],[2000,-19.25,-71.5833],[3000,-18.625,-69.375],[4000,-18,-67.1667],[5000,-17.375,-64.9583],[6000,-16.75,-62.75],[7000,-16.125,-60.5417],[8000,-15.5,-58.3333],[9000,-14.875,-56.125],[10000,-14.25,-53.9167],[11000,-13.625,-51.7083],[12000,-13,-49.5],[12800,-13,-49.5]]);
 const metrics1=measureWalkTrace(trace1,start1,end1), metrics2=measureWalkTrace(trace2,start2,end2), metrics3=measureWalkTrace(trace3,start3,end3);
 const makeSegment=(i,start,end,trace,traceMetrics,elapsedMs)=>{
   const rule=configuredSegments[i],distance=Math.hypot(end.x-start.x,end.z-start.z);
@@ -172,7 +172,7 @@ test('estados de captura distinguem ambiente, arquivo, script e revisão',()=>{
   assert.equal(run({...report,routes:[{...route,totalDistance:2.5}]}),'game_failed','movimento curto não aprova o trajeto completo');
   assert.equal(run({...report,routes:[withSegments(route.segments.slice(0,2))]}),'game_failed','omitir o contorno ou a chegada não aprova');
   const gapStart={x:-14,y:0,z:-100};
-  const gapTrace=makeTrace([[0,-14,-100],[2000,-15,-95.2],[4000,-16,-90.4],[6000,-17,-85.6],[8000,-18,-80.8],[10000,-19,-76],[10800,-19,-76]]);
+  const gapTrace=makeTrace([[0,-14,-100],[2000,-15.3,-95.2],[4000,-16.6,-90.4],[6000,-17.9,-85.6],[8000,-19.2,-80.8],[10000,-20.5,-76],[10800,-20.5,-76]]);
   const gapMetrics=measureWalkTrace(gapTrace,gapStart,end2);
   const gapSegment=makeSegment(1,gapStart,end2,gapTrace,gapMetrics,10000);
   const teleported=withSegments([route.segments[0],gapSegment,route.segments[2]]);
