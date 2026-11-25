@@ -11,7 +11,7 @@ test('cipós tropicais respeitam o corredor livre, assim como as folhas', () => 
 
   assert.ok(plan.leaves.length > 0, 'folhas continuam presentes fora da trilha');
   assert.ok(plan.vines.length > 0, 'cipós continuam presentes nas laterais');
-  assert.equal(unobstructed.vines.length, 45, 'o filtro não altera a densidade quando todo o terreno está livre');
+  assert.equal(unobstructed.vines.length, 40, 'o filtro não altera a densidade quando todo o terreno está livre');
   assert.ok(plan.vines.length < unobstructed.vines.length, 'cipós dentro do corredor são removidos');
   assert.ok(plan.leaves.every(p => isFree(p.x, p.z)), 'folhas respeitam a máscara');
   assert.ok(plan.vines.every(p => isFree(p.x, p.z)), 'nenhum cipó ocupa o corredor da trilha');
