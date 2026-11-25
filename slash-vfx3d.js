@@ -217,26 +217,43 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     position: { start: 0, count: 0 }, velocity: { start: 0, count: 0 },
     ageSize: { start: 0, count: 0 }, color: { start: 0, count: 0 }
   };
-  function publishSparkRange(attribute, reusableRange, count) {
+  // Color data follows compact slots directly; only touched RGB triples are marked dirty.
+  const sparkColors = aCol.array;
+  let sparkColorStart = Infinity, sparkColorEnd = 0;
+  function markSparkColorRange(start, count) {
+    if (start < sparkColorStart) sparkColorStart = start;
+    if (start + count > sparkColorEnd) sparkColorEnd = start + count;
+  }
+  function publishSparkRange(attribute, reusableRange, start, count) {
     const ranges = attribute.updateRanges;
     if (Array.isArray(ranges)) {
-      // The current write always covers [0,count); widen it to preserve any unconsumed prefix/ranges.
-      let end = count;
-      for (let i = 0; i < ranges.length; i++) end = Math.max(end, ranges[i].start + ranges[i].count);
-      reusableRange.start = 0; reusableRange.count = end;
+      // Collapse old, unconsumed ranges and this write into one safe component span.
+      let first = start, last = start + count;
+      for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i];
+        if (range.start < first) first = range.start;
+        const rangeEnd = range.start + range.count;
+        if (rangeEnd > last) last = rangeEnd;
+      }
+      reusableRange.start = first; reusableRange.count = last - first;
       ranges[0] = reusableRange; ranges.length = 1;
     }
     attribute.needsUpdate = true;
   }
   function spark(p, v, style = 'prota', life = .3, size = 1) {
     const i = sparkCursor++ % sparks, st = STYLES[style] || STYLES.prota;
-    if (activeSparkPositions[i] === -1) {
-      activeSparkPositions[i] = activeSparkCount;
+    let compactIndex = activeSparkPositions[i];
+    if (compactIndex === -1) {
+      compactIndex = activeSparkCount;
+      activeSparkPositions[i] = compactIndex;
       activeSparkIndices[activeSparkCount++] = i;
     }
     sp.pos[i * 3] = p.x; sp.pos[i * 3 + 1] = p.y; sp.pos[i * 3 + 2] = p.z; sp.vel[i * 3] = v.x; sp.vel[i * 3 + 1] = v.y; sp.vel[i * 3 + 2] = v.z;
     sp.life[i] = life * (.7 + Math.random() * .6); sp.age[i] = 0; sp.size[i] = size * (.6 + Math.random() * .8);
     _c.setHex(Math.random() < .7 ? st.sparks : st.spark2); sp.col[i * 3] = _c.r; sp.col[i * 3 + 1] = _c.g; sp.col[i * 3 + 2] = _c.b;
+    const colorOffset = compactIndex * 3;
+    sparkColors[colorOffset] = sp.col[i * 3]; sparkColors[colorOffset + 1] = sp.col[i * 3 + 1]; sparkColors[colorOffset + 2] = sp.col[i * 3 + 2];
+    markSparkColorRange(colorOffset, 3);
   }
   // ---------------- estrela de impacto (4 pontas) + anel de choque ----------------
   const starMat = () => new T.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: false, toneMapped: false, blending: T.AdditiveBlending,
@@ -282,38 +299,50 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     time += dt; quality = level; camera.getWorldQuaternion(camQ);
     for (const s of slashPool) { if (!s.m.visible) continue; s.m.material.uniforms.uTime.value = time; s.sm.material.uniforms.uTime.value = time; if (time - s.last > (STYLES[s.style] || STYLES.prota).life + .05) { s.m.visible = false; if (s.key !== null) { byKey.delete(s.key); s.key = null; } s.n = 0; s.g.setDrawRange(0, 0); } }
     for (const w of wavePool) syncWave(w, dt);
-    let live = 0; const P = aPos.array, V = aVel.array, K = aK.array, C = aCol.array;
+    let live = 0; const P = aPos.array, V = aVel.array, K = aK.array;
+    // Gravity and drag are frame-constant: compute them once, not once per live spark.
+    const gravityStep = activeSparkCount ? 9 * dt : 0;
+    const drag = activeSparkCount ? Math.exp(-3.5 * dt) : 1;
     for (let active = 0; active < activeSparkCount;) {
       const i = activeSparkIndices[active];
       sp.age[i] += dt / sp.life[i];
       if (sp.age[i] >= 1) {
-        const last = activeSparkIndices[--activeSparkCount];
-        activeSparkIndices[active] = last;
-        activeSparkPositions[last] = active;
+        const lastPosition = --activeSparkCount;
+        const last = activeSparkIndices[lastPosition];
+        if (last !== i) {
+          activeSparkIndices[active] = last;
+          activeSparkPositions[last] = active;
+          const target3 = active * 3, source3 = last * 3;
+          sparkColors[target3] = sp.col[source3]; sparkColors[target3 + 1] = sp.col[source3 + 1]; sparkColors[target3 + 2] = sp.col[source3 + 2];
+          markSparkColorRange(target3, 3);
+        }
         activeSparkPositions[i] = -1;
         continue;
       }
-      sp.vel[i * 3 + 1] -= 9 * dt; const drag = Math.exp(-3.5 * dt); sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
+      sp.vel[i * 3 + 1] -= gravityStep; sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
       sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
       const source3 = i * 3, target3 = live * 3, target2 = live * 2;
       P[target3] = sp.pos[source3]; P[target3 + 1] = sp.pos[source3 + 1]; P[target3 + 2] = sp.pos[source3 + 2];
       V[target3] = sp.vel[source3]; V[target3 + 1] = sp.vel[source3 + 1]; V[target3 + 2] = sp.vel[source3 + 2];
       K[target2] = sp.age[i]; K[target2 + 1] = sp.size[i];
-      C[target3] = sp.col[source3]; C[target3 + 1] = sp.col[source3 + 1]; C[target3 + 2] = sp.col[source3 + 2];
       live++; active++;
     }
     sparkGeo.instanceCount = live;
+    if (live && sparkColorEnd > sparkColorStart) {
+      publishSparkRange(aCol, sparkRanges.color, sparkColorStart, sparkColorEnd - sparkColorStart);
+    }
+    sparkColorStart = Infinity;
+    sparkColorEnd = 0;
     if (live) {
-      // Four stable range objects avoid replacing full-pool uploads with per-frame range allocations.
-      publishSparkRange(aPos, sparkRanges.position, live * 3);
-      publishSparkRange(aVel, sparkRanges.velocity, live * 3);
-      publishSparkRange(aK, sparkRanges.ageSize, live * 2);
-      publishSparkRange(aCol, sparkRanges.color, live * 3);
+      // Three stable ranges cover moving attributes; color has its own change-driven upload above.
+      publishSparkRange(aPos, sparkRanges.position, 0, live * 3);
+      publishSparkRange(aVel, sparkRanges.velocity, 0, live * 3);
+      publishSparkRange(aK, sparkRanges.ageSize, 0, live * 2);
     }
     for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
   }
-  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); activeSparkCount = 0; activeSparkPositions.fill(-1); sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; for (const s of splashPool) s.m.visible = false; }
+  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); activeSparkCount = 0; activeSparkPositions.fill(-1); sparkColorStart = Infinity; sparkColorEnd = 0; sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; for (const s of splashPool) s.m.visible = false; }
   function stats() { return { slashes: slashPool.filter(s => s.m.visible).length, waves: wavePool.filter(w => w.g.visible).length, sparks: sparkGeo.instanceCount, stars: starPool.filter(s => s.m.visible).length, splashes: splashPool.filter(s => s.m.visible).length, capacity: { slashes, waves, sparks, stars } }; }
   return { sample, end, wave, impact, splash, spark, update, clear, stats, root };
 }
