@@ -28,7 +28,7 @@
 
 ### Cena principal do Ato I
 
-O runtime marca `villageVendors[1]` para a interação `PERGUNTAR · TÉO` e `act1Interact()` executa `vendorScene()`. O falante dessa cena é `Téo · Provisões`. O objetivo anterior do HUD dizia “Pergunte ao vendedor de frutas”. A correção nesta PR troca somente o texto do objetivo para “Pergunte a Téo · Provisões sobre o Pecado da Ganância” e adiciona regressão. Nenhum evento ou fala da cena muda.
+O runtime marca `villageVendors[1]` para a interação `PERGUNTAR · TÉO` e `act1Interact()` executa `vendorScene()`. O falante dessa cena é `Téo · Provisões`. O objetivo anterior do HUD dizia “Pergunte ao vendedor de frutas”. A correção nesta PR troca somente o texto do objetivo para “Pergunte a Téo sobre o Pecado da Ganância”; o rótulo do falante continua “Téo · Provisões”. A regressão verifica a frase exata e o rótulo. Nenhum evento, fala ou interação da cena muda.
 
 ### Pingente de Lia
 
@@ -102,3 +102,12 @@ A segunda alternativa exige esclarecer por que Lia recebeu o objeto e talvez ren
 7. Recompensa de Pedras continua condicionada aos três IDs locais e ao save confirmado do mapa.
 
 **Sem aprovação:** não criar NPCs, não remapear givers, não trocar falas, não mudar flags e não alterar save.
+
+
+## 6. QA do objetivo principal — evidência e limite
+
+- O run A5 [#45550234051](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45550234051) concluiu SUCCESS no SHA `e191c352ba489a7f48cda14a7663311a10e1f679`: Node **105/105**, sintaxe, Chromium/Three e percurso de waystones aprovados.
+- O artifact [#14994976156](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45550234051/artifacts/14994976156) contém 11 PNGs e WebM de 32min30s. A `00-initial-active.png` mostra o objetivo “Pergunte a Téo sobre o Pecado da Ganância” e o botão `PERGUNTAR · TÉO` no jogo.
+- O relatório declara `narrativeScope: giver offer/turn-in intentionally excluded`; o harness não executa a conversa principal de Téo nem oferta/entrega de missão lateral. Portanto, a evidência confirma o HUD e o contexto inicial, **não** a conversa completa do vendedor.
+- Plataforma: Chromium/SwiftShader, 852×393, touch simulado. Não é certificação Android físico nem medição de FPS móvel. O WebM apresenta letterbox em trechos.
+- A captura dirigida `vila-vendedores` continua necessária para validar aproximação, toque e fala principal; não foi disparada por esta sessão.
