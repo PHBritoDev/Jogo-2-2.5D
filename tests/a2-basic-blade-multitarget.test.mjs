@@ -93,6 +93,23 @@ test('focus handoff keeps the outgoing target in actor history for a swept side 
  }
 });
 
+test('secondary blade sweep accepts an authored 3.12m squad dash after a 250ms frame hitch',()=>{
+ const focus=enemy('focus',20,20),side=enemy('side-dash',-1.56,3);side.radius=.35;
+ const hits=[],impacts=[],rites=new SwordRites({
+  moveset:()=>({id:'long-squad-dash',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
+  hit:(damage,id,kind)=>{hits.push({id,kind});return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ rites.update(1/120,ctx); // snapshot the actor before its authored VZ_DASH (13 m/s × .24 s = 3.12 m)
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ side.x=1.56;
+ rites.update(.25,ctx);
+ assert.deepEqual(hits.map(hit=>hit.id),['side-dash'],'a real 3.12m dash crossing the blade during a 250ms hitch must not be mistaken for a teleport');
+ assert.equal(impacts.length,1,'the accepted dash must emit one impact');
+});
+
 test('physical blade sweep follows a moving secondary capsule between frames at 20/30/60/120 FPS',()=>{
  for(const fps of [20,30,60,120]){
   const result=movingSecondarySweep(fps);
