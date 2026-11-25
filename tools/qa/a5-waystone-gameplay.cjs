@@ -690,9 +690,31 @@ async function exposePathfinder() {
     assert.equal(afterVendorControl.story.sub, 1, 'reload após diálogo não restaurou a etapa da vila');
     assert.equal(afterVendorControl.story.scene, null, 'reload após diálogo deixou cena ativa');
     assert.equal(afterVendorControl.regression.busy, false, 'reload após diálogo deixou o controle bloqueado');
+    assert.equal(afterVendorControl.story.q, 1, 'reload não restaurou o questStep da vila no runtime');
+    assert.equal(afterVendorControl.state.objective, 'Pergunte a Téo sobre o Pecado da Ganância',
+      'reload não restaurou o objetivo principal de Téo');
+    assert.equal(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+      'reload não restaurou a interação principal de Téo');
     assert.equal(afterVendorReload.side.abrigos.progress, 0, 'diálogo alterou indevidamente o progresso dos abrigos');
     assert.equal(afterVendorReload.coins, initial.coins, 'diálogo cobrou moedas antes da ação entregar-ouro');
     assert.equal(afterVendorReload.xp, initial.xp, 'diálogo alterou XP antes da ação entregar-ouro');
+    report.vendorDialogueReload = {
+      version: afterVendorCampaign.version,
+      act1Rev: afterVendorCampaign.act1Rev,
+      questStep: afterVendorCampaign.questStep,
+      act1Sub: afterVendorCampaign.act1Sub,
+      objective: afterVendorControl.state.objective,
+      interaction: afterVendorControl.story.label,
+      coins: afterVendorReload.coins,
+      xp: afterVendorReload.xp,
+      sideWaystonesProgress: afterVendorReload.side.abrigos.progress
+    };
+    await shot('01-vendor-reload-restored');
+
+    // A persistência foi verificada acima. Rearmar o fixture só agora isola a rota dos abrigos
+    // e devolve ao jogador a posição/estado de QA usados pelo pathfinder, sem mascarar o reload.
+    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await wait(700);
 
     await page.waitForFunction(ids => {
       const current = window.SevenSinsDebug3D.sideQuestQA().waystones.filter(w => ids.includes(w.id));
