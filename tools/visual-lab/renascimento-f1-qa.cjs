@@ -62,7 +62,14 @@ const SHOTS = [
   ['praca', 'D.teleport(-12,-40,Math.PI);D.view(Math.PI*1.1,.2,9)'],
 ];
 
-async function session(browser, viewport, mobile, out, rec) {
+const CLEARING_SHOTS = [
+  { id: 'vigia', x: 29, z: 96.5, yaw: Math.PI / 2, pitch: .55, dist: 20 },
+  { id: 'respiro-leste', x: 96, z: 70, yaw: Math.PI / 2, pitch: .55, dist: 20 },
+  { id: 'respiro-oeste', x: 20, z: 128, yaw: Math.PI / 2, pitch: .55, dist: 18 },
+  { id: 'garganta', x: 70, z: 200, yaw: 0, pitch: .55, dist: 16 },
+];
+
+async function session(browser, viewport, mobile, out, rec, baseUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173') {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile, ...(rec ? { recordVideo: { dir: out, size: viewport } } : {}) });
   await ctx.addInitScript(SEED);
   const page = await ctx.newPage(); const errs = [];
@@ -70,14 +77,69 @@ async function session(browser, viewport, mobile, out, rec) {
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 200)); });
   page.on('response', r => { if (r.status() >= 400 && /\.(?:glb|js|png|jpg|webp)(?:\?|$)/.test(r.url())) errs.push('HTTP ' + r.status() + ' ' + r.url().slice(0, 140)); });
   if (process.env.THREE_LOCAL) await page.route(/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/(.*)/, async r => { const rel = r.request().url().split('three@0.160.0/')[1].split('?')[0]; await r.fulfill({ path: path.join(process.env.THREE_LOCAL, rel), contentType: 'text/javascript' }); });
-  const base = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173';
-  await page.goto(base + '/mundo-3d-prototype.html?debug3d=1&build=r' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(baseUrl + '/mundo-3d-prototype.html?debug3d=1&build=r' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 300000 });
   await wait(2500); await page.evaluate(() => window.SevenSinsDebug3D.freeRoam());
   return { ctx, page, errs };
 }
 const frames = (page, ms) => page.evaluate(async ms => { const d = []; let last = null; const t0 = performance.now(); return new Promise(res => { function f(t) { if (last !== null) d.push(t - last); last = t; if (t - t0 > ms) { d.sort((a, b) => a - b); const q = x => +d[Math.min(d.length - 1, Math.floor(d.length * x))].toFixed(1); const r = window.SevenSinsDebug3D.combatReport().draw; res({ n: d.length, p50: q(.5), p95: q(.95), p99: q(.99), max: +d[d.length - 1].toFixed(1), calls: r.calls, tris: r.triangles }); } else requestAnimationFrame(f); } requestAnimationFrame(f); }); }, ms);
 const snap = async (page, file) => { try { await page.screenshot({ path: file, timeout: 150000 }); } catch (e) { await wait(3000); await page.screenshot({ path: file, timeout: 150000 }); } };
+
+async function captureClearingsAB(browser, profileName, viewport, mobile) {
+  const baselineUrl = process.env.VISUAL_BASELINE_URL;
+  if (!baselineUrl) return null;
+  const candidateUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173';
+  const out = path.join(root, profileName, 'clearings-ab');
+  fs.mkdirSync(out, { recursive: true });
+  const result = { baseline: { shots: [] }, candidate: { shots: [] } };
+
+  for (const [variant, url] of [['baseline', baselineUrl], ['candidate', candidateUrl]]) {
+    const { ctx, page, errs } = await session(browser, viewport, mobile, out, false, url);
+    await page.waitForFunction(() => window.SevenSinsValleyReport?.groundCover?.tufts > 0, null, { timeout: 120000 });
+    const groundCover = await page.evaluate(() => window.SevenSinsValleyReport.groundCover);
+    result[variant].groundCover = groundCover;
+    if (groundCover.tufts < 800 || groundCover.flowers < 230) {
+      const msg = `${profileName}/${variant}: cobertura do vale ausente ou insuficiente ${JSON.stringify(groundCover)}`;
+      result[variant].error = msg;
+      report.errors.push(msg);
+    }
+
+    for (const shot of CLEARING_SHOTS) {
+      await page.evaluate(s => {
+        const D = window.SevenSinsDebug3D;
+        D.setHour(15); D.weather('limpo');
+        D.teleport(s.x, s.z, s.yaw);
+        D.view(s.yaw, s.pitch, s.dist);
+        D.motionStep(.4, { x: 0, z: 0 });
+      }, shot);
+      await wait(1800);
+      const state = await page.evaluate(() => window.SevenSinsDebug3D.state());
+      const file = `${variant}-${shot.id}.png`;
+      await snap(page, path.join(out, file));
+      const entry = {
+        id: shot.id, file, walkable: !!state.walkable,
+        position: [+state.x.toFixed(2), +state.y.toFixed(2), +state.z.toFixed(2)],
+        camera: { yaw: shot.yaw, pitch: shot.pitch, distance: shot.dist },
+      };
+      result[variant].shots.push(entry);
+      if (variant === 'candidate' && !entry.walkable) {
+        const baseline = result.baseline.shots.find(x => x.id === shot.id);
+        if (baseline?.walkable) {
+          const msg = `${profileName}/candidate/${shot.id}: perdeu walkability em relação à main`;
+          result[variant].error = result[variant].error ? result[variant].error + '; ' + msg : msg;
+          report.errors.push(msg);
+        }
+      }
+    }
+    if (errs.length) {
+      result[variant].pageErrors = errs;
+      const real = errs.filter(e => !/KHR_parallel|PropertyBinding|WebGL/.test(e));
+      if (real.length) report.errors.push(`${profileName}/${variant}: ${real.slice(0, 3).join(' | ')}`);
+    }
+    await ctx.close();
+  }
+  return result;
+}
 
 async function profile(browser, name, viewport, mobile) {
   const out = path.join(root, name); fs.mkdirSync(out, { recursive: true });
@@ -118,6 +180,17 @@ async function profile(browser, name, viewport, mobile) {
     browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--ignore-gpu-blocklist', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     await profile(browser, 'mobile', { width: 852, height: 393 }, true);
     if (!process.env.QA_ONLY_MOBILE) await profile(browser, 'desktop', { width: 1280, height: 720 }, false);
+    if (process.env.VISUAL_BASELINE_URL) {
+      report.clearingsAB = {
+        baselineSha: process.env.PR_BASE_SHA || null,
+        candidateSha: process.env.PR_HEAD_SHA || process.env.GITHUB_SHA || null,
+        conditions: { hour: 15, weather: 'limpo', sameViewportAndCamera: true },
+        profiles: {},
+      };
+      report.clearingsAB.profiles.mobile = await captureClearingsAB(browser, 'mobile', { width: 852, height: 393 }, true);
+      if (!process.env.QA_ONLY_MOBILE) report.clearingsAB.profiles.desktop = await captureClearingsAB(browser, 'desktop', { width: 1280, height: 720 }, false);
+      report.clearingsAB.status = report.errors.length ? 'failed' : 'captured';
+    }
     for (const [k, P] of Object.entries(report.profiles)) {
       const real = P.errors.filter(e => !/KHR_parallel|PropertyBinding|WebGL/.test(e)); if (real.length) report.errors.push(k + ': ' + real.slice(0, 3).join(' | '));
       const bad = P.nav.filter(n => !n.ok).map(n => n.id); if (bad.length) report.errors.push(k + ': navegação falhou em ' + bad.join(', '));
