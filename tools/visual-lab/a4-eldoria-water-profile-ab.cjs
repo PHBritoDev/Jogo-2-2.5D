@@ -31,60 +31,56 @@ const report = {
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function captureSide(browser, side, baseline) {
-  const dir = path.join(out, side);
-  fs.mkdirSync(dir, { recursive: true });
-  const context = await browser.newContext({
-    viewport: { width: 852, height: 480 }, deviceScaleFactor: 1,
-    isMobile: true, hasTouch: true
-  });
-  const page = await context.newPage();
-  await page.addInitScript(() => {
-    // Mesma semente nos dois lados: árvores/NPCs procedurais não podem mudar a composição A/B.
-    let seed = 0xA4E1D0;
-    Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-  });
-  page.on('pageerror', e => report.errors.push(side + ' pageerror: ' + String(e.message || e).slice(0, 400)));
-  page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' console: ' + msg.text().slice(0, 400)); });
-  page.on('requestfailed', req => { const why = req.failure()?.errorText || ''; if (!/ERR_ABORTED|cancelled/i.test(why)) report.errors.push(side + ' requestfailed: ' + why + ' ' + req.url().slice(0, 180)); });
-  page.on('response', r => {
-    if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url()))
-      report.errors.push(side + ' HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
-  });
-  if (baseline) {
-    await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
-      const name = path.basename(new URL(route.request().url()).pathname);
-      if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
-      if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
-      if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
-      await route.fulfill({
-        status: 200, contentType: 'text/javascript; charset=utf-8',
-        body: baseModules[name]
+  // Um contexto novo por perfil: a preferência é carregada antes do módulo da aurora
+  // e não depende de uma troca de select depois que o relógio do shader for congelado.
+  for (const profile of profiles) {
+    const context = await browser.newContext({
+      viewport: { width: 852, height: 480 }, deviceScaleFactor: 1,
+      isMobile: true, hasTouch: true
+    });
+    await context.addInitScript(({ selectedProfile }) => {
+      let seed = 0xA4E1D0;
+      Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+      localStorage.setItem('seven-sins-3d-graphics', selectedProfile);
+    }, { selectedProfile: profile });
+    const page = await context.newPage();
+    page.on('pageerror', e => report.errors.push(side + ' pageerror: ' + String(e.message || e).slice(0, 400)));
+    page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' console: ' + msg.text().slice(0, 400)); });
+    page.on('requestfailed', req => { const why = req.failure()?.errorText || ''; if (!/ERR_ABORTED|cancelled/i.test(why)) report.errors.push(side + ' requestfailed: ' + why + ' ' + req.url().slice(0, 180)); });
+    page.on('response', r => {
+      if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url()))
+        report.errors.push(side + ' HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
+    });
+    if (baseline) {
+      await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
+        const name = path.basename(new URL(route.request().url()).pathname);
+        if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
+        if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
+        if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
+        await route.fulfill({
+          status: 200, contentType: 'text/javascript; charset=utf-8',
+          body: baseModules[name]
+        });
       });
-    });
-  }
-  try {
-    await page.goto(baseUrl + '/mundo-3d-prototype.html?debug3d=1&a4WaterAB=' + side, {
-      waitUntil: 'domcontentloaded', timeout: 60000
-    });
-    await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 240000 });
-    await page.evaluate(() => window.SevenSinsDebug3D.freeRoam());
-
-    for (const profile of profiles) {
-      await page.evaluate(mode => {
-        const select = document.querySelector('#graphics-profile-3d');
-        if (!select) throw new Error('Seletor de qualidade não encontrado');
-        select.value = mode;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-      }, profile);
-      await wait(1100);
+    }
+    try {
+      await page.goto(baseUrl + '/mundo-3d-prototype.html?debug3d=1&a4WaterAB=' + side + '-' + profile, {
+        waitUntil: 'domcontentloaded', timeout: 60000
+      });
+      await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 240000 });
+      await page.evaluate(() => window.SevenSinsDebug3D.freeRoam());
+      await wait(1800);
 
       for (const scene of scenes) {
         await page.evaluate(s => {
           const d = window.SevenSinsDebug3D;
           d.setHour(s.hour);
+          if (typeof d.weather === 'function') d.weather('limpo');
           d.teleport(s.x, s.z);
           d.fly(null);
           d.view(s.yaw, s.pitch, s.distance);
+          // snapCam é o mesmo ajuste imediato usado pelo QA de dimensão/câmera do projeto.
+          if (typeof d.snapCam === 'function') d.snapCam();
           window.__a4CameraPrevious = null;
           window.__a4CameraStable = 0;
         }, scene);
@@ -105,6 +101,9 @@ async function captureSide(browser, side, baseline) {
           return window.__a4CameraStable >= 4;
         }, null, { timeout: 20000, polling: 100 });
         await wait(300);
+
+        // Perfil já foi carregado no localStorage antes do boot. Congelar o tempo agora
+        // mantém água/aurora no mesmo instante sem impedir a troca de perfil entre páginas.
         const frozenTime = await page.evaluate(() => {
           try {
             const fixed = 60000;
@@ -129,6 +128,7 @@ async function captureSide(browser, side, baseline) {
             frozenTimeMs: window.__a4FrozenTimeMs ?? null,
             player: [state.x, state.y, state.z],
             camera: d.cam?.() || null,
+            snapCamera: d.snapCam?.() || null,
             calls: state.calls ?? state.drawCalls ?? null,
             triangles: state.triangles ?? null,
             programCount: d.programList?.()?.length ?? null,
@@ -148,9 +148,9 @@ async function captureSide(browser, side, baseline) {
             report.errors.push(profile + '/' + scene.name + ': uAurLow=' + diagnostic.lowUniform + ', esperado ' + expected);
         }
       }
+    } finally {
+      await context.close();
     }
-  } finally {
-    await context.close();
   }
 }
 
