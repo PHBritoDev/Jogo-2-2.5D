@@ -394,7 +394,7 @@ async function walkTo(stone, label) {
   const rejected = [];
   let selected = null;
   for (const side of candidates) {
-    const stages = window.__a5ShelterApproachWaypoints({ x: stone.x, z: stone.z }, side, .55);
+    const stages = await page.evaluate(({ x, z, side }) => window.__a5ShelterApproachWaypoints({ x, z }, side, .55), { x: stone.x, z: stone.z, side });
     if (stages.length !== 3) {
       rejected.push({ side: side.index, reason: 'sequência radial de aproximação inválida' });
       continue;
