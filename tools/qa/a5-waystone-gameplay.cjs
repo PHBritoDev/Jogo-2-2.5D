@@ -51,7 +51,7 @@ const report = {
   method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
   movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
-  narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
+  narrativeScope: 'main quest HUD/prompt asserted; main dialogue and sidequest offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -59,6 +59,7 @@ const report = {
   walks: [],
   registrations: [],
   interactionChecks: [],
+  mainQuestPrompt: null,
   screenshots: [],
   errors: [],
   consoleErrors: [],
@@ -604,6 +605,15 @@ async function exposePathfinder() {
     assert.equal(initialControl.story.sub, 1, 'fixture deve começar após a chegada à vila, sem a cinemática de chegada');
     assert.equal(initialControl.story.scene, null, 'cena de história bloqueia a caminhada');
     assert.equal(initialControl.regression.busy, false, 'controle do protagonista ainda está bloqueado pela história');
+    const expectedObjective = 'Pergunte a Téo sobre o Pecado da Ganância';
+    const expectedTalkLabel = 'PERGUNTAR · TÉO';
+    assert.equal(initialControl.state.objective, expectedObjective, 'HUD do Ato I não mostra o objetivo corrigido de Téo');
+    assert.equal(initialControl.story.label, expectedTalkLabel, 'estado narrativo não aponta para a interação principal com Téo');
+    const talkButton = page.locator('#talk-button');
+    assert.equal(await talkButton.isVisible(), true, 'botão principal de interação não está visível');
+    const talkButtonText = (await talkButton.innerText()).replace(/\\s+/g, ' ').trim();
+    assert.match(talkButtonText, /PERGUNTAR\\s*·\\s*TÉO/i, 'texto visível do botão não corresponde ao vendedor da cena principal');
+    report.mainQuestPrompt = { objective: initialControl.state.objective, label: initialControl.story.label, buttonVisible: true, buttonText: talkButtonText, dialogueOpened: initialControl.state.dialogueOpen };
     report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp, control: initialControl };
     await shot('00-initial-active');
 
