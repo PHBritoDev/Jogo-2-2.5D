@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/a1-route-qa-unit.yml'
+      - '.github/workflows/a1-eldoria-route-capture.yml'
       - '.github/workflows/agente-cenas.yml'
       - 'tools/visual-lab/agent-qa.cjs'
       - 'tools/visual-lab/agent-qa.test.cjs'
