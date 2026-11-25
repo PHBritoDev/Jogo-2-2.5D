@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -35,8 +35,8 @@ jobs:
       - name: Detect actor-lighting inputs
         id: scope
         env:
-          BASE_SHA: \${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: \${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
             echo "run_ab=true" >> "$GITHUB_OUTPUT"
@@ -56,11 +56,11 @@ jobs:
       - name: Compare real combat lighting on identical runtime state
         if: steps.scope.outputs.run_ab == 'true'
         env:
-          NODE_PATH: '\${{ github.workspace }}/work/qa/node_modules'
-          VISUAL_OUTPUT: '\${{ github.workspace }}/work/evidence'
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
           VISUAL_BASELINE_URL: 'http://127.0.0.1:4174'
           VISUAL_CANDIDATE_URL: 'http://127.0.0.1:4173'
-          A4_CANDIDATE_SHA: '\${{ github.event.pull_request.head.sha || github.sha }}'
+          A4_CANDIDATE_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
           A4_BASELINE_ROOT: '/tmp/bispo3-baseline'
         run: |
           python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo3-candidate-http.log 2>&1 &
@@ -70,6 +70,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always() && steps.scope.outputs.run_ab == 'true'
         with:
-          name: bispo3-lighting-ab-\${{ github.event.pull_request.head.sha || github.sha }}
+          name: bispo3-lighting-ab-${{ github.event.pull_request.head.sha || github.sha }}
           path: work/evidence/bispo3-lighting-ab/
           retention-days: 14
