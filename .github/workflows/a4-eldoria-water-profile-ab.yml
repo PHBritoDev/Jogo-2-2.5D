@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validar sintaxe do comparador antes de instalar o navegador
+        run: node --check tools/visual-lab/a4-eldoria-water-profile-ab.cjs
       - name: Buscar o SHA exato da base da PR
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
