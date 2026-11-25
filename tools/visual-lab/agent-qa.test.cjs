@@ -18,9 +18,10 @@ const trace3=makeTrace([[0,-20.5,-76],[1000,-19.875,-73.7917],[2000,-19.25,-71.5
 const metrics1=measureWalkTrace(trace1,start1,end1), metrics2=measureWalkTrace(trace2,start2,end2), metrics3=measureWalkTrace(trace3,start3,end3);
 const makeSegment=(i,start,end,trace,traceMetrics,elapsedMs)=>{
   const rule=configuredSegments[i],distance=Math.hypot(end.x-start.x,end.z-start.z);
+  const previousMotionPoint=[...trace].reverse().find(p=>Math.hypot(end.x-p.x,end.z-p.z)>1e-6)||start;
   return {name:rule.name,key:rule.key,yaw:walkYaw(start,rule.target),start,end,target:rule.target,distance,
     remaining:Math.hypot(end.x-rule.target[0],end.z-rule.target[1]),elapsedMs,cameraSettleMs:1200,
-    steeringUpdates:20,steeringIntervalMs:750,finalYaw:walkYaw(end,rule.target),timeoutMs:rule.timeoutMs,
+    steeringUpdates:20,steeringIntervalMs:750,finalYaw:walkYaw(previousMotionPoint,end),timeoutMs:rule.timeoutMs,
     minTravel:rule.minTravel,tolerance:rule.tolerance,reached:true,trace,traceMetrics};
 };
 const summarizeSegments=segments=>({
