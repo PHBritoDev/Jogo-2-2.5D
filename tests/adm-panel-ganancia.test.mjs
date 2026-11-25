@@ -35,7 +35,7 @@ test('organização PC e celular com três categorias e toque real',()=>{
  assert.match(world,/paused:paused\|\|squadQAPause\|\|admFreezeNearby/);
  assert.match(world,/if\(!admFreezeNearby\)updateEnemyAI\(dt\)/);
  assert.match(world,/admFreeze\(on\)/);
- assert.match(world,/updateAllies\(dt\)/, 'a pausa dos inimigos preserva o relógio dos aliados');
+ assert.match(world,/^\s*updateAllies\(dt\);/m, 'a pausa dos inimigos preserva o relógio dos aliados');
 });
 test('botão ativa a ultimate real sem matar chefe ou alterar vida',()=>{
  assert.match(world,/onUltimate:\(\)=>greedAdmCastUltimate\(\)/);
