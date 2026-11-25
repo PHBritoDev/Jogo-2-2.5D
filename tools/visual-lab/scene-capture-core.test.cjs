@@ -46,7 +46,6 @@ test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar �
   assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,180000]);
   assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',28,3]]);
   assert.equal(scene.walk.captureQuality, "low", "movimento usa perfil baixo para reduzir o custo do SwiftShader");
-  assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,120000], "timeouts cobrem os três trechos dentro do orçamento da captura");
   const market = {x:-13.2,z:-70.5,radius:3.9};
   const pointSegmentDistance = (p,a,b) => {
     const dx=b[0]-a[0], dz=b[1]-a[1], den=dx*dx+dz*dz;
