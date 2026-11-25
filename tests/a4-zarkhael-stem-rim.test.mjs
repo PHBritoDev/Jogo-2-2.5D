@@ -17,7 +17,8 @@ test('Zar’khael stem material gets a dedicated low-energy view rim', () => {
   const rimEnd = material.indexOf("if (kind === 'floor') shader.fragmentShader", rimStart);
   assert.ok(rimEnd > rimStart, 'stem rim must end before the floor-only reflection');
   const rim = material.slice(rimStart, rimEnd);
-  assert.match(rim, /dot\(normal,\s*geometry\.viewDir\)/);
+  assert.match(rim, /dot\(normal,\s*geometryViewDir\)/);
+  assert.doesNotMatch(rim, /geometry\.viewDir/);
   assert.doesNotMatch(rim, /normalize\(vViewPosition\)/);
   assert.match(rim, /float stemRim = 1\. - stemViewCos/);
   assert.match(rim, /totalEmissiveRadiance\s*\+=\s*vec3\(\.018,\.0018,\.0028\)/);
