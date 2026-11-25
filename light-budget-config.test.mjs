@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createLightBudget } from './light-budget3d.js';
 
 class Object3D {
-  constructor() { this.children = []; this.parent = null; this.isObject3D = true; }
+  constructor() { this.children = []; this.parent = null; this.isObject3D = true; this.visible = true; }
   add(...objects) { for (const o of objects) { this.children.push(o); o.parent = this; } return this; }
   traverse(fn) { fn(this); for (const child of this.children) child.traverse(fn); }
 }

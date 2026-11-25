@@ -39,7 +39,7 @@ jobs:
           node-version: 22
       - name: Navegador isolado
         run: |
-          npm install --prefix work/qa --save-exact --no-package-lock --ignore-scripts playwright@1.56.1
+          npm install --prefix work/qa --save-exact --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
           work/qa/node_modules/.bin/playwright install --with-deps chromium
       - name: Combate real no jogo integrado (celular, vídeo e capturas)
         env:

@@ -42,6 +42,11 @@ fs.mkdirSync(dir, { recursive: true });
       viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true,
       recordVideo: { dir: path.join(dir, 'video'), size: { width: 844, height: 390 } }
     });
+    const threeRoot = path.resolve(path.dirname(require.resolve('three')), '..');
+    await context.route('https://cdn.jsdelivr.net/npm/three@0.160.0/**', route => {
+      const relative = new URL(route.request().url()).pathname.split('/three@0.160.0/')[1];
+      return route.fulfill({ path: path.join(threeRoot, relative), contentType: 'text/javascript' });
+    });
     const page = await context.newPage();
     page.on('pageerror', e => report.errors.push(e.message));
     page.on('console', m => { if (m.type() === 'error' && /WebGL|shader|TypeError|ReferenceError|INVALID/i.test(m.text())) report.errors.push(m.text()); });

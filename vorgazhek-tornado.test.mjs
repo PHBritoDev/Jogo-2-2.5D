@@ -88,5 +88,5 @@ test('Mod 256 — interrupção sistêmica (morte, saída) desfaz sem dano nem n
   assert.ok(src.includes("test:!!opts.test") && src.includes('if(!b.test)registerEnemyDefeat(b.profile)') && src.includes("if(b.test){showCombatCallout('DERROTA — TESTE"), 'modo teste não toca progresso');
   assert.ok(src.includes('const localStorage=DIM_TEST?isolatedSwordStorage(window.localStorage,true)'), 'armazenamento isolado no teste');
   assert.ok(fs.existsSync(new URL('./vorgazhek-selo-ritual.png', import.meta.url)), 'textura do selo versionada');
-  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes("testeDimensao='+k") && lab.includes('Dimensão de VHAZRAEL') && lab.includes('Dimensão de VORGAZHEK'));
+  const lab = fs.readFileSync(new URL('./laboratorio-inimigos.html', import.meta.url), 'utf8'); assert.ok(lab.includes("params.set('testeDimensao',key)") && lab.includes('data-dim="bishop1"') && lab.includes('data-dim="bishop2"'));
 });

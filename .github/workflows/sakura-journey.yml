@@ -1,0 +1,83 @@
+name: Jornada de Invernália · gameplay
+on:
+  push:
+    branches: ['codex/ato3-travessia-sakura-mod355']
+    paths:
+      - 'sakura-*.js'
+      - 'sakura-*.test.mjs'
+      - 'tools/qa/sakura-gameplay.cjs'
+      - 'tools/qa/sakura-contacts.cjs'
+      - 'tools/qa/sakura-solids.mjs'
+      - 'tools/qa/sakura-pranchas.py'
+      - 'mundo-3d-prototype.js'
+      - 'map3d.js'
+      - 'act2-flow.js'
+      - 'act3-flow.js'
+      - 'snow3d.js'
+      - '.github/workflows/sakura-journey.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: sakura-journey-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  gameplay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mode: desktop, tier: high}
+          - {mode: mobile, tier: medium}
+          - {mode: portrait, tier: low}
+          - {mode: survey, tier: low}
+          - {mode: walk, tier: low}
+          - {mode: contacts, tier: low}
+          - {mode: contacts-touch, tier: low}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Ferramentas de captura
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1 three@0.160.0
+          npx playwright install --with-deps chromium
+      - name: Regressão de mapas, jornada e campanha
+        run: node --test sakura-route3d.test.mjs map3d.test.mjs act1-flow.test.mjs act2-flow.test.mjs act3-flow.test.mjs tests/jornada-mod*.test.mjs
+      - name: Verificar as malhas de colisão de todos os caminhos
+        if: matrix.mode == 'survey'
+        run: node tools/qa/sakura-solids.mjs
+      - name: Percorrer e gravar o jogo
+        env:
+          OUT: evidence
+          GRAPHICS: ${{ matrix.tier }}
+        run: |
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/commit.txt
+          python3 -m http.server 4432 --bind 127.0.0.1 > /tmp/sakura-http.log 2>&1 &
+          node tools/qa/sakura-gameplay.cjs "${{ matrix.mode }}"
+      - name: Preparar comparação com a galeria transferida
+        if: success() && matrix.mode == 'mobile'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/14806438904/zip" > "$RUNNER_TEMP/sakura-665.zip.tmp"; then
+            mv "$RUNNER_TEMP/sakura-665.zip.tmp" "$RUNNER_TEMP/sakura-665.zip"
+          fi
+      - name: Pranchas dos quadros capturados
+        if: always()
+        run: |
+          python3 -m pip install --disable-pip-version-check --target "$RUNNER_TEMP/sakura-pillow" Pillow==11.3.0
+          PYTHONPATH="$RUNNER_TEMP/sakura-pillow" python3 tools/qa/sakura-pranchas.py evidence "$RUNNER_TEMP/sakura-665.zip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: invernalia-${{ matrix.mode }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: evidence/
+          retention-days: 14

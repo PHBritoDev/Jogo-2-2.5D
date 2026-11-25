@@ -1,4 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
+import { computePortraitCameraFit } from './portrait-camera-fit.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {createVillagerBrain,createVillagerDriver,measureWalkSpeed,VILLAGER_PROFILES} from './eldoria-npc-life.js';
 import {createSeatPose} from './seated-pose3d.js';
@@ -9,6 +10,9 @@ import {PROTA_LOCO,PROTA_JUMP,PROTA_DASH,protaMoveDef,protaSegments,pickTarget,w
 import {createProtaVFX} from './prota-vfx3d.js';
 import {createSlashVFX} from './slash-vfx3d.js';import {createShieldVFX} from './shield-vfx3d.js';import {EnergyShield,SHIELD_SPECS} from './combat-defense3d.js';import {Mobility2,MOBILITY} from './combat-mobility3d.js';
 import {inJourney,journeyHeight,journeyBoundary,journeyBlocked,bridgeDeck as journeyDeck,inAbyss,riverDepth as journeyRiverDepth,BRIDGE as JBRIDGE,CHECKPOINTS as JOURNEY_CHECKPOINTS,SAFE_SPOTS,CITY_ROUTES2,CITY_PROPS,JOURNEY_HOLES,ROUTE,polyProject} from './jornada3d.js';
+import {ROUTE as SAKURA_ROAD, CITY_ROAD as GLACIAL_ROAD, FROM_CITY, MASTER, THRONE, DOJO, CASTLE, COAT_STALL, sampleRoad, regionWeight, routeGround, roadBlocked, lakeDepth, nextGuide, snowAt, leavesVolcano} from './sakura-route3d.js';
+import {createSakuraWorld} from './sakura-world3d.js';
+import {batch as sakuraBatch, glacierHouse} from './sakura-masonry3d.js';
 import {createJourneyWorld} from './jornada-world3d.js';
 import {createSkyAtmosphere} from './ceu-atmosfera3d.js';
 import {patchAuroraGround,updateAuroraLight,auroraUniforms} from './aurora-luz3d.js';
@@ -102,10 +106,10 @@ import { iconSvg } from './shop-icons3d.js';
 import { DIMENSIONS, dimensionForProfile, arenaSpec, vsCard, arenaSpots } from './dimensions3d.js';
 import { buildDimensionArena, buildDimensionPortal } from './dimension-arenas3d.js';
 import { createDirector, heavenScene, awakeningScene, wingsScene, MISSION_ACT1, MISSION_PROLOGUE, GUIDE_NAME, GUIDE_PUBLIC_NAME } from './prologue-flow.js';
-import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, questForGiver, activeSideLines } from './sidequests3d.js';
+import { SIDE_QUESTS, createSideState, refreshSide, acceptSide, collectSide, turnInSide, settleSideReward, questForGiver, activeSideLines } from './sidequests3d.js';
 import { HEARTS, normalizeHearts, tickHearts, loseHeart, msToNextHeart, canChallengeBishop, formatTimer } from './hearts3d.js';
 import { levelFromXp, levelProgress, statsForLevel, HERO_HP_MULT, XP_REWARDS, SHOP_SECTORS, SHOP_ITEMS, SWORDS, shopStatus, buyItem, ACHIEVEMENTS, achievementState, BESTIARY, bestiaryEntry } from './progression3d.js';
-import { MAP_STORE_KEY, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
+import { MAP_STORE_KEY, V4_MAP_BOUNDS, LEGACY_MAP_STORE_KEY, migrateLegacyFog, MAP_BOUNDS, FOG_CELLS, MAP_POIS, WAYSTONES, createMapState, serializeMapState, revealAround, isRevealed, discoverPois, canFastTravel } from './map3d.js';
 import { ACT2, DISTRICT, DISTRICT_PASS, PASS_RADIUS, DISTRICT_SPOTS, migrateAct2Step, act2Presentation, act2Started, afterVorgazhek, bossPhase, vorgazhekRageLine, SPEAKERS2, cityArrivalScene, cellsScene, banditScene, rivalScene, rivalDefeatScene, gateScene, gateDefeatScene, labScene, keyScene, goldScene, hallScene, hallDefeatScene, throneScene, minibossDefeatScene, vorgazhekIntroScene, vorgazhekDefeatScene, afterVorgazhekScene } from './act2-flow.js';
 import { caveFloor, caveWall, supported, inBasin, nearestRest, VOLCANO, volcanoWalkable, volcanoCheckpoint } from './volcano3d.js';
 import { ACT6N, REMATCH, GREED_FORMS, SPEAKERS6, act6Presentation, isAct6Step, nextRematch, greedReward, desertArrivalScene, statueScene, closedPortalScene, mysteryPortalScene, rematchIntroScene, rematchOutroScene, returnStatueScene, greedIntroScene, greedPhase2Scene, greedPhase3Scene, greedFallScene, epilogueScene } from './act6-flow.js';
@@ -291,6 +295,15 @@ var journeyWorld=null,journeyFall={on:false,from:0,cp:null,reached:new Set()};
  terrain3D.height=(x,z)=>{if(!inJourney(x,z))return h0(x,z);const j=journeyHeight(x,z),k=mixK(x,z);if(k>=1)return j;const o=hOld(x,z);return o+(j-o)*k;};
  terrain3D.boundaryDistance=(x,z)=>{if(!inJourney(x,z))return b0(x,z);const j=journeyBoundary(x,z),k=mixK(x);return k>=1?j:Math.min(b0(x,z),j+(1-k)*8);};
  terrain3D.waterDepth=(x,z)=>inJourney(x,z)?(journeyRiverDepth(x,z)>0?journeyRiverDepth(x,z):-1):w0(x,z);}
+// A bacia nova só assume a superfície no seu próprio vale. A boca do vulcão e
+// o bairro canônico de Invernália usam a malha anterior nas duas costuras.
+var sakuraWorld=null;
+{const old=terrain3D.height,edge=terrain3D.boundaryDistance,water=terrain3D.waterDepth,walk=terrain3D.walkable;
+ terrain3D.height=(x,z)=>{const p=sampleRoad(x,z),w=regionWeight(x,z,p);if(!w)return old(x,z);const h=routeGround(x,z,p);return w===1||p.i>=2.5&&(p.kind!=='town'||x>265)?h:old(x,z)*(1-w)+h*w;};
+ terrain3D.boundaryDistance=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.02?Math.min(edge(x,z),p.d-119):edge(x,z);};
+ terrain3D.walkable=(x,z)=>{const p=sampleRoad(x,z);return leavesVolcano(z,p)||regionWeight(x,z,p)>.15?!roadBlocked(x,z,p)&&p.d<164:walk(x,z);};
+ terrain3D.waterDepth=(x,z)=>{const p=sampleRoad(x,z);return regionWeight(x,z,p)>.12?lakeDepth(x,z):water(x,z);};
+}
 var voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius},dimBattle=null,vsOpen=false,dimKey=null;
 /* RENASCIMENTO F2 — som do rio: distância à linha d'água (correnteza) e proximidade do vau (marulho nas pedras). */
 function riverAudioAt(x,z){const q=riverQuery.nearest(x,z);if(!q)return{riverDistance:99,fordNear:0};const d=Math.max(0,q.d-2.6);return{riverDistance:d,fordNear:riverBankOpts.fordS!==undefined?fordMask(q,riverBankOpts.fordS)*Math.max(0,1-d/12):0};}
@@ -322,6 +335,22 @@ const terrainMesh=(()=>{
  window.SevenSinsTerrainReport={vertices:built.positions.length/3+patch.positions.length/3,triangles:built.indices.length/3+patch.indices.length/3,patchTriangles:patch.indices.length/3,extent:[built.ax[0],built.ax[built.ax.length-1]]};
  return mesh;
 })();
+// The old coarse apron reaches Invernália. Its interpolated triangles can
+// rise above the nave and stairs even when the shared floor samples are correct.
+const originalTerrainIndices=terrainMesh.geometry.index;
+let valleyTerrainIndices=null;
+function useJourneyTerrain(active){
+ if(!active){if(terrainMesh.geometry.index!==originalTerrainIndices)terrainMesh.geometry.setIndex(originalTerrainIndices);return;}
+ if(!valleyTerrainIndices){
+  const g=terrainMesh.geometry,verts=g.attributes.position,core=new Uint8Array(verts.count);
+  for(let i=0;i<verts.count;i++){const x=verts.getX(i),z=verts.getZ(i);if(z>-85&&x<200)continue;
+   const path=sampleRoad(x,z);if(path&&regionWeight(x,z,path)>.65)core[i]=1;}
+  const src=originalTerrainIndices.array,kept=[];
+  for(let i=0;i<src.length;i+=3){const a=src[i],b=src[i+1],c=src[i+2];if(!core[a]||!core[b]||!core[c])kept.push(a,b,c);}
+  valleyTerrainIndices=new THREE.BufferAttribute(new src.constructor(kept),1);
+ }
+ if(terrainMesh.geometry.index!==valleyTerrainIndices)terrainMesh.geometry.setIndex(valleyTerrainIndices);
+}
 const pondWater=(()=>{const geo=new THREE.CircleGeometry(FOREST_POND.r*1.34,56);geo.rotateX(-Math.PI/2);
  const material=new THREE.MeshStandardMaterial({color:0x1b3a43,roughness:.06,metalness:.25,transparent:true,opacity:.86,depthWrite:false});
  const uniform={value:0};forestWindUniforms.push(uniform);
@@ -1052,7 +1081,7 @@ let grassRefresh=null;
 function scatterGrassTufts(geometry){
  const lowSpec=terrainLowSpec,CHUNK=10,R=lowSpec?2:3,PER=lowSpec?22:26,cap=(2*R+1)*(2*R+1)*PER;
  const mesh=new THREE.InstancedMesh(geometry,grassMaterial,cap),dummy=new THREE.Object3D(),cache=new Map();
- const blocked=(x,z)=>{if(!dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true;if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<38||inDesert(x,z))return true; // MOD 206 — sem capim na neve
+ const blocked=(x,z)=>{if(regionWeight(x,z)>.05 || !dryGround(x,z))return true;if(Math.abs(x-ALTAR_VALLEY.cx)<ALTAR_VALLEY.hx+8&&Math.abs(z-ALTAR_VALLEY.cz)<ALTAR_VALLEY.hz+8)return true;if(Math.hypot(x-COLOSSEUM.center.x,z-COLOSSEUM.center.z)<38||inDesert(x,z))return true; // MOD 206 — sem capim na neve
 if(Math.abs(x-DISTRICT.cx)<DISTRICT.hx-2&&Math.abs(z-DISTRICT.cz)<DISTRICT.hz-2&&((x*7.3+z*3.1)%5+5)%5>1.2)return true;if(Math.hypot(x,z-4)<5.8||Math.hypot(x-CLEARING.x,z-CLEARING.z)<6.8||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<VILLAGE_CLEAR_RADIUS+1.6)return true;if(trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5+.6)))return true;if(treeObstacles.some(o=>Math.abs(x-o.x)<o.radius+.5&&Math.hypot(x-o.x,z-o.z)<o.radius+.5))return true;if(rockObstacles.some(o=>Math.abs(x-o.x)<o.radius+.32&&Math.hypot(x-o.x,z-o.z)<o.radius+.32))return true;return marketObstacles.some(o=>o.shape==='box'?Math.abs(x-o.x)<o.halfX+.35&&Math.abs(z-o.z)<o.halfZ+.35:Math.hypot(x-o.x,z-o.z)<o.radius+.35);};
  function chunk(cx,cz){const key=cx+','+cz;let list=cache.get(key);if(list)return list;list=[];let seed=((cx*73856093)^(cz*19349663))>>>0||1;const next=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let i=0;i<PER*2&&list.length<PER;i++){const x=(cx+next())*CHUNK,z=(cz+next())*CHUNK;
@@ -1602,6 +1631,9 @@ new GLTFLoader().load('./AnjoGuiador-otimizado.glb?v=mod316-anjo',gltf=>{
 const PROGRESS_KEY='sevenSins3DCampaignV6';
 function read3DProgress(){try{const keys=[PROGRESS_KEY,'sevenSins3DCampaignV5','sevenSins3DCampaignV4','sevenSins3DCampaignV3','sevenSins3DCampaignV2','sevenSins3DCampaignV1'];for(const key of keys){let raw=null;try{raw=JSON.parse(localStorage.getItem(key)||'null');}catch(_){continue;}/* A1-SAVE-FALLBACK-02: slot corrompido não esconde um slot antigo válido */if(raw)return migrateProgress(raw);}return migrateProgress({coins:0});}catch(_){return migrateProgress(null);}}
 let saved3DProgress=read3DProgress();
+let sideRewardClaims=saved3DProgress.sideRewardClaims;
+let sakuraRest=Number.isInteger(saved3DProgress.sakuraRest)?saved3DProgress.sakuraRest:-1;
+let sakuraResume=saved3DProgress.questStep===15;
 let sideReady=false;
 let questStep=saved3DProgress.questStep,coins=saved3DProgress.coins,journeyEnemyIndex=saved3DProgress.journeyEnemyIndex,dialogueOpen=false,dialoguePages=[],dialogueIndex=0,dialogueFinish=null;
 let playerName=saved3DProgress.playerName,captorsTaunted=saved3DProgress.captorsTaunted,childrenFreed=saved3DProgress.childrenFreed,awakeningSeen=saved3DProgress.awakeningSeen,actCardSeen=saved3DProgress.actCardSeen;
@@ -1673,7 +1705,7 @@ function warmJourneyPrograms(){
  let p=null;force();try{p=renderer.compileAsync?renderer.compileAsync(scene,camera):null;}catch(e){p=null;}restore();
  if(p)p.then(draw,draw);else draw();
 }
-function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now()};try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}}
+function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,sakuraRest,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now(),sideRewardClaims:[...sideRewardClaims]};let persisted=false;try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));persisted=true;}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}return persisted;}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
    no próprio botão, custo de mana visível e atalho de teclado mostrado apenas em PC. */
 let playerMana=MANA.max,manaHitAt=-1e9,skillSet=null;
@@ -1883,7 +1915,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
- player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
+ player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||act3Presentation(questStep,act1Sub)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.textContent='Não foi possível carregar '+(newHero?'Prota_otimizado_2K.glb':'Protagonista.glb')+'. ';const fallback=document.createElement('a');fallback.href=heroFallbackURL;fallback.textContent='Usar protagonista antigo';loading.append(fallback);status.textContent='Falha ao carregar modelo';});
 import { acceptsGameKey, bindMovementKeys } from './desktop-movement.js';
 const keys = bindMovementKeys(window, document);
@@ -2255,6 +2287,8 @@ function syncCameraToggle3D(){
 }
 if(cameraToggle3D)bindInstantTap(cameraToggle3D,()=>{
  cameraDistance=cameraDistance<1.05?8.5:.72;
+  // O retorno à terceira pessoa reativa o fit automático do duelo em retrato.
+  portraitZoomOverride=false;
  cameraPitch=THREE.MathUtils.clamp(cameraPitch,-1.05,1.05);
  syncCameraToggle3D();
  const status=document.getElementById('status');
@@ -2275,7 +2309,7 @@ function tapLock(x,y){
  if(!lockOnActive)toggleLockOn();else worldAudio.lockOn();return true;
 }
 lookArea.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(e.pointerType!=='mouse')touchTapStart.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.timeStamp});if(e.pointerType==='mouse'){mouseLookStart={x:e.clientX,y:e.clientY,t:performance.now()};if(!mouseLocked&&lookArea.requestPointerLock&&!cineActive&&!dialogueOpen){try{const r=lookArea.requestPointerLock({unadjustedMovement:true});if(r&&r.catch)r.catch(()=>{try{const r2=lookArea.requestPointerLock();if(r2&&r2.catch)r2.catch(()=>{});}catch(_){}});}catch(_){}}}try{lookArea.setPointerCapture(e.pointerId);}catch(_){}if(lookPointers.size===2){lastPinchDistance=pinchDistance();return;} });
-lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){cameraDistance=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
+lookArea.addEventListener('pointermove',e=>{if(!lookPointers.has(e.pointerId))return;const prev=lookPointers.get(e.pointerId);lookPointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(lookPointers.size>=2){const d=pinchDistance();if(lastPinchDistance>0&&d>0){const next=THREE.MathUtils.clamp(cameraDistance+(lastPinchDistance-d)*.025,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D(); }lastPinchDistance=d;return;}const dx=e.clientX-prev.x,dy=e.clientY-prev.y;const firstPersonLook=cameraDistance<1.05;lastLookInputAt=performance.now();
 if(mouseLocked&&e.pointerType==='mouse')return; // com o ponteiro travado o olhar vem do movementX/Y (sem limite da borda da tela)
 lookDelta(dx,dy);});
 /* CLAUDE combate/câmera — PC: antes o olhar era "arrastar" e parava na borda da janela (yaw limitado pela tela).
@@ -2287,7 +2321,7 @@ document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerL
 document.addEventListener('mousemove',e=>{if(!mouseLocked)return;if(cineActive||dialogueOpen||namePromptOpen||gamePaused||menuGate){try{document.exitPointerLock();}catch(_){}return;}const dx=Math.max(-240,Math.min(240,e.movementX||0)),dy=Math.max(-240,Math.min(240,e.movementY||0));lookDelta(dx,dy);});
 function endLook(e){const tap=touchTapStart.get(e.pointerId);touchTapStart.delete(e.pointerId);if(tap&&e.type==='pointerup'&&lookPointers.size<=1&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<14&&e.timeStamp-tap.t<320)tapLock(e.clientX,e.clientY);const start=mouseLookStart;mouseLookStart=null;lookPointers.delete(e.pointerId);lastPinchDistance=pinchDistance();if(start&&e.pointerType==='mouse'&&!cineActive&&!dialogueOpen&&!namePromptOpen&&!awakeningActive&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<8&&performance.now()-start.t<420)action('attack');}
 lookArea.addEventListener('pointerup',endLook);lookArea.addEventListener('pointercancel',endLook);lookArea.addEventListener('lostpointercapture',endLook);
-lookArea.addEventListener('wheel',e=>{cameraDistance=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);syncCameraToggle3D();},{passive:true});
+lookArea.addEventListener('wheel',e=>{const next=THREE.MathUtils.clamp(cameraDistance+e.deltaY*.008,.72,15);if(next!==cameraDistance){cameraDistance=next;if(newHero&&dimBattle?.active&&combatStepNow()&&dimKey==='bishop2'&&camera.aspect<.78)portraitZoomOverride=true;}lastLookInputAt=performance.now();syncCameraToggle3D();},{passive:true});
 function resetInterruptedControls(){lookPointers.clear();mouseLookStart=null;lastPinchDistance=0;for(const key of Object.keys(keys))keys[key]=false;endJoy();moveVX=moveVZ=0;setDefending(false);}
 addEventListener('blur',resetInterruptedControls);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInterruptedControls();});
@@ -2296,7 +2330,7 @@ stick.addEventListener('lostpointercapture',endJoy);
 /* Mod 319+ — matéria da vila com colisão ajustada à forma (barracas inteiras, balcões, sebes, banco, bordas de casa):
    máscara medida no jogo real (eldoria-village-solids.js). `?solidos=0` volta ao estado anterior (só círculos). */
 const villageSolidAt=new URLSearchParams(location.search).get('solidos')==='0'?()=>false:createVillageSolidQuery();
-function blockedAt(x,z,skipRocks=false){
+function blockedAt(x,z,skipRocks=false,feet=player.position.y){
  if(voidMode){const lx=x-voidSpec.x,lz=z-voidSpec.z;
   // Em abismos não existe parede invisível: deixar atravessar a borda e cair.
   // Depois de iniciar uma queda, nao criar paredes invisiveis dentro do vazio.
@@ -2304,6 +2338,8 @@ function blockedAt(x,z,skipRocks=false){
   if((ascKey||inVolcano)&&voidSpec.hazard?.(lx,lz))return inVolcano&&caveWall(lx,player.position.y-voidSpec.y+.8,lz);
   return voidSpec.walk?!voidSpec.walk(lx,lz):Math.hypot(lx,lz)>voidSpec.radius;
  }
+ const road=sampleRoad(x,z);
+ if(road&&(leavesVolcano(z,road)||regionWeight(x,z,road)>.15)){return roadBlocked(x,z,road)||!!sakuraWorld?.solidAt(x,z,feet,grounded ? undefined : .025)||road.d>164;}
  // MOD 223 — mundo aberto: dá para andar até 45 m além da borda antiga (encostas e morros), só a água funda bloqueia.
  {const bd=bridgeDeck(x,z);if(bd)return bd.edge;} // MOD 291: a ponte atravessa o rio (parapeitos bloqueiam)
 /* MOD 321 */ if(journeyBlocked(x,z,player.position.y)||journeyWorld&&journeyWorld.solidAt(x,z,player.position.y))return true;
@@ -2433,6 +2469,10 @@ if(firstPerson){
   if(len2>.01)for(const o of treeObstacles){const rx=o.x-target.x,rz=o.z-target.z;if(Math.abs(rx)>camDistUse+2||Math.abs(rz)>camDistUse+2)continue;const t=(rx*ox+rz*oz)/len2;if(t<=.05||t>=1.05)continue;const px=rx-ox*t,pz=rz-oz*t,r=o.radius+.32;if(px*px+pz*pz<r*r)limit=Math.min(limit,Math.max(.18,t-r/Math.sqrt(len2)));}
   // Encosta entre o herói e a câmera (subida do portal, contrafortes): encurta antes de entrar no morro.
   if(!voidMode)for(let i=1;i<=6;i++){const f=i/6*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;if(groundHeightAt(sx,sz)+.45>sy){limit=Math.max(.16,(i-1)/6*limit);break;}}
+  if(!voidMode&&sakuraWorld&&sakuraWorld.root.visible){
+   for(let i=1;i<=16;i++){const f=i/16*limit,x=target.x+camOffset.x*f,z=target.z+camOffset.z*f;
+    if(roadBlocked(x,z)||sakuraWorld.solidAt(x,z,target.y+camOffset.y*f-.15,0,.3)){limit=Math.max(.12,(i-1)/16*limit);break;}}
+  }
   if(!voidMode&&cameraOccluders.length){const L=Math.hypot(camOffset.x,camOffset.y,camOffset.z)*limit;for(const oc of cameraOccluders){if(Math.hypot(target.x-oc.x,target.z-oc.z)>oc.r)continue;camRay.set(camRayO.copy(target),camRayD.copy(camOffset).normalize());camRay.far=L+.3;const h=camRay.intersectObject(oc.obj,true)[0];if(h)limit=Math.max(.14,Math.min(limit,(h.distance-.35)/Math.max(.01,L/limit)));}}
   // RENASCIMENTO F1: o braço da câmera também não atravessa guarda-corpos/parapeitos (deques, escadas, ponte) nem rochas altas
   if(!voidMode)for(let i=2;i<=12;i++){const f=i/12*limit,sx=target.x+camOffset.x*f,sy=target.y+camOffset.y*f,sz=target.z+camOffset.z*f;const bd=bridgeDeck(sx,sz);
@@ -2555,6 +2595,14 @@ if(!ascVoidFall&&!caveWalk&&!voidMode){const sup=eldoriaWalk.supportAt(player.po
 if(!ascVoidFall&&!caveWalk&&!voidMode){const rs=rockSupportAt(rockObstacles,player.position.x,player.position.z,player.position.y+(grounded?0:.05),terrainHeightAt);if(rs&&rs.y>floorY){floorY=rs.y;
  // pousou no flanco íngreme de uma rocha alta: escorrega para fora (não fica grudado na parede da pedra)
  if(rs.steep&&grounded){const sx=player.position.x+rs.nx*dt*3.2,sz=player.position.z+rs.nz*dt*3.2;if(!blockedAt(sx,sz,true)){player.position.x=sx;player.position.z=sz;}}}}
+if(!voidMode&&sakuraWorld?.root.visible){
+ const P=player.position;
+ floorY=Math.max(floorY,sakuraWorld.heightAt(P.x,P.z,P.y+(grounded ? .55 : .025)));
+ if(verticalVelocity>0){
+  const ceiling=sakuraWorld.heightAt(P.x,P.z,P.y+1.95,true);
+  if(P.y+1.95+verticalVelocity*dt>=ceiling){P.y=ceiling-1.95;verticalVelocity=0;}
+ }
+}
 if(grounded&&!caveWalk&&!voidMode&&floorY<player.position.y-.6){grounded=false;verticalVelocity=0;} // saiu pela borda: cai em vez de teleportar para o chão
 if(!grounded){
  if(newHero){prota302.airborneT+=dt;const hang=rites.active?.kind==='basic'&&rites.active.mode==='air'&&rites.active.t<=rites.active.def.close;verticalVelocity-=(hang?PROTA_JUMP.gravity*.35:PROTA_JUMP.gravity)*dt;}else verticalVelocity-=gravity*dt;
@@ -2961,7 +3009,7 @@ const faunaCtx={biome:faunaBiome,water:(x,z)=>terrain3D.waterDepth(x,z),road:fau
 const ashFx=createAshDissolve(THREE,scene,{low:terrainLowSpec});
 let fauna=null,faunaInsects=0;
 /* áudio: bioma para os ambientes reais (consulta a cada 0,5 s — faunaBiome varre árvores próximas) */
-let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;audioBiomeV=faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
+let audioBiomeV=null,audioBiomeAt=0;function audioBiome(){if(voidMode)return null;const n=performance.now();if(n-audioBiomeAt>500){audioBiomeAt=n;const r=sampleRoad(player.position.x,player.position.z);audioBiomeV=r&&regionWeight(player.position.x,player.position.z,r)>.2?(snowAt(r.i)>.55?'serra':r.i>3?'floresta':'cinzas'):faunaBiome(player.position.x,player.position.z);}return audioBiomeV;}try{fauna=createFauna({T:THREE,scene,GLTFLoader,skClone:cloneSkinned,base:'./',ground:(x,z)=>groundHeightAt(x,z),ctx:faunaCtx,low:terrainLowSpec});}catch(e){console.warn('fauna',e);}
 const forestPlaces=buildForestPlaces(THREE,{ground:(x,z)=>groundHeightAt(x,z),obstacles:rockObstacles,lowSpec:terrainLowSpec});scene.add(forestPlaces.group);
 /* MOD 317 — a garganta de origem segue por dias até as terras baixas: depois da curva (ORIGIN_LIMIT) o herói não segue
    (limite narrativo da estrada, sem parede invisível em objeto pequeno). O Anjo chama de volta uma vez. */
@@ -2988,17 +3036,21 @@ function updateAmbientLife(dt,now){
  fallingLeaves.pts.geometry.attributes.position.needsUpdate=true;fallingLeaves.pts.visible=grassGroup.visible;
 }
 /* MOD 186 — estado do mundo para o áudio: superfície sob os pés, distância do lago/portal, altitude. */
+function waterfallAudioAt(x,z){
+ if(sakuraWorld?.root.visible)return {fallsDistance:Math.min(Math.hypot(x+1684,z+846),Math.hypot(x+1235,z+1513))};
+ return {fallsDistance:eldoriaFalls.distanceTo(x,z)};
+}
 function updateWorldAudio(dt){
  updateMapDiscovery(performance.now());
  const x=player.position.x,z=player.position.z;
- const onPath=Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
+ const route=voidMode?null:sampleRoad(x,z),onPath=route&&regionWeight(x,z,route)>.2&&route.d<4||Math.hypot(x-VILLAGE_CENTER.x,z-VILLAGE_CENTER.z)<13||trailRoutes.some(route=>closeToPolyline(x,z,route.points,route.width*.5));
  const surface=terrain3D.waterDepth(x,z)>-.05?'water':onPath?'path':'grass';
- worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),fallsDistance:eldoriaFalls.distanceTo(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
+ worldAudio.update(dt,{biome:audioBiome(),dimension:voidMode?(dimKey||'void'):null,insects:faunaInsects,night:dayNightState.t,grounded,speed:dashRemaining>0?6:Math.hypot(moveVX,moveVZ),surface,altitude:player.position.y,pondDistance:Math.hypot(x-FOREST_POND.x,z-FOREST_POND.z)-FOREST_POND.r,...riverAudioAt(x,z),...waterfallAudioAt(x,z),forest:regionWeights.forest,portalDistance:Math.hypot(x-PORTAL.x,z-PORTAL.z),portalReady:questStep>=6,cave:ascKey==='cave'&&ascZones.cave&&ascZones.cave.audioAt?ascZones.cave.audioAt(x-ASC_ZONES.cave.x,z-ASC_ZONES.cave.z):null/* Caverna C4: eco, gotas e corrente de ar por câmara */,music:combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-x,enemy.position.z-z)<16?'combat':(dialogueOpen&&prologueActive)?'silent':'explore'});
 }
 /* MOD 186 — mapa com névoa de guerra e abrigos de viagem rápida. O mapa só mostra o que já foi visto;
    cada abrigo precisa ser encontrado e registrado antes de aparecer na lista de viagem. */
 const MAP_STORE=MAP_STORE_KEY;
-const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
+const mapState=(()=>{let saved=null;try{saved=JSON.parse(localStorage.getItem(MAP_STORE)||'null');if(!saved){const v4=JSON.parse(localStorage.getItem('seven-sins-3d-map-v4')||'null');if(v4)saved=migrateLegacyFog(v4,V4_MAP_BOUNDS);}if(!saved){const v3=JSON.parse(localStorage.getItem(LEGACY_MAP_STORE_KEY)||'null');if(v3)saved=migrateLegacyFog(v3);} /* MOD 321: névoa v3 convertida para a grade da jornada */ if(!saved){const old=JSON.parse(localStorage.getItem('seven-sins-3d-map-v2')||localStorage.getItem('seven-sins-3d-map')||'null');if(old)saved={pois:old.pois,waystones:old.waystones};}}catch(_){}return createMapState(saved);})();
 let mapDirty=false,mapSaveAt=0,mapScanAt=0,mapBase=null,mapOpen=false;
 function saveMapState(force){if(!mapDirty&&!force)return true;try{localStorage.setItem(MAP_STORE,JSON.stringify(serializeMapState(mapState)));mapDirty=false;return true;}catch(_){mapDirty=true;return false;}}
 /* MOD 317 — abrigos: plataforma ritual autoral (eldoria-shelter3d.js) com degraus caminháveis e pilares sólidos;
@@ -3031,6 +3083,7 @@ function buildMapBase(){
  const px=(x)=>(x-MAP_BOUNDS.x0)/MAP_BOUNDS.size*N,pz=(z)=>(z-MAP_BOUNDS.z0)/MAP_BOUNDS.size*N;
  g.fillStyle='rgba(28,52,30,.75)';for(const t of treeSpecs){if(!t.collide)continue;g.beginPath();g.arc(px(t.x),pz(t.z),.9+t.s*.5,0,Math.PI*2);g.fill();}
  g.strokeStyle='#b39a68';g.lineCap='round';g.lineJoin='round';for(const route of trailRoutes){if(route.noMesh)continue;g.lineWidth=route.width/MAP_BOUNDS.size*N*.8;g.beginPath();route.points.forEach((p,k)=>k?g.lineTo(px(p[0]),pz(p[1])):g.moveTo(px(p[0]),pz(p[1])));g.stroke();}
+ g.strokeStyle='#a799a9';g.lineWidth=1;for(const road of [SAKURA_ROAD,GLACIAL_ROAD]){g.beginPath();road.forEach((p,i)=>i?g.lineTo(px(p.x),pz(p.z)):g.moveTo(px(p.x),pz(p.z)));g.stroke();}
  g.fillStyle='#8c7a55';g.beginPath();g.arc(px(VILLAGE_CENTER.x),pz(VILLAGE_CENTER.z),12/MAP_BOUNDS.size*N,0,Math.PI*2);g.fill();
  return c;
 }
@@ -3089,11 +3142,11 @@ function meadowImpact(x,z,radius){
 }
 function enterDimensionArena(key){
  const sp=arenaSpec(key),spots=arenaSpots(key),arena=getDimArena(key);
- voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;arena.group.visible=true;
+ voidSpec={x:sp.x,z:sp.z,y:sp.y,radius:sp.radius};dimKey=key;voidMode=true;document.body.classList.toggle('bishop2-battle',key==='bishop2');arena.group.visible=true;
  skyDome.visible=false;portalBeacon.visible=false;sunDisk.visible=false;sunHalo.visible=false;if(moonRoot)moonRoot.visible=false;if(starField)starField.visible=false;
  player.position.set(spots.player.x,sp.y,spots.player.z);playerYaw=Math.PI;player.rotation.y=Math.PI;
  const abyssEntry=key==='greed';
- if(abyssEntry)camFocusReady=false;
+ if(abyssEntry||key==='bishop2'){camFocusReady=false;lastLookInputAt=0;if(key==='bishop2')portraitZoomOverride=false;}
  cameraYaw=abyssEntry?-.10:0;cameraPitch=abyssEntry?-.20:.12;
  moveVX=moveVZ=0;dashRemaining=0;verticalVelocity=0;
  camera.position.set(spots.player.x,sp.y+(abyssEntry?1.3:3.5),spots.player.z+8.5);
@@ -3111,7 +3164,7 @@ function openVsCard(key,onGo){
  vsGoCallback=onGo||null;vsKey=key;
  const card=vsCard(key,playerName),panel=document.getElementById('vs-panel'),go=document.getElementById('vs-go');
  if(!card||!panel||!go){if(vsGoCallback){const cb=vsGoCallback;vsGoCallback=null;cb();}else beginDimensionFight();return;}
- const heroImg=document.getElementById('vs-hero-img'),src=(document.getElementById('hero-portrait-img')||{}).src;
+ const heroImg=document.getElementById('vs-hero-img'),src=heroVsPortraitSrc||(document.getElementById('hero-portrait-img')||{}).src;
  if(src)heroImg.src=src;else heroImg.removeAttribute('src');
  document.getElementById('vs-boss-img').src=card.bishopImage;
  document.getElementById('vs-hero-name').textContent=card.playerName;
@@ -3425,21 +3478,37 @@ function updateFpsBadge(now){fpsFrames++;if(now-fpsSince<1000)return;const fps=M
   const close=document.createElement('button');close.type='button';close.className='panel-close';close.textContent='FECHAR';panel.appendChild(close);bindInstantTap(close,()=>{panel.hidden=true;});
  }
 })();
-// Retrato: renderiza uma vez o próprio Protagonista.glb (rosto/capuz) num alvo pequeno, sem afetar a cena.
-let heroPortraitDone=false;
+// Retrato: mantém o avatar quadrado do HUD e gera um enquadramento 2:3 próprio para o cartão VS.
+let heroPortraitDone=false,heroVsPortraitSrc='';
 function renderHeroPortrait(){
  if(heroPortraitDone||!model)return;heroPortraitDone=true;
  try{
-  const S=160,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
+  const S=160,VS_W=480,VS_H=720,rt=new THREE.WebGLRenderTarget(S,S,{colorSpace:THREE.SRGBColorSpace}),vsRt=new THREE.WebGLRenderTarget(VS_W,VS_H,{colorSpace:THREE.SRGBColorSpace}),ps=new THREE.Scene();ps.background=new THREE.Color(0x15122a);
   const clone=cloneSkinned(model);clone.position.set(0,0,0);clone.rotation.set(0,0,0);clone.visible=true;ps.add(clone);
   ps.add(new THREE.HemisphereLight(0xfff2dc,0x2a2240,2.2));const key=new THREE.DirectionalLight(0xffe2b0,2.4);key.position.set(1.5,3,4);ps.add(key);
-  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),size=box.getSize(new THREE.Vector3()),top=box.max.y;
-  const cam=new THREE.PerspectiveCamera(28,1,.01,50),headY=top-size.y*.12;cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
-  const prevTarget=renderer.getRenderTarget();renderer.setRenderTarget(rt);renderer.render(ps,cam);
-  const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);renderer.setRenderTarget(prevTarget);rt.dispose();
-  const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d'),img=g.createImageData(S,S);
-  for(let y=0;y<S;y++)img.data.set(px.subarray((S-1-y)*S*4,(S-y)*S*4),y*S*4);g.putImageData(img,0,0);
-  const el=document.getElementById('hero-portrait-img');if(el)el.src=c.toDataURL('image/png');
+  clone.updateMatrixWorld(true);const box=measureModelBounds(clone),center=box.getCenter(new THREE.Vector3());
+  // O GLB pode ter a origem deslocada: centraliza os dois retratos sem mover o modelo de gameplay.
+  clone.position.x-=center.x;clone.position.z-=center.z;clone.updateMatrixWorld(true);
+  const centered=measureModelBounds(clone),size=centered.getSize(new THREE.Vector3()),top=centered.max.y,headY=top-size.y*.12;
+  const cam=new THREE.PerspectiveCamera(28,1,.01,50);cam.position.set(0,headY,size.y*.62);cam.lookAt(0,headY-size.y*.02,0);
+  // Preserva o mesmo FOV horizontal do avatar quadrado; o cartão 2:3 deixa de cortar as laterais.
+  const vsFov=2*Math.atan(Math.tan(28*Math.PI/360)/(VS_W/VS_H))*180/Math.PI;
+  const vsCam=new THREE.PerspectiveCamera(vsFov,VS_W/VS_H,.01,50);vsCam.position.set(0,headY,size.y*.62);vsCam.lookAt(0,headY-size.y*.02,0);
+  const toDataUrl=(pixels,width,height)=>{
+   const c=document.createElement('canvas');c.width=width;c.height=height;
+   const g=c.getContext('2d'),img=g.createImageData(width,height);
+   for(let y=0;y<height;y++)img.data.set(pixels.subarray((height-1-y)*width*4,(height-y)*width*4),y*width*4);
+   g.putImageData(img,0,0);return c.toDataURL('image/png');
+  };
+  const prevTarget=renderer.getRenderTarget();
+  try{
+   renderer.setRenderTarget(rt);renderer.render(ps,cam);
+   const px=new Uint8Array(S*S*4);renderer.readRenderTargetPixels(rt,0,0,S,S,px);
+   const el=document.getElementById('hero-portrait-img');if(el)el.src=toDataUrl(px,S,S);
+   renderer.setRenderTarget(vsRt);renderer.render(ps,vsCam);
+   const vsPx=new Uint8Array(VS_W*VS_H*4);renderer.readRenderTargetPixels(vsRt,0,0,VS_W,VS_H,vsPx);
+   heroVsPortraitSrc=toDataUrl(vsPx,VS_W,VS_H);
+  }finally{renderer.setRenderTarget(prevTarget);rt.dispose();vsRt.dispose();}
  }catch(err){console.warn('Retrato do herói indisponível.',err);}
 }
 /* MOD 188 — Loja Central: prédio de pedra clara com pórtico, telhado de ardósia e uma estrela dourada
@@ -4068,7 +4137,23 @@ function updateVillagers(dt){
 /* MOD 192 — missões opcionais da vila: ofertas nas bancas, itens no mundo, diário no quadro de missão. */
 const SIDE_STORE='seven-sins-3d-side';
 const sideState=(()=>{let raw=null;try{raw=JSON.parse(localStorage.getItem(SIDE_STORE)||'null');}catch(_){}return createSideState(raw);})();
-function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));}catch(_){}}
+function saveSide(){try{localStorage.setItem(SIDE_STORE,JSON.stringify(sideState));return true;}catch(_){return false;}}
+function savedCampaignProgress(){try{const saved=JSON.parse(localStorage.getItem(PROGRESS_KEY)||'null');return saved&&typeof saved==='object'&&!Array.isArray(saved)?{coins:saved.coins,xp:saved.xp,sideRewardClaims:Array.isArray(saved.sideRewardClaims)?saved.sideRewardClaims:[]}:null;}catch(_){return null;}}
+function settlePendingSideReward(){
+ const result=settleSideReward(sideState,savedCampaignProgress(),pending=>{
+  if(!pending.appliedInMemory){
+   coins+=pending.coins;
+   gainXp(pending.xp);
+   pending.appliedInMemory=true;
+  }
+  if(!sideRewardClaims.includes(pending.claimId))sideRewardClaims=[...sideRewardClaims,pending.claimId].slice(-32);
+  save3DProgress();return savedCampaignProgress();
+ });
+ if(result!=='pending'&&result!=='none')saveSide();
+ return result;
+}
+const sideRewardRecovery=settlePendingSideReward();
+if(sideRewardRecovery==='pending')status.textContent='Uma recompensa está em recuperação; ela será salva antes de outra entrega.';
 const SIDE_ITEMS=[];
 {
  const petal=new THREE.MeshStandardMaterial({color:0xcfe8ff,emissive:0x7fb8ff,emissiveIntensity:1.6,roughness:.5}),stem=mat(0x3d5a2e);
@@ -4087,16 +4172,27 @@ const SIDE_ITEMS=[];
 // Itens já entregues/coletados não reaparecem.
 {const taken={flor:sideState.ervas.progress+(sideState.ervas.state==='done'?99:0),pingente:sideState.pingente.progress+(sideState.pingente.state==='done'?99:0)};for(const it of SIDE_ITEMS){if(taken[it.item]>0){it.taken=true;taken[it.item]--;}}}
 function syncSideItems(){for(const it of SIDE_ITEMS){const q=SIDE_QUESTS.find(x=>x.goal.item===it.item);it.group.visible=!it.taken&&sideState[q.id].state==='active';}}
-function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones.size});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
+function refreshSideQuests(){refreshSide(sideState,{questStep,waystones:mapState.waystones});syncSideItems();const box=document.getElementById('side-lines');if(box){const lines=activeSideLines(sideState);box.innerHTML=lines.map(l=>'<div>◇ '+l+'</div>').join('');box.hidden=!lines.length;}}
 function updateSideItems(dt,now){
  for(const it of SIDE_ITEMS){if(!it.group.visible)continue;it.glow.material.opacity=.5+Math.sin(now*.004+it.group.position.x)*.25;
   if(Math.hypot(it.group.position.x-player.position.x,it.group.position.z-player.position.z)<1.5){const q=collectSide(sideState,it.item);if(!q)continue;it.taken=true;it.group.visible=false;saveSide();worldAudio.reveal();showRewardPop(q.title+' · '+sideState[q.id].progress+'/'+q.goal.count);refreshSideQuests();}}
 }
 /** Conversa nas bancas: oferta, lembrete ou entrega da missão opcional daquele vendedor. */
 function trySideQuestTalk(vendor){
+ if(sideState.pendingReward&&settlePendingSideReward()==='pending'){status.textContent='A recompensa anterior ainda está sendo salva. Tente novamente antes de entregar outra missão.';return true;}
  refreshSideQuests();const q=questForGiver(sideState,vendor.shortName);if(!q)return false;const s=sideState[q.id];
  if(s.state==='available'){showDialogue(q.offer,()=>{acceptSide(sideState,q.id);saveSide();refreshSideQuests();const toast=document.getElementById('quest-toast');if(toast){toast.textContent='MISSÃO OPCIONAL · '+q.title.toUpperCase();toast.classList.remove('hidden');setTimeout(()=>toast.classList.add('hidden'),2600);}});return true;}
- if(s.state==='ready'){showDialogue(q.turnIn,()=>{const r=turnInSide(sideState,q.id);if(r){coins+=r.coins;gainXp(r.xp);showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');save3DProgress();updateQuestHud();}saveSide();refreshSideQuests();});return true;}
+ if(s.state==='ready'){showDialogue(q.turnIn,()=>{
+  const r=turnInSide(sideState,q.id,q.goal.type==='waystones'?{waystones:mapState.waystones,persistWaystones:()=>saveMapState(true)}:undefined);if(!r&&q.goal.type==='waystones'){status.textContent='Não foi possível confirmar o salvamento das três pedras. A recompensa continua disponível; tente novamente.';refreshSideQuests();return;}if(r){
+   sideState.pendingReward={claimId:'side:'+q.id+':v2',questId:q.id,coins:r.coins,xp:r.xp,beforeCoins:coins,afterCoins:coins+r.coins,beforeXp:playerXp,afterXp:playerXp+r.xp};
+   if(!saveSide()){sideState[q.id].state='ready';sideState.pendingReward=null;status.textContent='Não foi possível salvar a entrega. Tente novamente.';refreshSideQuests();return;}
+   const settled=settlePendingSideReward();
+   if(settled==='pending')status.textContent='Recompensa registrada; a persistência será recuperada antes de outra entrega.';
+   else showRewardPop('+'+r.coins+' MOEDAS · +'+r.xp+' XP');
+   updateQuestHud();
+  }
+  saveSide();refreshSideQuests();
+ });return true;}
  showDialogue([{who:vendor.name,text:q.progressLine+'. ('+s.progress+'/'+q.goal.count+')'}]);return true;
 }
 sideReady=true;refreshSideQuests();
@@ -4208,9 +4304,20 @@ function updateJourney(dt,now){
  // MOD 323 — ar da jornada: vista longa (serras, ponte e o vulcão a ~1 km), névoa recuada e plano de corte distante
  const jw=voidMode?0:Math.min(1,Math.max(0,(-112-P.x)/80));journeySkyK=jw;
  if(jw>0&&scene.fog){scene.fog.near+=(Math.max(scene.fog.near,70)-scene.fog.near)*jw;scene.fog.far+=(Math.max(scene.fog.far,640)-scene.fog.far)*jw;}
- {const wantFar=jw>.5?1500:760;if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}}
- journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode,eruption:typeof eruption==='number'?eruption:0});
+ const polar=voidMode?null:sampleRoad(P.x,P.z),travelWeight=polar?regionWeight(P.x,P.z,polar):0;
+ let wantFar=jw>.5?1500:760;
+ if(travelWeight>.25&&polar.i>3){
+  // The pagoda is visible from the lake at 300 m. Only the long winter
+  // vista needs a deeper frustum to include the distant glacial spires.
+  wantFar=polar.i>34?Math.max(760,Math.min(2350,Math.hypot(P.x-CASTLE.x,P.z-CASTLE.z)+175)):760;
+  wantFar=Math.ceil(wantFar/96)*96;
+ }
+ if(camera.far!==wantFar){camera.far=wantFar;camera.updateProjectionMatrix();}
+ journeyWorld.update(dt,{px:P.x,pz:P.z,camera,night:dayNightState.t,fog:scene.fog.color,hidden:voidMode||((P.z < -775 || P.x > 318)&&travelWeight>.25),eruption:typeof eruption==='number'?eruption:0});
  updateCityFolk(dt);
+ if(!sakuraWorld&&travelWeight>.002)sakuraWorld=createSakuraWorld(THREE,scene,{ground:groundHeightAt,low:terrainLowSpec});
+ if(sakuraWorld)sakuraWorld.update(dt,now,P,camera,scene.fog,dayNightState.t,voidMode);
+ useJourneyTerrain(!!sakuraWorld?.root.visible);
  if(inVolcano&&voidMode&&grounded&&playerHP>0){const rest=nearestRest(P.x-voidSpec.x,P.z-voidSpec.z);if(rest){checkpointX=voidSpec.x+rest[0];checkpointZ=voidSpec.z+rest[1];}}
  updateLavaContact(dt,P);/* MOD 326-B: também dentro do vulcão (respiradouros do Salão de Magma) */
  if(voidMode)return;
@@ -5985,7 +6092,7 @@ function playAfterVorgazhek(){
  playStory('depois-vorgazhek',afterVorgazhekScene(),{focus:'guide',done:()=>{
   act1Lock=false;act2Abyss=true;guide.visible=false;syncAct2World();if(bishop4Sky){scene.remove(bishop4Sky.holder);bishop4Sky=null;}
   // O Ato III do roteiro (cidade de neve) é o próximo marco; até lá, o jogo segue para o Ato III atual.
-  questStep=15;act1Sub=0;save3DProgress();updateQuestHud();setCineFade(0,1.2,false);status.textContent='O bilhete diz: vá à cidade de neve.';
+  questStep=15;act1Sub=0;save3DProgress();updateQuestHud();setCineFade(0,1.2,false);status.textContent='O bilhete indica Invernália. Siga as pegadas até as costas do vulcão.';
  }});
 }
 /** Ações das cenas do Ato II (passos "do"). */
@@ -6147,7 +6254,8 @@ function buildAct3World(){
  new GLTFLoader().load('./NeveKit.glb?v=mod206',gltf=>{
   const kit={};for(const c of gltf.scene.children)kit[c.name]=c;W.kit=kit;
   const place=(k,x,z,yaw,shadow)=>{const src=kit[k];if(!src)return null;const o=src.clone();o.position.set(x,groundHeightAt(x,z),z);o.rotation.y=yaw||0;o.traverse(m=>{if(m.isMesh){m.castShadow=!!shadow;m.receiveShadow=true;}});scene.add(o);return o;};
-  for(const h of SC.houses){place(h.k,h.x,h.z,h.yaw,true);marketObstacles.push({x:h.x,z:h.z,shape:'circle',radius:h.k==='CasaNeveB'?3.1:3.3,height:4});}
+  const masonry=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}),houseKits=[0,1,2].map(v=>{const m=sakuraBatch(THREE);glacierHouse(m,v);return m.geometry();});
+  let street=0;for(const h of SC.houses){const o=new THREE.Mesh(houseKits[street++%3],masonry);o.position.set(h.x,groundHeightAt(h.x,h.z),h.z);o.rotation.y=h.yaw;o.receiveShadow=true;scene.add(o);marketObstacles.push({x:h.x,z:h.z,shape:'circle',radius:h.k==='CasaNeveB'?3.1:3.3,height:4});}
   const I=SC.inn;place('Estalagem',I.x,I.z,I.yaw,true);marketObstacles.push({x:I.x,z:I.z,shape:'box',halfX:4.4,halfZ:3.4,height:5});
   const G=SC.guillotine;W.guillotine=place('Guilhotina',G.x,G.z,G.yaw,true);W.blade=place('Lamina',G.x,G.z,G.yaw,false);if(W.blade){W.bladeY=W.blade.position.y;W.blade.position.y+=5.0;W.blade.position.z+=.5;}
   marketObstacles.push({x:G.x,z:G.z,shape:'box',halfX:1.8,halfZ:1.3,height:1});
@@ -6159,6 +6267,7 @@ function buildAct3World(){
  // Moradores: vendedor de casacos, pescador, moradora, estalajadeiro e gente de casaco pela cidade.
  npcBase().then(b=>{
   const mk=(key,p,tint,clip,yaw)=>{const v=makeTownsfolk(b,tint,clip);v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=yaw||0;act3Npcs[key]=v;return v;};
+  mk('sensei',MASTER,0x754764,'Agree_Gesture',Math.PI);
   mk('seller',SC.seller,0x7a6a5a,'Agree_Gesture',-Math.PI/2);mk('fisher',SC.fisher,0x5a6a7a,'_01a156a3_6952_769b_94bf_2cf0e9d19b46',SC.fisher.yaw);mk('villager',SC.villager,0x9a7a8a,'Alert',.6);
   const tints=[0x6a5a4a,0x5a4a5a,0x7a6a6a,0x4a5a6a,0x8a7a6a];SC.folk.forEach((p,i)=>{const v=makeTownsfolk(b,tints[i%5],i%2?'Alert':'_01a156a3_6952_769b_94bf_2cf0e9d19b46');v.holder.position.set(p.x,groundHeightAt(p.x,p.z),p.z);v.holder.rotation.y=Math.random()*6;act3Folk.push({...v,home:p});});
   W.folkReady=true;syncAct3World();
@@ -6168,6 +6277,7 @@ function buildAct3World(){
 function syncAct3World(){
  const W=act3World;if(!W)return;const q=questStep,s=act1Sub;
  const night=(q===16&&s>=2)||q===17;const raid=q===17&&s>=2;
+ if(act3Npcs.sensei)act3Npcs.sensei.holder.visible=q>=15&&!voidMode;
  for(const f of W.fires)f.visible=raid||(q===17&&s>=3)||(q>=18&&q<=19);
  if(act3Npcs.seller)act3Npcs.seller.holder.visible=q>=15&&q<=19&&!act3Void;
  if(act3Npcs.fisher)act3Npcs.fisher.holder.visible=q>=15&&!night&&q<17&&!act3Void;
@@ -6224,7 +6334,8 @@ function coatHpBonus(){return typeof coatOn!=='undefined'&&coatOn?COAT.hp*HERO_H
 function act3SpeedMul(){return act3Climate.speed;}
 function act3ManaMul(){return act3Climate.mana;}
 function updateClimate(dt){
- const inCity=!voidMode&&inSnowCity(player.position.x,player.position.z)&&questStep>=ACT3N.road;
+ const P=player.position,road=sampleRoad(P.x,P.z);
+ const inCity=!voidMode&&questStep>=ACT3N.road&&(inSnowCity(P.x,P.z)||(road&&regionWeight(P.x,P.z,road)>.5&&snowAt(road.i)>.95));
  act3Climate=climate(inCity,coatOn&&questStep>=ACT3N.road);
  const chip=document.getElementById('cold-chip');if(chip)chip.hidden=!act3Climate.cold||cineActive||dialogueOpen;
  if(act3Climate.cold&&playerHP>1&&!cineActive){act3ColdAcc+=dt*act3Climate.dps;if(act3ColdAcc>=1){const k=Math.floor(act3ColdAcc);act3ColdAcc-=k;playerHP=Math.max(1,playerHP-k);updatePlayerHud();}}
@@ -6283,9 +6394,19 @@ function updateAct3(dt,now){updateCaveWalk(dt);
  }
  const q=questStep,s=act1Sub;
  if(q===ACT3N.road){
+  if(sakuraResume&&!act1Busy()&&player.userData.ready){sakuraResume=false;
+   const safe=SAKURA_ROAD[sakuraRest]||(s>=2?THRONE:s===1?DOJO:FROM_CITY[0]);player.position.set(safe.x,groundHeightAt(safe.x,safe.z),safe.z);checkpointX=safe.x;checkpointZ=safe.z;return;}
+  if(!voidMode&&grounded&&!act1Busy()){
+   // Sparse milestones persist geographic progress without writing storage every frame.
+   const p=sampleRoad(px,pz),i=p?Math.round(p.i):-1;
+   if(i>=0&&i<SAKURA_ROAD.length&&(i%3===0||i===22||i===61)&&i!==sakuraRest&&near(SAKURA_ROAD[i],6)){
+    sakuraRest=i;checkpointX=SAKURA_ROAD[i].x;checkpointZ=SAKURA_ROAD[i].z;save3DProgress();}
+  }
   if(!coatOwned&&!act3World.sellerMet){if(near(SC.seller,7)&&!act1Busy()){act3World.sellerMet=true;offerCoat();return;}}
-  mark(near(SC.seller,40)&&!coatOwned&&!act3World.sellerMet?SC.seller:SC.plaza);
-  if(near(SC.plaza,30)&&!act1Busy()){act1Lock=true;playStory('cidade-neve',snowArrivalScene(),{focus:'hero',done:()=>{act1Lock=false;act1Advance(ACT3N.city,0);syncAct3World();status.textContent='Pergunte pelo Anjo na cidade.';}});}
+  const guidepost=nextGuide(px,pz,s);
+  mark(s===0&&near(MASTER,24)?MASTER:s===1&&near(THRONE,28)?THRONE:guidepost);
+  if(s===1&&near(THRONE,4.2)&&!act1Busy()){sakuraRest=62;act1Advance(15,2);status.textContent='As marcas no gelo seguem até o bairro dos pescadores.';}
+  if(s>=2&&near(SC.plaza,30)&&!act1Busy()){act1Lock=true;playStory('cidade-neve',snowArrivalScene(),{focus:'hero',done:()=>{act1Lock=false;act1Advance(ACT3N.city,0);syncAct3World();status.textContent='Pergunte pelo Anjo na cidade.';}});}
   return;
  }
  if(q===ACT3N.city){
@@ -6340,7 +6461,8 @@ function stepGuideRun(dt){
  const s=Math.min(d,dt*r.speed),ya=leaderStep(guide.position,t,dx,dz,d,s,r);if(ya===null)return;guideMoveSpeed=dt>0?s/dt:0;guide.position.y=r.y!==undefined?r.y:terrainHeightAt(guide.position.x,guide.position.z);guide.rotation.y=ya;
 }
 function act3Label(){
- if(cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
+ if(dialogueOpen||namePromptOpen||cineActive||questStep<ACT3N.road||questStep>ACT3N.boss)return '';const px=player.position.x,pz=player.position.z,q=questStep,s=act1Sub,d=(p,r)=>Math.hypot(p.x-px,p.z-pz)<=r;
+ if(!voidMode&&q===ACT3N.road&&act3Npcs.sensei&&d(MASTER,3.9))return 'FALAR COM A MESTRA';
  if(q===ACT3N.road&&!coatOwned&&act3World&&act3World.sellerMet&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';
  if(q>=ACT3N.city&&q<=ACT3N.boss&&!coatOwned&&!act3Void&&act3Npcs.seller&&d(SC.seller,3.2))return 'COMPRAR CASACO';
  if(!act3Void){
@@ -6359,6 +6481,15 @@ function act3Label(){
 }
 function act3Interact(){
  const l=act3Label();if(!l)return false;
+ if(l==='FALAR COM A MESTRA'){
+  if(act1Busy()||!act3Npcs.sensei)return false;
+  const h=act3Npcs.sensei.holder;faceTo(h,player.position);faceTo(player,h.position);moveVX=moveVZ=0;act1Lock=true;
+  const name=playerName||'Viajante';showDialogue([
+   {who:'Mestra do Dojo',text:name+', antes da neve havia uma cerejeira à porta do castelo. Neste inverno ela não floresceu.'},
+   {who:name,text:'Procuro alguém que passou por estas montanhas. Ainda existe um caminho?'},
+   {who:'Mestra do Dojo',text:'Atravesse o pinhal e o lago pelas marcas no gelo. As torres de Invernália surgem além da vigia. Suba ao salão do trono. Quem deixa pegadas também pode deixar saudade.'}
+  ],()=>{act1Lock=false;if(act1Sub===0){sakuraRest=23;act1Advance(15,1);}});return true;
+ }
  if(l==='COMPRAR CASACO'){offerCoat();return true;}
  if(l==='ENTRAR NA ESTALAGEM'){travelVeil(()=>enterAct3Void('estalagem',INN.spawn.hall));return true;}
  if(l==='SAIR'){travelVeil(()=>leaveAct3Void({x:SC.inn.door.x,z:SC.inn.door.z-1.5}));return true;}
@@ -7312,7 +7443,7 @@ function syncFinalPortal(){
 // ---------- Vazio da Ganância: arena abaixo do mundo, olhos em várias distâncias ----------
 const savedSky={};
 function enterVoid(){enterDimensionArena('greed');}
-function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
+function leaveVoid(){if(ascKey)ascHide();if(dimKey==='greed')camFocusReady=false;if((dimKey==='bishop3'||dimKey==='bishop4'||dimKey==='greed')&&dimArenas[dimKey]){const arena=dimArenas[dimKey];scene.remove(arena.group);arena.dispose();delete dimArenas[dimKey];}document.body.classList.remove('bishop2-battle');portraitZoomOverride=false;voidMode=false;for(const k in dimArenas)dimArenas[k].group.visible=false;dimLight.intensity=0;voidSpec={x:VOID.x,z:VOID.z,y:VOID.y,radius:VOID.radius};dimKey=null;skyDome.visible=true;renderer.toneMappingExposure=1;}
 function updateVoid(dt,now){
  updateDimensionPortals(now);
  if(!voidMode)return;
@@ -7415,39 +7546,50 @@ function updateUltimateFx(dt){
 }
 /* ===================== MOD 199 — CÂMERA, PRIMEIRA PESSOA, COMBO E PODERES DOS BISPOS ===================== */
 // ---------- Câmera em terceira pessoa ----------
-let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false;
+let lastLookInputAt=0,camDistSmooth=8.5,fovKick=0;const camFocus=new THREE.Vector3();let camFocusReady=false,portraitZoomOverride=false;
 /** Alvo da câmera: ombro levemente à direita, enquadra o inimigo em combate e acompanha a altura com suavidade. */
+function portraitBishop2Profile(foeOn,sep){
+ // Mantém o fit até 28 m e libera progressivamente entre 22–28 m, sem perder o enquadramento de uma vez.
+ if(!foeOn||!combatStepNow()||!newHero||!voidMode||dimKey!=='bishop2'||!dimBattle?.active||cameraDistance<1.05||camera.aspect>=.78||sep>28)return null;
+ const fit=computePortraitCameraFit(sep,camera.aspect,camera.fov,cameraPitch);
+ return{shoulder:fit.shoulder,focusBlend:fit.focusBlend,minDistance:fit.minDistance,release:fit.release,idleMs:fit.idleMs,deadZone:fit.deadZone,parallaxBias:fit.parallaxBias,turnRate:fit.turnRate};
+}
+/** Alvo da câmera: ombro reduzido e foco compartilhado apenas no duelo retrato de VORGAZHEK. */
 function computeCameraTarget(base,dt){
- const shoulder=.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
- const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
- // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); durante o golpe do protagonista o enquadramento
- // puxa um pouco mais para o alvo, sem girar a câmera (o jogador mantém o controle).
  const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
- const engaged=combatStepNow()&&foeOn&&Math.hypot(foe.x-player.position.x,foe.z-player.position.z)<12;
- if(engaged&&!lockOnActive){const k=newHero&&rites.active?.def?.drive?.3:.22;t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const engaged=combatStepNow()&&foeOn&&(sep<12||!!portrait),shoulder=portrait?.shoulder??.42,rx=Math.cos(cameraYaw),rz=-Math.sin(cameraYaw);
+ const t=base.clone();t.x+=rx*shoulder;t.z+=rz*shoulder;
+ // MOD 302: no esquadrão, enquadra o alvo em foco (não o líder escondido); em retrato, divide o foco entre os dois atores.
+ if(engaged&&!lockOnActive){const k=portrait?.focusBlend??(newHero&&rites.active?.def?.drive?.3:.22);t.x+=(foe.x-player.position.x)*k;t.z+=(foe.z-player.position.z)*k;}
  else if(lockOnActive&&foeOn){/* lock-on: enquadra os dois — o foco vai ~35 % para o alvo (no máx. 4 m), herói sempre no quadro */const fx=foe.x-player.position.x,fz=foe.z-player.position.z,fd=Math.hypot(fx,fz)||1,k=Math.min(.35,4/fd);t.x+=fx*k;t.z+=fz*k;}
  if(!camFocusReady){camFocus.copy(t);camFocusReady=true;}
  camFocus.x+=(t.x-camFocus.x)*Math.min(1,dt*12);camFocus.z+=(t.z-camFocus.z)*Math.min(1,dt*12);camFocus.y+=(t.y-camFocus.y)*Math.min(1,dt*6);
  return{focus:camFocus,engaged};
 }
-/** Distância efetiva: afasta um pouco em combate (vê os dois) e respeita o zoom do jogador. */
-function effectiveCameraDistance(engaged,dt){const want=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;}
+/** Distância efetiva: afasta um pouco em combate e, só no retrato de VORGAZHEK, impede o duelo de fechar demais. */
+function effectiveCameraDistance(engaged,dt){
+ const foe=newHero&&squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
+ const baseWant=riteCinematicView?4.8:cameraDistance+(lockOnActive&&cameraDistance>=1.05?Math.min(3.2,Math.max(0,lockSep-3)*.35):engaged&&newHero&&cameraDistance>=1.05?duelPull:0);
+ const fittedWant=Math.max(baseWant,portrait?.minDistance??baseWant);
+ const want=portrait&&!riteCinematicView?(portraitZoomOverride?cameraDistance:baseWant+(fittedWant-baseWant)*(portrait.release??1)):baseWant;
+ camDistSmooth+=(want-camDistSmooth)*Math.min(1,dt*3);return camDistSmooth;
+}
 /**
- * Câmera de duelo automática (estilo Genshin / referência 25b05adf: câmera às costas do herói, inimigo no centro), SEM
- * travar nada: em combate (inimigo a ≤ 12 m) e sem o jogador mexer na câmera há 1,2 s, o ângulo desliza até o herói ficar
- * entre a câmera e o inimigo. Zona morta de 20°: se o inimigo já está no quadro, não mexe. Arrastar a câmera manda sempre.
- * Em duelo aproxima a câmera (≈ 4,6 m, abrindo até 7 m com a separação), como a referência e o Genshin em combate.
+ * Câmera de duelo automática: arrastar continua mandando; VORGAZHEK em retrato recentraliza mais cedo e sem deixar o herói sair do quadro.
  */
 let duelPull=0,lastCamEngaged=false;
 function autoDuelCamera(dt,now,engaged){
  const want=engaged&&newHero&&!lockOnActive&&cameraDistance>=1.05?1:0;
- const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z);
- /* referência 25b05adf: em duelo a câmera chega mais perto, às costas do herói (≈ 4,6 m colados, abre até 7 m com a separação), nunca além do zoom do jogador */
+ const foe=squadOn&&squadFocus?.alive?squadFocus:enemy.position,foeOn=newHero&&squadOn&&squadFocus?.alive?true:enemy.visible&&enemyAlive;
+ const sep=Math.hypot(foe.x-player.position.x,foe.z-player.position.z),portrait=portraitBishop2Profile(foeOn,sep);
  duelPull+=((want?Math.min(0,Math.max(3.6,Math.min(7,4.6+Math.max(0,sep-2.2)*.5))-cameraDistance):0)-duelPull)*Math.min(1,dt*2.2);
- if(!want||!userSettings.autoCamera||now-lastLookInputAt<1200||sep<1.2)return false;
- const yawWant=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=.35;
+ const idleMs=portrait?portrait.idleMs:1200;
+ if(!want||!userSettings.autoCamera||now-lastLookInputAt<idleMs||sep<1.2)return false;
+ const yawToFoe=Math.atan2(-(foe.x-player.position.x),-(foe.z-player.position.z)),yawWant=yawToFoe+(portrait?.parallaxBias??0),d=Math.atan2(Math.sin(yawWant-cameraYaw),Math.cos(yawWant-cameraYaw)),dead=portrait?portrait.deadZone:.35;
  if(Math.abs(d)<=dead)return true;
- cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(rites.busy||dashRemaining>0?3.2:2));return true;
+ cameraYaw+=(d-Math.sign(d)*dead)*Math.min(1,dt*(portrait?portrait.turnRate:(rites.busy||dashRemaining>0?3.2:2)));return true;
 }
 /** Recentraliza atrás do herói depois de um tempo andando sem mexer na câmera (opcional nos ajustes). */
 function autoRecenterCamera(dt,now){
@@ -8824,15 +8966,45 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  collisionAt(x,z){return playerBlockedAt(x,z);},
  /** MOD 214 — valida o mesmo carregador e os clipes usados pela Sandra na campanha. */
  async inspectSandra(){await loadRig('sandra');const r=rigs.sandra;return{roles:Object.keys(r.actions),clips:Object.fromEntries(Object.entries(r.actions).map(([k,a])=>[k,{name:a.getClip().name,duration:a.getClip().duration}])),height:measureModelBounds(r.model).getSize(new THREE.Vector3()).y};},
- teleport(x,z,yaw){player.position.set(x,terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
+ teleport(x,z,yaw,height){player.position.set(x,Number.isFinite(height)?height:terrainHeightAt(x,z),z);if(Number.isFinite(yaw)){cameraYaw=yaw;}},
  view(yaw,pitch,dist){cameraYaw=yaw;cameraPitch=pitch;cameraDistance=dist;},
  state(){return{x:player.position.x,y:player.position.y,z:player.position.z,walkable:terrain3D.walkable(player.position.x,player.position.z),edge:terrain3D.boundaryDistance(player.position.x,player.position.z),calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,terrain:window.SevenSinsTerrainReport,forest:window.SevenSinsForestReport,trees:treeSpecs.length,fog:scene.fog.color.getHexString(),fogFar:scene.fog.far,night:dayNightState.t,quest:questStep,coins,dialogueOpen,namePromptOpen,awakeningActive,hp:playerHP,enemy:{hp:enemyHP,visible:enemy.visible,alive:enemyAlive,x:+enemy.position.x.toFixed(1),z:+enemy.position.z.toFixed(1),y:+enemy.position.y.toFixed(2)},objective:(document.getElementById('quest-objective')||{}).textContent,audio:worldAudio.state,dim:{vs:vsOpen,battle:!!dimBattle,active:!!(dimBattle&&dimBattle.active),key:dimKey,sent:handoffSent,pull:!!portalPull,pt:portalPull&&portalPull.t,paused:gamePaused,gate:menuGate,voidMode:!!voidMode,hour:+gameClock.hour.toFixed(2),enemyHP,enemyMaxHP,hp:playerHP}};},
+ /* QA A5 — leitura somente; só existe com ?debug3d=1, sem controles ou efeitos no gameplay normal. */
+ sideQuestQA(){return{questStep,coins,xp:playerXp,side:JSON.parse(JSON.stringify(sideState)),vendors:villageVendors.map(v=>({name:v.name,shortName:v.shortName,x:+v.x.toFixed(2),z:+v.z.toFixed(2)})),items:SIDE_ITEMS.map(it=>({item:it.item,x:+it.group.position.x.toFixed(2),z:+it.group.position.z.toFixed(2),visible:it.group.visible,taken:it.taken})),waystones:WAYSTONES.map(w=>{const v=waystoneVisuals.find(q=>q.data.id===w.id);return{id:w.id,x:w.x,z:w.z,centerY:v?.shelter.center.y??null};}),registeredWaystones:[...mapState.waystones]};},
  setNight(on){setDayNightMode(on?'night':'day');dayNightState.t=dayNightState.target;applyDayNightVisual(dayNightState.t);},
  /** MOD 311: entra numa zona da ascensão (cave|ascent) já pronta; at em coordenadas locais. */
  ascension(key,at){if(!key){if(ascKey)ascLeaveToWorld();return null;}return ascWhenReady(key).then(()=>{ascEnter(key,at||(key==='cave'?ASC_CAVE.spawn:ASC_ASCENT.spawn));return this.ascState();});},
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
+ actorScreen(){
+  const focusActor=newHero&&squadOn&&squadFocus?.alive?squadFocus:null;
+  const focusBody=focusActor?squadRT?.body?.(focusActor.id):null;
+  const target=focusBody?.holder||enemy,targetHeight=focusBody?.height||2;
+  if(focusBody?.holder)focusBody.holder.updateMatrixWorld(true);
+  player.updateMatrixWorld(true);target.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+  const project=v=>{v.project(camera);return{x:+v.x.toFixed(3),y:+v.y.toFixed(3),z:+v.z.toFixed(3),onScreen:v.z>=-1&&v.z<=1&&Math.abs(v.x)<=.94&&Math.abs(v.y)<=.94};};
+  const point=(object,height)=>{const v=new THREE.Vector3();object.getWorldPosition(v);v.y+=height;return project(v);};
+  const headPoint=()=>{const v=new THREE.Vector3();if(focusBody?.head?.getWorldPosition)focusBody.head.getWorldPosition(v);else{target.getWorldPosition(v);v.y+=targetHeight*.9;}return project(v);};
+  let meshCount=0,visibleMeshes=0;
+  if(focusBody?.model?.traverse){
+   focusBody.model.traverse(o=>{
+    if(!o.isMesh)return;
+    meshCount++;
+    let shown=o.visible!==false;
+    for(let p=o.parent;p&&shown;p=p.parent)if(p.visible===false)shown=false;
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    if(!materials.some(m=>m&&m.visible!==false&&(m.opacity??1)>.05))shown=false;
+    if(shown)visibleMeshes++;
+   });
+  }
+  let holderVisible=!!(focusBody?.holder&&focusBody.holder.parent);
+  for(let p=focusBody?.holder;p&&holderVisible;p=p.parent)if(p.visible===false)holderVisible=false;
+  const visible=focusBody?!!(holderVisible&&focusBody.model?.visible&&visibleMeshes>0):!!enemy.visible;
+  const cameraFoe=focusActor||enemy.position,cameraFoeOn=!!(focusActor||(enemy.visible&&enemyAlive)),cameraSeparation=Math.hypot(cameraFoe.x-player.position.x,cameraFoe.z-player.position.z),qaPortraitFit=portraitBishop2Profile(cameraFoeOn,cameraSeparation);
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride,cameraPitch:+cameraPitch.toFixed(3),cameraState:{aspect:+camera.aspect.toFixed(3),autoCamera:!!userSettings.autoCamera,lockOn:!!lockOnActive,dimensionKey:dimKey,portraitFit:qaPortraitFit?{minDistance:+qaPortraitFit.minDistance.toFixed(2),parallaxBias:+qaPortraitFit.parallaxBias.toFixed(3),release:+qaPortraitFit.release.toFixed(3)}:null}};
+ },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
  villagers(){return villageNpcs.map((c,i)=>{const h=c.holder,d=villageDrivers.find(v=>v.c===c);let acc=[];h.traverse(o=>{if(o!==h&&o.name&&/Cabelo|Barba|Couro|saco|balde/i.test(o.name))acc.push(o.name);});return{i,id:d?d.id:(cityPorter&&cityPorter.c===c?'carregador':c.role),sex:c.sex||null,file:c.file,x:+h.position.x.toFixed(2),y:+h.position.y.toFixed(2),z:+h.position.z.toFixed(2),yaw:+h.rotation.y.toFixed(2),visible:h.visible,state:d?d.drv.brain.state:null,acc};});},
@@ -8918,6 +9090,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  walkRailings(on=true){walkRailingsOn=!!on;return walkRailingsOn;},
  walkMove(dx,dz,seconds=1){const l=Math.hypot(dx,dz)||1;qaMove={x:dx/l,z:dz/l,left:seconds};return true;},
  walkBusy(){return !!qaMove;},
+ sakuraProbe(x,z){const p=sampleRoad(x,z);return {blocked:blockedAt(x,z,false,terrainHeightAt(x,z)),playerBlocked:playerBlockedAt(x,z),height:terrainHeightAt(x,z),water:terrain3D.waterDepth(x,z),stage:questStep,part:act1Sub,stream:sakuraWorld?.stats()};},
  snapCam(){for(let i=0;i<10;i++)updatePlayerCamera(1);return camera.position.toArray().map(v=>+v.toFixed(2));},
  whyBlocked(x,z){const y=player.position.y,w=eldoriaWalk.blocked(x,z,y,groundHeightAt);const t=treeObstacles.find(o=>Math.hypot(x-o.x,z-o.z)<o.radius),mo=marketObstacles.find(o=>o.height>.68&&(o.shape==='box'?Math.abs(x-o.x)<o.halfX&&Math.abs(z-o.z)<o.halfZ:Math.hypot(x-o.x,z-o.z)<o.radius)),np=[...vendorRoots,...villagerWalkers.map(v=>v.holder)].find(o=>o.visible&&Math.hypot(x-o.position.x,z-o.position.z)<.8);return{blockedAt:blockedAt(x,z),player:playerBlockedAt(x,z),walk:w?(w.name||w.type):null,tree:t?[t.x,t.z,t.radius]:null,market:mo?[mo.x,mo.z,mo.radius||mo.halfX]:null,npc:np?[np.position.x,np.position.z]:null,water:terrain3D.waterDepth(x,z),edge:terrain3D.boundaryDistance(x,z)};},
  walkJump(){action('jump');return true;},
@@ -9038,7 +9211,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   if(inSewer)leaveSewer();if(inVolcano)leaveVolcano();if(act3Void)leaveAct3Void({x:SC.plaza.x,z:SC.plaza.z});guideRun=null;guidePinned=false;act3Raid=false;
   questStep=step;act1Sub=sub;act2Abyss=true;if(coins<40)coins=40;bishopsDefeated=Math.max(2,bishopsDefeated);vhazraelRewardClaimed=true;vorgazhekRewardClaimed=true;save3DProgress();updateQuestHud();if(!act2World)buildAct2World();syncAct2World();buildAct3World();if(act3World){act3World.sellerMet=false;act3World.distStarted=false;act3World.angelAsked=false;}syncAct3World();setGameHour(step===16&&sub>=2||step===17?22:11);
   const go=(x,z)=>player.position.set(x,terrainHeightAt(x,z),z);
-  if(step===15)go(SC.seller.x-12,SC.seller.z);else if(step===16&&sub<=1)go(SC.plaza.x,SC.plaza.z+4);else if(step===16)go(SC.inn.door.x,SC.inn.door.z-3);
+  if(step===15){sakuraResume=false;const p=sub===0?FROM_CITY[0]:sub===1?DOJO:THRONE;go(p.x,p.z);}else if(step===16&&sub<=1)go(SC.plaza.x,SC.plaza.z+4);else if(step===16)go(SC.inn.door.x,SC.inn.door.z-3);
   else if(step===17&&sub<=1){enterAct3Void('estalagem',INN.spawn.cellar);}else if(step===17)go(SC.plaza.x,SC.plaza.z+8);
   else if(step===18&&sub<=1){go(SC.cave.x-4,SC.cave.z+4);}else if(step===18){enterAct3Void('distorcida',DISTORTED.spawn);}
   else if(step===19){go(SC.plaza.x+6,SC.plaza.z+6);}
@@ -9171,7 +9344,7 @@ const ultLight=new THREE.PointLight(0xffe0a0,0,30,1.2);ultLight.castShadow=false
 animate();
 /* CLAUDE combate/câmera: antes o buffer só mudava quando a densidade de pixels mudava — ao redimensionar/zoom/girar,
    o canvas ficava do tamanho antigo e aparecia uma faixa do fundo (#101b1c) embaixo/ao lado. */
-function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);}
+function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),nextAspect=w/h,wasPortrait=camera.aspect<.78;camera.aspect=nextAspect;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);if(!wasPortrait&&nextAspect<.78&&dimKey==='bishop2'&&dimBattle?.active&&newHero&&cameraDistance>=1.05&&lookPointers.size===0&&performance.now()-lastLookInputAt>500)lastLookInputAt=0;}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,120));if(window.visualViewport)visualViewport.addEventListener('resize',resize);
 
 

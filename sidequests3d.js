@@ -46,45 +46,109 @@ export const SIDE_QUESTS = [
   }
 ];
 
-// Saves antigos ou incompletos não podem criar contadores infinitos nem saltar objetivos.
-function safeSideCount(value, max) {
-  // Rejeitar coerção de arrays, booleanos e objetos: [4] não comprova quatro coletas.
-  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim() !== '')) return 0;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.min(max, Math.max(0, Math.floor(n)));
+export const SIDE_QUEST_WAYSTONES = Object.freeze([
+  'abrigo-vila',
+  'abrigo-mata',
+  'abrigo-caverna'
+]);
+
+// Uma entrega cruza dois saves (campanha e vila); o pending evita perder ou pagar duas vezes em crash.
+function normalizePendingReward(value, quests) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const q = SIDE_QUESTS.find(item => item.id === value.questId);
+  if (!q || quests[q.id]?.state !== 'done' || quests[q.id]?.progress !== q.goal.count || value.claimId !== 'side:' + q.id + ':v2') return null;
+  const { coins, xp, beforeCoins, afterCoins, beforeXp, afterXp } = value;
+  if (![coins, xp, beforeCoins, afterCoins, beforeXp, afterXp].every(Number.isSafeInteger)) return null;
+  if (coins !== q.reward.coins || xp !== q.reward.xp || coins < 0 || xp <= 0 || beforeCoins < 0 || beforeXp < 0) return null;
+  if (afterCoins !== beforeCoins + coins || afterXp !== beforeXp + xp) return null;
+  return { claimId: value.claimId, questId: q.id, coins, xp, beforeCoins, afterCoins, beforeXp, afterXp };
+}
+
+// Progresso salvo/em memória acima da meta é corrupção, não uma missão concluída.
+function safeSideProgress(value, max) {
+  // Saves antigos podem guardar números como texto, mas só inteiros decimais são contadores válidos.
+  let n;
+  if (typeof value === 'number') n = value;
+  else if (typeof value === 'string' && /^\d+$/.test(value.trim())) n = Number(value.trim());
+  else return 0;
+  if (!Number.isSafeInteger(n) || n < 0 || n > max) return 0;
+  return n;
 }
 
 export function createSideState(saved) {
   const out = {};
   for (const q of SIDE_QUESTS) {
     const s = saved && saved[q.id];
-    const state = ['active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
-    const progress = state === 'locked' ? 0 : safeSideCount(s && s.progress, q.goal.count);
+    const state = ['available', 'active', 'ready', 'done'].includes(s && s.state) ? s.state : 'locked';
+    // Uma missão apenas disponível ainda não foi aceita; não restaure coleta anterior ao aceite.
+    const progress = ['locked', 'available'].includes(state) ? 0 : safeSideProgress(s && s.progress, q.goal.count);
     // Um save corrompido não pode entregar recompensa sem cumprir a meta.
     // Missões já concluídas permanecem concluídas para não duplicar pagamentos.
     out[q.id] = { state: state === 'ready' && progress < q.goal.count ? 'active' : state, progress };
   }
+  out.pendingReward = normalizePendingReward(saved && saved.pendingReward, out);
   return out;
 }
 
-/** Atualiza disponibilidade e prontidão. ctx: { questStep, waystones }. */
+export function settleSideReward(state, persistedCampaign, applyReward) {
+  const pending = state && state.pendingReward;
+  if (!pending) return 'none';
+  // Saldos são fungíveis: vitórias/loja podem elevá-los e compras podem reduzi-los.
+  // Só o claimId gravado no mesmo snapshot V6 de moedas/XP prova esta transação.
+  const hasClaim = snapshot =>
+    !!pending.claimId && Array.isArray(snapshot?.sideRewardClaims) &&
+    snapshot.sideRewardClaims.includes(pending.claimId);
+  if (hasClaim(persistedCampaign)) {
+    state.pendingReward = null;
+    return 'already-applied';
+  }
+  if (typeof applyReward !== 'function') return 'pending';
+  let nextCampaign = null;
+  try { nextCampaign = applyReward(pending); } catch (_) { return 'pending'; }
+  if (hasClaim(nextCampaign)) {
+    state.pendingReward = null;
+    return 'applied';
+  }
+  return 'pending';
+}
+
+/** Atualiza disponibilidade e prontidão. ctx.waystones aceita Set/array de IDs registrados. */
 export function refreshSide(state, ctx) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     // Um estado ready restaurado/adulterado sem progresso suficiente não deve
     // instruir o jogador a entregar uma missão que turnInSide recusará.
-    if (['active', 'ready'].includes(s.state) && (!Number.isFinite(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
-      s.progress = safeSideCount(s.progress, q.goal.count);
+    if (['active', 'ready'].includes(s.state) && (!Number.isSafeInteger(s.progress) || s.progress < 0 || s.progress > q.goal.count)) {
+      s.progress = safeSideProgress(s.progress, q.goal.count);
     }
     if (s.state === 'ready' && s.progress < q.goal.count) {
       s.state = 'active';
     }
     const rawStep = ctx?.questStep;
-    const validStep = typeof rawStep === 'number' || (typeof rawStep === 'string' && rawStep.trim() !== '');
-    if (s.state === 'locked' && validStep && Number.isFinite(Number(rawStep)) && Number(rawStep) >= q.minStep) s.state = 'available';
-    if (q.goal.type === 'waystones' && s.state === 'active' && typeof ctx?.waystones === 'number' && Number.isFinite(ctx.waystones)) {
-      s.progress = Math.max(s.progress, safeSideCount(ctx.waystones, q.goal.count));
+    // Saves legados podem usar strings decimais; Number() sozinho também aceita hexadecimal e expoente.
+    const decimalStep = typeof rawStep === 'string' && /^\d+$/.test(rawStep.trim());
+    const step = typeof rawStep === 'number' ? rawStep : decimalStep ? Number(rawStep.trim()) : NaN;
+    const hasStep = Number.isSafeInteger(step) && step >= 0;
+    // Um save não pode manter uma missão disponível se a campanha foi restaurada para antes do desbloqueio.
+    if (s.state === 'available' && hasStep && step < q.minStep) {
+      s.state = 'locked';
+      s.progress = 0;
+    }
+    if (s.state === 'locked' && hasStep && step >= q.minStep) {
+      s.state = 'available';
+      // Um desbloqueio nunca herda coleta residual de estado bloqueado/corrompido.
+      s.progress = 0;
+    }
+    if (q.goal.type === 'waystones' && ['active', 'ready'].includes(s.state)) {
+      // A missão pertence a Eldória: abrigos da jornada/Ato II não contam para ela.
+      const registered = ctx?.waystones;
+      const has = registered instanceof Set
+        ? (id) => registered.has(id)
+        : Array.isArray(registered) ? (id) => registered.includes(id) : null;
+      if (has) {
+        s.progress = Math.min(q.goal.count, SIDE_QUEST_WAYSTONES.reduce((count, id) => count + (has(id) ? 1 : 0), 0));
+        if (s.state === 'ready' && s.progress < q.goal.count) s.state = 'active';
+      }
     }
     if (s.state === 'active' && s.progress >= q.goal.count) s.state = 'ready';
   }
@@ -94,6 +158,8 @@ export function refreshSide(state, ctx) {
 export function acceptSide(state, id) {
   const s = state[id];
   if (!s || s.state !== 'available') return false;
+  // A missão começa sem progresso: nenhum estado anterior ao aceite conta.
+  s.progress = 0;
   s.state = 'active';
   return true;
 }
@@ -103,7 +169,7 @@ export function collectSide(state, item) {
   for (const q of SIDE_QUESTS) {
     const s = state[q.id];
     if (q.goal.type === 'collect' && q.goal.item === item && s.state === 'active') {
-      s.progress = Math.min(q.goal.count, safeSideCount(s.progress, q.goal.count) + 1);
+      s.progress = Math.min(q.goal.count, safeSideProgress(s.progress, q.goal.count) + 1);
       if (s.progress >= q.goal.count) s.state = 'ready';
       return q;
     }
@@ -112,9 +178,19 @@ export function collectSide(state, item) {
 }
 
 /** Entrega: devolve a recompensa uma única vez. */
-export function turnInSide(state, id) {
+export function turnInSide(state, id, options) {
   const q = SIDE_QUESTS.find(x => x.id === id), s = state[id];
-  if (!q || !s || s.state !== 'ready' || !Number.isFinite(s.progress) || s.progress < q.goal.count) return null;
+  if (!q || !s || s.state !== 'ready' || !Number.isSafeInteger(s.progress) || s.progress !== q.goal.count) return null;
+  if (q.goal.type === 'waystones') {
+    const registered = options?.waystones;
+    const has = registered instanceof Set
+      ? (waystoneId) => registered.has(waystoneId)
+      : Array.isArray(registered) ? (waystoneId) => registered.includes(waystoneId) : null;
+    if (!has || SIDE_QUEST_WAYSTONES.some(waystoneId => !has(waystoneId)) || typeof options.persistWaystones !== 'function') return null;
+    let persisted = false;
+    try { persisted = options.persistWaystones() === true; } catch (_) {}
+    if (!persisted) return null;
+  }
   s.state = 'done';
   return q.reward;
 }
@@ -126,7 +202,7 @@ export function questForGiver(state, giver) {
 export function activeSideLines(state) {
   return SIDE_QUESTS.filter(q => ['active', 'ready'].includes(state[q.id].state)).map(q => {
     const s = state[q.id];
-    const progress = safeSideCount(s.progress, q.goal.count);
+    const progress = safeSideProgress(s.progress, q.goal.count);
     return s.state === 'ready' && progress >= q.goal.count
       ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0]
       : q.title + ' · ' + progress + '/' + q.goal.count;

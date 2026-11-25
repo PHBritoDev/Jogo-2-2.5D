@@ -69,9 +69,9 @@ test('Mod 278: kit/IA usam espada exclusiva, GLB verdadeiro e não afetam outros
  const src=fs.readFileSync(new URL('./mundo-3d-prototype.js',import.meta.url),'utf8');
  assert.ok(src.includes("mountZarkhaelSword(THREE,GLTFLoader,rig.model,'./EspadaBispo3.glb?v=278')"));
  assert.ok(src.includes("if(zarkSword&&zarkSword.holdBoss&&enemy.visible&&enemyAlive)"));
- assert.ok(src.includes("else if(!silent&&!(zarkSword&&zarkSword.holdBoss))playEnemyAnimation('hit'"));
+ assert.ok(/else if\(applied>0&&!silent&&!\(zarkSword&&zarkSword\.holdBoss\)[^;\n]*\)playEnemyAnimation\('hit'/.test(src));
  assert.ok(src.includes("updateZarkhaelSword(dt)"));
- assert.ok(src.includes("stopZarkhaelSword();clearHazards()"));
+ assert.ok(/stopZarkhaelSword\(\);[^\n{}]*clearHazards\(\)/.test(src));
  assert.ok(ZARK_SWORD_BUILD.startsWith('278-'));
 });
 test('Mod 278: som e VFX por evento, sem fumaça, usa shader e instâncias',()=>{

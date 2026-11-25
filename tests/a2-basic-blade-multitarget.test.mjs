@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { SwordRites, segmentBlocked, swordSideHitContext } from '../sword-rites3d.js';
+import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
 import { swordImpactYaw } from '../sword-rites-vfx3d.js';
@@ -19,6 +20,40 @@ function encounter(blocked=()=>false) {
  const ctx={from:{x:0,y:0,z:0},target:primary,others:[side,hidden],sword:'prota'};
  return {primary,side,hidden,hits,impacts,rites,ctx};
 }
+function focusHandoffSweep(fps){
+ const outgoing=enemy('outgoing-focus',20,3),incoming=enemy('incoming-focus',30,30);
+ const hits=[],impacts=[],rites=new SwordRites({
+  moveset:()=>({id:'focus-handoff',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
+  hit:(damage,id,kind)=>{hits.push({id,kind});return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target:outgoing}),true);
+ const dt=1/fps,travel=PROTA_DASH.distance/PROTA_DASH.travel*dt,fraction=fps===20?.5:.58;
+ outgoing.x=-travel*fraction;
+ // Production shape: the focused actor is absent from others; only the new focus is excluded after handoff.
+ rites.update(dt,{from:{x:0,y:0,z:0},target:outgoing,others:[incoming],sword:'prota',grounded:true});
+ const hitsBeforeHandoff=hits.length,previousFocus=rites.previousOthers.get(outgoing.id);
+ const previousFocusX=previousFocus?.x,activeKind=rites.active?.kind;
+ outgoing.x=travel*fraction;
+ rites.update(dt,{from:{x:0,y:0,z:0},target:incoming,others:[outgoing],sword:'prota',grounded:true});
+ return{hits,impacts,hitsBeforeHandoff,previousFocusX,expectedPreviousX:-travel*fraction,activeKind};
+}
+function movingSecondarySweep(fps,{blocked=()=>false,fromX=null,toX=null}={}){
+ const focus=enemy('focus',20,20),side=enemy('side',-1,3);side.radius=.35;
+ const hits=[],impacts=[],rites=new SwordRites({
+  moveset:()=>({id:'moving-secondary',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  blocked,pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
+  hit:(damage,id,kind)=>{hits.push({id,kind});return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ const dt=1/fps,travel=PROTA_DASH.distance/PROTA_DASH.travel*dt;
+ side.x=fromX??-travel*.5;rites.update(dt,ctx);const hitsAfterStart=hits.length;
+ side.x=toX??travel*.5;rites.update(dt,ctx);
+ return{hits,impacts,hitsAfterStart};
+}
 test('one physical swing damages primary and secondary capsule once, never distant enemy',()=>{
  const e=encounter();assert(e.rites.attack('prota',{target:e.primary}));
  for(let i=0;i<90;i++)e.rites.update(1/120,e.ctx);
@@ -27,6 +62,72 @@ test('one physical swing damages primary and secondary capsule once, never dista
  assert(e.hits.every(h=>h.damage>0));
  assert.deepEqual(e.hits.map(h=>[h.id,h.kind]),[[1,'basic'],[2,'energy-side']]);
 });
+test('squad actor history reuses snapshot records between frames and removes stale IDs',()=>{
+ const e=encounter(),history=e.rites.previousOthers;
+ e.rites.update(1/60,e.ctx);
+ const sideSnapshot=history.get(e.side.id),focusSnapshot=history.get(e.primary.id);
+ assert.ok(sideSnapshot&&focusSnapshot);
+ e.side.x+=.1;e.primary.z+=.1;
+ e.rites.update(1/60,e.ctx);
+ assert.equal(e.rites.previousOthers,history,'the Map must be reused');
+ assert.equal(history.get(e.side.id),sideSnapshot,'the side actor record must be reused');
+ assert.equal(history.get(e.primary.id),focusSnapshot,'the focus record must be reused');
+ assert.equal(sideSnapshot.x,e.side.x);
+ assert.equal(focusSnapshot.z,e.primary.z);
+ e.ctx.paused=true;e.side.x+=.1;e.rites.update(1/60,e.ctx);
+ assert.equal(history.get(e.side.id),sideSnapshot,'paused snapshots must also reuse the record');
+ assert.equal(sideSnapshot.x,e.side.x);
+ e.ctx.paused=false;e.ctx.others=[e.hidden];e.rites.update(1/60,e.ctx);
+ assert.equal(history.has(e.side.id),false,'actors removed from the squad must be pruned');
+ assert.equal(history.has(e.primary.id),true,'the current focus remains tracked');
+ assert.equal(history.has(e.hidden.id),true);
+});
+test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
+ for(const fps of [20,30]){
+  const result=focusHandoffSweep(fps);
+  assert.equal(result.hitsBeforeHandoff,0,'FPS '+fps+': the outgoing focus starts outside the blade before the handoff');
+  assert.equal(result.activeKind,'basic','FPS '+fps+': the physical swing must remain active across the handoff');
+  assert.equal(result.previousFocusX,result.expectedPreviousX,'FPS '+fps+': the outgoing focus position must be retained before it becomes secondary');
+  assert.deepEqual(result.hits.map(h=>h.id),['outgoing-focus'],'FPS '+fps+': the old focus must still be swept after it becomes secondary');
+  assert.equal(result.impacts.length,1,'FPS '+fps+': focus handoff must produce one real impact');
+ }
+});
+
+test('secondary blade sweep accepts an authored 3.12m squad dash after a 250ms frame hitch',()=>{
+ const focus=enemy('focus',20,20),side=enemy('side-dash',-1.56,3);side.radius=.35;
+ const hits=[],impacts=[],rites=new SwordRites({
+  moveset:()=>({id:'long-squad-dash',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
+  hit:(damage,id,kind)=>{hits.push({id,kind});return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ const ctx={from:{x:0,y:0,z:0},target:focus,others:[side],sword:'prota',grounded:true};
+ rites.update(1/120,ctx); // snapshot the actor before its authored VZ_DASH (13 m/s × .24 s = 3.12 m)
+ assert.equal(rites.attack('prota',{target:focus}),true);
+ side.x=1.56;
+ rites.update(.25,ctx);
+ assert.deepEqual(hits.map(hit=>hit.id),['side-dash'],'a real 3.12m dash crossing the blade during a 250ms hitch must not be mistaken for a teleport');
+ assert.equal(impacts.length,1,'the accepted dash must emit one impact');
+});
+
+test('physical blade sweep follows a moving secondary capsule between frames at 20/30/60/120 FPS',()=>{
+ for(const fps of [20,30,60,120]){
+  const result=movingSecondarySweep(fps);
+  assert.deepEqual(result.hits.map(h=>h.id),['side'],'FPS '+fps+': a secondary actor crossing the blade must be hit once');
+  assert.equal(result.impacts.length,1,'FPS '+fps+': exactly one visible impact');
+  if(fps<=30)assert.equal(result.hitsAfterStart,0,'FPS '+fps+': both frame endpoints begin outside the capsule radius');
+ }
+});
+
+test('secondary blade sweep does not hit through a wall or across a teleport',()=>{
+ const wall=movingSecondarySweep(20,{blocked:p=>p.z>1.4&&p.z<1.6});
+ assert.deepEqual(wall.hits,[],'a moving secondary capsule behind a wall must remain protected');
+ assert.deepEqual(wall.impacts,[],'an occluded moving target must not emit a false impact');
+ const teleport=movingSecondarySweep(20,{fromX:-3,toX:3});
+ assert.deepEqual(teleport.hits,[],'a discontinuous relocation larger than the sweep budget is not a hit path');
+ assert.deepEqual(teleport.impacts,[],'teleporting through the blade must not create a false impact');
+});
+
 test('physical blade sweep cannot skip a 1cm wall between coarse samples',()=>{
  const target=enemy(1,.12,0),hits=[],impacts=[];
  const blocked=p=>p.x>.031&&p.x<.041;

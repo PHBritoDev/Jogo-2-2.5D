@@ -16,6 +16,11 @@ test('sword impact uses the real blade contact point instead of target centre',(
 });
 
 test('runtime impact particles and slash share the chosen contact point',()=>{
- assert.match(source,/else if\(type==='impact'\)\{const p=swordImpactPoint\(e\);if\(!p\)return;burst\(p,e\.sword/);
- assert.match(source,/burst\(p,e\.sword,e\.final\?32:15\);cut\(p,e\.sword/);
+ const start=source.indexOf("else if(type==='impact')");
+ const handler=source.slice(start,source.indexOf("else if(type==='start')",start));
+ assert.match(handler,/const p=swordImpactPoint\(e\);if\(!p\)return/);
+ assert.match(handler,/burst\(p,e\.sword,cue\.burst\)/);
+ const cuts=[...handler.matchAll(/cut\(([^,]+),/g)];
+ assert.equal(cuts.length,2);
+ assert.ok(cuts.every(match=>match[1]==='p'),'both cuts originate at the same surface contact as the burst');
 });

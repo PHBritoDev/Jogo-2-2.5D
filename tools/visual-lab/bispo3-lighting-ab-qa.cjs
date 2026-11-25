@@ -53,6 +53,11 @@ async function capture(label,url,browser){
     viewport:{width:852,height:480},deviceScaleFactor:1,hasTouch:true,isMobile:true,
     recordVideo:{dir:path.join(out,'video'),size:{width:852,height:480}}
   });
+  const threeRoot=path.resolve(path.dirname(require.resolve('three')),'..');
+  await context.route('https://cdn.jsdelivr.net/npm/three@0.160.0/**',route=>{
+    const relative=new URL(route.request().url()).pathname.split('/three@0.160.0/')[1];
+    return route.fulfill({path:path.join(threeRoot,relative),contentType:'text/javascript'});
+  });
   const page=await context.newPage();
   const errors=[],assets=[];
   page.on('pageerror',e=>errors.push(e.message));
@@ -128,9 +133,12 @@ async function capture(label,url,browser){
       label+': player is not at the expected Zar’khael arena origin');
     assert.ok(Number.isFinite(arenaOrigin.y)&&Math.abs(arenaOrigin.y+2000)<.5,
       label+': player is not on the known dimension floor; world-space fill cannot be compared');
-    const expectedFill=expectedFillFor(label,arenaOrigin);
+    // Main can already contain the cooler fill. On that base verify the same
+    // world-space source and shader slot as on the candidate.
+    const legacyBaseline=label==='01-main'&&!Array.isArray(lighting.lights?.activeDetails);
+    const expectedFill=expectedFillFor(legacyBaseline?'01-main':'current',arenaOrigin);
     let lightingCheck;
-    if(label==='01-main'){
+    if(legacyBaseline){
       // The baseline predates A4's activeDetails telemetry. Verify its exact
       // source preset from the fetched main worktree and its live PointLight
       // location through the legacy debug API; do not demand candidate-only fields.

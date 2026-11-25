@@ -62,6 +62,8 @@ function baseProgress() {
     act1Rev: ACT1.rev,
     questStep: 0,
     act1Sub: 0,
+    sakuraRest: -1,
+    sideRewardClaims: [],
     coins: 0,
     journeyEnemyIndex: 0,
     mountainIndex: 0,
@@ -158,6 +160,9 @@ export function migrateProgress(raw) {
   const savedName = named.ok ? named.name : (legacyName.length >= 2 && legacyName.length <= 16 && /^[\p{L}][\p{L} '\-.]{1,15}$/u.test(legacyName) && !BANNED.some(word => legacyName.toLowerCase().includes(word)) ? legacyName : '');
   const shared = {
     coins,
+    sideRewardClaims: Array.isArray(raw.sideRewardClaims)
+      ? [...new Set(raw.sideRewardClaims.filter(id => typeof id === 'string' && /^side:[a-z0-9_-]+:v2$/.test(id)))].slice(-32)
+      : [],
     playerName: savedName,
     captorsTaunted: !!raw.captorsTaunted,
     childrenFreed: !!raw.childrenFreed,
@@ -175,6 +180,7 @@ export function migrateProgress(raw) {
       ...shared,
       questStep: step,
       act1Sub: clampInt(raw.act1Sub, 0, 9, 0),
+      sakuraRest: Number.isInteger(raw.sakuraRest) && raw.sakuraRest >= 0 && raw.sakuraRest <= 62 ? raw.sakuraRest : -1,
       journeyEnemyIndex: clampInt(raw.journeyEnemyIndex, 0, ACT1.enemyTotal, 0),
       mountainIndex: clampInt(raw.mountainIndex, 0, ACT1.mountainSentries, 0),
       wardenTaunted: !!raw.wardenTaunted,
