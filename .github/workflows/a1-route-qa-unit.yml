@@ -14,6 +14,10 @@ on:
       - 'tools/visual-lab/photographer.cjs'
       - 'tools/visual-lab/camera-tree-fade.test.cjs'
       - 'mundo-3d-prototype.js'
+      - 'mundo-3d-prototype.html'
+      - 'mod181-loader.js'
+      - 'build-info.js'
+      - 'tools/visual-lab/world-module-loader.test.cjs'
       - 'camera-water-clearance3d.js'
       - 'tests/camera-water-clearance.test.mjs'
 
@@ -42,4 +46,4 @@ jobs:
           node --input-type=module --check < mundo-3d-prototype.js
           node --input-type=module --check < camera-water-clearance3d.js
       - name: Testes do agente de cenas
-        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs tests/camera-water-clearance.test.mjs
+        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs tools/visual-lab/world-module-loader.test.cjs tests/camera-water-clearance.test.mjs
