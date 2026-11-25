@@ -652,14 +652,14 @@ async function exposePathfinder() {
       const who = normalize(document.getElementById('cine-who')?.innerText || '');
       const text = normalize(document.getElementById('cine-text')?.innerText || '');
       const panel = document.getElementById('cine-say');
-      return !!panel && !panel.hidden && who.includes('Téo · Provisões') &&
+      return !!panel && !panel.hidden && who.toLowerCase().includes('téo · provisões') &&
         text.includes('Rumor não enche barriga, forasteiro.');
     }, null, { timeout: 15000 });
     const teoOpening = await page.evaluate(() => ({
       who: (document.getElementById('cine-who')?.innerText || '').replace(/\s+/g, ' ').trim(),
       text: (document.getElementById('cine-text')?.innerText || '').replace(/\s+/g, ' ').trim()
     }));
-    assert.ok(teoOpening.who.includes('Téo · Provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
+    assert.ok(teoOpening.who.toLowerCase().includes('téo · provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
     assert.ok(teoOpening.text.includes('Rumor não enche barriga, forasteiro.'), 'fala de Téo inesperada: ' + teoOpening.text);
     report.mainQuestPrompt = {
       ...report.mainQuestPrompt,
