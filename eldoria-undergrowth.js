@@ -132,10 +132,18 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
   // Envelope horizontal da malha instanciada (~0,275 m) + oscilação máxima do shader (~0,123 m).
   // Validar a borda inteira evita que a fita/folhas do cipó invadam a trilha mesmo com o pivô livre.
   const vineFits = (x, z) => {
-    if (!isFree(x, z)) return false;
-    const radius = .4, samples = 16;
-    for (let i = 0; i < samples; i++) {
-      const a = i * Math.PI * 2 / samples;
+    const radius = .4, boundarySamples = 16, gridSteps = 4;
+    // Grade interna de 0,1 m: o anel sozinho deixava bolsões estreitos no meio do envelope sem testar.
+    for (let ix = -gridSteps; ix <= gridSteps; ix++) {
+      for (let iz = -gridSteps; iz <= gridSteps; iz++) {
+        const dx = ix * radius / gridSteps, dz = iz * radius / gridSteps;
+        if (dx * dx + dz * dz > radius * radius + 1e-9) continue;
+        if (!isFree(x + dx, z + dz)) return false;
+      }
+    }
+    // Reforça o perímetro circular entre os pontos da grade.
+    for (let i = 0; i < boundarySamples; i++) {
+      const a = i * Math.PI * 2 / boundarySamples;
       if (!isFree(x + Math.cos(a) * radius, z + Math.sin(a) * radius)) return false;
     }
     return true;
