@@ -108,9 +108,10 @@ function surfaceMaterial(THREE, kind, uniforms) {
       vec3 q0=dFdx(vViewPosition),q1=dFdy(vViewPosition);
       vec3 surfN=cross(q0,q1);float det=dot(q0,cross(q1,normal));
       normal=normalize(normal+sign(det)*(dFdx(relief)*cross(q1,normal)+dFdy(relief)*cross(normal,q0))/max(abs(det),.00001));`);
-    if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-      // Low-energy maroon rim reveals stem silhouettes without adding a scene light.
-      float stemViewCos = clamp(abs(dot(normal,normalize(vViewPosition))),0.,1.);
+    if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
+      // Reuse Three.js' view-space direction; avoids a second per-fragment normalize.
+      // Orthographic cameras also use the renderer's constant view direction.
+      float stemViewCos = clamp(abs(dot(normal,geometry.viewDir)),0.,1.);
       float stemRim = 1. - stemViewCos;
       totalEmissiveRadiance += vec3(.018,.0018,.0028) * stemRim * (.55 + .45 * n);
     `);
