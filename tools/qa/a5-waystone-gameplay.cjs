@@ -51,7 +51,7 @@ const report = {
   method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
   movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
-  narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
+  narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; V6 questStep/act1Sub are verified after reload without reseeding; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -671,8 +671,8 @@ async function exposePathfinder() {
     };
     await shot('00-vendor-dialogue-teo');
 
-    // A conversa foi interrompida antes de qualquer transação. Recarregar restaura o fixture
-    // da caminhada sem cobrar moedas, mudar o passo ou deixar a cutscene bloqueando o controle.
+    // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
+    // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
     await exposePathfinder();
@@ -682,6 +682,11 @@ async function exposePathfinder() {
     await wait(700);
     const afterVendorReload = await qa();
     const afterVendorControl = await controlState();
+    const afterVendorCampaign = await campaignSave();
+    assert.equal(afterVendorCampaign?.version, initialCampaign.version, 'reload alterou a versão do save V6');
+    assert.equal(afterVendorCampaign?.act1Rev, initialCampaign.act1Rev, 'reload alterou a revisão do Ato I');
+    assert.equal(afterVendorCampaign?.questStep, initialCampaign.questStep, 'reload não preservou questStep no save V6');
+    assert.equal(afterVendorCampaign?.act1Sub, initialCampaign.act1Sub, 'reload não preservou act1Sub no save V6');
     assert.equal(afterVendorControl.story.sub, 1, 'reload após diálogo não restaurou a etapa da vila');
     assert.equal(afterVendorControl.story.scene, null, 'reload após diálogo deixou cena ativa');
     assert.equal(afterVendorControl.regression.busy, false, 'reload após diálogo deixou o controle bloqueado');
@@ -714,7 +719,7 @@ async function exposePathfinder() {
     await exposePathfinder();
     await waitForWorldCollisionReady('after-two-waystones-reload');
     await wait(1800);
-    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await page.evaluate(() => window.SevenSinsDebug3D.realtime());
     await wait(700);
     const afterReload = await qa();
     const reloadControl = await controlState();
