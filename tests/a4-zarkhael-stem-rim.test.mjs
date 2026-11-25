@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../zarkhael-dimension3d.js', import.meta.url), 'utf8');
+const actorWorkflow = readFileSync(new URL('../.github/workflows/bispo3-lighting-ab-qa.yml', import.meta.url), 'utf8');
 const start = source.indexOf('function surfaceMaterial(');
 const end = source.indexOf('function makeCap(', start);
 assert.ok(start >= 0 && end > start, 'surfaceMaterial must remain present');
@@ -37,4 +38,9 @@ test('the rim reuses the existing tissue noise and does not add light or render 
 test('only the stem program cache key changes for the rim shader', () => {
   assert.equal((material.match(/kind === 'stem' \? '-rim1' : ''/g) || []).length, 1);
   assert.equal((material.match(/if \(kind === 'stem'\) shader\.fragmentShader/g) || []).length, 1);
+});
+
+test('actor lighting workflow reruns when its own workflow definition changes', () => {
+  const trigger = actorWorkflow.split('jobs:')[0];
+  assert.match(trigger, /- '\.github\/workflows\/bispo3-lighting-ab-qa\.yml'/);
 });
