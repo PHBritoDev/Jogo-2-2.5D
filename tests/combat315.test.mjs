@@ -358,7 +358,7 @@ test('SwordRites VFX disposes the InstancedMesh GPU buffers on teardown', { skip
 test('SwordRites VFX reuses fixed scratch buffers in the particle hot path', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
   const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
-  const NativeSet = globalThis.Set, nativeMap = Array.prototype.map, nativeSort = Array.prototype.sort;
+  const NativeSet = globalThis.Set, nativeMap = Array.prototype.map, nativeSort = Array.prototype.sort, nativeAssign = Object.assign;
   let st;
   try {
     globalThis.Set = class extends NativeSet {
@@ -369,12 +369,14 @@ test('SwordRites VFX reuses fixed scratch buffers in the particle hot path', { s
     };
     Array.prototype.map = function () { throw new Error('particle hot path must not allocate a mapped array'); };
     Array.prototype.sort = function () { throw new Error('particle hot path must not sort a transient array'); };
+    Object.assign = function () { throw new Error('particle burst must not allocate a temporary state object'); };
     v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
     v.update(1 / 60, 'high', false);
   } finally {
     globalThis.Set = NativeSet;
     Array.prototype.map = nativeMap;
     Array.prototype.sort = nativeSort;
+    Object.assign = nativeAssign;
   }
   try {
     st = v.stats();
