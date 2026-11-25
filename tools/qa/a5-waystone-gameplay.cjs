@@ -611,8 +611,8 @@ async function exposePathfinder() {
     assert.equal(initialControl.story.label, expectedTalkLabel, 'estado narrativo não aponta para a interação principal com Téo');
     const talkButton = page.locator('#talk-button');
     assert.equal(await talkButton.isVisible(), true, 'botão principal de interação não está visível');
-    const talkButtonText = (await talkButton.innerText()).replace(/\\s+/g, ' ').trim();
-    assert.match(talkButtonText, /PERGUNTAR\\s*·\\s*TÉO/i, 'texto visível do botão não corresponde ao vendedor da cena principal');
+    const talkButtonText = (await talkButton.innerText()).replace(/\s+/g, ' ').trim();
+    assert.match(talkButtonText, /PERGUNTAR\s*·\s*TÉO/i, 'texto visível do botão não corresponde ao vendedor da cena principal');
     report.mainQuestPrompt = { objective: initialControl.state.objective, label: initialControl.story.label, buttonVisible: true, buttonText: talkButtonText, dialogueOpened: initialControl.state.dialogueOpen };
     report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp, control: initialControl };
     await shot('00-initial-active');
