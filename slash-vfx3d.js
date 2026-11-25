@@ -217,6 +217,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     position: { start: 0, count: 0 }, velocity: { start: 0, count: 0 },
     ageSize: { start: 0, count: 0 }, color: { start: 0, count: 0 }
   };
+  // Particle colors are immutable during a lifetime; only spawn/overwrite/compaction dirties them.
+  let sparkColorDirty = false;
   function publishSparkRange(attribute, reusableRange, count) {
     const ranges = attribute.updateRanges;
     if (Array.isArray(ranges)) {
@@ -237,6 +239,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     sp.pos[i * 3] = p.x; sp.pos[i * 3 + 1] = p.y; sp.pos[i * 3 + 2] = p.z; sp.vel[i * 3] = v.x; sp.vel[i * 3 + 1] = v.y; sp.vel[i * 3 + 2] = v.z;
     sp.life[i] = life * (.7 + Math.random() * .6); sp.age[i] = 0; sp.size[i] = size * (.6 + Math.random() * .8);
     _c.setHex(Math.random() < .7 ? st.sparks : st.spark2); sp.col[i * 3] = _c.r; sp.col[i * 3 + 1] = _c.g; sp.col[i * 3 + 2] = _c.b;
+    sparkColorDirty = true;
   }
   // ---------------- estrela de impacto (4 pontas) + anel de choque ----------------
   const starMat = () => new T.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: false, toneMapped: false, blending: T.AdditiveBlending,
@@ -291,6 +294,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
         activeSparkIndices[active] = last;
         activeSparkPositions[last] = active;
         activeSparkPositions[i] = -1;
+        sparkColorDirty = true;
         continue;
       }
       sp.vel[i * 3 + 1] -= 9 * dt; const drag = Math.exp(-3.5 * dt); sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
@@ -299,16 +303,23 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
       P[target3] = sp.pos[source3]; P[target3 + 1] = sp.pos[source3 + 1]; P[target3 + 2] = sp.pos[source3 + 2];
       V[target3] = sp.vel[source3]; V[target3 + 1] = sp.vel[source3 + 1]; V[target3 + 2] = sp.vel[source3 + 2];
       K[target2] = sp.age[i]; K[target2 + 1] = sp.size[i];
-      C[target3] = sp.col[source3]; C[target3 + 1] = sp.col[source3 + 1]; C[target3 + 2] = sp.col[source3 + 2];
       live++; active++;
     }
     sparkGeo.instanceCount = live;
+    if (live && sparkColorDirty) {
+      // Repack colors only when a spawn, overwrite or swap-removal changes the compact instance order.
+      for (let active = 0; active < activeSparkCount; active++) {
+        const source3 = activeSparkIndices[active] * 3, target3 = active * 3;
+        C[target3] = sp.col[source3]; C[target3 + 1] = sp.col[source3 + 1]; C[target3 + 2] = sp.col[source3 + 2];
+      }
+      publishSparkRange(aCol, sparkRanges.color, live * 3);
+      sparkColorDirty = false;
+    }
     if (live) {
-      // Four stable range objects avoid replacing full-pool uploads with per-frame range allocations.
+      // Three stable ranges cover moving attributes; color has its own change-driven upload above.
       publishSparkRange(aPos, sparkRanges.position, live * 3);
       publishSparkRange(aVel, sparkRanges.velocity, live * 3);
       publishSparkRange(aK, sparkRanges.ageSize, live * 2);
-      publishSparkRange(aCol, sparkRanges.color, live * 3);
     }
     for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
