@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion, lavaBounceSourceBlend, masonryShaderPatches } from './volcano-cave-masonry.js';
+import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion, lavaBounceSourceBlend, masonryShaderPatches, masonryShaderCacheKey } from './volcano-cave-masonry.js';
 
 test('bounce da lava cai com a distância e respeita a orientação da rocha', () => {
   assert.equal(lavaBounceFalloff(0, 1), 1);
@@ -72,6 +72,18 @@ test('materiais fora do Santuário não recebem varying, uniforme ou branch de b
   assert.doesNotMatch(disabledVertex, /vLavaBounce|uLavaPulse|uLavaGain/);
   assert.doesNotMatch(disabledFragment, /vLavaBounce|uLavaPulse|uLavaGain/);
   assert.doesNotMatch(enabledVertex + enabledFragment, /uLavaGain/);
+});
+
+test('variantes com e sem bounce usam chaves distintas no cache de programas do Three.js', () => {
+  const enabled = masonryShaderCacheKey(true);
+  const disabled = masonryShaderCacheKey(false);
+  assert.notEqual(enabled, disabled);
+  assert.equal(enabled, masonryShaderCacheKey(true));
+  assert.equal(disabled, masonryShaderCacheKey(false));
+  assert.match(enabled, /^volcano-cave-masonry-v2:/);
+  assert.match(disabled, /^volcano-cave-masonry-v2:/);
+  const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
+  assert.match(masonry, /material\.customProgramCacheKey=\(\)=>masonryShaderCacheKey\(lavaEnabled\)/);
 });
 
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
