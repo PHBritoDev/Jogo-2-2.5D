@@ -71,6 +71,14 @@ export function masonryShaderPatches(lavaEnabled) {
   fragmentChunk
  };
 }
+export function masonryShaderCacheKey(lavaEnabled) {
+ const c=LAVA_BOUNCE_CONFIG;
+ return 'volcano-cave-masonry-v2:'+JSON.stringify([
+  !!lavaEnabled,c.distanceFalloff,c.regionStartZ,c.regionFullZ,
+  c.sourceBlendStartZ,c.sourceBlendEndZ,c.facingFloor,c.facingGain,
+  c.bounceStrength,c.color
+ ]);
+}
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -161,6 +169,8 @@ export function masonry(T, group, seed, palette){
    shader.vertexShader=patch.vertexPrefix+shader.vertexShader.replace('#include <project_vertex>',patch.vertexChunk);
    shader.fragmentShader=patch.fragmentPrefix+shader.fragmentShader.replace('#include <map_fragment>',patch.fragmentChunk);
   };
+  // The callback source is identical for both closures; include the shader variant in Three.js' program cache key.
+  material.customProgramCacheKey=()=>masonryShaderCacheKey(lavaEnabled);
  }
  const m=new T.Mesh(g,material);
  m.name=group.name+'-basalto';
