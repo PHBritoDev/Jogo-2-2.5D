@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -27,14 +28,32 @@ jobs:
           echo "A4_BASE_SHA=$(git -C /tmp/bispo3-baseline rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Rules and syntax
         run: |
-          node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs
+          node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs tests/a4-zarkhael-stem-rim.test.mjs
           node --check tools/visual-lab/bispo3-lighting-ab-qa.cjs
           node --input-type=module --check < zarkhael-dimension3d.js
+      - name: Detect actor-lighting inputs
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then
+            echo "run_ab=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          if grep -Eq '^(zarkhael-dimension\.test\.mjs|tools/visual-lab/bispo3-lighting-ab-qa\.cjs)$' <<< "$changed"; then
+            echo "run_ab=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_ab=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Pinned browser dependencies
+        if: steps.scope.outputs.run_ab == 'true'
         run: |
           npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
           work/qa/node_modules/.bin/playwright install --with-deps chromium
       - name: Compare real combat lighting on identical runtime state
+        if: steps.scope.outputs.run_ab == 'true'
         env:
           NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
           VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
@@ -48,7 +67,7 @@ jobs:
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
           node tools/visual-lab/bispo3-lighting-ab-qa.cjs
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.scope.outputs.run_ab == 'true'
         with:
           name: bispo3-lighting-ab-${{ github.event.pull_request.head.sha || github.sha }}
           path: work/evidence/bispo3-lighting-ab/
