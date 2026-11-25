@@ -287,8 +287,9 @@ export class SwordRites {
     // Moving blades and stationary contacts with clear LOS still use the full wall-clipped sweep.
     // A stationary contact already hidden by an occluded LOS cannot damage, so its five rails are unnecessary.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
+    const primaryActorId=target?.squadActorId??target?.id;
     const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
-    const needsSideSweep=!!physicalOthers?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
+    const needsSideSweep=!!physicalOthers?.some(other=>other?.alive&&other.id!=null&&other.id!==primaryActorId&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
     let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[],stationaryOcclusion=null;
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
@@ -301,7 +302,7 @@ export class SwordRites {
      };
      if(needsPrimarySweep)primarySweepCandidate=bladeSweepMayTouch(bounds,target,(target.radius||.48)+(a.def.drive?.2:.12));
      if(needsSideSweep)for(const other of physicalOthers||[]){
-      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      if(!other?.alive||other.id==null||other.id===primaryActorId||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       if(bladeSweepMayTouch(bounds,other,(other.radius||.48)+.12))sideSweepCandidates.push(other);
      }
      // Do not sample walls at 8 mm along five blade rails when every living actor is far away.
@@ -332,14 +333,20 @@ export class SwordRites {
      const precheckedVisible=stationaryOcclusion?.visible.has(target)===true;
      if(contact&&!precheckedOccluded&&(precheckedVisible||!bladeOcclusionCached(a,target,ctx.from,this.time))){
       if(!precheckedVisible&&segmentBlocked(ctx.from,target,this.api.blocked,.008))rememberBladeOcclusion(a,target,ctx.from,this.time);
-      else{a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,yaw:a.yaw,hitstop:a.def.hitstop,shake:a.def.shake});}
+      else{
+       a.bladeOcclusion?.delete(target.id);a.hit=true;a.hitBy='blade';
+       // In squad mode the primary callback receives siegeEpoch; reserve the real actor ID so a focus handoff cannot hit it again as a secondary.
+       if(primaryActorId!=null)a.bladeSideHits.add(primaryActorId);
+       const applied=this.api.hit(Math.round(a.damage*a.def.multiplier),target.id,'basic',{target,by:'blade'});
+       if(applied!==false&&applied!==0)this.api.event('impact',{target,sword:a.sword,final:a.def.drive?!!a.def.finisher:a.step===(this.api.choreography?4:2),pattern:a.def.pattern,mode:a.mode,by:'blade',p:contact,yaw:a.yaw,hitstop:a.def.hitstop,shake:a.def.shake});
+      }
      }
     }
     // Each physical swing may also connect with nearby bodies crossed by the same sweep.
     // A per-swing set prevents repeated damage from 120 Hz substeps.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&sideSweepCandidates.length){
      for(const other of sideSweepCandidates){
-      if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
+      if(!other?.alive||other.id==null||other.id===primaryActorId||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       const contact=bladeContactPoint(physicalSweep?.frames,other,(other.radius||.48)+.12,ctx.from);
       if(!contact)continue;
       const precheckedOccluded=stationaryOcclusion?.occluded.has(other)===true;

@@ -40,6 +40,24 @@ function focusHandoffSweep(fps){
  rites.update(dt,{from:{x:0,y:0,z:0},target:proxy(incoming),others:[outgoing],sword:'prota',grounded:true});
  return{hits,impacts,hitsBeforeHandoff,previousFocusX,expectedPreviousX:-travel*fraction,activeKind};
 }
+function focusHandoffAfterPrimaryHit(){
+ const outgoing=enemy('outgoing-primary',0,3),incoming=enemy('incoming-focus',30,30);
+ let focused=outgoing;
+ const proxy=actor=>({id:'siege-epoch',squadActorId:actor.id,x:actor.x,y:actor.y,z:actor.z,radius:actor.radius,height:actor.height,alive:actor.alive});
+ const hits=[],impacts=[],rites=new SwordRites({
+  moveset:()=>({id:'focus-handoff-primary',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
+  pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
+  hit:(damage,id,kind)=>{hits.push({id,kind,actorId:kind==='basic'?focused.id:id});return true;},
+  event:(type,data)=>{if(type==='impact')impacts.push(data);}
+ });
+ assert.equal(rites.attack('prota',{target:proxy(outgoing)}),true);
+ const dt=1/60,from={x:0,y:0,z:0};
+ rites.update(dt,{from,target:proxy(outgoing),others:[incoming],sword:'prota',grounded:true});
+ const hitsAfterPrimary=hits.length;
+ focused=incoming;
+ rites.update(dt,{from,target:proxy(incoming),others:[outgoing],sword:'prota',grounded:true});
+ return{hits,hitsAfterPrimary,impacts};
+}
 function movingSecondarySweep(fps,{blocked=()=>false,fromX=null,toX=null}={}){
  const focus=enemy('focus',20,20),side=enemy('side',-1,3);side.radius=.35;
  const hits=[],impacts=[],rites=new SwordRites({
@@ -89,8 +107,21 @@ test('world focus proxy keeps squad actor identity separate from siege epoch',as
  const end=source.indexOf('function riteBlocked(',start);
  assert.ok(start>=0&&end>start,'production riteTarget adapter must exist');
  assert.ok(source.slice(start,end).includes('t.squadActorId=a.id;'),'focus proxy must preserve the real squad actor id');
+ const othersStart=source.indexOf('function protaOthers()');
+ const othersEnd=source.indexOf('function protaSideHit(',othersStart);
+ assert.ok(othersStart>=0&&othersEnd>othersStart,'production secondary actor provider must exist');
+ const othersBridge=source.slice(othersStart,othersEnd);
+ assert.ok(othersBridge.includes('for(const a of squadAlive())')&&othersBridge.includes('if(a===squadFocus)continue'),'secondary actor provider must exclude the current focus');
+ assert.ok(source.includes('others:protaOthers()'),'SwordRites.update must receive the live secondary actors');
 });
 
+test('focus handoff after a primary contact cannot hit the outgoing actor twice',()=>{
+ const result=focusHandoffAfterPrimaryHit();
+ assert.equal(result.hitsAfterPrimary,1,'the first contact must resolve against the original focus');
+ assert.deepEqual(result.hits.map(hit=>hit.actorId),['outgoing-primary'],
+  'after handoff the already-hit primary actor must not be reprocessed as a secondary');
+ assert.equal(result.impacts.length,1,'the same actor must emit only one impact in the swing');
+});
 test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
  for(const fps of [20,30]){
   const result=focusHandoffSweep(fps);
