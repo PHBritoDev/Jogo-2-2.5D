@@ -2,7 +2,7 @@
 
 > **STATUS: AMOSTRA DE TOM E GAMEPLAY — NÃO CANÔNICA / NÃO IMPLEMENTADA.** Demonstra uma cena completa para revisão do criador. Não altera o PDF, o roteiro aprovado, flags, saves ou falas de runtime.
 
-**Âncora técnica auditada:** main `1e17b61253db7bcc443820382f41597d53248f9a`; `act1-flow.js` define a chegada à vila em `questStep=1`, o diálogo do vendedor e a transição para a floresta em `questStep=2`. O roteiro M2 mantém a compra de 5 moedas como condição para o vendedor revelar o que sabe. A sequência abaixo preserva esse acontecimento e acrescenta uma investigação opcional, ainda sujeita à aprovação.
+**Âncora técnica auditada:** main `1b280bc0d9a912380fd6c2f9bda165b19b3f5009`; `act1-flow.js` define a chegada à vila em `questStep=1`, o diálogo do vendedor e a transição para a floresta em `questStep=2`. O roteiro M2 mantém a compra de 5 moedas como condição para o vendedor revelar o que sabe. A sequência abaixo preserva esse acontecimento e acrescenta uma investigação opcional, ainda sujeita à aprovação.
 
 ## Intenção
 
