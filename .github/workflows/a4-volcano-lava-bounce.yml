@@ -5,6 +5,7 @@ on:
       - agentes/a4/volcano-lava-bounce
     paths:
       - 'volcano*.js'
+      - 'volcano-cave-lighting.test.mjs'
       - 'volcano-cave-bark.webp'
       - 'dimension-arenas3d.js'
       - 'CristalCaverna01.glb'
