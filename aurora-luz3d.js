@@ -15,7 +15,11 @@ let U = null;
 export function auroraUniforms(T) {
   // o carregador do jogo (mod181-loader) importa o mundo com ?v=BUILD e os módulos aninhados sem: o MESMO arquivo vira
   // duas instâncias. Os uniforms moram no globalThis para que mundo, jornada e água leiam o mesmo objeto.
-  if (!U) U = globalThis.__aurora327U || (globalThis.__aurora327U = { uAurC: { value: new T.Color(0, 0, 0) }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new T.Vector2(1, 0) } });
+  if (!U) {
+    U = globalThis.__aurora327U || (globalThis.__aurora327U = { uAurC: { value: new T.Color(0, 0, 0) }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new T.Vector2(1, 0) }, uAurLow: { value: 0 } });
+    // Também cobre uma segunda instância do módulo que encontre uniforms criados antes desta variante.
+    if (!U.uAurLow) U.uAurLow = { value: 0 };
+  }
   return U;
 }
 /** Cor viva da aurora no tempo (mesma paleta do céu: rosa → violeta → azul, com pulsos esverdeados raros). Pura. */
@@ -28,7 +32,7 @@ export function auroraColor(t) {
 /** Intensidade efetiva: nível do céu × céu aberto; 0 em lugar fechado (caverna, interior, dimensão). Pura. */
 export function auroraLightK(level, closed, low) { return closed || !(level > .01) ? 0 : level * (low ? .75 : 1); }
 export function updateAuroraLight(T, { level = 0, time = 0, closed = false, low = false, dir = null }) {
-  const u = auroraUniforms(T), k = auroraLightK(level, closed, low); u.uAurK.value = k; u.uAurT.value = time;
+  const u = auroraUniforms(T), k = auroraLightK(level, closed, low); u.uAurK.value = k; u.uAurT.value = time; u.uAurLow.value = low ? 1 : 0;
   if (k > 0) { const c = auroraColor(time); u.uAurC.value.setRGB(c[0], c[1], c[2]); if (dir) u.uAurD.value.set(dir.x, dir.z).normalize(); }
   return k;
 }
