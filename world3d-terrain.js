@@ -372,7 +372,7 @@ export function colorTerrain(terrain, positions, normals) {
  * Distribuição natural de árvores: manchas de mata densa e clareiras guiadas
  * por ruído, em vez de sorteio uniforme. Retorna especificações puras.
  */
-export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = () => true, lowSpec = false } = {}) {
+export function scatterForest(terrain, { seed = 9137, attempts, isFree = () => true, lowSpec = false } = {}) {
   let s = seed >>> 0;
   const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
   const area = terrain.area, specs = [];
@@ -440,8 +440,10 @@ export function scatterForest(terrain, { seed = 9137, attempts = 2600, isFree = 
   const totalWeight = regions.reduce((sum, region) => sum + region.weight, 0);
   if (!Number.isFinite(totalWeight)) return specs;
   // A malformed or unbounded sample budget must never stall the mobile main thread.
-  // Normal gameplay budgets (2600, or 60% on low spec) are unchanged.
-  const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : 2600;
+  // Extend the full-detail sequence after slope and footprint exclusions.
+  // Low detail keeps its original 1,560 candidates and explicit budgets take precedence.
+  const defaultBudget = lowSpec ? 2600 : 2650;
+  const budget = Number.isFinite(attempts) ? Math.min(10000, Math.max(0, Math.trunc(attempts))) : defaultBudget;
   const total = lowSpec ? Math.round(budget * .6) : budget;
   for (let i = 0; i < total; i++) {
     let region = regions[0];
