@@ -93,6 +93,17 @@ async function controlState() {
     regression: window.SevenSinsDebug3D.regressionState()
   }));
 }
+async function campaignSave() {
+  return page.evaluate(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('sevenSins3DCampaignV6') || 'null');
+      return raw && typeof raw === 'object' ? {
+        version: raw.version, act1Rev: raw.act1Rev, questStep: raw.questStep,
+        act1Sub: raw.act1Sub, updatedAt: raw.updatedAt
+      } : null;
+    } catch (_) { return null; }
+  });
+}
 async function mapSave(mapKey) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), mapKey);
 }
@@ -602,6 +613,12 @@ async function exposePathfinder() {
     assert.equal(initial.side.abrigos.progress, 0);
     assert.equal(initial.registeredWaystones.length, 0);
     const initialControl = await controlState();
+    const initialCampaign = await campaignSave();
+    assert.equal(initialCampaign?.version, ACT1.version, 'fixture não gravou o save V6 da campanha');
+    assert.equal(initialCampaign?.act1Rev, ACT1.rev, 'fixture gravou revisão narrativa incompatível');
+    assert.equal(initialCampaign?.questStep, 1, 'save V6 não preservou o passo inicial');
+    assert.equal(initialCampaign?.act1Sub, 1, 'save V6 não preservou a chegada à vila');
+    report.initialCampaign = initialCampaign;
     assert.equal(initialControl.story.sub, 1, 'fixture deve começar após a chegada à vila, sem a cinemática de chegada');
     assert.equal(initialControl.story.scene, null, 'cena de história bloqueia a caminhada');
     assert.equal(initialControl.regression.busy, false, 'controle do protagonista ainda está bloqueado pela história');
@@ -720,6 +737,18 @@ async function exposePathfinder() {
     await waitForWorldCollisionReady('after-final-reload');
     await wait(1800);
     const final = await qa();
+    const finalControl = await controlState();
+    const finalCampaign = await campaignSave();
+    report.finalMainQuest = {
+      storyStep: finalControl.story.q,
+      storySub: finalControl.story.sub,
+      objective: finalControl.state.objective,
+      savedCampaign: finalCampaign
+    };
+    assert.equal(finalCampaign?.questStep, 1, 'save V6 perdeu o passo da vila após o reload final');
+    assert.equal(finalCampaign?.act1Sub, 1, 'save V6 perdeu a chegada à vila após o reload final');
+    assert.equal(finalControl.story.sub, 1, 'HUD narrativo voltou à subetapa de chegada após reload final');
+    assert.equal(finalControl.state.objective, expectedObjective, 'objetivo principal mudou após reload final');
     assert.equal(final.side.abrigos.state, 'ready', 'estado ready não sobreviveu ao reload final');
     assert.equal(final.side.abrigos.progress, 3);
     assert.deepEqual(final.registeredWaystones.filter(id => SIDE_QUEST_WAYSTONES.includes(id)).sort(),
