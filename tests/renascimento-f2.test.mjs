@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { planValleyForest, planValleyOutcrops, VALLEY_AREA, VALLEY_CLEARINGS, VALLEY_LANDMARKS, VIGIA, VIGIA_TRAIL, distToPolyline } from '../eldoria-valley-landscape.js';
+import { planValleyForest, planValleyOutcrops, planValleyGroundCover, VALLEY_AREA, VALLEY_CLEARINGS, VALLEY_LANDMARKS, VIGIA, VIGIA_TRAIL, distToPolyline } from '../eldoria-valley-landscape.js';
 import { TEREN_ROAD, insideMeadow, FOREST_TRAILS, FOREST_CLEARINGS, ROAD_BANDITS, FALL_SPOT } from '../act1-world-layout.js';
 
 const world = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
@@ -31,6 +31,23 @@ test('vale: estrada, prado, clareiras, trilha do Vigia, emboscada e despertar fi
   }
   // espaçamento: mesma espécie nunca colada (sem fotocópia em pilha)
   for (let i = 0; i < plan.length; i++) for (let j = i + 1; j < plan.length; j++) if (plan[i].sp === plan[j].sp) assert.ok(Math.hypot(plan[i].x - plan[j].x, plan[i].z - plan[j].z) > 2.4);
+});
+
+test('vale: cobertura do chão preserva as clareiras, a estrada e a Trilha do Vigia', () => {
+  const cover = planValleyGroundCover(env);
+  assert.ok(cover.tufts.length > 1300, 'capim continua cobrindo as encostas: ' + cover.tufts.length);
+  assert.ok(cover.flowers.length > 390, 'flores continuam presentes: ' + cover.flowers.length);
+  for (const clearing of VALLEY_CLEARINGS) {
+    for (const [kind, items] of [['capim', cover.tufts], ['flores', cover.flowers]]) {
+      const intruders = items.filter(p => Math.hypot(p.x - clearing.x, p.z - clearing.z) <= clearing.r + 1);
+      assert.equal(intruders.length, 0, kind + ' invadindo a clareira ' + clearing.id + ': ' + intruders.length);
+    }
+  }
+  for (const p of [...cover.tufts, ...cover.flowers]) {
+    assert.ok(distToPolyline(p.x, p.z, TEREN_ROAD) > 3.6, 'cobertura invade a estrada');
+    assert.ok(distToPolyline(p.x, p.z, VIGIA_TRAIL.points) > VIGIA_TRAIL.width * .5 + 2.4, 'cobertura invade a trilha');
+    assert.ok(!insideMeadow(p.x, p.z, 2), 'cobertura invade o prado do prólogo');
+  }
 });
 
 test('vale: afloramentos nas encostas, longe da estrada e da trilha; marcos de horizonte declarados', () => {
