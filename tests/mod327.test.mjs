@@ -258,6 +258,15 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
 
+test('A4 A/B: cada perfil inicia em contexto isolado, preferência pré-carregada e câmera sincronizada', () => {
+  const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
+  assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
+  assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
+  assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
+  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
+  assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
+});
+
 /* ---------- P2: morte → desintegração em pó ---------- */
 import { ASH, ashVisible, createAshDissolve } from '../cinzas3d.js';
 test('cinzas: some de baixo para cima conforme o progresso (o pé antes da cabeça), nada no início, tudo no fim', () => {
