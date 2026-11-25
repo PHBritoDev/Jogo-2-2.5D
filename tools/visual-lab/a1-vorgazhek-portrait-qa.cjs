@@ -49,6 +49,7 @@ async function openBattle(browser, url, stage, viewport) {
   const videoDir = path.join(out, 'videos', stage);
   fs.mkdirSync(videoDir, { recursive: true });
   const context = await browser.newContext({ viewport, deviceScaleFactor: 1, recordVideo: { dir: videoDir } });
+  await context.addInitScript(() => localStorage.setItem('seven-sins-3d-graphics', 'low'));
   await installThreeRoutes(context);
   const page = await context.newPage();
   listen(page, stage.includes('base') ? 'baseline' : 'head');
@@ -270,6 +271,14 @@ function assertPortrait(state, label) {
   assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= minProjectedSeparation, label + ': silhuetas dos combatentes separadas horizontalmente no quadro');
 }
 
+// The runtime clamps delta time on slow GPUs. Wait for simulation frames after
+// rotation so a brief wall-clock delay cannot sample the previous camera pose.
+async function settleCamera(page) {
+  await page.evaluate(async () => {
+    for (let i = 0; i < 60; i++) await new Promise(requestAnimationFrame);
+  });
+}
+
 async function finish(context, page) {
   const video = page.video();
   await page.close();
@@ -285,12 +294,13 @@ async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
     const landscape = await inspect(page);
     await shot(page, stage + '-paisagem');
     await page.setViewportSize({ width: 393, height: 852 });
-    await page.waitForTimeout(1900);
+    await settleCamera(page);
     const portrait = await inspect(page);
     await shot(page, stage + '-retrato-rotacao');
+    fs.writeFileSync(path.join(out, stage + '-rotacao.json'), JSON.stringify(portrait, null, 2));
     if (assertHead) assertPortrait(portrait, stage + ' retrato após rotação');
     await page.setViewportSize({ width: 320, height: 852 });
-    await page.waitForTimeout(900);
+    await settleCamera(page);
     const compactPortrait = await inspect(page);
     await shot(page, stage + '-retrato-compacto');
     if (assertHead) assertCompactPortrait(compactPortrait, stage + ' retrato compacto 320×852');
