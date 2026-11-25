@@ -188,13 +188,38 @@ async function main() {
                 route.captureQuality.status = await page.evaluate(() => document.getElementById("graphics-status-3d")?.textContent?.trim() || null);
               }
             }
+            // As tomadas acima teleportam o herói para enquadrar cada ponto. Restaurar a origem declarada
+            // antes da caminhada evita que a última foto (vau) altere silenciosamente o percurso.
+            if (Array.isArray(scene.walk.start)) {
+              const [startX, startZ, startYaw] = scene.walk.start;
+              const actual = await page.evaluate(([x, z, yaw]) => {
+                const D = window.SevenSinsDebug3D;
+                D.teleport(x, z, yaw);
+                return D.state();
+              }, scene.walk.start);
+              const verified = !!actual && Number.isFinite(actual.x) && Number.isFinite(actual.y) &&
+                Number.isFinite(actual.z) && Math.hypot(actual.x - startX, actual.z - startZ) <= .5;
+              route.startReset = {
+                expected: {x: startX, z: startZ, yaw: startYaw},
+                actual: actual && {x: actual.x, y: actual.y, z: actual.z},
+                verified
+              };
+              if (!verified) {
+                route.completed = false;
+                route.error = "Falha ao restaurar a origem do percurso após as tomadas de câmera";
+                route.finishedAt = new Date().toISOString();
+                routes.push(route);
+                shots.push({scene: scene.id, name: "inicio-percurso", file: "", status: "falha", reason: route.error, attempts: 0, pixels: {mean: 0, stdev: 0}});
+                continue;
+              }
+            }
             for (let j = 0; j < scene.walk.segments.length; j++) {
               const segment = scene.walk.segments[j];
               const start = await page.evaluate(() => window.SevenSinsDebug3D.state());
               const yaw = core.walkYaw(start, segment.target);
               await page.evaluate(({yaw}) => window.SevenSinsDebug3D.view(yaw, .12, 5.5), {yaw});
               // Espera a câmera de acompanhamento terminar a curva antes de medir o movimento.
-              const cameraSettleMs = await waitCameraStable(page, 9000);
+              const cameraSettleMs = await waitCameraStable(page, 9000, 5.5);
               // Sem argumento, camView() verifica o protagonista; o argumento opcional é reservado a alvos de cenas livres.
               await page.evaluate(() => {
                 const D = window.SevenSinsDebug3D;
