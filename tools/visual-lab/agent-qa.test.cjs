@@ -11,10 +11,10 @@ const cam = () => ({onScreen:true,blocked:null});
 const makeTrace = rows => rows.map(([t,x,z,y=0,grounded=true,surface=null,surfaceY=null,terrainY=y]) => ({t,x,z,y,grounded,surface,surfaceY,terrainY,camera:cam()}));
 const start1={x:-14,y:0,z:-82}, end1={x:-14,y:0,z:-105};
 const start2={x:-14,y:0,z:-105}, end2={x:-19,y:0,z:-76};
-const start3={x:-19,y:0,z:-76}, end3={x:-14.2,y:0,z:-42.8};
+const start3={x:-19,y:0,z:-76}, end3={x:-13,y:0,z:-49.5};
 const trace1=makeTrace([[0,-14,-82],[2000,-14,-86.6],[4000,-14,-91.2],[6000,-14,-95.8],[8000,-14,-100.4],[9800,-14,-105]]);
 const trace2=makeTrace([[0,-14,-105],[2000,-15,-99.2],[4000,-16,-93.4],[6000,-17,-87.6],[8000,-18,-81.8],[10000,-19,-76],[10800,-19,-76]]);
-const trace3=makeTrace([[0,-19,-76],[2000,-18.2,-70.4667],[4000,-17.4,-64.9333],[6000,-16.6,-59.4],[8000,-15.8,-53.8667],[10000,-15,-48.3333],[12000,-14.2,-42.8],[12800,-14.2,-42.8]]);
+const trace3=makeTrace([[0,-19,-76],[1000,-18.5,-73.7917],[2000,-18,-71.5833],[3000,-17.5,-69.375],[4000,-17,-67.1667],[5000,-16.5,-64.9583],[6000,-16,-62.75],[7000,-15.5,-60.5417],[8000,-15,-58.3333],[9000,-14.5,-56.125],[10000,-14,-53.9167],[11000,-13.5,-51.7083],[12000,-13,-49.5],[12800,-13,-49.5]]);
 const metrics1=measureWalkTrace(trace1,start1,end1), metrics2=measureWalkTrace(trace2,start2,end2), metrics3=measureWalkTrace(trace3,start3,end3);
 const makeSegment=(i,start,end,trace,traceMetrics,elapsedMs)=>{
   const rule=configuredSegments[i],distance=Math.hypot(end.x-start.x,end.z-start.z);
@@ -166,7 +166,7 @@ test('pedido dirigido e entradas inválidas',()=>{
 });
 test('estados de captura distinguem ambiente, arquivo, script e revisão',()=>{
   assert.equal(run(report),'game_ran');
-  assert.equal(route.segments.length,3,'o percurso exige bosque, desvio oeste e chegada à praça');
+  assert.equal(route.segments.length,3,'o percurso exige bosque, desvio oeste e chegada à abertura sul da praça');
   assert.equal(run({...report,routes:[]}),'game_failed','captura sem percurso contínuo não aprova floresta-percurso');
   assert.equal(run({...report,routes:[{...report.routes[0],completed:false}]}),'game_failed','percurso interrompido não aprova');
   assert.equal(run({...report,routes:[{...route,totalDistance:2.5}]}),'game_failed','movimento curto não aprova o trajeto completo');

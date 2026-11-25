@@ -64,7 +64,7 @@ const SCENES = Object.freeze({
       { name: "bosque-entrada", target: [-14, -105], key: "KeyW", timeoutMs: 100000, tolerance: 2.5, minTravel: 18 },
       // O mercado centrado em (-13.2,-70.5), raio 3.9 m, bloqueia a linha direta. O desvio oeste usa a passagem verificada em x=-19.
       { name: "contorno-mercado-oeste", target: [-19, -76], key: "KeyW", timeoutMs: 120000, tolerance: 2.5, minTravel: 24 },
-      { name: "vila-praca", target: [-14.2, -42.8], key: "KeyW", timeoutMs: 180000, tolerance: 3, minTravel: 28 }
+      { name: "vila-praca-entrada", target: [-13, -49.5], key: "KeyW", timeoutMs: 180000, tolerance: 3, minTravel: 26 }
     ] } },
   "floresta-trilha": { kind: "mundo", hour: 10, shots: [
     { name: "trilha-samambaias", at: [-14, -105, -Math.PI / 2], pitch: .1, dist: 6.5 },

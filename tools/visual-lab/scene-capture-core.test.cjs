@@ -41,10 +41,10 @@ test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar �
   assert.deepEqual(scene.shots[1].at, [-28.815, -94.586, 0], "repete a posição de água observada no artifact A4");
   assert.equal(scene.shots[1].pitch, 0); assert.equal(scene.shots[1].dist, 6);
   assert.deepEqual(scene.walk.start, [-14, -82, 0], "a caminhada retorna ao campo depois da tomada do vau");
-  assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca"]);
-  assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-14.2, -42.8]]);
+  assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca-entrada"]);
+  assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-13, -49.5]]);
   assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,180000]);
-  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',28,3]]);
+  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',26,3]]);
   assert.equal(scene.walk.captureQuality, "low", "movimento usa perfil baixo para reduzir o custo do SwiftShader");
   const market = {x:-13.2,z:-70.5,radius:3.9};
   const pointSegmentDistance = (p,a,b) => {
@@ -60,8 +60,8 @@ test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar �
   assert.ok(Math.abs(core.walkYaw({x:-14,z:-82}, {x:-14,z:-105})) < 1e-12, "W segue para sul no primeiro trecho");
   const westYaw = core.walkYaw({x:-14,z:-105}, {x:-19,z:-76});
   assert.ok(westYaw > 2.9 && westYaw < Math.PI, "W vira para noroeste e contorna o mercado pelo oeste");
-  const plazaYaw = core.walkYaw({x:-19,z:-76}, {x:-14.2,z:-42.8});
-  assert.ok(Math.abs(Math.abs(plazaYaw) - Math.PI) < .2, "W volta a apontar para a praça sem cruzar o mercado");
+  const plazaYaw = core.walkYaw({x:-19,z:-76}, {x:-13,z:-49.5});
+  assert.ok(plazaYaw < -2.8 && plazaYaw > -Math.PI, "W aponta para a abertura sul da praça sem tentar atravessar o poço central");
   assert.deepEqual(core.measureWalk({x:0,z:0}, {x:3,z:4}, [3,8]), {distance:5,remaining:4});
   assert.throws(() => core.validateWalk({segments:[{name:"alvo-invalido",target:[0],timeoutMs:5000}]}), /Alvo inválido/);
   assert.throws(() => core.validateWalk({segments:[{name:"tecla-invalida",target:[0,1],key:"KeyQ",timeoutMs:5000}]}), /Tecla inválida/);
@@ -91,4 +91,15 @@ test("camView: sonda de enquadramento só de leitura dentro da API de debug, ign
   const body = src.slice(i, src.indexOf("},\n", i));
   assert.match(body, /player\.traverse\(o=>mine\.add\(o\)\)/); assert.match(body, /traverseVisible/); assert.match(body, /L-\(to\?\.3:1\.25\)/);
   assert.doesNotMatch(body, /camera\.position\.set|player\.position\.set|cameraYaw=|debugCameraOverride=/, "não move câmera nem herói");
+});
+
+
+test("alvo final fica dentro da abertura sul da praça, antes do poço central", async () => {
+  const { PLAZA, insidePlaza, plazaPolar, openingAt } = await import("../../eldoria-city-plaza.js");
+  const scene = core.validateRequest(["floresta-percurso"])[0];
+  const [x, z] = scene.walk.segments[2].target;
+  const polar = plazaPolar(x, z);
+  assert.ok(insidePlaza(x, z), "alvo precisa estar dentro da borda calçada");
+  assert.equal(openingAt(polar.theta)?.id, "adro", "alvo precisa usar a abertura sul do adro");
+  assert.ok(Math.hypot(x - PLAZA.x, z - PLAZA.z) > 5, "não exigir o centro ocupado da praça");
 });
