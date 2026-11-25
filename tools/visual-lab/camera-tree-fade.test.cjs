@@ -48,6 +48,10 @@ test('árvore ancestral GLB também abre o tronco quando a câmera entra no volu
     'materiais compartilhados pelos dois GLBs não podem receber o hook duas vezes');
   assert.ok(fadeFn.includes('length(vViewPosition)-0.6') && fadeFn.includes('dither>camFade'),
     'o GLB usa o mesmo dither espacial do cinturão tropical');
+  assert.ok(fadeFn.includes("chunk + '\\n{float camFade"),
+    'o shader precisa inserir uma quebra de linha real antes do bloco GLSL');
+  assert.ok(fadeFn.includes("shader.fragmentShader.includes('vViewPosition')"),
+    'materiais sem vViewPosition não podem receber código GLSL incompatível');
   assert.ok(fadeFn.includes('customProgramCacheKey') && fadeFn.includes('material.needsUpdate = true'),
     'o shader precisa invalidar o programa compilado');
   const treeBlock = live.slice(live.indexOf("if (spec.kind === 'tree')"), live.indexOf('root.add(obj)', live.indexOf("if (spec.kind === 'tree')")));
