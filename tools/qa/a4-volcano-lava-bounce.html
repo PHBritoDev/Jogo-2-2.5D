@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A4 — reflexo dinâmico de lava</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#241623}
+canvas{display:block;width:960px;height:540px}
+#status{position:fixed;left:8px;top:8px;color:#fff;background:#100b10cc;padding:5px 8px;font:12px monospace;z-index:2}
+</style>
+</head>
+<body>
+<div id="status">Preparando a caverna de Cinzária…</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { buildDimensionArena } from '../../dimension-arenas3d.js';
+import { nodes, caveHeight } from '../../volcano-cave-layout.js';
+
+window.a4VolcanoReady = false;
+window.a4VolcanoError = null;
+window.a4VolcanoCaptureFrames = null;
+window.a4VolcanoAnimate = null;
+
+try {
+  const scene = new THREE.Scene();
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(960, 540, false);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.domElement.setAttribute('aria-label', 'Auditoria visual do Santuário das Cataratas de Fogo');
+  document.body.appendChild(renderer.domElement);
+
+  const camera = new THREE.PerspectiveCamera(60, 16 / 9, .08, 900);
+  const loading = new Promise((resolve, reject) => {
+    THREE.DefaultLoadingManager.onLoad = resolve;
+    THREE.DefaultLoadingManager.onError = url => reject(new Error('Falha ao carregar ' + url));
+  });
+  const arena = buildDimensionArena(THREE, 'volcano', { x: 0, y: 0, z: 0, radius: 140 });
+  scene.add(arena.group);
+  arena.group.visible = true;
+
+  const env = arena.env;
+  scene.background = new THREE.Color(env.bg);
+  scene.fog = new THREE.Fog(env.fog, env.fogNear, env.fogFar);
+  const hemi = new THREE.HemisphereLight(env.hemi[0], env.hemi[1], env.hemi[2]);
+  scene.add(hemi);
+  if (env.sun && env.sun[1] > 0) {
+    const sun = new THREE.DirectionalLight(env.sun[0], env.sun[1]);
+    sun.position.set(0, 1, 0);
+    scene.add(sun);
+  }
+  if (env.light) {
+    const point = new THREE.PointLight(env.light[0], env.light[1], env.light[2]);
+    point.position.set(env.light[3][0], env.light[3][1], env.light[3][2]);
+    scene.add(point);
+  }
+  renderer.toneMappingExposure = env.exposure || 1.1;
+
+  function syncEnvironment() {
+    scene.background.setHex(env.bg);
+    scene.fog.color.setHex(env.fog);
+    scene.fog.near = env.fogNear;
+    scene.fog.far = env.fogFar;
+  }
+  function placeCamera(node) {
+    const point = nodes[node];
+    camera.position.set(point[0], caveHeight(point[1]) + 2, point[1]);
+    camera.lookAt(point[0], 2, point[1] - 25);
+  }
+  function draw(node, now) {
+    placeCamera(node);
+    arena.update(now, camera, 180, { player: camera.position, quality: 'low' });
+    syncEnvironment();
+    renderer.render(scene, camera);
+    return {
+      key: node,
+      now,
+      data: renderer.domElement.toDataURL('image/png'),
+      metrics: {
+        calls: renderer.info.render.calls,
+        triangles: renderer.info.render.triangles,
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+        programs: renderer.info.programs ? renderer.info.programs.length : null
+      }
+    };
+  }
+
+  await loading;
+  const expected = [
+    ['Santuário das Cataratas de Fogo', 'CristalCaverna01.glb'],
+    ['Santuário das Cataratas de Fogo', 'TochaMedievalTripo.glb'],
+    ['Santuário • galeria superior', 'CristalCaverna01.glb'],
+    ['Santuário • galeria superior', 'TochaMedievalTripo.glb'],
+    ['Bosque das Veias Ardentes', 'CristalCaverna01.glb']
+  ];
+  const deadline = performance.now() + 25000;
+  for (const pair of expected) {
+    const owner = arena.group.getObjectByName(pair[0]);
+    while (!owner || !owner.children.some(object => object.isInstancedMesh && object.name === pair[1])) {
+      if (performance.now() >= deadline) throw new Error('GLB ausente em ' + pair[0] + ': ' + pair[1]);
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+  }
+
+  window.a4VolcanoCaptureFrames = () => {
+    const frames = [
+      draw('overlook', 1000),
+      draw('overlook', 1500),
+      draw('gallery', 1000),
+      draw('grove', 1000),
+      draw('spine', 1000)
+    ];
+    return {
+      frames,
+      report: {
+        renderer: 'Chromium WebGL / SwiftShader',
+        viewport: '960x540',
+        scene: 'buildDimensionArena(volcano)',
+        environment: { bg: env.bg, fog: env.fog, fogNear: env.fogNear, fogFar: env.fogFar, exposure: env.exposure },
+        assets: expected,
+        errors: []
+      }
+    };
+  };
+
+  window.a4VolcanoAnimate = async durationMs => {
+    placeCamera('overlook');
+    for (let elapsed = 0; elapsed < durationMs; elapsed += 33) {
+      arena.update(2000 + elapsed, camera, 180, { player: camera.position, quality: 'low' });
+      syncEnvironment();
+      renderer.render(scene, camera);
+      await new Promise(resolve => setTimeout(resolve, 33));
+    }
+    return {
+      calls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures
+    };
+  };
+
+  window.a4VolcanoReady = true;
+  document.getElementById('status').textContent = 'Arena real carregada · 3 biomas · captura A/B pronta';
+} catch (error) {
+  window.a4VolcanoError = error && error.stack ? error.stack : String(error);
+  document.getElementById('status').textContent = window.a4VolcanoError;
+}
+</script>
+</body>
+</html>
