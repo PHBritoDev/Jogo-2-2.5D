@@ -325,11 +325,37 @@ test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da 
     a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
     visibleAt: (_camera, actor) => actor.y < 1.7
   });
-  assert.equal(minorOcclusion.side, -1, 'uma única amostra alta bloqueada não deve inverter o plano');
+  assert.equal(minorOcclusion.side, -1, 'sem alternativa melhor, preservar o lado autoral');
   assert.deepEqual(minorOcclusion.actorVisibilitySamples, [3, 3]);
+  assert.deepEqual(minorOcclusion.visibleActors, [false, false],
+    '3/4 pontos não bastam: toldo ainda pode esconder cabeça ou ombros');
 });
 
  
+test('two-shot rejeita 3/4 pontos sob toldo e sobe a câmera até 4/4', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5],
+    visibleAt: (camera, actor) => camera.y >= 4.5 || actor.y < 1.7
+  });
+  assert.equal(framing.cameraHeight, 4.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
+test('two-shot usa fallback alto quando a cobertura bloqueia os ângulos até 6,5 m', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5, 5.5, 6.5],
+    visibleAt: camera => camera.y >= 7.5
+  });
+  assert.equal(framing.cameraHeight, 7.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
 test('two-shot eleva a câmera somente até liberar o corpo dos dois atores', () => {
   const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
   const framing = chooseStoryTwoShotFrame({

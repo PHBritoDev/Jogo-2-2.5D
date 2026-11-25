@@ -759,8 +759,8 @@ async function exposePathfinder() {
     assert.deepEqual(vendorFraming.twoShot?.visibleActors, [true, true],
       'o enquadramento deixou um dos atores oculto pela cobertura: ' + JSON.stringify(vendorFraming));
     assert.ok(vendorFraming.twoShot?.visibilitySamples?.length === 2 &&
-      vendorFraming.twoShot.visibilitySamples.every(samples => samples >= 3),
-      'o enquadramento não mostra pelo menos 3/4 pontos do corpo de cada ator: ' + JSON.stringify(vendorFraming));
+      vendorFraming.twoShot.visibilitySamples.every(samples => samples === 4),
+      'o enquadramento ainda deixa parte do corpo sob a cobertura; exige 4/4 pontos por ator: ' + JSON.stringify(vendorFraming));
 
     // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
     // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.

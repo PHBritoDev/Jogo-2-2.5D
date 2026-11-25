@@ -5,7 +5,7 @@
  */
 export function chooseStoryTwoShotSide({
   a, b, preferredSide = 1, distance = 4, blockedAt, visibleAt,
-  cameraHeight = 3.5, targetHeight = 1.45, samples = 14, sideMagnitudes = [1.25, 1.5, 1.75]
+  cameraHeight = 3.5, targetHeight = 1.45, samples = 14, sideMagnitudes = [1.25, 1.5, 1.75, 2]
 } = {}) {
   if (!a || !b || !Number.isFinite(a.x) || !Number.isFinite(a.z) ||
       !Number.isFinite(b.x) || !Number.isFinite(b.z)) {
@@ -33,13 +33,14 @@ export function chooseStoryTwoShotSide({
     }
     return { clearSamples, blockedSample };
   };
-  const visibilityHeights = [0.45, 0.9, 1.35, 1.7];
+  const visibilityHeights = [0.45, 0.9, 1.35, 1.7]; // quatro alturas do corpo, da cintura à cabeça
   const measureActorVisibility = (camera, actor) => {
     if (typeof visibleAt !== 'function') return null;
     const base = Number.isFinite(actor.y) ? actor.y : baseY;
     const clearSamples = visibilityHeights.reduce((sum, height) =>
       sum + (visibleAt(camera, { x: actor.x, y: base + height, z: actor.z }) ? 1 : 0), 0);
-    return { visible: clearSamples >= 3, clearSamples, totalSamples: visibilityHeights.length };
+    // Três de quatro ainda permite que toldos escondam cabeça/ombros. O two-shot só é aceito com o corpo inteiro visível.
+    return { visible: clearSamples === visibilityHeights.length, clearSamples, totalSamples: visibilityHeights.length };
   };
   const score = candidateSide => {
     const dx = b.x - a.x, dz = b.z - a.z, span = Math.hypot(dx, dz);
@@ -109,9 +110,11 @@ export function chooseStoryTwoShotFrame({
   cameraHeights = [3.5, 4.5, 5.5, 6.5],
   ...options
 } = {}) {
-  const heights = Array.isArray(cameraHeights) && cameraHeights.length
+  const requestedHeights = Array.isArray(cameraHeights) && cameraHeights.length
     ? cameraHeights.filter(Number.isFinite)
     : [Number.isFinite(options.cameraHeight) ? options.cameraHeight : 3.5];
+  // Um último ângulo alto fica reservado para toldos que ainda cortam o corpo no limite de 6,5 m.
+  const heights = [...new Set([...requestedHeights, 7.5])].sort((a, b) => a - b);
   let best = null, bestScore = -Infinity;
   for (const cameraHeight of heights) {
     const candidate = chooseStoryTwoShotSide({ ...options, cameraHeight });
