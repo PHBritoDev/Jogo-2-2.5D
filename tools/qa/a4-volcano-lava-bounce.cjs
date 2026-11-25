@@ -127,11 +127,15 @@ async function main() {
         trianglesEqual: a.metrics.triangles === b.metrics.triangles,
         geometriesEqual: a.metrics.geometries === b.metrics.geometries,
         texturesEqual: a.metrics.textures === b.metrics.textures,
+        programsEqual: a.metrics.programs === b.metrics.programs,
         baseline: a.metrics,
         candidate: b.metrics
       };
       if (!budget[key].callsEqual || !budget[key].trianglesEqual || !budget[key].geometriesEqual || !budget[key].texturesEqual) {
         gateFailures.push('Orçamento de renderização mudou em ' + key + ': ' + JSON.stringify(budget[key]));
+      }
+      if ((key === 'grove-2500' || key === 'spine-3000') && !budget[key].programsEqual) {
+        gateFailures.push('Programa de shader duplicado fora do Santuário em ' + key + ': ' + JSON.stringify(budget[key]));
       }
     }
     const temporal = {
