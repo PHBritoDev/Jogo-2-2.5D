@@ -116,6 +116,7 @@ async function main() {
     const candidate = await runVersion(browser, 'candidate', 4264, threeRoot);
     const comparisons = {};
     const budget = {};
+    const gateFailures = [];
     for (const key of ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'grove-2500', 'spine-3000']) {
       const a = baseline.frames.find(frame => frame.key + '-' + frame.now === key);
       const b = candidate.frames.find(frame => frame.key + '-' + frame.now === key);
@@ -130,7 +131,7 @@ async function main() {
         candidate: b.metrics
       };
       if (!budget[key].callsEqual || !budget[key].trianglesEqual || !budget[key].geometriesEqual || !budget[key].texturesEqual) {
-        throw new Error('Orçamento de renderização mudou em ' + key + ': ' + JSON.stringify(budget[key]));
+        gateFailures.push('Orçamento de renderização mudou em ' + key + ': ' + JSON.stringify(budget[key]));
       }
     }
     const temporal = {
@@ -145,17 +146,20 @@ async function main() {
     };
     const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.baseline.meanRGB).toFixed(5));
     if (comparisons['overlook-1000'].meanRGB < 2.8 || comparisons['overlook-1000'].changedPixelsPct < 20) {
-      throw new Error('Bounce localizado ainda pouco legível no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
+      gateFailures.push('Bounce localizado ainda pouco legível no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
     }
     if (comparisons['upper-gallery-2000'].meanRGB < 1.8 || comparisons['upper-gallery-2000'].changedPixelsPct < 12) {
-      throw new Error('Bounce insuficiente na galeria superior: ' + JSON.stringify(comparisons['upper-gallery-2000']));
+      gateFailures.push('Bounce insuficiente na galeria superior: ' + JSON.stringify(comparisons['upper-gallery-2000']));
     }
-    if (comparisons['grove-2500'].meanRGB > .05 || comparisons['grove-2500'].changedPixelsPct > .1 ||
-        comparisons['spine-3000'].meanRGB > .05 || comparisons['spine-3000'].changedPixelsPct > .1) {
-      throw new Error('Bounce escapou do Santuário: ' + JSON.stringify({ grove: comparisons['grove-2500'], spine: comparisons['spine-3000'] }));
+    if (comparisons['grove-2500'].meanRGB > .03 || comparisons['grove-2500'].changedPixelsPct > .05 ||
+        comparisons['spine-3000'].meanRGB > .03 || comparisons['spine-3000'].changedPixelsPct > .05) {
+      gateFailures.push('Bounce escapou do Santuário: ' + JSON.stringify({ grove: comparisons['grove-2500'], spine: comparisons['spine-3000'] }));
     }
     if (temporalGainRGB < .06) {
-      throw new Error('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
+      gateFailures.push('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
+    }
+    if (baseline.errors.length || candidate.errors.length) {
+      gateFailures.push('Erros de browser/GLSL: ' + JSON.stringify({ baseline: baseline.errors, candidate: candidate.errors }));
     }
     const report = {
       baseSha,
@@ -167,11 +171,13 @@ async function main() {
       imageDelta: comparisons,
       temporalDelta: temporal,
       temporalGainRGB,
-      renderBudget: budget
+      renderBudget: budget,
+      gateFailures,
+      ok: gateFailures.length === 0
     };
     fs.writeFileSync(path.join(outputDir, 'report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
-    if (baseline.errors.length || candidate.errors.length) throw new Error('Erros de browser/GLSL: ' + JSON.stringify({ baseline: baseline.errors, candidate: candidate.errors }));
+    if (gateFailures.length) throw new Error('A/B gate failure: ' + gateFailures.join(' | '));
   } finally {
     if (browser) await browser.close();
     baseServer.kill();

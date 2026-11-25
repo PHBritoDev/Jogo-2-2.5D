@@ -3,7 +3,7 @@
 import {addStructure,addCliff} from "./volcano-cave-layout.js";
 
 export const LAVA_BOUNCE_CONFIG = Object.freeze({
- distanceFalloff: .002, facingFloor: .20, facingGain: .80,
+ distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, facingFloor: .20, facingGain: .80,
  pulseBase: .88, pulseSlow: .08, pulseFast: .04,
  pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73,
  color: Object.freeze([.78, .25, .045])
@@ -20,6 +20,12 @@ export function lavaBouncePulse(time, phase = 0) {
  const t=Number.isFinite(rawTime)?rawTime:0, p=Number.isFinite(rawPhase)?rawPhase:0;
  return c.pulseBase+c.pulseSlow*Math.sin(t*c.pulseSlowRate+p)+
   c.pulseFast*Math.sin(t*c.pulseFastRate-p*c.pulsePhaseRate);
+}
+export function lavaBounceRegion(z) {
+ const raw=Number(z), c=LAVA_BOUNCE_CONFIG;
+ if(!Number.isFinite(raw)) return 0;
+ const t=Math.max(0,Math.min(1,(raw-c.regionStartZ)/(c.regionFullZ-c.regionStartZ)));
+ return t*t*(3-2*t);
 }
 export function lavaBounceEnabled(groupName, hasClock) {
  const name=String(groupName||'');
@@ -120,7 +126,8 @@ export function masonry(T, group, seed, palette){
     'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);\n'+
     'if(uLavaGain>.001){\n'+
     ' float facing=max(dot(normalize(normal),normalize(delta)),0.);\n'+
-    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing);\n'+
+    ' float lavaRegion=smoothstep('+glslNumber(cfg.regionStartZ)+','+glslNumber(cfg.regionFullZ)+',position.z);\n'+
+    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing)*lavaRegion;\n'+
     ' vLavaPhase=dot(position.xz,vec2(.071,.047))+position.y*.12;\n'+
     '}else{vLavaBounce=0.;vLavaPhase=0.;}\n';
    const fragmentChunk='\nfloat relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));\n'+

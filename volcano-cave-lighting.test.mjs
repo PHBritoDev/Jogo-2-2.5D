@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled } from './volcano-cave-masonry.js';
+import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion } from './volcano-cave-masonry.js';
 
 test('bounce da lava cai com a distância e respeita a orientação da rocha', () => {
   assert.equal(lavaBounceFalloff(0, 1), 1);
@@ -26,6 +26,14 @@ test('pulsação é lenta, limitada e determinística', () => {
   assert.notEqual(lavaBouncePulse(2.4, .7), lavaBouncePulse(2.4, 1.4));
 });
 
+test('bounce espacial faz fade suave na entrada do Santuário', () => {
+  assert.equal(lavaBounceRegion(78), 0);
+  assert.ok(lavaBounceRegion(84) > 0 && lavaBounceRegion(84) < 1);
+  assert.equal(lavaBounceRegion(90), 1);
+  assert.equal(lavaBounceRegion(110), 1);
+  assert.equal(lavaBounceRegion(Number.NaN), 0);
+});
+
 test('somente os lotes próximos do Santuário recebem o bounce', () => {
   assert.equal(lavaBounceEnabled('Santuário das Cataratas de Fogo', true), true);
   assert.equal(lavaBounceEnabled('Santuário • galeria superior', true), true);
@@ -42,7 +50,8 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(masonry, /shader\.uniforms\.uLavaGain=lavaGain/);
   assert.match(masonry, /uniform float uLavaTime/);
   assert.match(masonry, /vLavaBounce/);
-  assert.match(masonry, /if\(uLavaGain>\.001\)/);
+  assert.match(masonry, /smoothstep\('\+glslNumber\(cfg\.regionStartZ\)/);
+  assert.match(masonry, /vLavaBounce=wet\*\([^;]+\)\*lavaRegion/);
   assert.match(masonry, /lavaBounceEnabled\(group\.name,!!palette\.clock\)/);
   assert.doesNotMatch(masonry, /new T\.PointLight|shadowMap/);
   assert.match(scene, /masonry\(T,floors,971,\{stoneMap,clock\}\)/);
