@@ -251,6 +251,7 @@ test('objetivo e primeira troca da cena principal identificam o mesmo vendedor',
     const opening = steps[0];
     assert.equal(opening?.type, 'shot', label + ': enquadramento de dois atores deve vir antes da primeira fala');
     assert.equal(opening?.id, 'teo-primeira-troca');
+    assert.equal(opening.dur, 0.65);
     assert.deepEqual(opening.args, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 4.4 });
   }
   const heroLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.hero);

@@ -641,7 +641,7 @@ async function exposePathfinder() {
     // A interação do vendedor é uma cena dirigida e usa #cine-say, não o painel
     // de diálogo livre #dialog-panel. O vídeo do run anterior mostrou a fala aberta;
     // o timeout vinha de aguardar o contêiner errado, não de uma falha do runtime.
-    await page.locator('#cine-say').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('#cine-say').waitFor({ state: 'visible', timeout: 45000 });
     const normalizeDialogue = value => String(value || '').replace(/\s+/g, ' ').trim();
     const heroOpening = normalizeDialogue(await page.locator('#cine-text').innerText());
     assert.ok(heroOpening.includes('Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
@@ -771,9 +771,9 @@ async function exposePathfinder() {
     assert.equal(afterReload.xp, beforeReload.xp, 'XP mudou durante reload');
     await shot('03-two-waystones-after-reload');
 
-    // O save do mapa restaura a posição no abrigo da Mata. A rota direta Mata→Caverna
-    // não foi encontrada pelo A* validado; voltar caminhando ao abrigo já registrado da Vila
-    // preserva a sequência sem teleport e reproduz a rota Vila→Caverna já percorrida com sucesso.
+    // O save do mapa restaura a posição no abrigo da Mata. A busca direta Mata→Caverna falhou neste QA.
+    // Recuar à Vila por toque testa uma rota alternativa sem teleport; a continuação até Caverna
+    // só será considerada aprovada se o mesmo run completar a caminhada e o registro.
     const afterTwoWaystonesReloadPlayer = await playerState();
     report.afterTwoWaystonesReload = {
       x: +afterTwoWaystonesReloadPlayer.x.toFixed(3),

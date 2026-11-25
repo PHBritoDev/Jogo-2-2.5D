@@ -264,7 +264,7 @@ export const SPEAKERS = {
 const S = SPEAKERS;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
-const vendorOpeningShot = () => shot('teo-primeira-troca', 2.4, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 4.4 });
+const vendorOpeningShot = () => shot('teo-primeira-troca', 0.65, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 4.4 });
 const act = (id, args) => ({ type: 'do', id, args: args || {} });
 const wait = dur => ({ type: 'wait', dur });
 
