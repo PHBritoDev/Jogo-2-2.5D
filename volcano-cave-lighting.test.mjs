@@ -61,7 +61,10 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(masonry, /m\.onBeforeRender=\(\)=>\{/);
   assert.match(masonry, /lavaPulseUniform\.value=lavaBouncePulse\(lavaClock\.value,pulsePhase\)/);
   assert.doesNotMatch(masonry, /uLavaTime|vLavaPhase/);
-  const fragmentChunk = masonry.slice(masonry.indexOf('const fragmentChunk='), masonry.indexOf('material.onBeforeCompile='));
+  const fragmentStart = masonry.indexOf('const fragmentChunk=');
+  const fragmentEnd = masonry.indexOf('shader.fragmentShader=', fragmentStart);
+  assert.ok(fragmentStart >= 0 && fragmentEnd > fragmentStart);
+  const fragmentChunk = masonry.slice(fragmentStart, fragmentEnd);
   assert.match(fragmentChunk, /uLavaPulse/);
   assert.doesNotMatch(fragmentChunk, /sin\(/);
 });
