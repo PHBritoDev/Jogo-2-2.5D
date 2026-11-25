@@ -11,7 +11,7 @@
  * Colisão por eldoria-walkable: o anel do piso é superfície; o muro e as colunas são paredes e pilares.
  * O relicário dá uma recompensa única e o estado é guardado por aparelho (o integrador chama `claim`).
  */
-import { VIGIA } from './eldoria-valley-landscape.js';
+const { VIGIA } = await import('./eldoria-valley-landscape.js' + new URL(import.meta.url).search);
 
 const hash = (i, s) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 
