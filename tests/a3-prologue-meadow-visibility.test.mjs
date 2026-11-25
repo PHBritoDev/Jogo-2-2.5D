@@ -102,8 +102,8 @@ test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', ()
 test('o timeout da câmera não é confundido com a distância esperada após caminhar', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
 
-  assert.match(harness, /async function waitCameraStable\\(page, expectedDistance, timeoutMs = 22000\\)/);
-  assert.match(harness, /while \\(Date\\.now\\(\\) - started < timeoutMs\\)/);
+  assert.ok(harness.includes('async function waitCameraStable(page, expectedDistance, timeoutMs = 22000)'), 'a função separa distância e timeout');
+  assert.ok(harness.includes('while (Date.now() - started < timeoutMs)'), 'o laço respeita o timeout configurável');
   assert.ok(harness.includes('waitCameraStable(session.page, meadow.distance, 9000)'), 'prado usa 6 m como distância e 9 s como timeout');
   assert.ok(harness.includes('waitCameraStable(session.page, forest.distance, 9000)'), 'trilha usa 6 m como distância e 9 s como timeout');
   assert.ok(!harness.includes('waitCameraStable(session.page, 9000,'), 'timeout não pode ocupar o argumento da distância');
