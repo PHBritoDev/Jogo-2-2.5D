@@ -253,6 +253,9 @@ test('objetivo e primeira troca da cena principal identificam o mesmo vendedor',
   assert.equal(heroLine?.text, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?');
   assert.equal(vendorLine?.text, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.');
   assert.ok(scene.indexOf(vendorLine) > scene.indexOf(heroLine), 'Téo deve responder depois da pergunta do protagonista');
-  assert.equal(scene.filter(s => s.type === 'do' && s.id === 'entregar-ouro').length, 1,
+  const actionIds = scene.flatMap(s => [s.id, ...(s.with || []).map(w => w.id)]).filter(Boolean);
+  assert.equal(actionIds.filter(id => id === 'entregar-ouro').length, 1,
     'a transação original de cinco moedas deve permanecer uma única vez na cena');
+  assert.ok(actionIds.indexOf('entregar-ouro') < actionIds.indexOf('anoitecer'),
+    'a transação deve ocorrer antes da transição para a noite');
 });
