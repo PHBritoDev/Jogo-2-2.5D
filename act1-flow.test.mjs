@@ -243,3 +243,16 @@ test('descanso, recibos e progresso da campanha sobrevivem juntos ao reload e à
   assert.deepEqual([legacy.sakuraRest, legacy.sideRewardClaims, legacy.coins], [-1, [], 12]);
   assert.deepEqual(migrateProgress({...progress, sakuraRest: 100}).sideRewardClaims, [receipt]);
 });
+
+test('objetivo e primeira troca da cena principal identificam o mesmo vendedor', () => {
+  const scene = A.vendorScene();
+  const heroLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.hero);
+  const vendorLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.vendor);
+  assert.equal(questPresentation(1, 1).objective, 'Pergunte a Téo sobre o Pecado da Ganância');
+  assert.equal(SPEAKERS.vendor, 'Téo · Provisões');
+  assert.equal(heroLine?.text, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?');
+  assert.equal(vendorLine?.text, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.');
+  assert.ok(scene.indexOf(vendorLine) > scene.indexOf(heroLine), 'Téo deve responder depois da pergunta do protagonista');
+  assert.equal(scene.filter(s => s.type === 'do' && s.id === 'entregar-ouro').length, 1,
+    'a transação original de cinco moedas deve permanecer uma única vez na cena');
+});

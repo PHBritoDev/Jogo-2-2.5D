@@ -51,7 +51,7 @@ const report = {
   method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
   movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
-  narrativeScope: 'main quest HUD/prompt asserted; main dialogue and sidequest offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
+  narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -617,6 +617,61 @@ async function exposePathfinder() {
     report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp, control: initialControl };
     await shot('00-initial-active');
 
+    // Validar a interação narrativa real antes da caminhada: parar na primeira fala de Téo,
+    // antes da ação entregar-ouro, para não consumir moedas nem avançar a campanha.
+    await talkButton.tap();
+    await page.waitForFunction(() => {
+      const panel = document.getElementById('dialog-panel');
+      const text = document.getElementById('dialog-text')?.textContent?.trim();
+      return panel && !panel.classList.contains('hidden') &&
+        text === 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?';
+    }, null, { timeout: 15000 });
+    const heroOpening = (await page.locator('#dialog-text').innerText()).trim();
+    assert.equal(heroOpening, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?',
+      'o botão PERGUNTAR · TÉO não abriu a primeira fala da cena principal');
+    await page.locator('#dialog-continue').tap();
+    await page.waitForFunction(() => {
+      const panel = document.getElementById('dialog-panel');
+      const who = document.getElementById('dialog-who')?.textContent?.trim();
+      const text = document.getElementById('dialog-text')?.textContent?.trim();
+      return panel && !panel.classList.contains('hidden') &&
+        who === 'Téo · Provisões' &&
+        text === 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.';
+    }, null, { timeout: 15000 });
+    const teoOpening = await page.evaluate(() => ({
+      who: document.getElementById('dialog-who')?.textContent?.trim() || '',
+      text: document.getElementById('dialog-text')?.textContent?.trim() || ''
+    }));
+    assert.equal(teoOpening.who, 'Téo · Provisões', 'a primeira resposta não identifica Téo · Provisões');
+    assert.equal(teoOpening.text, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.');
+    report.mainQuestPrompt = {
+      ...report.mainQuestPrompt,
+      dialogueOpened: true,
+      heroOpening,
+      dialogueSpeaker: teoOpening.who,
+      dialogueLine: teoOpening.text,
+      dialogueScope: 'first exchange only; stopped before entregar-ouro'
+    };
+    await shot('00-vendor-dialogue-teo');
+
+    // A conversa foi interrompida antes de qualquer transação. Recarregar restaura o fixture
+    // da caminhada sem cobrar moedas, mudar o passo ou deixar a cutscene bloqueando o controle.
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
+    await waitRuntime();
+    await exposePathfinder();
+    await waitForWorldCollisionReady('after-vendor-dialogue-reload');
+    await wait(1800);
+    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await wait(700);
+    const afterVendorReload = await qa();
+    const afterVendorControl = await controlState();
+    assert.equal(afterVendorControl.story.sub, 1, 'reload após diálogo não restaurou a etapa da vila');
+    assert.equal(afterVendorControl.story.scene, null, 'reload após diálogo deixou cena ativa');
+    assert.equal(afterVendorControl.regression.busy, false, 'reload após diálogo deixou o controle bloqueado');
+    assert.equal(afterVendorReload.side.abrigos.progress, 0, 'diálogo alterou indevidamente o progresso dos abrigos');
+    assert.equal(afterVendorReload.coins, initial.coins, 'diálogo cobrou moedas antes da ação entregar-ouro');
+    assert.equal(afterVendorReload.xp, initial.xp, 'diálogo alterou XP antes da ação entregar-ouro');
+
     await page.waitForFunction(ids => {
       const current = window.SevenSinsDebug3D.sideQuestQA().waystones.filter(w => ids.includes(w.id));
       return current.length === 3 && current.every(w => Number.isFinite(w.centerY));
@@ -679,7 +734,7 @@ async function exposePathfinder() {
     report.final = { side: final.side.abrigos, registeredWaystones: final.registeredWaystones, coins: final.coins, xp: final.xp };
     await shot('05-ready-after-final-reload');
 
-    assert.equal(report.screenshots.length, 11, 'capturas de estado incompletas');
+    assert.equal(report.screenshots.length, 12, 'capturas de estado incompletas');
     assert.equal(report.input.joystickPointerTypes.length, 3, 'três percursos precisam usar pointerType touch');
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
     assert.equal(report.input.joystickPointerMoves.length, 3, 'três percursos precisam mover o knob pelo pointermove touch');
