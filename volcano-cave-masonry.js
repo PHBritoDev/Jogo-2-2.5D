@@ -108,29 +108,29 @@ export function masonry(T, group, seed, palette){
   const color=cfg.color.map(glslNumber).join(',');
   const pulse='float lavaPulse='+glslNumber(cfg.pulseBase)+'+'+
    glslNumber(cfg.pulseSlow)+'*sin(uLavaTime*'+glslNumber(cfg.pulseSlowRate)+'+vLavaPhase)+'+
-   glslNumber(cfg.pulseFast)+'*sin(uLavaTime*'+glslNumber(cfg.pulseFastRate)+'-vLavaPhase*'+glslNumber(cfg.pulsePhaseRate)+');\\n';
+   glslNumber(cfg.pulseFast)+'*sin(uLavaTime*'+glslNumber(cfg.pulseFastRate)+'-vLavaPhase*'+glslNumber(cfg.pulsePhaseRate)+');\n';
   material.onBeforeCompile=shader=>{
    shader.uniforms.uLavaTime=lavaClock;
    shader.uniforms.uLavaGain=lavaGain;
-   const vertexChunk='\\n#include <project_vertex>\\n'+
-    'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);\\n'+
-    'vec3 delta=spill-position;\\n'+
-    'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));\\n'+
-    'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');\\n'+
-    'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);\\n'+
-    'if(uLavaGain>.001){\\n'+
-    ' float facing=max(dot(normalize(normal),normalize(delta)),0.);\\n'+
-    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing);\\n'+
-    ' vLavaPhase=dot(position.xz,vec2(.071,.047))+position.y*.12;\\n'+
-    '}else{vLavaBounce=0.;vLavaPhase=0.;}\\n';
-   const fragmentChunk='\\nfloat relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));\\n'+
-    'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);\\n'+
-    'if(uLavaGain>.001){\\n'+pulse+
-    ' diffuseColor.rgb+=vec3('+color+')*vLavaBounce*lavaPulse;\\n'+
-    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*lavaPulse*smoothstep(.045,.32,relief);\\n'+
-    '}else{\\n'+
-    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\\n'+
-    '}\\n';
+   const vertexChunk='\n#include <project_vertex>\n'+
+    'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);\n'+
+    'vec3 delta=spill-position;\n'+
+    'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));\n'+
+    'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');\n'+
+    'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);\n'+
+    'if(uLavaGain>.001){\n'+
+    ' float facing=max(dot(normalize(normal),normalize(delta)),0.);\n'+
+    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing);\n'+
+    ' vLavaPhase=dot(position.xz,vec2(.071,.047))+position.y*.12;\n'+
+    '}else{vLavaBounce=0.;vLavaPhase=0.;}\n';
+   const fragmentChunk='\nfloat relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));\n'+
+    'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);\n'+
+    'if(uLavaGain>.001){\n'+pulse+
+    ' diffuseColor.rgb+=vec3('+color+')*vLavaBounce*lavaPulse;\n'+
+    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*lavaPulse*smoothstep(.045,.32,relief);\n'+
+    '}else{\n'+
+    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\n'+
+    '}\n';
    shader.vertexShader='varying float wetGlint;\nvarying float vLavaBounce;\nvarying float vLavaPhase;\nuniform float uLavaGain;\n'+
     shader.vertexShader.replace('#include <project_vertex>',vertexChunk);
    shader.fragmentShader='varying float wetGlint;\nvarying float vLavaBounce;\nvarying float vLavaPhase;\nuniform float uLavaTime;\nuniform float uLavaGain;\n'+
