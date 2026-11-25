@@ -1,0 +1,38 @@
+name: A1 — testes unitários do percurso de Eldória
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/a1-route-qa-unit.yml'
+      - '.github/workflows/agente-cenas.yml'
+      - 'tools/visual-lab/agent-qa.cjs'
+      - 'tools/visual-lab/agent-qa.test.cjs'
+      - 'tools/visual-lab/scene-agent.cjs'
+      - 'tools/visual-lab/scene-capture-core.cjs'
+      - 'tools/visual-lab/scene-capture-core.test.cjs'
+      - 'tools/visual-lab/photographer.cjs'
+      - 'tools/visual-lab/camera-tree-fade.test.cjs'
+      - 'mundo-3d-prototype.js'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-route-qa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  route-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout SHA exato da PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testes do agente de cenas
+        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs
