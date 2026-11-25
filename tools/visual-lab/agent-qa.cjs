@@ -106,7 +106,11 @@ function validContinuousRoute(route) {
         !Number.isFinite(s.distance) || s.distance <= 0 ||
         !Number.isFinite(s.remaining) || !Number.isFinite(s.elapsedMs) || s.elapsedMs <= 0 ||
         !Number.isFinite(s.cameraSettleMs) || s.cameraSettleMs < 0 || s.cameraSettleMs > 9000 ||
-        !Number.isFinite(s.yaw) || s.key !== 'KeyW' || !Number.isFinite(s.timeoutMs) || s.timeoutMs !== rule.timeoutMs || s.elapsedMs > rule.timeoutMs ||
+        !Number.isFinite(s.yaw) || s.key !== 'KeyW' ||
+        !Number.isInteger(s.steeringUpdates) || s.steeringUpdates < 0 ||
+        !Number.isFinite(s.steeringIntervalMs) || s.steeringIntervalMs !== 750 ||
+        !Number.isFinite(s.finalYaw) || (i === expected.length - 1 && s.steeringUpdates < 1) ||
+        !Number.isFinite(s.timeoutMs) || s.timeoutMs !== rule.timeoutMs || s.elapsedMs > rule.timeoutMs ||
         Math.hypot(s.target[0]-rule.target[0],s.target[1]-rule.target[1]) > .05 ||
         !Number.isFinite(s.minTravel) || Math.abs(s.minTravel-rule.minTravel) > .01 ||
         !Number.isFinite(s.tolerance) || Math.abs(s.tolerance-rule.tolerance) > .01) return false;
