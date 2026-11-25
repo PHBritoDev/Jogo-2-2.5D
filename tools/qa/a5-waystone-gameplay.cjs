@@ -555,6 +555,7 @@ async function exposePathfinder() {
 (async () => {
   try {
     fs.mkdirSync(OUT, { recursive: true });
+    const { ACT1 } = await import('../../act1-flow.js');
     const { SIDE_QUESTS, SIDE_QUEST_WAYSTONES } = await import('../../sidequests3d.js');
     const { MAP_STORE_KEY } = await import('../../map3d.js');
     const { SHELTER } = await import('../../eldoria-shelter3d.js');
