@@ -60,8 +60,8 @@ test('Zar’khael balances a raised camera-side fill across both combatants with
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,16,36,[0,8,2]]);
-  assert.ok(env.light[1]>=16&&env.light[3][1]>=7.5&&env.light[3][1]<=8.5,'fill must stay elevated to reduce the checker-floor hotspot');
+  assert.deepEqual(env.light,[0xdfe6f2,18,36,[0,9,14]]);
+  assert.ok(env.light[1]>=18&&env.light[3][1]>=8.5&&env.light[3][1]<=9.5&&env.light[3][2]>=13.5&&env.light[3][2]<=14.5,'fill must stay elevated and camera-side without adding a light or reaching the corridor');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
   const distanceTo=(spot,y=1.7)=>Math.hypot(spot.x-center.x-lx,y-ly,spot.z-center.z-lz);
@@ -149,12 +149,12 @@ test('light-budget telemetry reports the real selected source, world position an
   assert.deepEqual(details[0].slotWorldPosition,[1200,7,0]);
   assert.equal(details[0].positionSpace,'world');
   assert.equal(details[0].name,'zarkhael-dimension-fill');
-  assert.equal(details[0].intensity,16);
+  assert.equal(details[0].intensity,18);
   assert.equal(details[0].distance,36);
   assert.deepEqual(details[0].slotColor,[.737910,.791298,.887923]);
   assert.equal(details[0].slotDistance,36);
   assert.equal(details[0].slotDecay,2);
-  assert.ok(details[0].slotIntensity>15);
+  assert.ok(details[0].slotIntensity>17);
 });
 
 test('A/B harness freezes boss automation, waits for VS readiness and performs one trusted start click',()=>{
@@ -204,10 +204,10 @@ test('A/B rejects captures where either combatant is outside the camera viewport
 test('A/B validates the original main fill separately from the new Zar’khael candidate fill',()=>{
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   assert.match(qa,/function expectedFillFor\(label,arenaOrigin\)/);
-  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,8,2\]/);
+  assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,9,14\]/);
   assert.match(qa,/arenaOrigin\.y \+ localOffset\[1\]/);
   assert.match(qa,/position, localOffset, intensity:3\.5, distance:110/);
-  assert.match(qa,/position, localOffset, intensity:16, distance:36/);
+  assert.match(qa,/position, localOffset, intensity:18, distance:36/);
   assert.match(qa,/expectedFillFor\(label,arenaOrigin\)/);
   assert.match(qa,/source\.worldPosition/);
   assert.match(qa,/expectedFill\.position\[1\]/,'world height must distinguish the original high fill from the lower candidate fill');
@@ -248,7 +248,7 @@ test('A/B resolves arena-local light offsets into the dimension world floor',()=
   assert.equal(DIM_FLOOR_Y,-2000);
   const candidate=[spec.x+env.light[3][0],spec.y+env.light[3][1],spec.z+env.light[3][2]];
   const baseline=[spec.x,spec.y+18,spec.z+4];
-  assert.deepEqual(candidate,[1200,-1992,2]);
+  assert.deepEqual(candidate,[1200,-1991,14]);
   assert.deepEqual(baseline,[1200,-1982,4]);
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const budget=readFileSync(new URL('./light-budget3d.js',import.meta.url),'utf8');
@@ -263,6 +263,7 @@ test('A/B supports main legacy light telemetry and verifies the baseline worktre
   const qa=readFileSync(new URL('./tools/visual-lab/bispo3-lighting-ab-qa.cjs',import.meta.url),'utf8');
   const workflow=readFileSync(new URL('./.github/workflows/bispo3-lighting-ab-qa.yml',import.meta.url),'utf8');
   assert.ok(workflow.includes("A4_BASELINE_ROOT: '/tmp/bispo3-baseline'"));
+  assert.match(workflow,/zarkhael-dimension3d\.js/,'production light changes must trigger the actor A/B workflow');
   assert.ok(qa.includes('function verifyBaselinePreset()'));
   assert.ok(qa.includes('A4_BASELINE_ROOT'));
   assert.ok(qa.includes("label==='01-main'&&!Array.isArray(lighting.lights?.activeDetails)"));
