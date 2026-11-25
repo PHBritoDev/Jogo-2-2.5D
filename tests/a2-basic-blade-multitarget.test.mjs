@@ -62,6 +62,26 @@ test('one physical swing damages primary and secondary capsule once, never dista
  assert(e.hits.every(h=>h.damage>0));
  assert.deepEqual(e.hits.map(h=>[h.id,h.kind]),[[1,'basic'],[2,'energy-side']]);
 });
+test('squad actor history reuses snapshot records between frames and removes stale IDs',()=>{
+ const e=encounter(),history=e.rites.previousOthers;
+ e.rites.update(1/60,e.ctx);
+ const sideSnapshot=history.get(e.side.id),focusSnapshot=history.get(e.primary.id);
+ assert.ok(sideSnapshot&&focusSnapshot);
+ e.side.x+=.1;e.primary.z+=.1;
+ e.rites.update(1/60,e.ctx);
+ assert.equal(e.rites.previousOthers,history,'the Map must be reused');
+ assert.equal(history.get(e.side.id),sideSnapshot,'the side actor record must be reused');
+ assert.equal(history.get(e.primary.id),focusSnapshot,'the focus record must be reused');
+ assert.equal(sideSnapshot.x,e.side.x);
+ assert.equal(focusSnapshot.z,e.primary.z);
+ e.ctx.paused=true;e.side.x+=.1;e.rites.update(1/60,e.ctx);
+ assert.equal(history.get(e.side.id),sideSnapshot,'paused snapshots must also reuse the record');
+ assert.equal(sideSnapshot.x,e.side.x);
+ e.ctx.paused=false;e.ctx.others=[e.hidden];e.rites.update(1/60,e.ctx);
+ assert.equal(history.has(e.side.id),false,'actors removed from the squad must be pruned');
+ assert.equal(history.has(e.primary.id),true,'the current focus remains tracked');
+ assert.equal(history.has(e.hidden.id),true);
+});
 test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
  for(const fps of [20,30]){
   const result=focusHandoffSweep(fps);

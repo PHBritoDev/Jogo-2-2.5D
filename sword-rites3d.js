@@ -18,12 +18,17 @@ const TARGET_SWEEP_MAX_SPEED=PROTA_DASH.distance/PROTA_DASH.travel;
 const TARGET_SWEEP_MAX_DISTANCE=PROTA_DASH.distance/3;
 const TARGET_SWEEP_MARGIN=.25;
 const distance3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
-function snapshotSquadActors(others,focus){
- const snapshots=new Map();
- const remember=actor=>{if(actor?.alive&&actor.id!=null&&Number.isFinite(actor.x)&&Number.isFinite(actor.y)&&Number.isFinite(actor.z))snapshots.set(actor.id,copy(actor));};
+function snapshotSquadActors(snapshots,others,focus,epoch){
+ const remember=actor=>{
+  if(!actor?.alive||actor.id==null||!Number.isFinite(actor.x)||!Number.isFinite(actor.y)||!Number.isFinite(actor.z))return;
+  let position=snapshots.get(actor.id);
+  if(!position){position={x:actor.x,y:actor.y,z:actor.z,epoch};snapshots.set(actor.id,position);}
+  else{position.x=actor.x;position.y=actor.y;position.z=actor.z;position.epoch=epoch;}
+ };
  for(const other of others||[])remember(other);
  // The focused actor is omitted from ctx.others by the world adapter. Keep it so a later focus handoff can sweep it.
  remember(focus);
+ for(const [id,position] of snapshots)if(position.epoch!==epoch)snapshots.delete(id);
  return snapshots;
 }
 const ENERGY_OCCLUSION_STEP=.008;
@@ -186,7 +191,7 @@ function auroraWaveImpactPoint(w,o){
  return{x:o.x-fx*r,y:o.y,z:o.z-fz*r};
 }
 export class SwordRites {
- constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.previousOthers=new Map();this.queued=false;this.energies=[];}
+ constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.previousOthers=new Map();this.previousOthersEpoch=0;this.queued=false;this.energies=[];}
  get canCancel(){return !this.active||(this.active.kind==='basic'&&(this.active.t<this.active.def.open*.65||this.active.t>this.active.def.close+.04));}
  get busy(){return !!this.active;}
  get locksMovement(){return !!this.active&&this.active.kind!=='basic';}
@@ -220,7 +225,7 @@ export class SwordRites {
   const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
-  if(ctx.paused){this.previousOthers=snapshotSquadActors(ctx.others,ctx.target);return;}
+  if(ctx.paused){snapshotSquadActors(this.previousOthers,ctx.others,ctx.target,++this.previousOthersEpoch);return;}
   if(!Number.isFinite(dt)||dt<=0)return;
   if(ctx.valid===false){this.cancel('context');this.previousOthers.clear();return;}
   // Secondary bodies are swept between world frames at the same 120 Hz cadence as the blade.
@@ -237,7 +242,7 @@ export class SwordRites {
     const sample={...other};frames.push({id:other.id,from,to,sample});return sample;
    });
    stepCtx={...ctx,physicalOthers};
-  }else this.previousOthers=snapshotSquadActors(others,ctx.target);
+  }else snapshotSquadActors(this.previousOthers,others,ctx.target,++this.previousOthersEpoch);
   let left=simDt,elapsed=0;
   while(left>1e-8){
    const h=Math.min(left,1/120);left-=h;elapsed+=h;
@@ -251,7 +256,7 @@ export class SwordRites {
    }
    this.tick(h,stepCtx);
   }
-  if(trackPhysicalOthers)this.previousOthers=snapshotSquadActors(others,ctx.target);
+  if(trackPhysicalOthers)snapshotSquadActors(this.previousOthers,others,ctx.target,++this.previousOthersEpoch);
  }
  tick(dt,ctx){
   this.time+=dt;for(const id of ['prota','aurora'])this.cooldowns[id]=Math.max(0,this.cooldowns[id]-dt);
