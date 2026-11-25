@@ -3,9 +3,9 @@ import {caveShafts} from './volcano-cave-atmosphere.js';
 import {calderaVault,upperGalleries,lowerSpillways} from './volcano-cave-galleries.js';
 import {assetLod} from './volcano-cave-asset-lod.js';
 import {crowns,ritual} from './volcano-cave-crowns.js';
-import {grove} from './volcano-cave-grove.js';
+const {grove} = await import('./volcano-cave-grove.js' + new URL(import.meta.url).search);
 import {plates,supported,caveHeight,heatPools,caveHeat,solids,fixedRocks,resetStructures} from './volcano-cave-layout.js';
-import {masonry} from './volcano-cave-masonry.js';
+const {masonry} = await import('./volcano-cave-masonry.js' + new URL(import.meta.url).search);
 
 const sector=z=>z>79?0:z> -14?1:2;
 function molten(T, group,clock){

@@ -13,11 +13,11 @@
 export const WARM_LIMITS = Object.freeze({ concurrency: 6, tries: 3, backoffMs: 350 });
 
 /** Especificadores de import/export estáticos e dinâmicos (literais) de um código ES module. */
-export function importSpecs(code) {
+export function importSpecs(code, parentSearch = '') {
   const out = new Set();
-  const re = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(['"])([^'"\n]+)\1/g;
+  const re = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s*)(['"])([^'"\n]+)\1(\s*\+\s*new\s+URL\(\s*import\.meta\.url\s*\)\.search)?/g;
   let m;
-  while ((m = re.exec(code))) out.add(m[2]);
+  while ((m = re.exec(code))) out.add(m[2] + (m[3] ? parentSearch : ''));
   return [...out];
 }
 
@@ -58,7 +58,7 @@ export async function warmModuleGraph(rootCode, rootUrl, { importMap = {}, fetch
   const seen = new Set(), failures = [];
   let queue = [];
   const enqueue = (code, parent) => {
-    for (const s of importSpecs(code)) {
+    for (const s of importSpecs(code, new URL(parent).search)) {
       const u = resolveSpec(s, parent, importMap);
       if (!u || !isScript(u) || seen.has(u) || u.startsWith('blob:')) continue;
       seen.add(u); queue.push({ url: u, from: parent });
