@@ -672,3 +672,37 @@ test('A2: SlashVFX percorre slots vivos e mantém o pool correto após expiraç�
     v.clear(); scene.remove(v.root);
   }
 });
+
+test('A2: SlashVFX calculates frame-constant spark drag once, regardless of active pool size', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 220, stars: 1 });
+  const sparkMesh = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aPos);
+  assert.ok(sparkMesh, 'o pool de 220 faíscas pertence ao SlashVFX de produção');
+  const velocity = sparkMesh.geometry.attributes.aVel.array;
+  const dt = 1 / 60, originalExp = Math.exp, expectedDrag = originalExp(-3.5 * dt);
+  let expCalls = 0;
+  try {
+    for (let i = 0; i < 220; i++) {
+      v.spark({ x: i, y: 1, z: 0 }, { x: 4, y: 5, z: 6 }, 'prota', 1, 1);
+    }
+    Math.exp = value => { expCalls++; return originalExp(value); };
+    v.update(dt, camera, 'high');
+    assert.equal(sparkMesh.geometry.instanceCount, 220, 'o teste mantém a capacidade padrão inteira ativa');
+    assert.equal(expCalls, 1, 'o arrasto usa uma exponencial por frame, não uma por faísca');
+    assert.ok(Math.abs(velocity[0] - 4 * expectedDrag) < 1e-6, 'velocidade X mantém o arrasto original');
+    assert.ok(Math.abs(velocity[1] - (5 - 9 * dt)) < 1e-6, 'velocidade Y mantém a gravidade original');
+    assert.ok(Math.abs(velocity[2] - 6 * expectedDrag) < 1e-6, 'velocidade Z mantém o arrasto original');
+    assert.ok(Math.abs(velocity[(219 * 3)] - 4 * expectedDrag) < 1e-6, 'a última instância recebe a mesma integração física');
+
+    v.update(dt, camera, 'high');
+    assert.equal(expCalls, 2, 'cada frame ativo calcula o arrasto exatamente uma vez');
+    v.clear();
+    v.update(dt, camera, 'high');
+    assert.equal(expCalls, 2, 'pool vazio não calcula arrasto desnecessariamente');
+  } finally {
+    Math.exp = originalExp;
+    v.clear();
+    scene.remove(v.root);
+  }
+});

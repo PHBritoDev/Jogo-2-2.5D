@@ -300,6 +300,9 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     for (const s of slashPool) { if (!s.m.visible) continue; s.m.material.uniforms.uTime.value = time; s.sm.material.uniforms.uTime.value = time; if (time - s.last > (STYLES[s.style] || STYLES.prota).life + .05) { s.m.visible = false; if (s.key !== null) { byKey.delete(s.key); s.key = null; } s.n = 0; s.g.setDrawRange(0, 0); } }
     for (const w of wavePool) syncWave(w, dt);
     let live = 0; const P = aPos.array, V = aVel.array, K = aK.array;
+    // Gravity and drag are frame-constant: compute them once, not once per live spark.
+    const gravityStep = activeSparkCount ? 9 * dt : 0;
+    const drag = activeSparkCount ? Math.exp(-3.5 * dt) : 1;
     for (let active = 0; active < activeSparkCount;) {
       const i = activeSparkIndices[active];
       sp.age[i] += dt / sp.life[i];
@@ -316,7 +319,7 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
         activeSparkPositions[i] = -1;
         continue;
       }
-      sp.vel[i * 3 + 1] -= 9 * dt; const drag = Math.exp(-3.5 * dt); sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
+      sp.vel[i * 3 + 1] -= gravityStep; sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
       sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
       const source3 = i * 3, target3 = live * 3, target2 = live * 2;
       P[target3] = sp.pos[source3]; P[target3 + 1] = sp.pos[source3 + 1]; P[target3 + 2] = sp.pos[source3 + 2];
