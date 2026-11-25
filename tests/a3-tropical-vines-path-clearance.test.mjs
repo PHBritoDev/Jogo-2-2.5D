@@ -6,6 +6,15 @@ import { planTropical } from '../eldoria-undergrowth.js';
 const trees = Array.from({ length: 20 }, (_, i) => ({ x: i * 4, z: 0, h: 12 }));
 const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 
+function vineFootprintFree(isFree, x, z) {
+  if (!isFree(x, z)) return false;
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI * 2 / 16;
+    if (!isFree(x + Math.cos(a) * .4, z + Math.sin(a) * .4)) return false;
+  }
+  return true;
+}
+
 test('cipós tropicais respeitam o corredor livre, assim como as folhas', () => {
   const isFree = (x, z) => Math.abs(z) > 2.2;
   const plan = planTropical({ trees, zone: null, isFree, seed: 2926 });
@@ -16,7 +25,7 @@ test('cipós tropicais respeitam o corredor livre, assim como as folhas', () => 
   assert.equal(unobstructed.vines.length, 40, 'o filtro não altera a densidade quando todo o terreno está livre');
   assert.ok(plan.vines.length < unobstructed.vines.length, 'cipós dentro do corredor são removidos');
   assert.ok(plan.leaves.every(p => isFree(p.x, p.z)), 'folhas respeitam a máscara');
-  assert.ok(plan.vines.every(p => isFree(p.x, p.z)), 'nenhum cipó ocupa o corredor da trilha');
+  assert.ok(plan.vines.every(p => vineFootprintFree(isFree, p.x, p.z)), 'a malha completa e sua oscilação ficam fora do corredor');
 });
 
 test('sem área livre, nenhum cipó ou folha é planejado', () => {
@@ -43,7 +52,7 @@ test('filtrar cipós não desloca o RNG das folhas nem das árvores seguintes', 
   assert.deepEqual(filtered.leaves, unobstructed.leaves, 'folhas e sequência das árvores seguintes permanecem idênticas');
   assert.deepEqual(
     filtered.vines,
-    unobstructed.vines.filter(v => Math.hypot(v.x, v.z) >= 2.2),
+    unobstructed.vines.filter(v => vineFootprintFree((x, z) => Math.hypot(x, z) >= 2.2, v.x, v.z)),
     'somente os cipós dentro da máscara são removidos; os seguintes conservam os mesmos dados'
   );
   assert.ok(filtered.vines.length < unobstructed.vines.length, 'o caso determinístico realmente filtra um cipó');

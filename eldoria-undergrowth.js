@@ -129,6 +129,17 @@ export function vineGeometry(THREE) {
 }
 export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242 }) {
   const rnd = makeRng(seed), leaves = [], vines = [], maxL = lowSpec ? 180 : 360;
+  // Envelope horizontal da malha instanciada (~0,275 m) + oscilação máxima do shader (~0,123 m).
+  // Validar a borda inteira evita que a fita/folhas do cipó invadam a trilha mesmo com o pivô livre.
+  const vineFits = (x, z) => {
+    if (!isFree(x, z)) return false;
+    const radius = .4, samples = 16;
+    for (let i = 0; i < samples; i++) {
+      const a = i * Math.PI * 2 / samples;
+      if (!isFree(x + Math.cos(a) * radius, z + Math.sin(a) * radius)) return false;
+    }
+    return true;
+  };
   for (const t of trees) {
     const n = 1 + ((rnd() * 2) | 0);
     for (let k = 0; k < n && leaves.length < maxL; k++) { const a = rnd() * 6.28, r = 2.2 + rnd() * 4, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) leaves.push({ x, z, s: .9 + rnd() * 1.1, rot: rnd() * 6.28 }); }
@@ -139,7 +150,7 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
       const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
       // Consome os mesmos valores antes do filtro para manter o RNG dos próximos troncos estável.
       const top = t.h * (.62 + rnd() * .2), len = t.h * (.35 + rnd() * .35), rot = rnd() * 6.28;
-      if (isFree(x, z)) vines.push({ x, z, top, len, rot });
+      if (vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
   }
   if (zone) for (let i = 0; i < (lowSpec ? 280 : 560) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
