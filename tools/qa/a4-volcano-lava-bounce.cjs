@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, execFileSync } = require('node:child_process');
 const { chromium } = require('playwright');
 const { PNG } = require('pngjs');
 
@@ -66,7 +66,7 @@ async function runVersion(browser, label, port, threeRoot) {
   });
   page.on('requestfailed', request => {
     const failure = request.failure();
-    if (failure && !failure.errorText.includes('ERR_ABORTED')) errors.push(request.url() + ' — ' + failure.errorText);
+    if (failure && failure.errorText && !failure.errorText.includes('ERR_ABORTED')) errors.push(request.url() + ' — ' + failure.errorText);
   });
   const prefix = 'https://cdn.jsdelivr.net/npm/three@0.160.0/';
   await page.route(prefix + '**', route => {
@@ -100,6 +100,8 @@ async function runVersion(browser, label, port, threeRoot) {
   }
 }
 async function main() {
+  const baseSha = process.env.BASE_SHA && process.env.BASE_SHA !== 'main' ? process.env.BASE_SHA : execFileSync('git', ['-C', baseDir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const candidateSha = process.env.CANDIDATE_SHA || execFileSync('git', ['-C', candidateDir, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   const baseServer = startServer(baseDir, 4263);
   const candidateServer = startServer(candidateDir, 4264);
   let browser;
@@ -114,7 +116,7 @@ async function main() {
     const candidate = await runVersion(browser, 'candidate', 4264, threeRoot);
     const comparisons = {};
     const budget = {};
-    for (const key of ['overlook-1000', 'overlook-1500', 'gallery-1000', 'grove-1000', 'spine-1000']) {
+    for (const key of ['overlook-1000', 'overlook-1500', 'gallery-2000', 'grove-2500', 'spine-3000']) {
       const a = baseline.frames.find(frame => frame.key + '-' + frame.now === key);
       const b = candidate.frames.find(frame => frame.key + '-' + frame.now === key);
       if (!a || !b) throw new Error('Captura A/B ausente: ' + key);
@@ -142,8 +144,8 @@ async function main() {
       )
     };
     const report = {
-      baseSha: process.env.BASE_SHA || 'main',
-      candidateSha: process.env.CANDIDATE_SHA || 'unknown',
+      baseSha,
+      candidateSha,
       renderer: 'Chromium WebGL / SwiftShader',
       viewport: '960x540',
       baseline: { report: baseline.report, errors: baseline.errors },
