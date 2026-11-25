@@ -631,6 +631,9 @@ async function exposePathfinder() {
     await waitRuntime();
     await exposePathfinder();
     await waitForWorldCollisionReady('after-two-waystones-reload');
+    // Conferir o HUD restaurado antes de act1() reaplicar a etapa de teste.
+    report.restoredObjective = await page.locator('#quest-objective').textContent();
+    assert.equal(report.restoredObjective, 'Pergunte a Téo sobre o Pecado da Ganância');
     await wait(1800);
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(700);
