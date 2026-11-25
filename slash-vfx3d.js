@@ -40,8 +40,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   let time = 0, quality = 'high';
   // ---------------- crescente varrido (faixa com nascimento por amostra) ----------------
   const slashMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, blending: st.blend === 'normal' ? T.NormalBlending : T.AdditiveBlending, /* Mod 320: 'normal' = faixa carmesim legível sobre cenário claro */
-    uniforms: { uTime: { value: 0 }, uLife: { value: st.life }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 }, uSeed: { value: 0 }, uHead: { value: 0 } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    uniforms: { uTime: { value: 0 }, uLife: { value: st.life }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 }, uSeed: { value: 0 }, uHead: { value: 0 }, uLength: { value: 1 } },
+    vertexShader: 'attribute float aBirth;uniform float uLength;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=vec2(uv.x/max(uLength,.0001),uv.y);vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
     fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uRakes,uGain,uSeed,uHead;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;
         float lead=smoothstep(uHead-.35,uHead,u);float tail=smoothstep(0.,.22,u);
@@ -56,25 +56,60 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   /* Sombra/fumaça sob o corte (mistura normal): dá contraste em cenário claro como nas referências — núcleo claro sobre
      uma esteira escura que se esgarça, em vez de só somar luz (que some sobre grama ensolarada). */
   const smokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
-    uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes }, uLength: { value: 1 } },
+    vertexShader: 'attribute float aBirth;uniform float uLength;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=vec2(uv.x/max(uLength,.0001),uv.y);vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
     fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uGain,uSeed,uRakes;uniform vec3 uDark;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;float n=vn(vec2(u*9.+uSeed,v*4.-uTime*3.));
         float band=uRakes>1.5?smoothstep(.0,.3,fract(v*3.))*(1.-smoothstep(.5,.8,fract(v*3.))):smoothstep(.05,.45,v)*(1.-smoothstep(.7,.92,v));
         float a=band*smoothstep(0.,.25,u)*smoothstep(age,age+.35,n)*(1.-smoothstep(.4,1.,age))*.5*uGain;a*=vNear;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
   function makeSlash() {
     const N = segments, pos = new Float32Array(N * 2 * 3), uv = new Float32Array(N * 2 * 2), birth = new Float32Array(N * 2), idx = [];
-    for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage)); g.setAttribute('uv', new T.BufferAttribute(uv, 2).setUsage(T.DynamicDrawUsage));
-    g.setAttribute('aBirth', new T.BufferAttribute(birth, 1).setUsage(T.DynamicDrawUsage)); g.setIndex(idx); g.setDrawRange(0, 0);
+    for (let i = 0; i < N; i++) {
+      const a = i * 2, o = i * 4, u = N > 1 ? i / (N - 1) : 0;
+      uv[o] = uv[o + 2] = u; uv[o + 1] = 0; uv[o + 3] = 1;
+      if (i < N - 1) idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+    g.setAttribute('uv', new T.BufferAttribute(uv, 2));
+    g.setAttribute('aBirth', new T.BufferAttribute(birth, 1).setUsage(T.DynamicDrawUsage));
+    g.setIndex(idx); g.setDrawRange(0, 0);
     const mats = byStyle(slashMat);
     const m = new T.Mesh(g, mats.prota); m.frustumCulled = false; m.renderOrder = 10; m.visible = false; root.add(m);
     const smokes = byStyle(smokeMat), sm = new T.Mesh(g, smokes.prota); sm.frustumCulled = false; sm.renderOrder = 9; m.add(sm);
-    return { m, sm, smokes, g, pos, uv, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null };
+    return { m, sm, smokes, g, pos, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null, positionRange: { start: 0, count: 0 }, birthRange: { start: 0, count: 0 } };
   }
   const slashPool = Array.from({ length: slashes }, makeSlash), byKey = new Map();
   let slashCursor = 0;
   const _a = new T.Vector3(), _b = new T.Vector3(), _d = new T.Vector3();
+  // Three.js r160 update ranges are component offsets; reuse one pending range per ribbon attribute.
+  function publishSlashRange(attribute, reusableRange, start, count, full = false) {
+    if (typeof attribute.addUpdateRange === 'function' && typeof attribute.clearUpdateRanges === 'function' && Array.isArray(attribute.updateRanges)) {
+      const ranges = attribute.updateRanges;
+      if (full) {
+        ranges.length = 0;
+        reusableRange.start = 0; reusableRange.count = attribute.array.length;
+        ranges.push(reusableRange);
+      } else {
+        let first = start, last = start + count, merged = true;
+        while (merged) {
+          merged = false;
+          for (let i = ranges.length - 1; i >= 0; i--) {
+            const range = ranges[i], rangeEnd = range.start + range.count;
+            if (range === reusableRange || (first <= rangeEnd && last >= range.start)) {
+              if (range.start < first) first = range.start;
+              if (rangeEnd > last) last = rangeEnd;
+              ranges.splice(i, 1); merged = true;
+            }
+          }
+        }
+        reusableRange.start = first; reusableRange.count = last - first;
+        ranges.push(reusableRange);
+      }
+    }
+    attribute.needsUpdate = true;
+  }
+
   /**
    * Amostra da arma: key identifica o golpe (serial); base/tip no mundo; style; gain (0,7 comum … 1,15 finalizador).
    * extend: quanto o halo passa da ponta (m); inner: fração da lâmina onde a faixa começa.
@@ -88,11 +123,19 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     _b.set(tip.x + _d.x * ext * st.width, tip.y + _d.y * ext * st.width, tip.z + _d.z * ext * st.width);
     if (s.lastP && s.lastP.distanceToSquared(_b) < .0009) return; // parado: não acumula amostras inúteis
     s.lastP = (s.lastP || new T.Vector3()).copy(_b);
-    if (s.n === segments) { s.pos.copyWithin(0, 6); s.birth.copyWithin(0, 2); s.n--; }
-    const i = s.n++;
-    s.pos.set([_a.x, _a.y, _a.z, _b.x, _b.y, _b.z], i * 6); s.birth[i * 2] = s.birth[i * 2 + 1] = time; s.last = time;
-    for (let k = 0; k < s.n; k++) { const u = s.n > 1 ? k / (s.n - 1) : 1; s.uv[k * 4] = u; s.uv[k * 4 + 1] = 0; s.uv[k * 4 + 2] = u; s.uv[k * 4 + 3] = 1; }
-    s.g.attributes.position.needsUpdate = s.g.attributes.uv.needsUpdate = s.g.attributes.aBirth.needsUpdate = true; s.g.setDrawRange(0, Math.max(0, (s.n - 1) * 6));
+    const full = s.n === segments;
+    if (full) { s.pos.copyWithin(0, 6); s.birth.copyWithin(0, 2); s.n--; }
+    const i = s.n++, offset = i * 6, birthOffset = i * 2;
+    s.pos[offset] = _a.x; s.pos[offset + 1] = _a.y; s.pos[offset + 2] = _a.z;
+    s.pos[offset + 3] = _b.x; s.pos[offset + 4] = _b.y; s.pos[offset + 5] = _b.z;
+    s.birth[birthOffset] = s.birth[birthOffset + 1] = time; s.last = time;
+    s.g.setDrawRange(0, Math.max(0, (s.n - 1) * 6));
+    const position = s.g.attributes.position, aBirth = s.g.attributes.aBirth;
+    publishSlashRange(position, s.positionRange, full ? 0 : offset, full ? position.array.length : 6, full);
+    publishSlashRange(aBirth, s.birthRange, full ? 0 : birthOffset, full ? aBirth.array.length : 2, full);
+    const denominator = Math.max(1, segments - 1), uLength = Math.max(1 / denominator, (s.n - 1) / denominator);
+    s.m.material.uniforms.uLength.value = uLength;
+    s.sm.material.uniforms.uLength.value = uLength;
     s.m.material.uniforms.uHead.value = 1;
     // faíscas soltas na borda de ataque (poucas por amostra, mais nos golpes grandes)
     if (quality !== 'low' && Math.random() < .55 * gain) spark(_b, { x: _d.x * 2 + (Math.random() - .5) * 3, y: _d.y * 2 + Math.random() * 1.5, z: _d.z * 2 + (Math.random() - .5) * 3 }, s.style, .22);
