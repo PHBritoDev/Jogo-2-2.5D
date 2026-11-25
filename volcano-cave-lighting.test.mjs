@@ -84,8 +84,12 @@ test('variantes com e sem bounce usam chaves distintas no cache de programas do 
   const shaderConfig = [c.distanceFalloff, c.regionStartZ, c.regionFullZ, c.sourceBlendStartZ, c.sourceBlendEndZ, c.facingFloor, c.facingGain, c.bounceStrength, c.color];
   assert.ok(enabled.endsWith(JSON.stringify([true, ...shaderConfig])));
   assert.ok(disabled.endsWith(JSON.stringify([false, ...shaderConfig])));
-  assert.match(enabled, /^volcano-cave-masonry-v2:/);
-  assert.match(disabled, /^volcano-cave-masonry-v2:/);
+  const enabledPatch = masonryShaderPatches(true);
+  const disabledPatch = masonryShaderPatches(false);
+  const enabledSource = JSON.stringify([enabledPatch.vertexPrefix, enabledPatch.fragmentPrefix, enabledPatch.vertexChunk, enabledPatch.fragmentChunk]);
+  const disabledSource = JSON.stringify([disabledPatch.vertexPrefix, disabledPatch.fragmentPrefix, disabledPatch.vertexChunk, disabledPatch.fragmentChunk]);
+  assert.ok(enabled.startsWith('volcano-cave-masonry-v3:' + enabledSource + ':'));
+  assert.ok(disabled.startsWith('volcano-cave-masonry-v3:' + disabledSource + ':'));
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
   assert.match(masonry, /material\.customProgramCacheKey=\(\)=>masonryShaderCacheKey\(lavaEnabled\)/);
 });
