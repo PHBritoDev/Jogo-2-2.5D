@@ -20,8 +20,8 @@ const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.j
 ]));
 const profiles = ['low', 'medium', 'high', 'max'];
 const scenes = [
-  { name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5, waterRoi: { left: 180, top: 220, width: 520, height: 190 } },
-  { name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10, waterRoi: { left: 180, top: 310, width: 520, height: 100 }, skyRoi: { left: 180, top: 60, width: 520, height: 100 } }
+  { name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5, waterRoi: { left: 100, top: 170, width: 120, height: 120 } // patcho limpo à esquerda: água sem jogador, HUD ou toast },
+  { name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10, waterRoi: { left: 280, top: 235, width: 100, height: 40 } // faixa central-esquerda da água; y=310 era chão, não água }
 ];
 const report = {
   status: 'incomplete', baseSha, candidateSha,
