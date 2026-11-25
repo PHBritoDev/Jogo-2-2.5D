@@ -1,6 +1,6 @@
 /** Enquadramento horizontal do duelo retrato: mantém o ator próximo dentro de uma margem segura. */
-// 30° de teto; separa melhor as silhuetas em curta distância, ainda limitado pela margem segura.
-const MAX_PORTRAIT_BIAS = .52;
+// 39° de teto; separa as silhuetas em curta distância sem empurrar o ator próximo além da margem segura.
+const MAX_PORTRAIT_BIAS = .68;
 const SAFE_ACTOR_NDC = .72;
 const RELEASE_START = 22;
 const RELEASE_END = 28;

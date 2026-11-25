@@ -22,6 +22,7 @@ test('enquadramento retrato é exclusivo da luta ativa de VORGAZHEK e não alter
   assert.match(world, /const idleMs=portrait\?portrait\.idleMs:1200/);
   assert.match(world, /release:fit\.release,idleMs:fit\.idleMs,deadZone:fit\.deadZone,parallaxBias:fit\.parallaxBias,turnRate:fit\.turnRate/);
   assert.match(world, /actorScreen\(\)\{[\s\S]*?camera\.updateMatrixWorld\(true\)/);
+  assert.match(world, /cameraState:\{aspect:\+camera\.aspect\.toFixed\(3\),autoCamera:!!userSettings\.autoCamera,lockOn:!!lockOnActive,dimensionKey:dimKey,portraitFit:qaPortraitFit\?/);
 });
 
 test('fit mantém 15 m e libera o foco progressivamente entre 22 e 28 m', () => {
@@ -147,7 +148,7 @@ test('zoom manual no retrato preserva a distância escolhida pelo jogador', () =
 test('fit geométrico do retrato mantém o ator próximo dentro da margem e os dois separados', () => {
   for (const aspect of [320 / 852, 393 / 852]) {
     for (const fov of [56, 63]) {
-      let lastDistance = 0, lastBias = .52;
+      let lastDistance = 0, lastBias = .68;
       for (const sep of [1.2, 1.5, 2.4, 3.5, 6, 8, 12, 21, 22]) {
         const fit = computePortraitCameraFit(sep, aspect, fov);
         const half = sep * .5, tanHalfHorizontal = Math.tan(fov * Math.PI / 360) * aspect;
@@ -160,7 +161,7 @@ test('fit geométrico do retrato mantém o ator próximo dentro da margem e os d
         const baseMinSeparation = sep < 1.3 ? .17 : sep < 2 ? .22 : sep < 3 ? .42 : sep < 6 ? .48 : .42;
         const minSeparation = baseMinSeparation * Math.tan(56 * Math.PI / 360) / Math.tan(fov * Math.PI / 360);
         assert.ok(nearNdc + farNdc >= minSeparation, aspect + ' / ' + fov + '° / ' + sep + 'm: separação horizontal legível');
-        if (sep === 2.4 && aspect > .45 && fov === 63) assert.ok(fit.parallaxBias > .51, 'curta distância usa o novo teto seguro de paralaxe');
+        if (sep === 2.4 && aspect > .45 && fov === 63) assert.ok(fit.parallaxBias > .65, 'curta distância usa o novo teto seguro de paralaxe');
         if (sep <= 1.5) assert.ok(fit.parallaxBias > .38, 'bias aumenta em curta distância enquanto a margem permite');
         assert.ok(fit.minDistance >= lastDistance && fit.minDistance <= 15, 'distância monotônica e limitada');
         assert.ok(fit.parallaxBias <= lastBias + 1e-6, 'paralaxe diminui quando a separação aumenta');

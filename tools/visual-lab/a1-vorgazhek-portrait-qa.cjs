@@ -260,6 +260,9 @@ function assertPortrait(state, label) {
   assert.ok(h.topRight.right <= w + 1, label + ': menu dentro do viewport');
   assert.ok(Array.isArray(state.camera) && Number.isFinite(state.player?.x) && Math.abs(state.camera[0] - state.player.x) >= 1.1, label + ': câmera oblíqua separa os atores em retrato');
   assert.equal(state.actors?.enemy?.source, 'squad-body', label + ': projeção usa o corpo real do alvo da esquadra');
+  assert.ok(state.actors?.cameraState?.portraitFit, `${label}: fit de VORGAZHEK ativo; camera=${JSON.stringify(state.actors?.cameraState)}`);
+  assert.equal(state.actors?.cameraState?.autoCamera, true, label + ': auto-câmera padrão ativa no cenário isolado');
+  assert.equal(state.actors?.cameraState?.lockOn, false, label + ': teste não usa lock-on');
   assert.equal(state.actors?.enemy?.visible, true, label + ': modelo do alvo da esquadra está visível');
   assert.ok(state.actors?.enemy?.visibleMeshes > 0, label + ': ao menos uma malha do Bispo está realmente visível');
   assert.ok(state.actors?.enemy?.id, label + ': alvo da esquadra identificado');
@@ -270,7 +273,8 @@ function assertPortrait(state, label) {
   const fovScale = Math.tan(56 * Math.PI / 360) / Math.tan(fov * Math.PI / 360);
   const baseMinProjectedSeparation = worldSeparation < 1.3 ? .17 : worldSeparation < 2 ? .22 : worldSeparation < 3 ? .42 : worldSeparation < 6 ? .48 : .42;
   const minProjectedSeparation = baseMinProjectedSeparation * fovScale;
-  assert.ok(Math.abs(state.actors.player.center.x - state.actors.enemy.center.x) >= minProjectedSeparation, label + ': silhuetas dos combatentes separadas horizontalmente no quadro');
+  const actualSeparation = Math.abs(state.actors.player.center.x - state.actors.enemy.center.x);
+  assert.ok(actualSeparation >= minProjectedSeparation, `${label}: silhuetas separadas; atual=${actualSeparation.toFixed(3)} mínimo=${minProjectedSeparation.toFixed(3)} yaw=${state.actors.cameraYaw} distância=${state.actors.distance} solicitada=${state.actors.requestedDistance} camera=${JSON.stringify(state.actors.cameraState)}`);
 }
 
 async function finish(context, page) {
@@ -291,7 +295,10 @@ async function runLandscapeThenPortrait(browser, url, stage, assertHead) {
     await page.waitForTimeout(1900);
     const portrait = await inspect(page);
     await shot(page, stage + '-retrato-rotacao');
-    if (assertHead) assertPortrait(portrait, stage + ' retrato após rotação');
+    if (assertHead) {
+      report.head.rotationSnapshot = { landscape, portrait };
+      assertPortrait(portrait, stage + ' retrato após rotação');
+    }
     await page.setViewportSize({ width: 320, height: 852 });
     await page.waitForTimeout(900);
     const compactPortrait = await inspect(page);
