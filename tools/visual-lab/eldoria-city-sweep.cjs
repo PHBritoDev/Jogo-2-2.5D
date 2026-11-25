@@ -344,11 +344,15 @@ async function captureMainBaseline(browser,base,output,report){
        let liveState=await page.evaluate(()=>window.SevenSinsDebug3D.walkState());
        let liveProgress=0, lateralMeters=0;
        for(let i=0;i<48;i++){
-         liveState=await page.evaluate(input=>{
+         // Re-aim from the actual feet after each step. Camera recentering and
+         // acceleration remain active between steps, as in the playable world.
+         const heading=terrainEdgeWalkCameraYaw([liveState.x,liveState.z],selected.end);
+         liveState=await page.evaluate(({input,heading})=>{
            const api=window.SevenSinsDebug3D;
+           api.view(heading,.18,7);
            api.motionStep(.25,input);
            return api.walkState();
-         },TERRAIN_EDGE_WALK_INPUT);
+         },{input:TERRAIN_EDGE_WALK_INPUT,heading});
          await page.waitForTimeout(100);
          const deltaX=liveState.x-selected.start[0], deltaZ=liveState.z-selected.start[1];
          liveProgress=deltaX*direction.x+deltaZ*direction.z;

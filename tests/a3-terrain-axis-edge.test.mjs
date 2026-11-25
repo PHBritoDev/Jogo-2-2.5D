@@ -163,9 +163,11 @@ test('A3 walk scan crosses each fine-grid boundary in both directions', () => {
 
 test('A3 live walk replay faces the world path and uses forward input', () => {
   assert.deepEqual(TERRAIN_EDGE_WALK_INPUT, {x:0,z:-1});
-  const closeYaw = (actual,expected) => assert.ok(Math.abs(actual-expected) < 1e-8, actual + ' != ' + expected);
-  closeYaw(terrainEdgeWalkCameraYaw([0,0],[0,1]), Math.PI);
-  closeYaw(terrainEdgeWalkCameraYaw([0,0],[0,-1]), 0);
-  closeYaw(terrainEdgeWalkCameraYaw([0,0],[1,0]), Math.PI / 2);
-  closeYaw(terrainEdgeWalkCameraYaw([0,0],[-1,0]), -Math.PI / 2);
+  // The production stick maps (0,-1) to (-sin(yaw),-cos(yaw)).
+  for (const end of [[1,0],[-1,0],[0,1],[0,-1],[3,-4],[-2,5]]) {
+    const yaw = terrainEdgeWalkCameraYaw([0,0],end);
+    const length = Math.hypot(...end);
+    assert.ok(Math.abs(-Math.sin(yaw)-end[0]/length)<1e-8);
+    assert.ok(Math.abs(-Math.cos(yaw)-end[1]/length)<1e-8);
+  }
 });
