@@ -41,9 +41,23 @@ export function eldoriaSpecs() {
   const specs = [];
   for (const [x, z, file, size, rotation] of ELDORIA_PLOTS) specs.push({ file, x, z, size, rotation, collision: 2.25, kind: 'house' });
   for (const [x, z, size, rotation] of ELDORIA_MARKET) specs.push({ file: 'BarracaFrutasEldoria.glb', x, z, size, rotation, collision: 1.22, kind: 'market' });
-  for (const [file, x, z, size, rotation, collision] of ELDORIA_PROPS) specs.push({ file, x, z, size, rotation, collision, kind: /Arvore/.test(file) ? 'tree' : 'prop' });
+  for (const [file, x, z, size, rotation, collision] of ELDORIA_PROPS) {
+    const kind = /Arvore/.test(file) ? 'tree' : 'prop';
+    const treeRole = kind !== 'tree' ? null
+      : x === MT.x && z === MT.z ? 'main'
+      : x === ST.x && z === ST.z ? 'side'
+      : 'other';
+    specs.push({ file, x, z, size, rotation, collision, kind, ...(treeRole ? { treeRole } : {}) });
+  }
   return specs;
 }
+
+/** O mesmo GLB serve às duas árvores ancestrais; a cota precisa seguir o papel da instância. */
+export function treeRootSink(spec) {
+  if (spec?.kind !== 'tree') return 0;
+  return spec.treeRole === 'main' ? .20 : ANCESTRAL_ROOT_SINK;
+}
+
 /** Raio aproximado da pegada no chão (para testes de sobreposição sem WebGL). */
 export function footprintRadius(s) { return s.kind === 'tree' ? s.collision : s.kind === 'house' ? s.size * .42 : s.size * .38; }
 export function planOverlaps(specs = eldoriaSpecs()) {
@@ -159,10 +173,10 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       const cx = center.x + spec.x, cz = center.z + spec.z, hx = asset.size.x * k * .46, hz = asset.size.z * k * .46;
       const ys = footprintSamples(cx, cz, spec.kind === 'tree' ? Math.min(hx, 2.2) : hx, spec.kind === 'tree' ? Math.min(hz, 2.2) : hz, spec.rotation).map(([x, z]) => groundHeightAt(x, z));
       const lo = Math.min(...ys), hi = Math.max(...ys);
-      // Base no chão mais baixo da pegada: nenhum canto fica no ar; árvores afundam 5,5 % da altura para enterrar raízes salientes sem afetar decks (perfil das raízes medido no GLB).
+      // Base no chão mais baixo da pegada: nenhum canto fica no ar; cada árvore usa o afundamento do seu papel, sem deslocar a casa lateral/passarela.
       // A arvore colossal nao tem deque: enterrar a ramificacao de raizes ate ficar abaixo do nivel caminhavel.
       // Na arvore lateral, manter a cota original para preservar acesso a casa e passarela.
-      const rootSink = spec.file === ELDORIA_MAIN_TREE.file ? .20 : ANCESTRAL_ROOT_SINK;
+      const rootSink = treeRootSink(spec);
       const y = spec.kind === 'tree' ? lo - spec.size * rootSink : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
       obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && spec.kind === 'house'; if (spec.kind === 'market') child.frustumCulled = false; } });

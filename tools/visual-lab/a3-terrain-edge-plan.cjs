@@ -18,6 +18,6 @@ const TERRAIN_EDGE_WALK_LINES = Object.freeze([
 ]);
 const TERRAIN_EDGE_WALK_INPUT = Object.freeze({x:0,z:-1});
 function terrainEdgeWalkCameraYaw(start,end) {
-  return Math.atan2(end[0]-start[0], -(end[1]-start[1]));
+  return Math.atan2(start[0]-end[0], start[1]-end[1]);
 }
 module.exports = { TERRAIN_EDGE_SHOTS, TERRAIN_EDGE_WALK_LINES, TERRAIN_EDGE_WALK_INPUT, terrainEdgeWalkCameraYaw };
