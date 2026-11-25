@@ -18,9 +18,12 @@ const TARGET_SWEEP_MAX_SPEED=PROTA_DASH.distance/PROTA_DASH.travel;
 const TARGET_SWEEP_MAX_DISTANCE=PROTA_DASH.distance/3;
 const TARGET_SWEEP_MARGIN=.25;
 const distance3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
-function snapshotOthers(others){
+function snapshotSquadActors(others,focus){
  const snapshots=new Map();
- for(const other of others||[])if(other?.alive&&other.id!=null&&Number.isFinite(other.x)&&Number.isFinite(other.y)&&Number.isFinite(other.z))snapshots.set(other.id,copy(other));
+ const remember=actor=>{if(actor?.alive&&actor.id!=null&&Number.isFinite(actor.x)&&Number.isFinite(actor.y)&&Number.isFinite(actor.z))snapshots.set(actor.id,copy(actor));};
+ for(const other of others||[])remember(other);
+ // The focused actor is omitted from ctx.others by the world adapter. Keep it so a later focus handoff can sweep it.
+ remember(focus);
  return snapshots;
 }
 const ENERGY_OCCLUSION_STEP=.008;
@@ -217,7 +220,7 @@ export class SwordRites {
   const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
-  if(ctx.paused){this.previousOthers=snapshotOthers(ctx.others);return;}
+  if(ctx.paused){this.previousOthers=snapshotSquadActors(ctx.others,ctx.target);return;}
   if(!Number.isFinite(dt)||dt<=0)return;
   if(ctx.valid===false){this.cancel('context');this.previousOthers.clear();return;}
   // Secondary bodies are swept between world frames at the same 120 Hz cadence as the blade.
@@ -234,7 +237,7 @@ export class SwordRites {
     const sample={...other};frames.push({id:other.id,from,to,sample});return sample;
    });
    stepCtx={...ctx,physicalOthers};
-  }else this.previousOthers=snapshotOthers(others);
+  }else this.previousOthers=snapshotSquadActors(others,ctx.target);
   let left=simDt,elapsed=0;
   while(left>1e-8){
    const h=Math.min(left,1/120);left-=h;elapsed+=h;
@@ -248,7 +251,7 @@ export class SwordRites {
    }
    this.tick(h,stepCtx);
   }
-  if(trackPhysicalOthers)this.previousOthers=new Map(frames.map(frame=>[frame.id,frame.to]));
+  if(trackPhysicalOthers)this.previousOthers=snapshotSquadActors(others,ctx.target);
  }
  tick(dt,ctx){
   this.time+=dt;for(const id of ['prota','aurora'])this.cooldowns[id]=Math.max(0,this.cooldowns[id]-dt);
