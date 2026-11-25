@@ -224,7 +224,8 @@ test('HUD não avança etapas por subetapa inválida restaurada de save', () => 
     assert.deepEqual(questPresentation(1, bad), base1);
     assert.deepEqual(questPresentation(3, bad), base3);
   }
-  assert.match(questPresentation(1, 1).objective, /vendedor de frutas/);
+  assert.match(questPresentation(1, 1).objective, /Téo · Provisões/);
+  assert.doesNotMatch(questPresentation(1, 1).objective, /vendedor de frutas/i);
   assert.match(questPresentation(3, 2).objective, /luta terminou/);
 });
 
