@@ -267,7 +267,7 @@ async function findWalkPath(start, target, stone) {
     });
     const startCell = cell(start.x, start.z);
     const startIndex = startCell.iz * cols + startCell.ix;
-    const goalRadius = Math.max(.12, 1.30 - Math.hypot(target.x - stone.x, target.z - stone.z));
+    const goalRadius = Math.min(.4, Math.max(.12, 1.30 - Math.hypot(target.x - stone.x, target.z - stone.z)));
     const center = cell(target.x, target.z);
     const goals = [];
     for (let iz = Math.max(0, center.iz - 2); iz <= Math.min(rows - 1, center.iz + 2); iz++) {
@@ -382,14 +382,14 @@ async function walkTo(stone, label) {
   const originDistance = Math.hypot(stone.x - start.x, stone.z - start.z);
   const sides = await inspectShelterApproaches(stone);
   const candidates = sides.filter(side => side.ok).sort((a, b) => {
-    const targetFor = side => ({ x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 });
+    const targetFor = side => ({ x: stone.x + Math.cos(side.angle) * .55, z: stone.z + Math.sin(side.angle) * .55 });
     const ta = targetFor(a), tb = targetFor(b);
     return a.rise - b.rise || Math.hypot(ta.x - start.x, ta.z - start.z) - Math.hypot(tb.x - start.x, tb.z - start.z);
   });
   const rejected = [];
   let selected = null;
   for (const side of candidates) {
-    const target = { x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 };
+    const target = { x: stone.x + Math.cos(side.angle) * .55, z: stone.z + Math.sin(side.angle) * .55 };
     const plan = await findWalkPath(start, target, stone);
     if (plan.ok) { selected = { target, plan, side }; break; }
     rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled, bridgeSamples: plan.bridgeSamples });
