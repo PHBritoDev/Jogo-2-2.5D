@@ -19,14 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      BASE_SHA: \${{ github.event.pull_request.base.sha }}
-      PR_HEAD_SHA: \${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       VISUAL_BASE_URL: http://127.0.0.1:4173
       VISUAL_OUTPUT: visual-lab-results/a3-meadow
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -63,7 +63,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: a3-meadow-\${{ github.run_id }}
+          name: a3-meadow-${{ github.run_id }}
           path: visual-lab-results/a3-meadow/
           retention-days: 14
           if-no-files-found: warn
