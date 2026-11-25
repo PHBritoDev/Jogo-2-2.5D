@@ -90,3 +90,10 @@ test('harness A/B falha fechado em console, módulos candidatos, oclusão e deri
   assert.ok(harness.includes('if (cam > .25)'), 'a câmera precisa coincidir nas duas cenas');
   assert.ok(harness.includes('cameraClear('), 'o protagonista precisa estar enquadrado e sem oclusão');
 });
+
+test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('candidate.walks.find(w => w.scene === scene.id)'), 'cada cena precisa ter uma caminhada candidata');
+  assert.ok(harness.includes('caminhada na trilha avançou menos de 2 m'), 'a trilha tropical precisa provar deslocamento real');
+  assert.ok(harness.includes('câmera não assentou após caminhada na trilha'), 'a captura da trilha espera a câmera estabilizar');
+});
