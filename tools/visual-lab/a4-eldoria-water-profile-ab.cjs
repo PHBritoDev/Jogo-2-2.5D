@@ -38,6 +38,11 @@ async function captureSide(browser, side, baseline) {
     isMobile: true, hasTouch: true
   });
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    // Mesma semente nos dois lados: árvores/NPCs procedurais não podem mudar a composição A/B.
+    let seed = 0xA4E1D0;
+    Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  });
   page.on('pageerror', e => report.errors.push(side + ' pageerror: ' + String(e.message || e).slice(0, 400)));
   page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' console: ' + msg.text().slice(0, 400)); });
   page.on('requestfailed', req => { const why = req.failure()?.errorText || ''; if (!/ERR_ABORTED|cancelled/i.test(why)) report.errors.push(side + ' requestfailed: ' + why + ' ' + req.url().slice(0, 180)); });
@@ -100,6 +105,18 @@ async function captureSide(browser, side, baseline) {
           return window.__a4CameraStable >= 4;
         }, null, { timeout: 20000, polling: 100 });
         await wait(300);
+        const frozenTime = await page.evaluate(() => {
+          try {
+            const fixed = 60000;
+            Object.defineProperty(performance, 'now', { configurable: true, value: () => fixed });
+            window.__a4FrozenTimeMs = fixed;
+            return fixed;
+          } catch (error) {
+            return String(error?.message || error);
+          }
+        });
+        if (frozenTime !== 60000) report.errors.push(side + '/' + profile + '/' + scene.name + ': não foi possível congelar o relógio A/B: ' + frozenTime);
+        await wait(120);
         const diagnostic = await page.evaluate(async () => {
           const d = window.SevenSinsDebug3D;
           const T = await import('three');
@@ -109,6 +126,7 @@ async function captureSide(browser, side, baseline) {
           return {
             profile: document.querySelector('#graphics-profile-3d')?.value || null,
             status: document.querySelector('#graphics-status-3d')?.textContent || null,
+            frozenTimeMs: window.__a4FrozenTimeMs ?? null,
             player: [state.x, state.y, state.z],
             camera: d.cam?.() || null,
             calls: state.calls ?? state.drawCalls ?? null,
