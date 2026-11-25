@@ -85,7 +85,10 @@ test('squad actor history reuses snapshot records between frames and removes sta
 });
 test('world focus proxy keeps squad actor identity separate from siege epoch',async()=>{
  const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
- assert.match(source,/function riteTarget\\(\\)\\{[^\\n]*t\\.squadActorId=a\\.id;/);
+ const start=source.indexOf('function riteTarget()');
+ const end=source.indexOf('function riteBlocked(',start);
+ assert.ok(start>=0&&end>start,'production riteTarget adapter must exist');
+ assert.ok(source.slice(start,end).includes('t.squadActorId=a.id;'),'focus proxy must preserve the real squad actor id');
 });
 
 test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
