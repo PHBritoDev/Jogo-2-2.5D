@@ -133,7 +133,14 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
     const n = 1 + ((rnd() * 2) | 0);
     for (let k = 0; k < n && leaves.length < maxL; k++) { const a = rnd() * 6.28, r = 2.2 + rnd() * 4, x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r; if (isFree(x, z)) leaves.push({ x, z, s: .9 + rnd() * 1.1, rot: rnd() * 6.28 }); }
     const nv = (rnd() < .7 ? 2 : 1) + (rnd() < .3 ? 1 : 0);
-    for (let k = 0; k < nv; k++) { const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2; vines.push({ x: t.x + Math.cos(a) * r, z: t.z + Math.sin(a) * r, top: t.h * (.62 + rnd() * .2), len: t.h * (.35 + rnd() * .35), rot: rnd() * 6.28 }); }
+    // Os cipós também precisam respeitar o corredor; antes só as folhas consultavam isFree.
+    for (let k = 0; k < nv; k++) {
+      const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2;
+      const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
+      // Consome os mesmos valores antes do filtro para manter o RNG dos próximos troncos estável.
+      const top = t.h * (.62 + rnd() * .2), len = t.h * (.35 + rnd() * .35), rot = rnd() * 6.28;
+      if (isFree(x, z)) vines.push({ x, z, top, len, rot });
+    }
   }
   if (zone) for (let i = 0; i < (lowSpec ? 280 : 560) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
   return { leaves, vines };

@@ -1,0 +1,26 @@
+name: A3 — regressão dos cipós fora das trilhas
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'eldoria-undergrowth.js'
+      - 'tests/a3-tropical-vines-path-clearance.test.mjs'
+      - 'eldoria-mod291.test.mjs'
+      - '.github/workflows/a3-undergrowth-vines-regression.yml'
+permissions:
+  contents: read
+jobs:
+  undergrowth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sintaxe e regressões de vegetação
+        run: |
+          node --check eldoria-undergrowth.js
+          node --check tests/a3-tropical-vines-path-clearance.test.mjs
+          node --input-type=module --check < mundo-3d-prototype.js
+          node --test tests/a3-tropical-vines-path-clearance.test.mjs eldoria-mod291.test.mjs
