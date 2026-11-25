@@ -486,7 +486,7 @@ test('A2: SlashVFX uploads only changed compact color slots and skips stable fra
   const attrs = sparkMesh.geometry.attributes;
   const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
   const originalRandom = Math.random;
-  const randomValues = [0.5, 0.5, 0.1, 0.5, 0.5, 0.9, 0.5, 0.5, 0.1, 0.5, 0.5, 0.9];
+  const randomValues = [0.5, 0.5, 0.1, 0.5, 0.5, 0.1, 0.5, 0.5, 0.9, 0.5, 0.5, 0.1];
   Math.random = () => randomValues.shift() ?? 0.5;
   try {
     v.spark({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }, 'prota', .2, 1);
@@ -515,8 +515,8 @@ test('A2: SlashVFX uploads only changed compact color slots and skips stable fra
     const firstColor = Array.from(attrs.aCol.array.slice(0, 3));
     const secondColor = Array.from(attrs.aCol.array.slice(3, 6));
     const thirdColor = Array.from(attrs.aCol.array.slice(6, 9));
-    assert.notDeepEqual(firstColor, secondColor, 'cores determinísticas distinguem o slot inicial do segundo');
-    assert.notDeepEqual(secondColor, thirdColor, 'cores determinísticas distinguem os slots que serão preservados no swap');
+    assert.notDeepEqual(firstColor, thirdColor, 'a cor movida pelo swap é diferente da cor que ocupava o slot');
+    assert.notDeepEqual(secondColor, thirdColor, 'a segunda cor preservada é diferente da partícula movida');
 
     const dt = 1 / 60, pos = attrs.aPos.array, vel = attrs.aVel.array;
     for (const [offset, initial] of [[0, [1, 2, 3]], [3, [7, 8, 9]], [6, [10, 11, 12]]]) {
@@ -631,7 +631,7 @@ test('A2: SlashVFX merges unconsumed color ranges with the next changed slot', {
     v.update(1 / 60, camera, 'high');
     assert.deepEqual(ranges(), [{ start: 0, count: 6 }], 'o range pendente anterior é unido ao novo RGB');
     assert.strictEqual(color.updateRanges[0], reusable, 'o mesmo objeto de range é reutilizado');
-    
+
     color.clearUpdateRanges();
     v.spark({ x: 2, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
     v.update(1 / 60, camera, 'high');
