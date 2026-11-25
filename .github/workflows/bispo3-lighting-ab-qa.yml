@@ -2,6 +2,7 @@ name: Bispo 3 — actor lighting A/B
 on:
   pull_request:
     paths:
+      - 'zarkhael-dimension3d.js'
       - 'zarkhael-dimension.test.mjs'
       - 'tools/visual-lab/bispo3-lighting-ab-qa.cjs'
       - '.github/workflows/bispo3-lighting-ab-qa.yml'
@@ -42,7 +43,37 @@ jobs:
             exit 0
           fi
           changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
-          if grep -Eq '^(zarkhael-dimension\.test\.mjs|tools/visual-lab/bispo3-lighting-ab-qa\.cjs)$' <<< "$changed"; then
+          if grep -Eq '^(zarkhael-dimension3d\.js|zarkhael-dimension\.test\.mjs|tools/visual-lab/bispo3-lighting-ab-qa\.cjs)
+            echo "run_ab=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_ab=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Pinned browser dependencies
+        if: steps.scope.outputs.run_ab == 'true'
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Compare real combat lighting on identical runtime state
+        if: steps.scope.outputs.run_ab == 'true'
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+          VISUAL_BASELINE_URL: 'http://127.0.0.1:4174'
+          VISUAL_CANDIDATE_URL: 'http://127.0.0.1:4173'
+          A4_CANDIDATE_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
+          A4_BASELINE_ROOT: '/tmp/bispo3-baseline'
+        run: |
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/bispo3-candidate-http.log 2>&1 &
+          python3 -m http.server 4174 --directory /tmp/bispo3-baseline > /tmp/bispo3-baseline-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          node tools/visual-lab/bispo3-lighting-ab-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scope.outputs.run_ab == 'true'
+        with:
+          name: bispo3-lighting-ab-${{ github.event.pull_request.head.sha || github.sha }}
+          path: work/evidence/bispo3-lighting-ab/
+          retention-days: 14
+ <<< "$changed"; then
             echo "run_ab=true" >> "$GITHUB_OUTPUT"
           else
             echo "run_ab=false" >> "$GITHUB_OUTPUT"
