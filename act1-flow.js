@@ -264,6 +264,7 @@ export const SPEAKERS = {
 const S = SPEAKERS;
 const say = (who, text, extra) => Object.assign({ type: 'say', who, text }, extra || {});
 const shot = (id, dur, args, extra) => Object.assign({ type: 'shot', id, dur, args: args || {} }, extra || {});
+const vendorOpeningShot = () => shot('teo-primeira-troca', 2.4, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 4.4 });
 const act = (id, args) => ({ type: 'do', id, args: args || {} });
 const wait = dur => ({ type: 'wait', dur });
 
@@ -279,6 +280,7 @@ export function villageArrivalScene() {
 /** Sem dinheiro: o vendedor nem conversa. */
 export function vendorRefusalScene() {
   return [
+    vendorOpeningShot(),
     say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
     say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.')
   ];
@@ -287,6 +289,7 @@ export function vendorRefusalScene() {
 /** Pergunta, recusa, o saco de ouro e tudo o que o vendedor sabe. */
 export function vendorScene() {
   return [
+    vendorOpeningShot(),
     say(S.hero, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
     say(S.vendor, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.'),
     shot('saco-de-ouro', 2.6, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 3.4 }, { with: [act('entregar-ouro')] }),

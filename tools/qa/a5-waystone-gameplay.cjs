@@ -771,6 +771,30 @@ async function exposePathfinder() {
     assert.equal(afterReload.xp, beforeReload.xp, 'XP mudou durante reload');
     await shot('03-two-waystones-after-reload');
 
+    // O save do mapa restaura a posição no abrigo da Mata. A rota direta Mata→Caverna
+    // não foi encontrada pelo A* validado; voltar caminhando ao abrigo já registrado da Vila
+    // preserva a sequência sem teleport e reproduz a rota Vila→Caverna já percorrida com sucesso.
+    const afterTwoWaystonesReloadPlayer = await playerState();
+    report.afterTwoWaystonesReload = {
+      x: +afterTwoWaystonesReloadPlayer.x.toFixed(3),
+      y: +afterTwoWaystonesReloadPlayer.y.toFixed(3),
+      z: +afterTwoWaystonesReloadPlayer.z.toFixed(3)
+    };
+    await walkTo(stones[0], 'return-to-abrigo-vila');
+    const afterReturnToVillage = await qa();
+    assert.equal(afterReturnToVillage.side.abrigos.progress, 2,
+      'retorno ao abrigo da Vila alterou indevidamente o progresso');
+    assert.ok(afterReturnToVillage.registeredWaystones.includes('abrigo-vila'),
+      'retorno ao abrigo da Vila perdeu o registro anterior');
+    const returnedToVillagePlayer = await playerState();
+    report.routeRecovery = {
+      method: 'touch #stick; return to the registered Vila shelter before continuing to Caverna',
+      x: +returnedToVillagePlayer.x.toFixed(3),
+      y: +returnedToVillagePlayer.y.toFixed(3),
+      z: +returnedToVillagePlayer.z.toFixed(3),
+      progress: afterReturnToVillage.side.abrigos.progress
+    };
+
     const lastStone = stones[2];
     await walkTo(lastStone, 'walk-to-' + lastStone.id);
     await registerStone(lastStone, 3, MAP_STORE_KEY);
@@ -807,12 +831,13 @@ async function exposePathfinder() {
     report.final = { side: final.side.abrigos, registeredWaystones: final.registeredWaystones, coins: final.coins, xp: final.xp };
     await shot('05-ready-after-final-reload');
 
-    assert.equal(report.screenshots.length, 12, 'capturas de estado incompletas');
-    assert.equal(report.input.joystickPointerTypes.length, 3, 'três percursos precisam usar pointerType touch');
+    assert.equal(report.screenshots.length, 14, 'capturas de estado incompletas');
+    assert.equal(report.walks.length, 4, 'três marcos e o retorno à Vila precisam ser percorridos sem teleport');
+    assert.equal(report.input.joystickPointerTypes.length, 4, 'quatro percursos precisam usar pointerType touch');
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
-    assert.equal(report.input.joystickPointerMoves.length, 3, 'três percursos precisam mover o knob pelo pointermove touch');
+    assert.equal(report.input.joystickPointerMoves.length, 4, 'quatro percursos precisam mover o knob pelo pointermove touch');
     assert.ok(report.input.joystickPointerMoves.every(move => move.count > 0), 'joystick não recebeu pointermove touch');
-    assert.equal(report.input.joystickLifecycle.length, 3, 'três ciclos de joystick precisam ter diagnóstico de captura');
+    assert.equal(report.input.joystickLifecycle.length, 4, 'quatro ciclos de joystick precisam ter diagnóstico de captura');
     assert.ok(report.input.joystickLifecycle.every(s => s.events.some(e => e.type === 'pointerdown' && e.pointerType === 'touch')), 'um percurso não começou com pointerdown touch');
     assert.ok(report.input.joystickLifecycle.every(s => hasCompletedTouchLifecycle(s.events)), 'cada toque do joystick precisa terminar com pointerup/pointercancel touch do mesmo pointerId após touchEnd');
     assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');
