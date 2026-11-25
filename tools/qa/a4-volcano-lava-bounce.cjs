@@ -145,17 +145,17 @@ async function main() {
       )
     };
     const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.baseline.meanRGB).toFixed(5));
-    if (comparisons['overlook-1000'].meanRGB < 2.8 || comparisons['overlook-1000'].changedPixelsPct < 20) {
+    if (comparisons['overlook-1000'].meanRGB < 4.0 || comparisons['overlook-1000'].changedPixelsPct < 30) {
       gateFailures.push('Bounce localizado ainda pouco legível no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
     }
-    if (comparisons['upper-gallery-2000'].meanRGB < 1.8 || comparisons['upper-gallery-2000'].changedPixelsPct < 12) {
+    if (comparisons['upper-gallery-2000'].meanRGB < 3.0 || comparisons['upper-gallery-2000'].changedPixelsPct < 20) {
       gateFailures.push('Bounce insuficiente na galeria superior: ' + JSON.stringify(comparisons['upper-gallery-2000']));
     }
     if (comparisons['grove-2500'].meanRGB > .03 || comparisons['grove-2500'].changedPixelsPct > .05 ||
         comparisons['spine-3000'].meanRGB > .03 || comparisons['spine-3000'].changedPixelsPct > .05) {
       gateFailures.push('Bounce escapou do Santuário: ' + JSON.stringify({ grove: comparisons['grove-2500'], spine: comparisons['spine-3000'] }));
     }
-    if (temporalGainRGB < .06) {
+    if (temporalGainRGB < .08) {
       gateFailures.push('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
     }
     if (baseline.errors.length || candidate.errors.length) {
@@ -168,6 +168,7 @@ async function main() {
       viewport: '960x540',
       baseline: { report: baseline.report, errors: baseline.errors },
       candidate: { report: candidate.report, errors: candidate.errors },
+      gateThresholds: { overlookMeanRGB: 4.0, upperGalleryMeanRGB: 3.0, temporalGainRGB: .08, changedPixelsPct: { overlook: 30, upperGallery: 20 } },
       imageDelta: comparisons,
       temporalDelta: temporal,
       temporalGainRGB,
