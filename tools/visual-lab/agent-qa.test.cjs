@@ -19,7 +19,7 @@ const metrics1=measureWalkTrace(trace1,start1,end1), metrics2=measureWalkTrace(t
 const makeSegment=(i,start,end,trace,traceMetrics,elapsedMs)=>{
   const rule=configuredSegments[i],distance=Math.hypot(end.x-start.x,end.z-start.z);
   return {name:rule.name,key:rule.key,yaw:walkYaw(start,rule.target),start,end,target:rule.target,distance,
-    remaining:Math.hypot(end.x-rule.target[0],end.z-rule.target[1]),elapsedMs,timeoutMs:rule.timeoutMs,
+    remaining:Math.hypot(end.x-rule.target[0],end.z-rule.target[1]),elapsedMs,cameraSettleMs:1200,timeoutMs:rule.timeoutMs,
     minTravel:rule.minTravel,tolerance:rule.tolerance,reached:true,trace,traceMetrics};
 };
 const summarizeSegments=segments=>({
@@ -116,6 +116,17 @@ test('trace de câmera usa o alvo padrão do protagonista nos dois extremos',()=
   const block=source.slice(start,end);
   assert.equal(block.split('D.camView()').length-1,2,'uma sonda no início e outra no fim usam o jogador como alvo');
   assert.equal(block.replaceAll('D.camView()','').includes('D.camView('),false,'não passa argumento de tipo incerto para a sonda do protagonista');
+});
+test('câmera de acompanhamento precisa estabilizar antes de cada trecho',()=>{
+  assert.equal(run(report),'game_ran');
+  assert.equal(run({...report,routes:[withSegment(0,{cameraSettleMs:-1})]}),'game_failed','timeout de estabilização reprova a captura');
+  assert.equal(run({...report,routes:[withSegment(0,{cameraSettleMs:9001})]}),'game_failed','tempo fora do limite não aprova');
+  const runner=fs.readFileSync(path.join(__dirname,'scene-agent.cjs'),'utf8');
+  const viewAt=runner.indexOf('window.SevenSinsDebug3D.view(yaw, .12, 5.5)');
+  const settleAt=runner.indexOf('const cameraSettleMs = await waitCameraStable(page, 9000)',viewAt);
+  const keyAt=runner.indexOf('await page.keyboard.down(segment.key)',viewAt);
+  assert.ok(viewAt>=0 && settleAt>viewAt && keyAt>settleAt,'a câmera termina a curva antes de receber KeyW');
+  assert.match(runner,/cameraSettleMs, trace,|cameraSettleMs/);
 });
 test('percurso exige o perfil de captura configurado realmente aplicado',()=>{
   assert.equal(run(report),'game_ran');
