@@ -21,15 +21,15 @@ const TARGET_SWEEP_MAX_DISTANCE=3.3;
 const TARGET_SWEEP_MARGIN=.25;
 const distance3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 function snapshotSquadActors(snapshots,others,focus,epoch){
- const remember=actor=>{
-  if(!actor?.alive||actor.id==null||!Number.isFinite(actor.x)||!Number.isFinite(actor.y)||!Number.isFinite(actor.z))return;
-  let position=snapshots.get(actor.id);
-  if(!position){position={x:actor.x,y:actor.y,z:actor.z,epoch};snapshots.set(actor.id,position);}
+ const remember=(actor,id=actor?.id)=>{
+  if(!actor?.alive||id==null||!Number.isFinite(actor.x)||!Number.isFinite(actor.y)||!Number.isFinite(actor.z))return;
+  let position=snapshots.get(id);
+  if(!position){position={x:actor.x,y:actor.y,z:actor.z,epoch};snapshots.set(id,position);}
   else{position.x=actor.x;position.y=actor.y;position.z=actor.z;position.epoch=epoch;}
  };
  for(const other of others||[])remember(other);
- // The focused actor is omitted from ctx.others by the world adapter. Keep it so a later focus handoff can sweep it.
- remember(focus);
+ // The world target keeps siegeEpoch as its public id; snapshot the real squad actor id for focus handoffs.
+ remember(focus,focus?.squadActorId??focus?.id);
  for(const [id,position] of snapshots)if(position.epoch!==epoch)snapshots.delete(id);
  return snapshots;
 }
