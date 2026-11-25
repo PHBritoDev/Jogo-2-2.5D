@@ -9002,7 +9002,8 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   let holderVisible=!!(focusBody?.holder&&focusBody.holder.parent);
   for(let p=focusBody?.holder;p&&holderVisible;p=p.parent)if(p.visible===false)holderVisible=false;
   const visible=focusBody?!!(holderVisible&&focusBody.model?.visible&&visibleMeshes>0):!!enemy.visible;
-  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride,cameraPitch:+cameraPitch.toFixed(3)};
+  const cameraFoe=focusActor||enemy.position,cameraFoeOn=!!(focusActor||(enemy.visible&&enemyAlive)),cameraSeparation=Math.hypot(cameraFoe.x-player.position.x,cameraFoe.z-player.position.z),qaPortraitFit=portraitBishop2Profile(cameraFoeOn,cameraSeparation);
+  return{player:{center:point(player,1),head:point(player,1.8)},enemy:{center:point(target,targetHeight*.5),head:headPoint(),id:focusActor?.id||null,kind:focusActor?.kind||null,source:focusBody?'squad-body':'enemy-proxy',visible,visibleMeshes,meshCount},cameraYaw:+cameraYaw.toFixed(3),distance:+camDistSmooth.toFixed(2),requestedDistance:+cameraDistance.toFixed(2),manualZoomOverride:portraitZoomOverride,cameraPitch:+cameraPitch.toFixed(3),cameraState:{aspect:+camera.aspect.toFixed(3),autoCamera:!!userSettings.autoCamera,lockOn:!!lockOnActive,dimensionKey:dimKey,portraitFit:qaPortraitFit?{minDistance:+qaPortraitFit.minDistance.toFixed(2),parallaxBias:+qaPortraitFit.parallaxBias.toFixed(3),release:+qaPortraitFit.release.toFixed(3)}:null}};
  },
  // Vila (só ?debug3d=1, só leitura): onde há MATÉRIA na altura do corpo (0,3–1,7 m acima do chão, por raio vertical em
  // grade) e o herói ainda passa. Agrupa por objeto do topo da vila; devolve os furos de colisão com coordenadas.
@@ -9343,7 +9344,7 @@ const ultLight=new THREE.PointLight(0xffe0a0,0,30,1.2);ultLight.castShadow=false
 animate();
 /* CLAUDE combate/câmera: antes o buffer só mudava quando a densidade de pixels mudava — ao redimensionar/zoom/girar,
    o canvas ficava do tamanho antigo e aparecia uma faixa do fundo (#101b1c) embaixo/ao lado. */
-function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);}
+function resize(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight),nextAspect=w/h,wasPortrait=camera.aspect<.78;camera.aspect=nextAspect;camera.updateProjectionMatrix();renderer.setSize(w,h,false);applyGraphics3D(graphics3DMode,graphics3DScale);if(!wasPortrait&&nextAspect<.78&&dimKey==='bishop2'&&dimBattle?.active&&newHero&&cameraDistance>=1.05&&lookPointers.size===0&&performance.now()-lastLookInputAt>500)lastLookInputAt=0;}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,120));if(window.visualViewport)visualViewport.addEventListener('resize',resize);
 
 
