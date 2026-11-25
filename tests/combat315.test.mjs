@@ -477,7 +477,7 @@ test('A2: production sword ribbons keep static UVs and upload only changed segme
   }
 });
 
-test('A2: SlashVFX skips static color uploads until the sparse particle pool changes', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+test('A2: SlashVFX uploads only changed compact color slots and skips stable frames', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
   const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 8, stars: 1 });
@@ -544,7 +544,7 @@ test('A2: SlashVFX skips static color uploads until the sparse particle pool cha
     updateWithoutViews(.5);
     assert.equal(sparkMesh.geometry.instanceCount, 2, 'expiração parcial mantém as duas faíscas restantes');
     assert.equal(attrs.aCol.version, versions.aCol + 2, 'swap-removal atualiza a ordem compactada de cores');
-    assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 6 }]);
+    assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 3 }], 'swap-removal só envia o RGB do slot que recebeu a última partícula');
     assert.strictEqual(attrs.aCol.updateRanges[0], rangeRefs.aCol, 'a cor reutiliza o mesmo objeto de range');
     assert.deepEqual(Array.from(attrs.aCol.array.slice(0, 3)), thirdColor, 'a última faísca ocupa o slot removido');
     assert.deepEqual(Array.from(attrs.aCol.array.slice(3, 6)), secondColor, 'a segunda faísca preserva sua cor');
@@ -557,6 +557,41 @@ test('A2: SlashVFX skips static color uploads until the sparse particle pool cha
 
     v.update(10, camera, 'high');
     assert.equal(sparkMesh.geometry.instanceCount, 0, 'a expiração remove instâncias sem depender de limpar o buffer inteiro');
+  } finally {
+    v.clear(); scene.remove(v.root);
+  }
+});
+
+test('A2: SlashVFX updates only one RGB triple when the circular pool overwrites an active slot', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 3, stars: 1 });
+  const sparkMesh = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aPos);
+  assert.ok(sparkMesh);
+  const attrs = sparkMesh.geometry.attributes;
+  const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  try {
+    for (let i = 0; i < 3; i++) v.spark({ x: i, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(sparkMesh.geometry.instanceCount, 3);
+    const second = Array.from(attrs.aCol.array.slice(3, 6));
+    const third = Array.from(attrs.aCol.array.slice(6, 9));
+    attrs.aCol.clearUpdateRanges();
+    const colorVersion = attrs.aCol.version;
+
+    v.spark({ x: 9, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(sparkMesh.geometry.instanceCount, 3, 'overwrite circular mantém uma entrada por slot');
+    assert.equal(attrs.aCol.version, colorVersion + 1);
+    assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 3 }], 'só o slot ativo sobrescrito é enviado');
+    assert.deepEqual(Array.from(attrs.aCol.array.slice(3, 6)), second, 'a cor do segundo slot não muda');
+    assert.deepEqual(Array.from(attrs.aCol.array.slice(6, 9)), third, 'a cor do terceiro slot não muda');
+
+    attrs.aCol.clearUpdateRanges();
+    const stableVersion = attrs.aCol.version;
+    v.update(1 / 60, camera, 'high');
+    assert.equal(attrs.aCol.version, stableVersion, 'frame estável não publica cor');
+    assert.deepEqual(ranges(attrs.aCol), []);
   } finally {
     v.clear(); scene.remove(v.root);
   }
