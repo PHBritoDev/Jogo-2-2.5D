@@ -144,10 +144,17 @@ async function main() {
       )
     };
     const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.baseline.meanRGB).toFixed(5));
-    if (comparisons['overlook-1000'].meanRGB < .6 || comparisons['overlook-1000'].changedPixelsPct < 1) {
-      throw new Error('Bounce localizado abaixo do limiar visual no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
+    if (comparisons['overlook-1000'].meanRGB < 1.5 || comparisons['overlook-1000'].changedPixelsPct < 15) {
+      throw new Error('Bounce localizado ainda pouco legível no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
     }
-    if (temporalGainRGB < .015) {
+    if (comparisons['upper-gallery-2000'].meanRGB < 1.0 || comparisons['upper-gallery-2000'].changedPixelsPct < 8) {
+      throw new Error('Bounce insuficiente na galeria superior: ' + JSON.stringify(comparisons['upper-gallery-2000']));
+    }
+    if (comparisons['grove-2500'].meanRGB > .05 || comparisons['grove-2500'].changedPixelsPct > .1 ||
+        comparisons['spine-3000'].meanRGB > .05 || comparisons['spine-3000'].changedPixelsPct > .1) {
+      throw new Error('Bounce escapou do Santuário: ' + JSON.stringify({ grove: comparisons['grove-2500'], spine: comparisons['spine-3000'] }));
+    }
+    if (temporalGainRGB < .03) {
       throw new Error('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
     }
     const report = {

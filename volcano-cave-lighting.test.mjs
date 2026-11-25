@@ -18,7 +18,8 @@ test('bounce da lava cai com a distância e respeita a orientação da rocha', (
 test('pulsação é lenta, limitada e determinística', () => {
   const samples = Array.from({ length: 32 }, (_, i) => lavaBouncePulse(i * .15, .4));
   assert.ok(samples.every(value => value >= .76 && value <= 1.0));
-  assert.ok(LAVA_BOUNCE_CONFIG.color[0] >= .25);
+  assert.ok(LAVA_BOUNCE_CONFIG.color[0] >= .6);
+  assert.ok(LAVA_BOUNCE_CONFIG.color[1] >= .16);
   assert.ok(new Set(samples.map(value => value.toFixed(5))).size > 20);
   assert.equal(lavaBouncePulse(Infinity, Number.NaN), LAVA_BOUNCE_CONFIG.pulseBase);
   assert.equal(lavaBouncePulse(0, 0), LAVA_BOUNCE_CONFIG.pulseBase);
