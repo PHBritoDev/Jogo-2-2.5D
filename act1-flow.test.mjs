@@ -283,4 +283,13 @@ test('two-shot narrativo mantém o lado preferido livre e troca quando há barra
   const best = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 || x > 2.5 });
   assert.equal(best.side, 1, 'quando ambos os lados bloqueiam, escolher o maior corredor livre');
   assert.ok(best.clearSamples > 0);
+  const visibleAlternative = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4,
+    // A barraca bloqueia somente a linha entre a câmera preferida e o segundo ator.
+    blockedAt: (x, z) => x < -0.5 && z > 1.6
+  });
+  assert.equal(visibleAlternative.side, 1,
+    'trocar de lado quando a barraca encobre o vendedor, mesmo com o corredor central livre');
+  assert.deepEqual(visibleAlternative.visibleActors, [true, true],
+    'o lado alternativo precisa manter os dois atores visíveis');
 });
