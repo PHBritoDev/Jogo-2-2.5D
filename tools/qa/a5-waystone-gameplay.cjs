@@ -521,7 +521,7 @@ async function walkTo(stone, label) {
       approachSide: selected.side.index, approachRise: selected.side.rise,
       originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
       travelled: +travelled.toFixed(2), steps: totalSteps,
-      routePoints: selected.plan.points.length, rawPoints: selected.plan.rawPoints, control: 'touch #stick'
+      routePoints: routePoints.length, rawPoints: selected.plans.reduce((sum, item) => sum + item.plan.rawPoints, 0), control: 'touch #stick'
     };
     report.walks.push(result);
     return result;
