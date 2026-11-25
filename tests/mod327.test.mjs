@@ -205,7 +205,8 @@ test('aurora: luz colorida que acompanha o céu (rosa/violeta/azul), some sem au
   assert.equal(auroraLowProfile(true, 'high'), false, 'alto explícito preserva o detalhe mesmo no viewport móvel');
   assert.equal(auroraLowProfile(true, 'medium'), false, 'médio explícito preserva o detalhe completo');
   assert.equal(auroraLowProfile(false, 'low'), true, 'baixo explícito ativa a variante econômica em qualquer viewport');
-  assert.equal(auroraLowProfile(true, 'auto'), true, 'auto conserva o hint móvel existente sem inventar o tier interno');
+  assert.equal(auroraLowProfile(true, 'auto'), true, 'auto usa duas oitavas quando o controlador informa tier baixo');
+  assert.equal(auroraLowProfile(false, 'auto'), false, 'auto restaura quatro oitavas quando o tier permite');
   const cs = [0, 30, 60, 90, 120, 200].map(auroraColor); for (const c of cs) { assert.ok(c[2] >= .8 && c.every(v => v >= 0 && v <= 1.01), 'paleta da aurora (azul/violeta dominante)'); }
   assert.ok(Math.abs(cs[0][0] - cs[2][0]) + Math.abs(cs[0][1] - cs[2][1]) > .05, 'a cor anda com o tempo');
 });
@@ -224,6 +225,27 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   updateAuroraLight(THREE, { level: .8, time: 31, low: false, dir: { x: 1, z: 0 } });
   assert.equal(shared.uAurLow.value, 0, 'perfil alto restaura o detalhe completo');
   assert.ok(Math.abs(shared.uAurK.value - .8) < 1e-9 && mat.customProgramCacheKey() === stableKey, 'troca de qualidade sem recompilar');
+  const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  let storedMode = 'high', storageReads = 0;
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem(key) { assert.equal(key, 'seven-sins-3d-graphics'); storageReads++; return storedMode; } } });
+  try {
+    updateAuroraLight(THREE, { level: .8, time: 500, low: true });
+    assert.equal(shared.uAurLow.value, 0, 'high explícito vence hint baixo');
+    storedMode = 'low';
+    updateAuroraLight(THREE, { level: .8, time: 500.25, low: false });
+    assert.equal(shared.uAurLow.value, 0, 'preferência fica cacheada dentro de 0,5 s');
+    assert.equal(storageReads, 1, 'localStorage não é consultado por frame');
+    updateAuroraLight(THREE, { level: .8, time: 500.5, low: false });
+    assert.equal(shared.uAurLow.value, 1, 'low é aplicado após expirar o cache');
+    assert.equal(storageReads, 2);
+    storedMode = 'max';
+    updateAuroraLight(THREE, { level: .8, time: 501, low: true });
+    assert.equal(shared.uAurLow.value, 0, 'max explícito restaura quatro oitavas');
+    assert.equal(storageReads, 3);
+  } finally {
+    if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage);
+    else delete globalThis.localStorage;
+  }
   const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8');
   assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
   assert.ok(/uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow;/.test(ew), 'uniform de qualidade compartilhado');
