@@ -77,10 +77,29 @@ async function captureSide(browser, side, baseline) {
         await page.evaluate(s => {
           const d = window.SevenSinsDebug3D;
           d.setHour(s.hour);
-          d.teleport(s.x, s.z, s.yaw);
+          d.teleport(s.x, s.z);
+          d.fly(null);
           d.view(s.yaw, s.pitch, s.distance);
+          window.__a4CameraPrevious = null;
+          window.__a4CameraStable = 0;
         }, scene);
-        await wait(1400);
+        await page.waitForFunction(s => {
+          const d = window.SevenSinsDebug3D;
+          const state = d?.state?.();
+          return state && Number.isFinite(state.x) && Number.isFinite(state.z)
+            && Math.hypot(state.x - s.x, state.z - s.z) < .25;
+        }, scene, { timeout: 20000, polling: 100 });
+        await page.waitForFunction(() => {
+          const d = window.SevenSinsDebug3D;
+          const camera = d?.cam?.();
+          if (!Array.isArray(camera) || camera.length !== 3 || !camera.every(Number.isFinite)) return false;
+          const previous = window.__a4CameraPrevious;
+          window.__a4CameraPrevious = camera;
+          const delta = previous ? Math.hypot(camera[0] - previous[0], camera[1] - previous[1], camera[2] - previous[2]) : Infinity;
+          window.__a4CameraStable = delta < .015 ? (window.__a4CameraStable || 0) + 1 : 0;
+          return window.__a4CameraStable >= 4;
+        }, null, { timeout: 20000, polling: 100 });
+        await wait(300);
         const diagnostic = await page.evaluate(async () => {
           const d = window.SevenSinsDebug3D;
           const T = await import('three');
@@ -90,6 +109,7 @@ async function captureSide(browser, side, baseline) {
           return {
             profile: document.querySelector('#graphics-profile-3d')?.value || null,
             status: document.querySelector('#graphics-status-3d')?.textContent || null,
+            player: [state.x, state.y, state.z],
             camera: d.cam?.() || null,
             calls: state.calls ?? state.drawCalls ?? null,
             triangles: state.triangles ?? null,
@@ -97,6 +117,9 @@ async function captureSide(browser, side, baseline) {
             lowUniform: u.uAurLow?.value ?? null
           };
         });
+        if (!diagnostic.player.every(Number.isFinite)
+          || Math.hypot(diagnostic.player[0] - scene.x, diagnostic.player[2] - scene.z) >= .25)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': teleporte não estabilizou; player=' + JSON.stringify(diagnostic.player));
         const file = side + '/' + profile + '-' + scene.name + '.png';
         await page.screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled' });
         report.cases.push({ side, profile, scene: scene.name, hour: scene.hour, image: file, ...diagnostic });
