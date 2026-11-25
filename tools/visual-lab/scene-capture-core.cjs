@@ -64,7 +64,7 @@ const SCENES = Object.freeze({
       { name: "bosque-entrada", target: [-14, -105], key: "KeyW", timeoutMs: 100000, tolerance: 2.5, minTravel: 18 },
       // A árvore colossal está em (-13.2,-70.5), raio de colisão 3.9 m. O desvio oeste preserva 0.7 m de folga.
       { name: "contorno-arvore-oeste", target: [-20.5, -76], key: "KeyW", timeoutMs: 120000, tolerance: 1, minTravel: 24 },
-      { name: "vila-praca-entrada", target: [-13, -49.5], key: "KeyW", timeoutMs: 180000, tolerance: 3, minTravel: 26 }
+      { name: "vila-praca-entrada", target: [-13, -49.5], key: "KeyW", timeoutMs: 180000, tolerance: 3, minTravel: 23 }
     ] } },
   "floresta-trilha": { kind: "mundo", hour: 10, shots: [
     { name: "trilha-samambaias", at: [-14, -105, -Math.PI / 2], pitch: .1, dist: 6.5 },
