@@ -1,6 +1,6 @@
 /** Painel ADM da Mod 350: apenas para ?adm=1. Não é sistema de autenticação.
  * UI responsiva, isolada do HUD, e um único painel também no laboratório de dimensões. */
-export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill,getState}){
+export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill,onPause,getState}){
  if(document.getElementById('adm-panel'))return null;
  const style=document.createElement('style');style.id='adm-panel-styles';style.textContent=`
  #adm-panel{position:fixed;right:max(8px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 105px);z-index:82;display:flex;flex-direction:column;align-items:flex-end;gap:6px;width:min(420px,calc(100vw - 16px));max-width:calc(100vw - 16px);font:500 12px/1.4 system-ui,sans-serif;pointer-events:none}
