@@ -105,14 +105,17 @@ export function masonry(T, group, seed, palette){
    const A=ring(-depth/2),B=ring(depth/2),k=.85+random()*.25;quad(...A,tint,k);quad(...B,tint,k);for(let j=0;j<4;j++)quad(A[j],A[(j+1)%4],B[(j+1)%4],B[j],tint,k);}
  }
  function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const material=new T.MeshBasicMaterial({map:palette.stoneMap||tex,vertexColors:true,side:T.DoubleSide});
+ const lavaClock=palette.clock||{value:0};
+ let lavaGain={value:0},pulsePhase=0,lavaPulseUniform={value:1};
  if(palette.stoneMap){
   tex.dispose();
   // O reflexo estático da calha permanece; no Santuário, a mesma fonte também
   // produz um bounce quente e lento, sem PointLight, sombra ou draw call extra.
-  const cfg=LAVA_BOUNCE_CONFIG, lavaClock=palette.clock||{value:0};
-  const lavaGain={value:lavaBounceEnabled(group.name,!!palette.clock)?1:0};
-  const pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
-  // Evaluate the slow pulse once per mesh draw, never once per fragment.\n  const lavaPulseUniform={value:1};
+  const cfg=LAVA_BOUNCE_CONFIG;
+  lavaGain={value:lavaBounceEnabled(group.name,!!palette.clock)?1:0};
+  pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
+  // Evaluate the slow pulse once per mesh draw, never once per fragment.
+  lavaPulseUniform={value:1};
   const color=cfg.color.map(glslNumber).join(',');
   material.onBeforeCompile=shader=>{
    shader.uniforms.uLavaPulse=lavaPulseUniform;
@@ -132,7 +135,7 @@ export function masonry(T, group, seed, palette){
     'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);\n'+
     'if(uLavaGain>.001){\n'+
     ' diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse;\n'+
-    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*lavaPulse*smoothstep(.045,.32,relief);\n'+
+    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*uLavaPulse*smoothstep(.045,.32,relief);\n'+
     '}else{\n'+
     ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\n'+
     '}\n';
@@ -144,7 +147,7 @@ export function masonry(T, group, seed, palette){
  }
  const m=new T.Mesh(g,material);
  m.name=group.name+'-basalto';
- m.onBeforeRender=()=>{
+ if(palette.stoneMap)m.onBeforeRender=()=>{
   if(lavaGain.value>.001)lavaPulseUniform.value=lavaBouncePulse(lavaClock.value,pulsePhase);
  };
  group.add(m);return m;}
