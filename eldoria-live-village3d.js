@@ -75,6 +75,25 @@ export function footprintSamples(cx, cz, hx, hz, rot) {
   return pts;
 }
 
+// Árvores GLB ancestrais também precisam abrir quando o braço da câmera entra no tronco.
+// Dither no passe opaco: sem alpha blending, sem nova draw call e sem tocar na física/colisão.
+const nearCameraFadeMaterials = new WeakSet();
+function addNearCameraFade(material, near = 8.0) {
+  if (!material || nearCameraFadeMaterials.has(material)) return;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    if (previous) previous(shader, renderer);
+    const chunk = '#include <clipping_planes_fragment>';
+    if (!shader.fragmentShader.includes(chunk)) return;
+    shader.fragmentShader = shader.fragmentShader.replace(chunk,
+      chunk + '\\n{float camFade=clamp((length(vViewPosition)-0.6)/' + near.toFixed(2) + ',0.0,1.0);float dither=fract(dot(floor(gl_FragCoord.xy),vec2(0.5,0.25))+fract(floor(gl_FragCoord.y)*0.5)*0.5);if(camFade<0.999&&dither>camFade)discard;}');
+  };
+  const key = previousKey ? previousKey.call(material) : '';
+  material.customProgramCacheKey = () => key + '|near-fade';
+  material.needsUpdate = true;
+  nearCameraFadeMaterials.add(material);
+}
+
 export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeightAt, center, obstacles, lowSpec = false, mergeStatic = null }) {
   if (!THREE || !GLTFLoader || !group || !groundHeightAt || !center || !obstacles) throw new Error('Eldoria: integration dependencies missing');
   const loader = new GLTFLoader();
@@ -179,7 +198,16 @@ export function mountEldoriaLiveVillage({ THREE, GLTFLoader, group, groundHeight
       const rootSink = treeRootSink(spec);
       const y = spec.kind === 'tree' ? lo - spec.size * rootSink : lo - .03;
       obj.position.set(cx, y, cz); obj.rotation.y = spec.rotation; obj.name = 'Eldoria_' + spec.kind + '_' + spec.file;
-      obj.traverse(child => { if (child.isMesh) { child.receiveShadow = true; child.castShadow = !lowSpec && spec.kind === 'house'; if (spec.kind === 'market') child.frustumCulled = false; } });
+      obj.traverse(child => {
+        if (!child.isMesh) return;
+        child.receiveShadow = true;
+        child.castShadow = !lowSpec && spec.kind === 'house';
+        if (spec.kind === 'market') child.frustumCulled = false;
+        if (spec.kind === 'tree') {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          for (const material of materials) addNearCameraFade(material, 8.0);
+        }
+      });
       root.add(obj);
       if (spec.file === 'PocoEldoria.glb') {
         // Pingos parados ao fundo do poço, não um volume de água: simbolizam escassez.
