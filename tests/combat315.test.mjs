@@ -485,6 +485,9 @@ test('A2: SlashVFX uploads only changed compact color slots and skips stable fra
   assert.ok(sparkMesh, 'o pool instanciado de faíscas pertence ao SlashVFX de produção');
   const attrs = sparkMesh.geometry.attributes;
   const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  const originalRandom = Math.random;
+  const randomValues = [0.5, 0.5, 0.1, 0.5, 0.5, 0.9, 0.5, 0.5, 0.1, 0.5, 0.5, 0.9];
+  Math.random = () => randomValues.shift() ?? 0.5;
   try {
     v.spark({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }, 'prota', .2, 1);
     v.spark({ x: 7, y: 8, z: 9 }, { x: 1, y: 2, z: 3 }, 'prota', 1, 1);
@@ -509,8 +512,11 @@ test('A2: SlashVFX uploads only changed compact color slots and skips stable fra
     const rangeRefs = Object.fromEntries(['aPos', 'aVel', 'aK', 'aCol'].map(name => [name, attrs[name].updateRanges[0]]));
     for (const name of ['aPos', 'aVel', 'aK']) assert.equal(attrs[name].version, versions[name] + 1);
     assert.equal(attrs.aCol.version, versions.aCol + 1, 'a cor recebe upload inicial após o spawn');
+    const firstColor = Array.from(attrs.aCol.array.slice(0, 3));
     const secondColor = Array.from(attrs.aCol.array.slice(3, 6));
     const thirdColor = Array.from(attrs.aCol.array.slice(6, 9));
+    assert.notDeepEqual(firstColor, secondColor, 'cores determinísticas distinguem o slot inicial do segundo');
+    assert.notDeepEqual(secondColor, thirdColor, 'cores determinísticas distinguem os slots que serão preservados no swap');
 
     const dt = 1 / 60, pos = attrs.aPos.array, vel = attrs.aVel.array;
     for (const [offset, initial] of [[0, [1, 2, 3]], [3, [7, 8, 9]], [6, [10, 11, 12]]]) {
@@ -558,6 +564,7 @@ test('A2: SlashVFX uploads only changed compact color slots and skips stable fra
     v.update(10, camera, 'high');
     assert.equal(sparkMesh.geometry.instanceCount, 0, 'a expiração remove instâncias sem depender de limpar o buffer inteiro');
   } finally {
+    Math.random = originalRandom;
     v.clear(); scene.remove(v.root);
   }
 });
@@ -570,10 +577,14 @@ test('A2: SlashVFX updates only one RGB triple when the circular pool overwrites
   assert.ok(sparkMesh);
   const attrs = sparkMesh.geometry.attributes;
   const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  const originalRandom = Math.random;
+  const randomValues = [0.5, 0.5, 0.1, 0.5, 0.5, 0.9, 0.5, 0.5, 0.1, 0.5, 0.5, 0.9];
+  Math.random = () => randomValues.shift() ?? 0.5;
   try {
     for (let i = 0; i < 3; i++) v.spark({ x: i, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
     v.update(1 / 60, camera, 'high');
     assert.equal(sparkMesh.geometry.instanceCount, 3);
+    const first = Array.from(attrs.aCol.array.slice(0, 3));
     const second = Array.from(attrs.aCol.array.slice(3, 6));
     const third = Array.from(attrs.aCol.array.slice(6, 9));
     attrs.aCol.clearUpdateRanges();
@@ -584,6 +595,7 @@ test('A2: SlashVFX updates only one RGB triple when the circular pool overwrites
     assert.equal(sparkMesh.geometry.instanceCount, 3, 'overwrite circular mantém uma entrada por slot');
     assert.equal(attrs.aCol.version, colorVersion + 1);
     assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 3 }], 'só o slot ativo sobrescrito é enviado');
+    assert.notDeepEqual(Array.from(attrs.aCol.array.slice(0, 3)), first, 'o slot sobrescrito recebe uma cor realmente diferente');
     assert.deepEqual(Array.from(attrs.aCol.array.slice(3, 6)), second, 'a cor do segundo slot não muda');
     assert.deepEqual(Array.from(attrs.aCol.array.slice(6, 9)), third, 'a cor do terceiro slot não muda');
 
@@ -593,6 +605,40 @@ test('A2: SlashVFX updates only one RGB triple when the circular pool overwrites
     assert.equal(attrs.aCol.version, stableVersion, 'frame estável não publica cor');
     assert.deepEqual(ranges(attrs.aCol), []);
   } finally {
+    Math.random = originalRandom;
+    v.clear(); scene.remove(v.root);
+  }
+});
+
+test('A2: SlashVFX merges unconsumed color ranges with the next changed slot', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 4, stars: 1 });
+  const sparkMesh = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aPos);
+  assert.ok(sparkMesh);
+  const color = sparkMesh.geometry.attributes.aCol;
+  const ranges = () => color.updateRanges.map(({ start, count }) => ({ start, count }));
+  const originalRandom = Math.random;
+  const randomValues = [0.5, 0.5, 0.1, 0.5, 0.5, 0.9, 0.5, 0.5, 0.1];
+  Math.random = () => randomValues.shift() ?? 0.5;
+  try {
+    v.spark({ x: 0, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    const reusable = color.updateRanges[0];
+    assert.deepEqual(ranges(), [{ start: 0, count: 3 }]);
+
+    v.spark({ x: 1, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.deepEqual(ranges(), [{ start: 0, count: 6 }], 'o range pendente anterior é unido ao novo RGB');
+    assert.strictEqual(color.updateRanges[0], reusable, 'o mesmo objeto de range é reutilizado');
+    
+    color.clearUpdateRanges();
+    v.spark({ x: 2, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.deepEqual(ranges(), [{ start: 6, count: 3 }], 'após consumo, o próximo slot usa apenas seu próprio intervalo');
+    assert.strictEqual(color.updateRanges[0], reusable, 'o range continua reutilizável após consumo');
+  } finally {
+    Math.random = originalRandom;
     v.clear(); scene.remove(v.root);
   }
 });
