@@ -9,9 +9,12 @@ on:
       - 'mundo-3d-prototype.js'
       - 'camera-water-clearance3d.js'
       - 'tools/visual-lab/agent-qa.cjs'
+      - 'tools/visual-lab/agent-qa.test.cjs'
       - 'tools/visual-lab/scene-agent.cjs'
       - 'tools/visual-lab/scene-capture-core.cjs'
+      - 'tools/visual-lab/scene-capture-core.test.cjs'
       - 'tools/visual-lab/photographer.cjs'
+      - 'tools/visual-lab/photographer.test.cjs'
       - 'tools/visual-lab/package.json'
       - 'act1-world-layout.js'
       - 'eldoria-city-layout.js'
@@ -24,7 +27,7 @@ permissions:
 
 concurrency:
   group: a1-eldoria-route-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   capture:
