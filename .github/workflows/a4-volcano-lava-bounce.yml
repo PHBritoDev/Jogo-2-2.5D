@@ -1,8 +1,6 @@
 name: A4 — Reflexo dinâmico de lava (A/B)
 on:
   pull_request:
-    branches:
-      - main
     paths:
       - '.github/workflows/a4-volcano-lava-bounce.yml'
       - 'volcano*.js'
@@ -38,7 +36,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: candidate
-          fetch-depth: 2
           sparse-checkout: |
             /*.js
             /*.mjs
@@ -49,48 +46,6 @@ jobs:
             /CristalCaverna01.glb
             /TochaMedievalTripo.glb
           sparse-checkout-cone-mode: false
-      - name: Detectar mudança visual no último commit
-        id: visual
-        working-directory: candidate
-        run: |
-          changed="$(git diff --name-only HEAD^ HEAD)"
-          echo "$changed"
-          if echo "$changed" | grep -Eq '(^volcano.*\.js$|^dimension-arenas3d\.js$|^volcano-cave-bark\.webp$|^CristalCaverna01\.glb$|^TochaMedievalTripo\.glb$|^assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k\.webp$|^tools/qa/a4-volcano-lava-bounce\.(cjs|html)$)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "A/B visual ignorado: último commit altera somente teste/workflow/documentação." >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Instalar Playwright, Three.js e PNG reader
-        if: steps.visual.outputs.run == 'true'
-        run: npm install --prefix "$RUNNER_TEMP/qa" playwright@1.56.1 three@0.160.0 pngjs@7.0.0
-      - name: Instalar Chromium
-        if: steps.visual.outputs.run == 'true'
-        run: '"$RUNNER_TEMP/qa/node_modules/.bin/playwright" install --with-deps chromium'
-      - name: Comparar main e candidata no mesmo enquadramento
-        if: steps.visual.outputs.run == 'true'
-        env:
-          NODE_PATH: ${{ runner.temp }}/qa/node_modules
-          BASE_DIR: ${{ github.workspace }}/baseline
-          CANDIDATE_DIR: ${{ github.workspace }}/candidate
-          OUTPUT_DIR: ${{ github.workspace }}/candidate/artifacts/a4-volcano-lava-bounce
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node candidate/tools/qa/a4-volcano-lava-bounce.cjs
-      - name: Publicar PNGs, WebM e relatório A/B
-        if: always() && steps.visual.outputs.run == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: a4-volcano-lava-bounce-${{ github.event.pull_request.head.sha }}
-          path: candidate/artifacts/a4-volcano-lava-bounce/
-          if-no-files-found: warn
-          retention-days: 7
-; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "A/B visual ignorado: último commit altera somente teste/workflow/documentação." >> "$GITHUB_STEP_SUMMARY"
-          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 24
