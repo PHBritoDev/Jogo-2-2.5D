@@ -18,6 +18,7 @@ jobs:
           sparse-checkout: |
             /*.js
             /*.mjs
+            /volcano-cave-bark.webp
             /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
             /CristalCaverna01.glb
             /TochaMedievalTripo.glb
@@ -30,6 +31,7 @@ jobs:
           sparse-checkout: |
             /*.js
             /*.mjs
+            /volcano-cave-bark.webp
             /tools/qa/a4-volcano-lava-bounce.html
             /tools/qa/a4-volcano-lava-bounce.cjs
             /assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp
