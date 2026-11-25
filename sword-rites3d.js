@@ -1,5 +1,5 @@
 import {combatMove,WEAPON_STYLES} from './combat-choreography3d.js';
-import {makeEnergy,energyStep,energyTouches,energyFalloff} from './prota-combat3d.js';
+import {makeEnergy,energyStep,energyTouches,energyFalloff,PROTA_DASH} from './prota-combat3d.js';
 /** Mod 231. Deterministic sword combat, independent of Three, DOM and wall time. */
 export const SWORD_RITES=Object.freeze({
  prota:{name:'Passagem do Julgamento',label:'PASSAGEM',mana:28,cooldown:12,duration:1.95,clip:'Rite_Judgment'},
@@ -14,9 +14,9 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
 const BLADE_SWEEP_RAILS=Object.freeze([0,.25,.5,.75,1]);
-// Secondary actors use their own authored dash envelope, not the protagonist's dash.
-// Véraxion reaches 14 m/s; the longest current squad dash covers 3.3 m (Demon1 leap: 11 m/s × .30 s).
-const TARGET_SWEEP_MAX_SPEED=14;
+// Conservative frame envelope for 20/30 FPS crossings; the hard cap is the longest squad dash.
+// Current actors reach 14 m/s (Véraxion); Demon1's leap dash covers 11 m/s × .30 s = 3.3 m.
+const TARGET_SWEEP_MAX_SPEED=PROTA_DASH.distance/PROTA_DASH.travel;
 const TARGET_SWEEP_MAX_DISTANCE=3.3;
 const TARGET_SWEEP_MARGIN=.25;
 const distance3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
