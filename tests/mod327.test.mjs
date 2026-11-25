@@ -227,8 +227,9 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8');
   assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
   assert.ok(/uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow;/.test(ew), 'uniform de qualidade compartilhado');
-  const lowWarp = ew.match(/if \(uAurLow > \.5\) aurWarp = ([^;]+);/);
-  assert.ok(lowWarp && (lowWarp[1].match(/vn\(/g) || []).length === 2 && !/fbm\(/.test(lowWarp[1]) && /else aurWarp = fbm\(/.test(ew), 'perfil baixo usa duas oitavas; alto preserva FBM de quatro oitavas');
+  assert.ok(/float fbmLow\(vec2 p\)/.test(ew) && /float waterFbm\(vec2 p\)\{ if \(uAurLow > \.5\) return fbmLow\(p\); return fbm\(p\); \}/.test(ew), 'seletor uniforme: duas oitavas no baixo, quatro no alto');
+  const mainShader = ew.slice(ew.indexOf('void main(){'));
+  assert.ok(!/fbm\(/.test(mainShader) && (mainShader.match(/waterFbm\(/g) || []).length >= 11, 'normais, espuma e aurora passam pelo mesmo caminho adaptativo');
   assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
