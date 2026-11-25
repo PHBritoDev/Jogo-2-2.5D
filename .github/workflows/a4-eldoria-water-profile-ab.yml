@@ -1,0 +1,59 @@
+name: A4 — Eldória água low/medium/high A/B
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'aurora-luz3d.js'
+      - 'eldoria-water.js'
+      - 'mundo-3d-prototype.js'
+      - 'tests/mod327.test.mjs'
+      - 'tools/visual-lab/a4-eldoria-water-profile-ab.cjs'
+      - '.github/workflows/a4-eldoria-water-profile-ab.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  water-profile-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Buscar o SHA exato da base da PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
+      - name: Instalar Playwright e Chromium
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Servir o jogo localmente
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/a4-water-ab.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/a4-water-ab.log
+          exit 1
+      - name: Comparar módulos da base e da PR em quatro perfis
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          VISUAL_BASE_URL: http://127.0.0.1:4173
+        run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/a4-eldoria-water-profile-ab.cjs
+      - name: Publicar A/B para inspeção manual
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a4-eldoria-water-profile-ab-${{ github.run_number }}
+          path: visual-lab-results/a4-water-profile-ab/
+          retention-days: 30
+          if-no-files-found: warn
