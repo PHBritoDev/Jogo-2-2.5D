@@ -40,6 +40,7 @@ test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar �
   assert.deepEqual(scene.shots.map(s => s.name), ["campo-inicio", "vau-lago-camera"]);
   assert.deepEqual(scene.shots[1].at, [-28.815, -94.586, 0], "repete a posição de água observada no artifact A4");
   assert.equal(scene.shots[1].pitch, 0); assert.equal(scene.shots[1].dist, 6);
+  assert.deepEqual(scene.walk.start, [-14, -82, 0], "a caminhada retorna ao campo depois da tomada do vau");
   assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca"]);
   assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-14.2, -42.8]]);
   assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',28,3]]);
@@ -65,6 +66,7 @@ test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar �
   assert.throws(() => core.validateWalk({segments:[{name:"alvo-invalido",target:[0],timeoutMs:5000}]}), /Alvo inválido/);
   assert.throws(() => core.validateWalk({segments:[{name:"tecla-invalida",target:[0,1],key:"KeyQ",timeoutMs:5000}]}), /Tecla inválida/);
   assert.throws(() => core.validateWalk({segments:[{name:"timeout-invalido",target:[0,1],timeoutMs:999999}]}), /Timeout inválido/);
+  assert.throws(() => core.validateWalk({start:[0,1],segments:[{name:"origem-invalida",target:[0,1]}]}), /Origem inválida/);
 });
 test("índice e relatório separam observado de inferido e apontam cada arquivo", () => {
   const shots = [{ scene: "vila-praca", name: "a", file: "vila-praca/01-a.png", status: "ok", reason: "r", attempts: 1, pixels: { mean: 90, stdev: 30 }, stateSummary: "jogador 1,2,3" },
