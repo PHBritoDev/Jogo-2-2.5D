@@ -179,16 +179,22 @@ Pontuar cada item 0–2: 0 = falha; 1 = parcial; 2 = claro. Cena não passa com 
 
 Não usar a pontuação como “nota científica”. É uma ferramenta de revisão interna; comparar observações e falas dos jogadores, não apenas somar números.
 
-## 9. Coordenação e áreas protegidas
+## 9. Coordenação e áreas protegidas — revalidação 25/11/2026
 
-- #670 foi incorporada à main pelo conjunto #682; seu QA de progressão/save está aprovado no SHA `2a4b7ea0`. A PR A5 atual de proposta é #691 (Draft), sem aprovação de cânone.
-- #665 continua aberta em Draft e `mergeable=false`; #673 foi integrada via #682. Não editar a branch Codex. A jornada Sakura/Neve/Castelo existe tecnicamente, mas sua função narrativa permanece pendente.
-- #672: A3/fauna; não editar.
-- #674: A4/iluminação; não editar.
-- #675: A1/locomoção; não editar.
-- #656: combate; não editar.
-- #468/#515: áreas de locomoção/caverna; não editar.
-- O hunk A5 em mundo-3d-prototype.js é somente o argumento waystones em refreshSideQuests; foi comparado com os hunks concorrentes.
+A reserva de arquivos é dinâmica; a lista abaixo foi conferida no GitHub contra a main `1b280bc0d9a912380fd6c2f9bda165b19b3f5009`. Não tratar PR fechada como trabalho ativo.
+
+- **A5 — #691:** branch `agentes/a5/canon-proposal-mod361-20261125`, HEAD `248e644e840ab837c17ccc3a1fd5e6bc2ffec335`, aberta/Draft/mergeable. Paths próprios: `act1-flow.js`, `act1-flow.test.mjs`, `tools/qa/a5-waystone-gameplay.cjs` e quatro documentos de proposta. Não toca build-info, loader, cache, caverna ou módulos de mundo/combate alheios.
+- **Codex — #665:** branch `codex/ato3-jornada-sakura-castelo`, HEAD `99ccbfede7a6e76396758c7eecdd14a7cfc0f906`, aberta/Draft/não mergeable. Altera `act1-flow.js`, `act2-flow.js`, `act3-flow.js`, build-info e módulos Sakura/Neve. O hunk compartilhado em `act1-flow.js` foi comparado: #665 altera `sakuraRest` em `baseProgress/migrateProgress`; #691 altera somente as constantes do vendedor, `questPresentation()` e `SPEAKERS`. Não editar a branch Codex.
+- **A3 — #685:** branch `agentes/a3/eldoria-ancestral-root-roles-mod363`, HEAD `3260a8b3dfb5374902d971745613131d2f95c325`, aberta/pronta para revisão/mergeable; cinco paths de vila e testes. Não compartilha paths com #691.
+- **Integração Codex — #686:** branch `codex/integracao-replay-eldoria`, HEAD `65488a33d90c90b9454668f1e1bd047062b47156`, aberta/pronta para revisão/mergeable; inclui a alteração A3 e build-info. Não editar.
+- **Codex — #688:** branch `codex/integracao-densidade-floresta`, HEAD `b5f2dfb0b35d4848b46fa8aeae5be7959383faee`, aberta/pronta para revisão/mergeable, empilhada sobre #686; altera build-info, `world3d-terrain.js` e testes. Não editar.
+- **A4 — #689:** branch `agentes/a4/volcano-lava-bounce`, HEAD `5f3a4d0ce7d37f1c01a21be303af155cf0439c63`, aberta/Draft/mergeable; seis paths de iluminação/caverna. A caverna continua protegida.
+- **A2 — #690:** branch `agentes/a2/sword-vfx-active-particle-pool`, HEAD `4da3366ed246d5cba8039e2fccd03488202de1b5`, aberta/Draft/mergeable; dois paths de VFX/combate. Não editar.
+- **A1 — #692:** branch `agentes/a1/eldoria-exterior-route-qa-mod361`, HEAD `b26849abcafe4796695b59f236d80d008c79ed1b`, aberta/Draft/mergeable; seis paths de ferramentas de captura/QA. Não editar.
+- **Claude — #515:** branch `claude/eldoria-renascimento-fase3-caverna-plano`, HEAD `a916d3315f94d320c6952c9f4a2706708b2284db`, aberta/Draft/mergeable; plano documental da caverna. Não editar nem reinterpretar o escopo protegido.
+- **Integrações concluídas:** #673, #670 e #682 estão fechadas com merge. #682 levou o conjunto Mod 361 à main `1b280bc0`; isso não transforma propostas narrativas em cânone.
+
+As PRs #672, #674, #675 e #656 estão **fechadas**; aparecem apenas no histórico e não são reservas ativas. Revalidar os estados e paths antes de cada nova alteração. A PR #691 não altera arquivos de #665 além do hunk independente já descrito, nem os paths de #685–#690/#692 ou da #515.
 
 ## 10. Sequência de implementação após aprovação
 
