@@ -431,17 +431,36 @@ test('SwordRites VFX uploads only the changed ribbon segment until the trail rol
     assert.deepEqual(ranges(position), [{ start: 0, count: 6 }], 'first sample uploads only two vertices');
     assert.deepEqual(ranges(birth), [{ start: 0, count: 2 }], 'first sample uploads only two birth values');
 
+    const positionRange = position.updateRanges[0], birthRange = birth.updateRanges[0];
+    assert.ok(positionRange && birthRange, 'each ribbon attribute receives one pending range object');
+
     sample(1, 1);
     assert.deepEqual(ranges(position), [{ start: 0, count: 12 }], 'adjacent samples coalesce without replacing the pending range');
     assert.deepEqual(ranges(birth), [{ start: 0, count: 4 }]);
+    assert.strictEqual(position.updateRanges[0], positionRange, 'coalescing reuses the same position range object');
+    assert.strictEqual(birth.updateRanges[0], birthRange, 'coalescing reuses the same birth range object');
 
     position.clearUpdateRanges();
     birth.clearUpdateRanges();
     sample(1, 2);
     assert.deepEqual(ranges(position), [{ start: 12, count: 6 }], 'after renderer consumption only the new segment is dirty');
     assert.deepEqual(ranges(birth), [{ start: 4, count: 2 }]);
+    assert.strictEqual(position.updateRanges[0], positionRange, 'a consumed position range is reused on the next sample');
+    assert.strictEqual(birth.updateRanges[0], birthRange, 'a consumed birth range is reused on the next sample');
 
-    for (let i = 3; i < 64; i++) sample(1, i);
+    position.clearUpdateRanges();
+    birth.clearUpdateRanges();
+    position.addUpdateRange(12, 6);
+    position.addUpdateRange(6, 6);
+    birth.addUpdateRange(4, 2);
+    birth.addUpdateRange(2, 2);
+    sample(1, 3);
+    assert.deepEqual(ranges(position), [{ start: 6, count: 18 }], 'one new sample merges every adjacent pending position range');
+    assert.deepEqual(ranges(birth), [{ start: 2, count: 6 }], 'one new sample merges every adjacent pending birth range');
+    assert.strictEqual(position.updateRanges[0], positionRange, 'range consolidation keeps the reusable object');
+    assert.strictEqual(birth.updateRanges[0], birthRange, 'birth range consolidation keeps the reusable object');
+
+    for (let i = 4; i < 64; i++) sample(1, i);
     assert.equal(ribbon.geometry.drawRange.count, 63 * 6, 'the ribbon still draws the same 63 connected segments');
     position.clearUpdateRanges();
     birth.clearUpdateRanges();

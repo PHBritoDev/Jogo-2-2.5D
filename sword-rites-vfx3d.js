@@ -37,22 +37,28 @@ export function createSwordRitesVFX(T,scene){
  const makeMaterial=(sword='prota',glow=0)=>{const p=palettes[sword];return new T.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,uniforms:{clock:{value:0},ink:{value:new T.Color(p[0])},core:{value:new T.Color(p[1])},dark:{value:new T.Color(p[2])},filament:{value:new T.Color(p[3])},opacity:{value:1},life:{value:.3},glow:{value:glow}},side:T.DoubleSide,transparent:true,depthWrite:false,toneMapped:false,blending:glow?T.AdditiveBlending:T.NormalBlending});};
  const tint=(m,s)=>{const p=palettes[s];['ink','core','dark','filament'].forEach((k,i)=>m.uniforms[k].value.setHex(p[i]));};
  const segments=64;
- function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0};}
+ function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0,positionRange:{start:0,count:0},birthRange:{start:0,count:0}};}
  const trails=Array.from({length:3},ribbon);
- function publishRibbonRange(attribute,start,count,full=false){
+ // Three.js r160 addUpdateRange() allocates a new object; reuse one range per ribbon attribute.
+ function publishRibbonRange(attribute,reusableRange,start,count,full=false){
   if(typeof attribute.addUpdateRange==='function'&&typeof attribute.clearUpdateRanges==='function'&&Array.isArray(attribute.updateRanges)){
-   if(full){attribute.clearUpdateRanges();attribute.addUpdateRange(0,attribute.array.length);}
-   else{
-    const end=start+count,ranges=attribute.updateRanges;
-    let merged=false;
-    for(let i=0;i<ranges.length;i++){
-     const range=ranges[i],rangeEnd=range.start+range.count;
-     if(start<=rangeEnd&&end>=range.start){
-      const first=Math.min(start,range.start),last=Math.max(end,rangeEnd);
-      range.start=first;range.count=last-first;merged=true;break;
+   const ranges=attribute.updateRanges;
+   if(full){
+    ranges.length=0;reusableRange.start=0;reusableRange.count=attribute.array.length;ranges.push(reusableRange);
+   }else{
+    let first=start,last=start+count,merged=true;
+    while(merged){
+     merged=false;
+     for(let i=ranges.length-1;i>=0;i--){
+      const range=ranges[i],rangeEnd=range.start+range.count;
+      if(range===reusableRange||(first<=rangeEnd&&last>=range.start)){
+       if(range.start<first)first=range.start;
+       if(rangeEnd>last)last=rangeEnd;
+       ranges.splice(i,1);merged=true;
+      }
      }
     }
-    if(!merged)attribute.addUpdateRange(start,count);
+    reusableRange.start=first;reusableRange.count=last-first;ranges.push(reusableRange);
    }
   }
   attribute.needsUpdate=true;
@@ -68,8 +74,8 @@ export function createSwordRitesVFX(T,scene){
   t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.mesh.visible=true;t.material.uniforms.life.value=.24;
   t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);
   const position=t.geometry.attributes.position,birth=t.geometry.attributes.birth;
-  publishRibbonRange(position,full?0:o,full?position.array.length:6,full);
-  publishRibbonRange(birth,full?0:i*2,full?birth.array.length:2,full);
+  publishRibbonRange(position,t.positionRange,full?0:o,full?position.array.length:6,full);
+  publishRibbonRange(birth,t.birthRange,full?0:i*2,full?birth.array.length:2,full);
  }
  // Thick curved crescent with a tapered, serrated inner edge and a 3D bow.
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;
