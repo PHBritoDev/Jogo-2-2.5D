@@ -92,6 +92,7 @@ function validContinuousRoute(route) {
   if (!reset || reset.verified !== true || !reset.expected || !Number.isFinite(reset.expected.x) ||
       !Number.isFinite(reset.expected.z) || !Number.isFinite(reset.expected.yaw) ||
       Math.hypot(reset.expected.x-origin.x, reset.expected.z-origin.z) > .01 ||
+      Math.abs(Math.atan2(Math.sin(reset.expected.yaw-configuredStart[2]),Math.cos(reset.expected.yaw-configuredStart[2]))) > .01 ||
       !finiteWorldPoint(reset.actual) ||
       Math.hypot(reset.actual.x-origin.x, reset.actual.z-origin.z) > .5 ||
       !finiteWorldPoint(segments[0]?.start) ||
