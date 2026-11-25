@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion, masonryShaderPatches } from './volcano-cave-masonry.js';
+import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion, lavaBounceSourceBlend, masonryShaderPatches } from './volcano-cave-masonry.js';
 
 test('bounce da lava cai com a distância e respeita a orientação da rocha', () => {
   assert.equal(lavaBounceFalloff(0, 1), 1);
@@ -36,6 +36,17 @@ test('bounce espacial faz fade suave na entrada do Santuário', () => {
   assert.equal(lavaBounceRegion(Number.NaN), 0);
 });
 
+test('a fonte de bounce interpola sem salto entre as duas cataratas', () => {
+  assert.equal(lavaBounceSourceBlend(126), 0);
+  assert.equal(lavaBounceSourceBlend(127), 0);
+  assert.equal(lavaBounceSourceBlend(135), .5);
+  assert.equal(lavaBounceSourceBlend(143), 1);
+  assert.equal(lavaBounceSourceBlend(144), 1);
+  assert.equal(lavaBounceSourceBlend(Number.NaN), 0);
+  const samples = Array.from({ length: 17 }, (_, i) => lavaBounceSourceBlend(127 + i));
+  assert.ok(samples.every((value, i) => i === 0 || value >= samples[i - 1]));
+});
+
 test('somente os lotes próximos do Santuário recebem o bounce', () => {
   assert.equal(lavaBounceEnabled('Santuário das Cataratas de Fogo', true), true);
   assert.equal(lavaBounceEnabled('Santuário • galeria superior', true), true);
@@ -54,6 +65,8 @@ test('materiais fora do Santuário não recebem varying, uniforme ou branch de b
   const disabledFragment = disabled.fragmentPrefix + disabled.fragmentChunk;
   assert.match(enabledVertex, /vLavaBounce/);
   assert.match(enabledFragment, /uLavaPulse/);
+  assert.match(enabledVertex, /vec3 spill=mix\(vec3\(29\.,8\.,122\.\),vec3\(-31\.,12\.,149\.\),smoothstep\(127\.000,143\.000,position\.z\)\)/);
+  assert.match(disabledVertex, /position\.z>135\./);
   assert.match(enabledVertex, /float deltaLen2=dot\(delta,delta\)/);
   assert.match(enabledVertex, /inversesqrt\(max\(deltaLen2,/);
   assert.doesNotMatch(disabledVertex, /vLavaBounce|uLavaPulse|uLavaGain/);

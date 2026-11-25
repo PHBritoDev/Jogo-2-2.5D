@@ -68,7 +68,12 @@ try {
     scene.fog.far = env.fogFar;
   }
   function placeCamera(node) {
-    const point = node === 'upper-gallery' ? nodes.vestibule : nodes[node];
+    const seamPoints = {
+      'seam-lower': [-9, 127],
+      'seam-center': [-13.8, 135],
+      'seam-upper': [-12.2, 143]
+    };
+    const point = node === 'upper-gallery' ? nodes.vestibule : (seamPoints[node] || nodes[node]);
     camera.position.set(point[0], caveHeight(point[1]) + 2, point[1]);
     camera.lookAt(point[0], 2, point[1] - 25);
   }
@@ -117,7 +122,10 @@ try {
       draw('spine', 3000),
       // The lava source switches at z=135; inspect both sides of that seam.
       draw('falls', 3500),
-      draw('stair', 4000)
+      draw('stair', 4000),
+      draw('seam-lower', 4500),
+      draw('seam-center', 4500),
+      draw('seam-upper', 4500)
     ];
     return {
       frames,
@@ -127,6 +135,7 @@ try {
         scene: 'buildDimensionArena(volcano)',
         environment: { bg: env.bg, fog: env.fog, fogNear: env.fogNear, fogFar: env.fogFar, exposure: env.exposure },
         assets: expected,
+        sourceTransition: { startZ: 127, fullZ: 143, points: ['seam-lower', 'seam-center', 'seam-upper'] },
         errors: []
       }
     };

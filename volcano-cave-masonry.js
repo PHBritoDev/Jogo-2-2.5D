@@ -3,7 +3,7 @@
 import {addStructure,addCliff} from "./volcano-cave-layout.js";
 
 export const LAVA_BOUNCE_CONFIG = Object.freeze({
- distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, facingFloor: .20, facingGain: .80,
+ distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, sourceBlendStartZ: 127, sourceBlendEndZ: 143, facingFloor: .20, facingGain: .80,
  pulseBase: .88, pulseSlow: .08, pulseFast: .04,
  pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73, bounceStrength: 1.45,
  color: Object.freeze([.88, .46, .065])
@@ -27,6 +27,12 @@ export function lavaBounceRegion(z) {
  const t=Math.max(0,Math.min(1,(raw-c.regionStartZ)/(c.regionFullZ-c.regionStartZ)));
  return t*t*(3-2*t);
 }
+export function lavaBounceSourceBlend(z) {
+ const raw=Number(z), c=LAVA_BOUNCE_CONFIG;
+ if(!Number.isFinite(raw)) return 0;
+ const t=Math.max(0,Math.min(1,(raw-c.sourceBlendStartZ)/(c.sourceBlendEndZ-c.sourceBlendStartZ)));
+ return t*t*(3-2*t);
+}
 export function lavaBounceEnabled(groupName, hasClock) {
  const name=String(groupName||'');
  return !!hasClock&&(name.includes('Santuário')||name.includes('pisos'));
@@ -37,7 +43,9 @@ export function masonryShaderPatches(lavaEnabled) {
  const color=cfg.color.map(glslNumber).join(',');
  const vertexChunk=[
   '#include <project_vertex>',
-  'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);',
+  lavaEnabled
+   ? 'vec3 spill=mix(vec3(29.,8.,122.),vec3(-31.,12.,149.),smoothstep('+glslNumber(cfg.sourceBlendStartZ)+','+glslNumber(cfg.sourceBlendEndZ)+',position.z));'
+   : 'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);',
   'vec3 delta=spill-position;',
   lavaEnabled
    ? 'float deltaLen2=dot(delta,delta);\nfloat wet=1./(1.+deltaLen2*'+glslNumber(cfg.distanceFalloff)+');'

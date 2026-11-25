@@ -117,7 +117,7 @@ async function main() {
     const comparisons = {};
     const budget = {};
     const gateFailures = [];
-    for (const key of ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'grove-2500', 'spine-3000', 'falls-3500', 'stair-4000']) {
+    for (const key of ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'grove-2500', 'spine-3000', 'falls-3500', 'stair-4000', 'seam-lower-4500', 'seam-center-4500', 'seam-upper-4500']) {
       const a = baseline.frames.find(frame => frame.key + '-' + frame.now === key);
       const b = candidate.frames.find(frame => frame.key + '-' + frame.now === key);
       if (!a || !b) throw new Error('Captura A/B ausente: ' + key);
@@ -171,7 +171,7 @@ async function main() {
       viewport: '960x540',
       baseline: { report: baseline.report, errors: baseline.errors },
       candidate: { report: candidate.report, errors: candidate.errors },
-      gateThresholds: { overlookMeanRGB: 5.5, upperGalleryMeanRGB: 4.3, temporalGainRGB: .08, maxP95RGB: 20, changedPixelsPct: { overlook: 30, upperGallery: 20 } },
+      gateThresholds: { overlookMeanRGB: 5.5, upperGalleryMeanRGB: 4.3, temporalGainRGB: .08, maxP95RGB: 20, sourceBlendZ: [127, 143], changedPixelsPct: { overlook: 30, upperGallery: 20 } },
       imageDelta: comparisons,
       temporalDelta: temporal,
       temporalGainRGB,
