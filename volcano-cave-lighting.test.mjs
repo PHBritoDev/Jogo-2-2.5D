@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion } from './volcano-cave-masonry.js';
+import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled, lavaBounceRegion, masonryShaderPatches } from './volcano-cave-masonry.js';
 
 test('bounce da lava cai com a distância e respeita a orientação da rocha', () => {
   assert.equal(lavaBounceFalloff(0, 1), 1);
@@ -43,29 +43,34 @@ test('somente os lotes próximos do Santuário recebem o bounce', () => {
   assert.equal(lavaBounceEnabled('Santuário das Cataratas de Fogo', false), false);
 });
 
+test('materiais fora do Santuário não recebem varying, uniforme ou branch de bounce', () => {
+  const enabled = masonryShaderPatches(true);
+  const disabled = masonryShaderPatches(false);
+  const enabledVertex = enabled.vertexPrefix + enabled.vertexChunk;
+  const enabledFragment = enabled.fragmentPrefix + enabled.fragmentChunk;
+  const disabledVertex = disabled.vertexPrefix + disabled.vertexChunk;
+  const disabledFragment = disabled.fragmentPrefix + disabled.fragmentChunk;
+  assert.match(enabledVertex, /vLavaBounce/);
+  assert.match(enabledFragment, /uLavaPulse/);
+  assert.match(enabledVertex, /float deltaLen2=dot\(delta,delta\)/);
+  assert.match(enabledVertex, /inversesqrt\(max\(deltaLen2,/);
+  assert.doesNotMatch(disabledVertex, /vLavaBounce|uLavaPulse|uLavaGain/);
+  assert.doesNotMatch(disabledFragment, /vLavaBounce|uLavaPulse|uLavaGain/);
+  assert.doesNotMatch(enabledVertex + enabledFragment, /uLavaGain/);
+});
+
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('./volcano-cave-scene.js', import.meta.url), 'utf8');
-  assert.match(masonry, /shader\.uniforms\.uLavaPulse=lavaPulseUniform/);
-  assert.match(masonry, /shader\.uniforms\.uLavaGain=lavaGain/);
-  assert.match(masonry, /uniform float uLavaPulse/);
-  assert.match(masonry, /vLavaBounce/);
-  assert.match(masonry, /smoothstep\('\+glslNumber\(cfg\.regionStartZ\)/);
-  assert.match(masonry, /vLavaBounce=wet\*\([^;]+\)\*lavaRegion/);
-  assert.match(masonry, /lavaBounceEnabled\(group\.name,!!palette\.clock\)/);
+  assert.match(masonry, /if\(lavaEnabled\)shader\.uniforms\.uLavaPulse=lavaPulseUniform/);
+  assert.match(masonry, /if\(palette\.stoneMap&&lavaEnabled\)m\.onBeforeRender=/);
+  assert.doesNotMatch(masonry, /uLavaGain/);
   assert.doesNotMatch(masonry, /new T\.PointLight|shadowMap/);
   assert.match(scene, /masonry\(T,floors,971,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,s,862\+i,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,galleries,2491,\{stoneMap,clock\}\)/);
   assert.match(scene, /clock\.value=t/);
-  assert.match(masonry, /m\.onBeforeRender=\(\)=>\{/);
-  assert.match(masonry, /lavaPulseUniform\.value=lavaBouncePulse\(lavaClock\.value,pulsePhase\)/);
-  assert.match(masonry, /wetGlint\*uLavaPulse/);
-  assert.doesNotMatch(masonry, /uLavaTime|vLavaPhase/);
-  const fragmentStart = masonry.indexOf('const fragmentChunk=');
-  const fragmentEnd = masonry.indexOf('shader.fragmentShader=', fragmentStart);
-  assert.ok(fragmentStart >= 0 && fragmentEnd > fragmentStart);
-  const fragmentChunk = masonry.slice(fragmentStart, fragmentEnd);
-  assert.match(fragmentChunk, /uLavaPulse/);
-  assert.doesNotMatch(fragmentChunk, /sin\(/);
+  const enabled = masonryShaderPatches(true);
+  assert.match(enabled.fragmentChunk, /wetGlint\*uLavaPulse/);
+  assert.doesNotMatch(enabled.fragmentChunk, /sin\(/);
 });

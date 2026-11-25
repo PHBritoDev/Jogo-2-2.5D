@@ -32,6 +32,37 @@ export function lavaBounceEnabled(groupName, hasClock) {
  return !!hasClock&&(name.includes('Santuário')||name.includes('pisos'));
 }
 const glslNumber = value => Number(value).toFixed(3);
+export function masonryShaderPatches(lavaEnabled) {
+ const cfg=LAVA_BOUNCE_CONFIG;
+ const color=cfg.color.map(glslNumber).join(',');
+ const vertexChunk=[
+  '#include <project_vertex>',
+  'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);',
+  'vec3 delta=spill-position;',
+  lavaEnabled
+   ? \`float deltaLen2=dot(delta,delta);\nfloat wet=1./(1.+deltaLen2*\${glslNumber(cfg.distanceFalloff)});\`
+   : \`float wet=1./(1.+dot(delta,delta)*\${glslNumber(cfg.distanceFalloff)});\`,
+  'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));',
+  'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);',
+  ...(lavaEnabled ? [
+   \`float facing=max(dot(normalize(normal),delta)*inversesqrt(max(deltaLen2,0.00000001)),0.);\`,
+   \`float lavaRegion=smoothstep(\${glslNumber(cfg.regionStartZ)},\${glslNumber(cfg.regionFullZ)},position.z);\`,
+   \`vLavaBounce=wet*(\${glslNumber(cfg.facingFloor)}+\${glslNumber(cfg.facingGain)}*facing)*lavaRegion;\`
+  ] : [])
+ ].join('\n')+'\n';
+ const fragmentChunk=[
+  'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));',
+  'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);',
+  ...(lavaEnabled ? [\`diffuseColor.rgb+=vec3(\${color})*vLavaBounce*uLavaPulse;\`] : []),
+  \`diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint\${lavaEnabled?'*uLavaPulse':''}*smoothstep(.045,.32,relief);\`
+ ].join('\n')+'\n';
+ return {
+  vertexPrefix: lavaEnabled ? 'varying float wetGlint;\nvarying float vLavaBounce;\n' : 'varying float wetGlint;\n',
+  fragmentPrefix: lavaEnabled ? 'varying float wetGlint;\nvarying float vLavaBounce;\nuniform float uLavaPulse;\n' : 'varying float wetGlint;\n',
+  vertexChunk,
+  fragmentChunk
+ };
+}
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -106,49 +137,27 @@ export function masonry(T, group, seed, palette){
  }
  function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const material=new T.MeshBasicMaterial({map:palette.stoneMap||tex,vertexColors:true,side:T.DoubleSide});
  const lavaClock=palette.clock||{value:0};
- let lavaGain={value:0},pulsePhase=0,lavaPulseUniform={value:1};
+ const lavaEnabled=lavaBounceEnabled(group.name,!!palette.clock);
+ let pulsePhase=0;
+ const lavaPulseUniform={value:1};
  if(palette.stoneMap){
   tex.dispose();
-  // O reflexo estático da calha permanece; no Santuário, a mesma fonte também
-  // produz um bounce quente e lento, sem PointLight, sombra ou draw call extra.
-  const cfg=LAVA_BOUNCE_CONFIG;
-  lavaGain={value:lavaBounceEnabled(group.name,!!palette.clock)?1:0};
-  pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
-  // Evaluate the slow pulse once per mesh draw, never once per fragment.
-  lavaPulseUniform={value:1};
-  const color=cfg.color.map(glslNumber).join(',');
+  // O reflexo estático permanece em todos os lotes; o bounce só compila no Santuário.
+  if(lavaEnabled){
+   pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
+  }
   material.onBeforeCompile=shader=>{
-   shader.uniforms.uLavaPulse=lavaPulseUniform;
-   shader.uniforms.uLavaGain=lavaGain;
-   const vertexChunk='\n#include <project_vertex>\n'+
-    'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);\n'+
-    'vec3 delta=spill-position;\n'+
-    'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));\n'+
-    'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');\n'+
-    'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);\n'+
-    'if(uLavaGain>.001){\n'+
-    ' float facing=max(dot(normalize(normal),normalize(delta)),0.);\n'+
-    ' float lavaRegion=smoothstep('+glslNumber(cfg.regionStartZ)+','+glslNumber(cfg.regionFullZ)+',position.z);\n'+
-    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing)*lavaRegion;\n'+
-    '}else{vLavaBounce=0.;}\n';
-   const fragmentChunk='\nfloat relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));\n'+
-    'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);\n'+
-    'if(uLavaGain>.001){\n'+
-    ' diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse;\n'+
-    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*uLavaPulse*smoothstep(.045,.32,relief);\n'+
-    '}else{\n'+
-    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\n'+
-    '}\n';
-   shader.vertexShader='varying float wetGlint;\nvarying float vLavaBounce;\nuniform float uLavaGain;\n'+
-    shader.vertexShader.replace('#include <project_vertex>',vertexChunk);
-   shader.fragmentShader='varying float wetGlint;\nvarying float vLavaBounce;\nuniform float uLavaPulse;\nuniform float uLavaGain;\n'+
-    shader.fragmentShader.replace('#include <map_fragment>',fragmentChunk);
+   // Lotes fora do Santuário não recebem varying, uniforme nem branch adicionais.
+   if(lavaEnabled)shader.uniforms.uLavaPulse=lavaPulseUniform;
+   const patch=masonryShaderPatches(lavaEnabled);
+   shader.vertexShader=patch.vertexPrefix+shader.vertexShader.replace('#include <project_vertex>',patch.vertexChunk);
+   shader.fragmentShader=patch.fragmentPrefix+shader.fragmentShader.replace('#include <map_fragment>',patch.fragmentChunk);
   };
  }
  const m=new T.Mesh(g,material);
  m.name=group.name+'-basalto';
- if(palette.stoneMap)m.onBeforeRender=()=>{
-  if(lavaGain.value>.001)lavaPulseUniform.value=lavaBouncePulse(lavaClock.value,pulsePhase);
+ if(palette.stoneMap&&lavaEnabled)m.onBeforeRender=()=>{
+  lavaPulseUniform.value=lavaBouncePulse(lavaClock.value,pulsePhase);
  };
  group.add(m);return m;}
  return {random,face,quad,block,stalk,cliff,arch,finish,palette};
