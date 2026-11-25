@@ -64,10 +64,10 @@ async function readState(page) {
   });
 }
 
-async function waitCameraStable(page, expectedDistance) {
+async function waitCameraStable(page, expectedDistance, timeoutMs = 22000) {
   const started = Date.now();
   let previous = null, stable = 0, last = null;
-  while (Date.now() - started < 22000) {
+  while (Date.now() - started < timeoutMs) {
     last = await readState(page);
     const camera = last.camera;
     const cameraStable = previous && distance3(camera, previous) < .035;
@@ -189,7 +189,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
       await session.page.waitForTimeout(3400);
       await session.page.keyboard.up("KeyW");
       await session.page.waitForTimeout(1000);
-      const walkSettled = await waitCameraStable(session.page, 9000, meadow.distance);
+      const walkSettled = await waitCameraStable(session.page, meadow.distance, 9000);
       const end = await readState(session.page);
       const distance = heroDelta(start, end);
       if (!walkSettled.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada no prado");
@@ -222,7 +222,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
       await session.page.waitForTimeout(3400);
       await session.page.keyboard.up("KeyW");
       await session.page.waitForTimeout(1000);
-      const walkSettled = await waitCameraStable(session.page, 9000, forest.distance);
+      const walkSettled = await waitCameraStable(session.page, forest.distance, 9000);
       const end = await readState(session.page);
       const distance = heroDelta(start, end);
       const walkFile = viewport.id + "-candidate-trilha-apos-caminhada.png";

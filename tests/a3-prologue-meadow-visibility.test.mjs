@@ -98,6 +98,17 @@ test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', ()
   assert.ok(harness.includes('câmera não assentou após caminhada na trilha'), 'a captura da trilha espera a câmera estabilizar');
 });
 
+
+test('o timeout da câmera não é confundido com a distância esperada após caminhar', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+
+  assert.match(harness, /async function waitCameraStable\\(page, expectedDistance, timeoutMs = 22000\\)/);
+  assert.match(harness, /while \\(Date\\.now\\(\\) - started < timeoutMs\\)/);
+  assert.ok(harness.includes('waitCameraStable(session.page, meadow.distance, 9000)'), 'prado usa 6 m como distância e 9 s como timeout');
+  assert.ok(harness.includes('waitCameraStable(session.page, forest.distance, 9000)'), 'trilha usa 6 m como distância e 9 s como timeout');
+  assert.ok(!harness.includes('waitCameraStable(session.page, 9000,'), 'timeout não pode ocupar o argumento da distância');
+});
+
 test('as câmeras dirigidas começam alinhadas aos eixos reais da estrada e da trilha', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('x: 54, z: 160, yaw: Math.PI'), 'o prado olha para a estrada ao norte do spawn');
