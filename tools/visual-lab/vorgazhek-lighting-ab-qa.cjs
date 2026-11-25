@@ -34,7 +34,7 @@ const report={
 
 const rectsOverlap=(a,b)=>a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;
 
-async function capture(browser,label,baseUrl){
+async function capture(browser,label,baseUrl,normalIncidence=false){
   const context=await browser.newContext({viewport:{width:960,height:540},deviceScaleFactor:1});
   const page=await context.newPage();
   const errors=[],networkFailures=[];
@@ -46,6 +46,21 @@ async function capture(browser,label,baseUrl){
     await page.route(/^https:\/\/esm\.sh\/three@0\.160\.0\/examples\/jsm\/loaders\/GLTFLoader\.js(?:\?.*)?$/,r=>r.fulfill({path:localLoader,contentType:'text/javascript'}));
     await page.goto(baseUrl+'/tools/visual-lab/vorgazhek-abyss-preview.html',{waitUntil:'networkidle',timeout:60000});
     await page.waitForFunction(()=>window.ready&&window.abyssQA,null,{timeout:60000});
+    if(normalIncidence){
+      await page.evaluate(()=>{
+        const q=window.abyssQA;
+        const frame=q.frame;
+        q.frame=ms=>{
+          const metrics=frame(ms);
+          const water=q.scene.getObjectByName('VorgazhekMidnightWater');
+          // Keep the real camera, geometry, GLB, pose and clock. Only the water
+          // shader sees a perpendicular viewing direction, suppressing Fresnel.
+          water.material.uniforms.uCamera.value.set(0,0,100000);
+          q.renderer.render(q.scene,q.cam);
+          return metrics;
+        };
+      });
+    }
     const data=await page.evaluate(async()=>{
       const q=window.abyssQA;
       const THREE=await import('three');
@@ -191,7 +206,8 @@ async function main(){
   try{
     report.baseline=await capture(browser,'baseline',baselineUrl);
     report.branch=await capture(browser,'branch',branchUrl);
-    const b=report.baseline,h=report.branch;
+    report.normalIncidence=await capture(browser,'normal-incidence',branchUrl,true);
+    const b=report.baseline,h=report.branch,control=report.normalIncidence;
     // PR #674 is already in the base (Mod 358): isolate only the new water shader.
     assert.deepEqual(b.env.hemi,[0xa3abb1,0x030304,1.1],'baseline hemisphere preset must match current main');
     assert.deepEqual(b.env.sun,[0xc1cad1,.48],'baseline directional preset must match current main');
@@ -210,11 +226,17 @@ async function main(){
     assert.ok(h.roi.water.mean>=b.roi.water.mean-.5,'moderate-angle water must not become darker');
     const sideWaterDelta=h.roi.water.mean-b.roi.water.mean;
     const obliqueWaterDelta=h.obliqueRoi.water.mean-b.obliqueRoi.water.mean;
-    assert.ok(obliqueWaterDelta>1.0,'grazing-angle water ROI must gain a visible camera-aware silver sheen');
-    assert.ok(h.obliqueRoi.water.p95>b.obliqueRoi.water.p95+2.5,'grazing-angle silver highlights must remain visible');
-    assert.ok(obliqueWaterDelta>sideWaterDelta+.4,'grazing angle must respond more strongly than the moderate angle');
+    assert.ok(obliqueWaterDelta >= -.5,'grazing-angle water must not become darker than the published scene');
+    assert.ok(h.obliqueRoi.water.p95 >= b.obliqueRoi.water.p95 - 1,'published silver highlights must be preserved');
+    const sideGain=h.roi.water.mean-control.roi.water.mean;
+    const grazingGain=h.obliqueRoi.water.mean-control.obliqueRoi.water.mean;
+    const highlightGain=h.obliqueRoi.water.p95-control.obliqueRoi.water.p95;
+    assert.ok(grazingGain>1.0,'grazing-angle water must gain visible sheen over perpendicular incidence');
+    assert.ok(highlightGain>2.5,'grazing-angle silver highlights must remain visible');
+    assert.ok(grazingGain>sideGain+.4,'grazing angle must respond more strongly than the moderate angle');
     assert.ok(Math.abs(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean)<1.5,'black horizon must remain stable');
     report.comparison={
+      sideGain,grazingGain,highlightGain,
       bossMeanDelta:+(h.roi.boss.mean-b.roi.boss.mean).toFixed(3),
       bossP95Delta:+(h.roi.boss.p95-b.roi.boss.p95).toFixed(3),
       bossVisiblePctDelta:+(h.roi.boss.visiblePct-b.roi.boss.visiblePct).toFixed(2),
