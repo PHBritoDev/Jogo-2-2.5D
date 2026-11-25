@@ -210,6 +210,21 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     fragmentShader: 'precision highp float;varying vec2 vUv;varying float vA;varying vec3 vC;void main(){float x=abs(vUv.x-.5)*2.,y=vUv.y;float a=(1.-x*x)*smoothstep(0.,.25,y)*(1.-smoothstep(.7,1.,y))*vA;if(a<.01)discard;gl_FragColor=vec4(vC*1.8,a);}' }));
   sparkMesh.frustumCulled = false; sparkMesh.renderOrder = 11; root.add(sparkMesh);
   let sparkCursor = 0; const _c = new T.Color();
+  const sparkRanges = {
+    position: { start: 0, count: 0 }, velocity: { start: 0, count: 0 },
+    ageSize: { start: 0, count: 0 }, color: { start: 0, count: 0 }
+  };
+  function publishSparkRange(attribute, reusableRange, count) {
+    const ranges = attribute.updateRanges;
+    if (Array.isArray(ranges)) {
+      // The current write always covers [0,count); widen it to preserve any unconsumed prefix/ranges.
+      let end = count;
+      for (let i = 0; i < ranges.length; i++) end = Math.max(end, ranges[i].start + ranges[i].count);
+      reusableRange.start = 0; reusableRange.count = end;
+      ranges[0] = reusableRange; ranges.length = 1;
+    }
+    attribute.needsUpdate = true;
+  }
   function spark(p, v, style = 'prota', life = .3, size = 1) {
     const i = sparkCursor++ % sparks, st = STYLES[style] || STYLES.prota;
     sp.pos[i * 3] = p.x; sp.pos[i * 3 + 1] = p.y; sp.pos[i * 3 + 2] = p.z; sp.vel[i * 3] = v.x; sp.vel[i * 3 + 1] = v.y; sp.vel[i * 3 + 2] = v.z;
@@ -273,12 +288,11 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     }
     sparkGeo.instanceCount = live;
     if (live) {
-      aPos.needsUpdate = aVel.needsUpdate = aK.needsUpdate = aCol.needsUpdate = true;
-      // Compaction rewrites only the live prefix; the renderer can upload these four ranges instead of full pools.
-      aPos.addUpdateRange?.(0, live * 3);
-      aVel.addUpdateRange?.(0, live * 3);
-      aK.addUpdateRange?.(0, live * 2);
-      aCol.addUpdateRange?.(0, live * 3);
+      // Four stable range objects avoid replacing full-pool uploads with per-frame range allocations.
+      publishSparkRange(aPos, sparkRanges.position, live * 3);
+      publishSparkRange(aVel, sparkRanges.velocity, live * 3);
+      publishSparkRange(aK, sparkRanges.ageSize, live * 2);
+      publishSparkRange(aCol, sparkRanges.color, live * 3);
     }
     for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
