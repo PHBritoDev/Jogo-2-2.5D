@@ -231,7 +231,7 @@ export function questPresentation(step, sub = 0) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: safeSub >= 1
-      ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte a ${VENDOR_FIRST_NAME} sobre o Pecado da Ganância']
+      ? ['ATO I · A VILA DA CLAREIRA', `Pergunte a ${VENDOR_FIRST_NAME} sobre o Pecado da Ganância`]
       : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
     2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
     3: safeSub >= 2
