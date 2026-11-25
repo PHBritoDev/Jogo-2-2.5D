@@ -68,8 +68,8 @@ test('núcleo urbano sem árvores pequenas; colossal ao fundo da praça e latera
   assert.ok(mainTree && sideTree, 'cada GLB compartilhado precisa manter o papel da instância');
   assert.equal(treeRootSink(mainTree), .20, 'a colossal mantém o afundamento profundo');
   assert.equal(treeRootSink(sideTree), ANCESTRAL_ROOT_SINK, 'a lateral preserva a cota da casa e passarela');
-  assert.equal(sideTree.size * treeRootSink(sideTree), 2.24);
-  assert.equal(mainTree.size * treeRootSink(mainTree), 6.8);
+  assert.ok(Math.abs(sideTree.size * treeRootSink(sideTree) - 2.24) < 1e-9);
+  assert.ok(Math.abs(mainTree.size * treeRootSink(mainTree) - 6.8) < 1e-9);
   assert.equal(treeRootSink({ kind: 'house' }), 0);
   // a colossal fica no eixo de quem atravessa a ponte (à frente, ao norte, atrás da praça)
   const m = W(ELDORIA_MAIN_TREE); assert.ok(m.z < C.z - 18 && Math.abs(m.x - BRIDGE.x) < 18);
