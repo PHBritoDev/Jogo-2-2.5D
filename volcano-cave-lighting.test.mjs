@@ -80,6 +80,10 @@ test('variantes com e sem bounce usam chaves distintas no cache de programas do 
   assert.notEqual(enabled, disabled);
   assert.equal(enabled, masonryShaderCacheKey(true));
   assert.equal(disabled, masonryShaderCacheKey(false));
+  const c = LAVA_BOUNCE_CONFIG;
+  const shaderConfig = [c.distanceFalloff, c.regionStartZ, c.regionFullZ, c.sourceBlendStartZ, c.sourceBlendEndZ, c.facingFloor, c.facingGain, c.bounceStrength, c.color];
+  assert.ok(enabled.endsWith(JSON.stringify([true, ...shaderConfig])));
+  assert.ok(disabled.endsWith(JSON.stringify([false, ...shaderConfig])));
   assert.match(enabled, /^volcano-cave-masonry-v2:/);
   assert.match(disabled, /^volcano-cave-masonry-v2:/);
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
