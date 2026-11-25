@@ -381,3 +381,22 @@ test('two-shot amplia o arco lateral quando a cobertura bloqueia os dois lados p
   assert.deepEqual(framing.visibleActors, [true, true]);
   assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
 });
+
+
+test('two-shot procura um deslocamento longitudinal quando os dois lados laterais continuam sob o toldo', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5],
+    alongOffsets: [0.6, -2.4, 2.4, -4.8, 4.8],
+    // A cobertura só libera a linha de visão quando a câmera sai do eixo lateral,
+    // avançando para além do lado do vendedor.
+    visibleAt: camera => camera.z >= 5
+  });
+  assert.equal(framing.complete, true);
+  assert.equal(framing.cameraHeight, 3.5);
+  assert.equal(framing.alongOffset, 4.8);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+  assert.ok(framing.attempts.length > 1, 'a busca deve registrar as alternativas testadas');
+});

@@ -5,7 +5,9 @@
  */
 export function chooseStoryTwoShotSide({
   a, b, preferredSide = 1, distance = 4, blockedAt, visibleAt,
-  cameraHeight = 3.5, targetHeight = 1.45, samples = 14, sideMagnitudes = [1.25, 1.5, 1.75, 2]
+  cameraHeight = 3.5, targetHeight = 1.45, samples = 14,
+  sideMagnitudes = [1.25, 1.5, 1.75, 2],
+  alongOffsets = [0.6]
 } = {}) {
   if (!a || !b || !Number.isFinite(a.x) || !Number.isFinite(a.z) ||
       !Number.isFinite(b.x) || !Number.isFinite(b.z)) {
@@ -33,16 +35,15 @@ export function chooseStoryTwoShotSide({
     }
     return { clearSamples, blockedSample };
   };
-  const visibilityHeights = [0.45, 0.9, 1.35, 1.7]; // quatro alturas do corpo, da cintura à cabeça
+  const visibilityHeights = [0.45, 0.9, 1.35, 1.7];
   const measureActorVisibility = (camera, actor) => {
     if (typeof visibleAt !== 'function') return null;
     const base = Number.isFinite(actor.y) ? actor.y : baseY;
     const clearSamples = visibilityHeights.reduce((sum, height) =>
       sum + (visibleAt(camera, { x: actor.x, y: base + height, z: actor.z }) ? 1 : 0), 0);
-    // Três de quatro ainda permite que toldos escondam cabeça/ombros. O two-shot só é aceito com o corpo inteiro visível.
     return { visible: clearSamples === visibilityHeights.length, clearSamples, totalSamples: visibilityHeights.length };
   };
-  const score = candidateSide => {
+  const score = (candidateSide, alongOffset) => {
     const dx = b.x - a.x, dz = b.z - a.z, span = Math.hypot(dx, dz);
     if (span < 0.001) {
       const camera = { x: a.x, y: baseY + lift, z: a.z };
@@ -51,7 +52,7 @@ export function chooseStoryTwoShotSide({
       const actorB = { x: b.x, y: Number.isFinite(b.y) ? b.y : baseY, z: b.z };
       const measured = [measureActorVisibility(camera, actorA), measureActorVisibility(camera, actorB)];
       const visibleActors = measured.every(Boolean) ? measured.map(v => v.visible) : [true, true];
-      return { side: candidateSide, clearSamples: count - 1, blockedSample: null,
+      return { side: candidateSide, alongOffset, clearSamples: count - 1, blockedSample: null,
         visibleActors, actorVisibilitySamples: measured.every(Boolean) ? measured.map(v => v.clearSamples) : null,
         visibilityClearSamples: measured.every(Boolean) ? measured.reduce((sum, v) => sum + v.clearSamples, 0) : visibleActors.filter(Boolean).length,
         camera, target, cameraHeight: lift, targetHeight: look };
@@ -59,12 +60,11 @@ export function chooseStoryTwoShotSide({
     const ux = dx / span, uz = dz / span, rx = uz, rz = -ux;
     const mx = (a.x + b.x) * .5, mz = (a.z + b.z) * .5;
     const tx = mx + ux * .5, tz = mz + uz * .5;
-    const cx = mx + rx * candidateSide * arm + ux * .6;
-    const cz = mz + rz * candidateSide * arm + uz * .6;
+    const cx = mx + rx * candidateSide * arm + ux * alongOffset;
+    const cz = mz + rz * candidateSide * arm + uz * alongOffset;
     const camera = { x: cx, y: baseY + lift, z: cz };
     const target = { x: tx, y: baseY + look, z: tz };
     const corridor = trace({ x: tx, z: tz }, { x: cx, z: cz });
-    // Não testar os últimos 0,65 m: a amostra termina antes do collider do próprio ator.
     const toA = trace({ x: cx, z: cz }, a, .65);
     const toB = trace({ x: cx, z: cz }, b, .65);
     const actorA = { x: a.x, y: Number.isFinite(a.y) ? a.y : baseY, z: a.z };
@@ -74,7 +74,7 @@ export function chooseStoryTwoShotSide({
       ? measured.map(v => v.visible)
       : [toA.blockedSample === null, toB.blockedSample === null];
     return {
-      side: candidateSide,
+      side: candidateSide, alongOffset,
       clearSamples: corridor.clearSamples,
       blockedSample: corridor.blockedSample,
       visibleActors,
@@ -87,43 +87,62 @@ export function chooseStoryTwoShotSide({
   };
   const isClear = candidate => candidate.blockedSample === null && candidate.visibleActors.every(Boolean);
   const rank = candidate => candidate.visibleActors.filter(Boolean).length * (count * 2 + 1) +
-    candidate.clearSamples + candidate.visibilityClearSamples;
-  // Primeiro tenta os dois lados na distância autoral; se ambos continuarem sob a cobertura,
-  // abre o arco lateral em passos pequenos. O valor assinado é consumido pelo runtime como
-  // multiplicador da distância perpendicular, sem alterar o eixo nem a colisão dos atores.
+    candidate.clearSamples + candidate.visibilityClearSamples -
+    Math.abs(candidate.alongOffset - 0.6) * 0.05;
   const magnitudes = [...new Set([1, ...(Array.isArray(sideMagnitudes) ? sideMagnitudes : [])])]
     .filter(value => Number.isFinite(value) && value >= 1 && value <= 2)
     .sort((left, right) => left - right);
   const candidates = [side, -side, ...magnitudes.slice(1).flatMap(value => [side * value, -side * value])];
+  const offsets = [...new Set((Array.isArray(alongOffsets) ? alongOffsets : [0.6])
+    .filter(value => Number.isFinite(value) && Math.abs(value) <= 8))];
+  if (!offsets.length) offsets.push(0.6);
   let best = null, bestRank = -Infinity;
-  for (const candidateSide of candidates) {
-    const candidate = score(candidateSide);
-    if (isClear(candidate)) return candidate;
-    // Em empate, a ordem preserva o enquadramento mais próximo e a direção preferida.
-    const candidateRank = rank(candidate);
-    if (candidateRank > bestRank) { best = candidate; bestRank = candidateRank; }
+  for (const alongOffset of offsets) {
+    for (const candidateSide of candidates) {
+      const candidate = score(candidateSide, alongOffset);
+      if (isClear(candidate)) return candidate;
+      const candidateRank = rank(candidate);
+      if (candidateRank > bestRank) { best = candidate; bestRank = candidateRank; }
+    }
   }
   return best;
 }
 
 export function chooseStoryTwoShotFrame({
   cameraHeights = [3.5, 4.5, 5.5, 6.5],
+  alongOffsets = [0.6, -2.4, 2.4, -4.8, 4.8],
   ...options
 } = {}) {
   const requestedHeights = Array.isArray(cameraHeights) && cameraHeights.length
     ? cameraHeights.filter(Number.isFinite)
     : [Number.isFinite(options.cameraHeight) ? options.cameraHeight : 3.5];
-  // Um último ângulo alto fica reservado para toldos que ainda cortam o corpo no limite de 6,5 m.
   const heights = [...new Set([...requestedHeights, 7.5])].sort((a, b) => a - b);
+  const offsets = [...new Set((Array.isArray(alongOffsets) ? alongOffsets : [0.6])
+    .filter(value => Number.isFinite(value) && Math.abs(value) <= 8))];
+  if (!offsets.length) offsets.push(0.6);
   let best = null, bestScore = -Infinity;
+  const attempts = [];
   for (const cameraHeight of heights) {
-    const candidate = chooseStoryTwoShotSide({ ...options, cameraHeight });
-    const visibleCount = candidate.visibleActors.filter(Boolean).length;
-    const score = visibleCount * 1000 +
-      (candidate.visibilityClearSamples || 0) * 10 +
-      (candidate.clearSamples || 0);
-    if (score > bestScore) { best = candidate; bestScore = score; }
-    if (visibleCount === 2) return candidate;
+    for (const alongOffset of offsets) {
+      const candidate = chooseStoryTwoShotSide({ ...options, cameraHeight, alongOffsets: [alongOffset] });
+      const visibleCount = candidate.visibleActors.filter(Boolean).length;
+      attempts.push({
+        side: candidate.side, alongOffset: candidate.alongOffset, cameraHeight: candidate.cameraHeight,
+        visibleActors: candidate.visibleActors, visibilitySamples: candidate.actorVisibilitySamples,
+        clearSamples: candidate.clearSamples, blockedSample: candidate.blockedSample
+      });
+      const score = visibleCount * 1000 +
+        (candidate.visibilityClearSamples || 0) * 10 +
+        (candidate.clearSamples || 0) -
+        Math.abs(alongOffset - 0.6) * 0.05 -
+        (cameraHeight - Math.min(...heights)) * 0.02;
+      if (score > bestScore) { best = candidate; bestScore = score; }
+      if (visibleCount === 2 && candidate.blockedSample === null) {
+        return { ...candidate, complete: true, attempts };
+      }
+    }
   }
-  return best || chooseStoryTwoShotSide(options);
+  return best ? { ...best, complete: false, attempts } : {
+    ...chooseStoryTwoShotSide(options), complete: false, attempts
+  };
 }
