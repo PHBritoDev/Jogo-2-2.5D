@@ -539,3 +539,33 @@ test('A2: SlashVFX compacts spark buffers without temporary views and uploads on
     v.clear(); scene.remove(v.root);
   }
 });
+
+test('A2: SlashVFX percorre slots vivos e mantém o pool correto após expiração e sobrescrita circular', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const source = fs.readFileSync(new URL('../slash-vfx3d.js', import.meta.url), 'utf8');
+  assert.match(source, /for \(let active = 0; active < activeSparkCount;/, 'update percorre somente a lista densa de faíscas vivas');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 4, stars: 1 });
+  try {
+    v.spark({ x: 0, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', .01, 1);
+    v.spark({ x: 1, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 2, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(.02, camera, 'high');
+    assert.equal(v.stats().sparks, 2, 'expiração remove um slot sem deixar buraco no prefixo renderizado');
+
+    v.spark({ x: 3, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 4, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 5, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(v.stats().sparks, 4, 'sobrescrever um slot ainda vivo não duplica a entrada ativa');
+
+    v.update(2, camera, 'high');
+    assert.equal(v.stats().sparks, 0, 'todos os slots expirados saem da lista ativa');
+    v.clear();
+    v.spark({ x: 6, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(v.stats().sparks, 1, 'clear permite reutilizar o pool sem índices residuais');
+  } finally {
+    v.clear(); scene.remove(v.root);
+  }
+});
