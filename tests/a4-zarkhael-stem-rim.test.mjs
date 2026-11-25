@@ -10,7 +10,7 @@ assert.ok(start >= 0 && end > start, 'surfaceMaterial must remain present');
 const material = source.slice(start, end);
 
 test('Zar’khael stem material gets a dedicated low-energy view rim', () => {
-  assert.ok(material.includes("m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim1' : '');"));
+  assert.ok(material.includes("m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim2' : '');"));
   const marker = "if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>'";
   const rimStart = material.indexOf(marker);
   assert.ok(rimStart >= 0, 'stem-only emissive rim must be injected after Three.js builds the view-space geometry');
