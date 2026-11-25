@@ -239,15 +239,26 @@ async function main() {
                 };
                 capture(cap.started); cap.last=cap.started;
                 function tick(t) { if (!cap.active) return; if (t-cap.last >= 500) { capture(t); cap.last=t; } requestAnimationFrame(tick); }
-                window.__a1RouteTrace=cap; requestAnimationFrame(tick);
+                window.__a1RouteTrace=cap;
+                window.__a1RouteSteer={updates:0,lastAt:performance.now(),lastYaw:null,intervalMs:750};
+                requestAnimationFrame(tick);
               });
               const begin = Date.now(); let reached = true;
               await page.keyboard.down(segment.key);
               try {
-                await page.waitForFunction(({target, tolerance}) => {
-                  const now = window.SevenSinsDebug3D.state();
-                  return Math.hypot(now.x - target[0], now.z - target[1]) <= tolerance;
-                }, {target: segment.target, tolerance: segment.tolerance}, {polling:250, timeout:segment.timeoutMs}).catch(e => {
+                await page.waitForFunction(({target, tolerance, intervalMs}) => {
+                  const D = window.SevenSinsDebug3D, now = D.state();
+                  if (Math.hypot(now.x - target[0], now.z - target[1]) <= tolerance) return true;
+                  const steering = window.__a1RouteSteer, t = performance.now();
+                  if (steering && t - steering.lastAt >= intervalMs) {
+                    const yaw = Math.atan2(-(target[0] - now.x), -(target[1] - now.z));
+                    if (Number.isFinite(yaw)) {
+                      D.view(yaw, .12, 5.5);
+                      steering.lastAt = t; steering.lastYaw = yaw; steering.updates++;
+                    }
+                  }
+                  return false;
+                }, {target: segment.target, tolerance: segment.tolerance, intervalMs: 750}, {polling:250, timeout:segment.timeoutMs}).catch(e => {
                   if (e.name !== "TimeoutError") throw e;
                   reached = false;
                 });
@@ -270,10 +281,12 @@ async function main() {
                   camera:v && typeof v.onScreen === "boolean" ? {onScreen:v.onScreen,blocked:v.blocked ? {
                     name:String(v.blocked.name || ""),dist:Number.isFinite(v.blocked.dist) ? +v.blocked.dist.toFixed(2) : null
                   } : null} : null});
-                return {end:{x:s.x,y:s.y,z:s.z},trace:cap.samples};
+                return {end:{x:s.x,y:s.y,z:s.z},trace:cap.samples,
+                  steering:window.__a1RouteSteer ? {...window.__a1RouteSteer} : null};
               });
               const end = captured?.end || await page.evaluate(() => window.SevenSinsDebug3D.state());
               const trace = captured?.trace || [];
+              const steering = captured?.steering || {};
               const measured = core.measureWalk(start, end, segment.target);
               const traceMetrics = measureWalkTrace(trace,start,end);
               const metricsForReport = {
@@ -302,6 +315,9 @@ async function main() {
                 start: {x: +start.x.toFixed(2), y: +start.y.toFixed(2), z: +start.z.toFixed(2)},
                 end: {x: +end.x.toFixed(2), y: +end.y.toFixed(2), z: +end.z.toFixed(2)},
                 distance: +measured.distance.toFixed(2), remaining: +measured.remaining.toFixed(2), elapsedMs, cameraSettleMs,
+                steeringUpdates: Number.isInteger(steering.updates) ? steering.updates : 0,
+                steeringIntervalMs: Number.isFinite(steering.intervalMs) ? steering.intervalMs : 750,
+                finalYaw: Number.isFinite(steering.lastYaw) ? +steering.lastYaw.toFixed(3) : yaw,
                 minTravel: segment.minTravel, tolerance: segment.tolerance, timeoutMs: segment.timeoutMs,
                 trace, traceMetrics:metricsForReport,
                 reached: cameraSettleMs >= 0 && reached && traceMetrics.valid && measured.remaining <= segment.tolerance + .25 && measured.distance >= segment.minTravel
