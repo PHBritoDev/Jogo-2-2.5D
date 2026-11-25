@@ -298,12 +298,41 @@ test('SwordRites VFX falls back to a full matrix update when sparse ranges becom
     assert.equal(st.particleMatrixWrites, 120);
     assert.equal(st.particleMatrixUploadComponents, shards.instanceMatrix.array.length, 'dense activity chooses one full upload');
     assert.equal(st.particleMatrixUploadBytes, shards.instanceMatrix.array.byteLength);
-    assert.deepEqual(shards.instanceMatrix.updateRanges, [], 'full update has no partial ranges');
+    assert.deepEqual(shards.instanceMatrix.updateRanges, [{ start: 0, count: shards.instanceMatrix.array.length }], 'full update remains explicit until the renderer consumes it');
   } finally {
     v.dispose();
   }
 });
 
+
+test('SwordRites VFX keeps pending full uploads when later sparse writes happen before render', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  const fullRange = attribute => [{ start: 0, count: attribute.array.length }];
+  const matrixRanges = () => shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count }));
+  const colorRanges = () => shards.instanceColor?.updateRanges.map(({ start, count }) => ({ start, count })) || [];
+  try {
+    for (let i = 0; i < 8; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    assert.deepEqual(colorRanges(), fullRange(shards.instanceColor), 'dense color writes leave an explicit full range pending');
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 120);
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'dense matrix writes leave an explicit full range pending');
+
+    v.update(.6, 'high', false);
+    assert.equal(v.stats().particles, 0, 'the dense burst expires before the renderer consumes its pending upload');
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'expiration cannot erase the pending full matrix upload');
+
+    v.event('impact', { p: { x: 9, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 15);
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'a later sparse matrix write cannot replace the pending full upload');
+    assert.deepEqual(colorRanges(), fullRange(shards.instanceColor), 'a later sparse color write cannot replace the pending full upload');
+  } finally {
+    v.dispose();
+  }
+});
 
 test('SwordRites VFX disposes the InstancedMesh GPU buffers on teardown', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');

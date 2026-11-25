@@ -82,7 +82,9 @@ export function createSwordRitesVFX(T,scene){
   const components=merged.reduce((sum,r)=>sum+r.end-r.start,0);
   const full=merged.length>8||components>=attribute.array.length*.55;
   attribute.clearUpdateRanges();
-  if(!full)for(const range of merged)attribute.addUpdateRange(range.start,range.end-range.start);
+  // Keep a full upload explicit until the renderer consumes it; a later sparse write must not replace it.
+  if(full)attribute.addUpdateRange(0,attribute.array.length);
+  else for(const range of merged)attribute.addUpdateRange(range.start,range.end-range.start);
   attribute.needsUpdate=true;
   return full?attribute.array.length:components;
  }
