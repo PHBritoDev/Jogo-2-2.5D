@@ -225,8 +225,8 @@ async function aimJoystick(dx, dz, offset) {
   await page.evaluate(value => window.SevenSinsDebug3D.viewQA(false, value, 0.12), yaw);
   return yaw;
 }
-async function findWalkPath(start, target, stone) {
-  return page.evaluate(({ start, target, stone, bridge }) => {
+async function findWalkPath(start, target, stone, maxStoneDistance = 1.30) {
+  return page.evaluate(({ start, target, stone, bridge, maxStoneDistance }) => {
     const api = window.SevenSinsDebug3D;
     const step = 0.65, pad = 8;
     const minX = Math.floor((Math.min(start.x, target.x) - pad) / step) * step;
@@ -267,13 +267,14 @@ async function findWalkPath(start, target, stone) {
     });
     const startCell = cell(start.x, start.z);
     const startIndex = startCell.iz * cols + startCell.ix;
-    const goalRadius = Math.min(.4, Math.max(.12, 1.30 - Math.hypot(target.x - stone.x, target.z - stone.z)));
+    const targetDistance = Math.hypot(target.x - stone.x, target.z - stone.z);
+    const goalRadius = Math.min(.4, Math.max(.12, maxStoneDistance - targetDistance));
     const center = cell(target.x, target.z);
     const goals = [];
     for (let iz = Math.max(0, center.iz - 2); iz <= Math.min(rows - 1, center.iz + 2); iz++) {
       for (let ix = Math.max(0, center.ix - 2); ix <= Math.min(cols - 1, center.ix + 2); ix++) {
         const p = point(ix, iz), d = Math.hypot(p.x - target.x, p.z - target.z);
-        if (d <= goalRadius && Math.hypot(p.x - stone.x, p.z - stone.z) <= 1.30 && !blocked(p.x, p.z)) {
+        if (d <= goalRadius && Math.hypot(p.x - stone.x, p.z - stone.z) <= maxStoneDistance && !blocked(p.x, p.z)) {
           goals.push({ ix, iz, p, d });
         }
       }
@@ -341,12 +342,16 @@ async function findWalkPath(start, target, stone) {
       }
       points.push(raw[far]); at = far;
     }
+    if (!points.length && Math.hypot(target.x - start.x, target.z - start.z) > .12 &&
+        clearLine(start, target) && !blocked(target.x, target.z)) {
+      points.push({ x: target.x, z: target.z });
+    }
     return {
       ok: true, points, rawPoints: raw.length, explored, sampled, bridgeSamples, step,
       goal: goal.p, goalDistance: +goal.d.toFixed(3), goalRadius: +goalRadius.toFixed(3),
       catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 }
     };
-  }, { start, target, stone, bridge: bridgeGeometry });
+  }, { start, target, stone, bridge: bridgeGeometry, maxStoneDistance });
 }
 async function inspectShelterApproaches(stone) {
   const result = await page.evaluate(({ x, z, radius, stepUp, centerY }) => {
@@ -389,29 +394,57 @@ async function walkTo(stone, label) {
   const rejected = [];
   let selected = null;
   for (const side of candidates) {
-    const target = { x: stone.x + Math.cos(side.angle) * .55, z: stone.z + Math.sin(side.angle) * .55 };
-    const plan = await findWalkPath(start, target, stone);
-    if (plan.ok) { selected = { target, plan, side }; break; }
-    rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled, bridgeSamples: plan.bridgeSamples });
+    const stages = window.__a5ShelterApproachWaypoints({ x: stone.x, z: stone.z }, side, .55);
+    if (stages.length !== 3) {
+      rejected.push({ side: side.index, reason: 'sequência radial de aproximação inválida' });
+      continue;
+    }
+    let cursor = start;
+    const plans = [];
+    let failure = null;
+    for (const stage of stages) {
+      const stageDistance = Math.hypot(stage.x - stone.x, stage.z - stone.z);
+      const maxStoneDistance = stage.kind === 'registration' ? 1.30 : stageDistance + .4;
+      const plan = await findWalkPath(cursor, stage, stone, maxStoneDistance);
+      if (!plan.ok) {
+        failure = { stage: stage.kind, reason: plan.reason, explored: plan.explored, sampled: plan.sampled, bridgeSamples: plan.bridgeSamples };
+        break;
+      }
+      plans.push({ stage: stage.kind, plan });
+      cursor = plan.points.at(-1) || stage;
+    }
+    if (failure) {
+      rejected.push({ side: side.index, target: stages.at(-1), ...failure });
+      continue;
+    }
+    selected = { target: stages.at(-1), plans, side };
+    break;
   }
   if (!selected) {
     const summary = sides.map(side => ({ side: side.index, rise: side.rise, ok: side.ok, reason: side.reason }));
     throw new Error(label + ': nenhum dos oito lados oferece subida dentro de STEP_UP=' + stepUpLimit +
       ' ou rota livre; lados=' + JSON.stringify(summary) + '; rotas=' + JSON.stringify(rejected));
   }
+  const routePoints = selected.plans.flatMap(item => item.plan.points);
   report.routes.push({
     label, target: selected.target, approachSide: selected.side.index,
     approachRise: selected.side.rise, approachGroundY: selected.side.groundY,
-    points: selected.plan.points, rawPoints: selected.plan.rawPoints,
-    explored: selected.plan.explored, sampled: selected.plan.sampled, bridgeSamples: selected.plan.bridgeSamples,
-    goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
+    stages: selected.plans.map(item => ({ stage: item.stage, points: item.plan.points.length, goalDistance: item.plan.goalDistance, goalRadius: item.plan.goalRadius })),
+    points: routePoints, rawPoints: selected.plans.reduce((sum, item) => sum + item.plan.rawPoints, 0),
+    explored: selected.plans.reduce((sum, item) => sum + item.plan.explored, 0),
+    sampled: selected.plans.reduce((sum, item) => sum + item.plan.sampled, 0),
+    bridgeSamples: selected.plans.reduce((sum, item) => sum + item.plan.bridgeSamples, 0),
+    goalDistance: selected.plans.at(-1).plan.goalDistance, catalog: selected.plans.at(-1).plan.catalog
   });
   let travelled = 0, totalSteps = 0, joystickStarted = false;
   try {
     joystickStarted = true;
     await beginJoystick();
-    for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
-      const waypoint = selected.plan.points[waypointIndex];
+    const waypoints = selected.plans.flatMap((item, stageIndex) => item.plan.points.map((waypoint, pointIndex) => ({
+      waypoint, stage: item.stage, stageIndex, pointIndex
+    })));
+    for (let waypointIndex = 0; waypointIndex < waypoints.length; waypointIndex++) {
+      const { waypoint, stage, stageIndex } = waypoints[waypointIndex];
       const waypointStart = await playerState();
       const initialDistance = Math.hypot(waypoint.x - waypointStart.x, waypoint.z - waypointStart.z);
       const maxSteps = waypointStepBudget(initialDistance);
@@ -432,7 +465,7 @@ async function walkTo(stone, label) {
         travelled += delta; totalSteps++;
         const progress = progressWatch.sample(nextDistance, Date.now());
         report.legs.push({
-          label, waypoint: waypointIndex, step: totalSteps, budget: maxSteps,
+          label, stage, waypoint: stageIndex, step: totalSteps, budget: maxSteps,
           distance: +distance.toFixed(2), nextDistance: +nextDistance.toFixed(2),
           delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
           progressed: progress.progressed, bestDistance: +progress.bestDistance.toFixed(2),
@@ -553,9 +586,11 @@ async function exposePathfinder() {
     window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
     window.__a5AxisSeparatedPathClear = pathfinder.isAxisSeparatedPathClear;
     window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
+    window.__a5ShelterApproachWaypoints = pathfinder.shelterApproachWaypoints;
     return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
       typeof window.__a5AxisSeparatedPathClear === 'function' &&
-      typeof window.__a5RankShelterApproaches === 'function';
+      typeof window.__a5RankShelterApproaches === 'function' &&
+      typeof window.__a5ShelterApproachWaypoints === 'function';
   });
   assert.equal(ready, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
 }
