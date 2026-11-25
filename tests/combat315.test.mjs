@@ -10,6 +10,7 @@ import { Enemy1Squad, E1 } from '../enemy1-squad3d.js';
 import { DEMON1_MOVES, DEMON1_LEAP, clawReaches } from '../demon1-combat3d.js';
 import { createSlashVFX } from '../slash-vfx3d.js';
 import { createShieldVFX } from '../shield-vfx3d.js';
+import { createSwordRitesVFX } from '../sword-rites-vfx3d.js';
 const src = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 // three.js real para os pools de VFX: o CI (combat315.yml) instala three@0.160.0 e aponta COMBAT_THREE_DIR
 let THREE = null;
@@ -161,4 +162,50 @@ test('Mod 315: legado do Enemy1 fora do jogo em execução (sem asset morto, sem
   assert.match(src, /function ensureEnemySprite\(\)/); assert.match(src, /ensureEnemySprite\(\);enemyLoadState='idle';/);
   assert.doesNotMatch(src, /retargetEnemyMovementClipToPlayer/, 'retarget morto do Enemy1 → herói removido');
   assert.match(src, /new GLTFLoader\(\)\.load\(ENEMY1_MODEL_URL,/, 'Demonio1.glb continua sendo o modelo');
+});
+
+
+test('SwordRites VFX updates only active shard slots and skips idle instance-matrix uploads', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  try {
+    v.update(1 / 60, 'high', false);
+    let st = v.stats();
+    assert.equal(st.particleMatrixWrites, 0, 'idle frames must not rewrite 192 inactive shard matrices');
+    assert.equal(st.particleMatrixUploads, 0, 'idle frames must not upload the instance matrix');
+
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    assert.equal(st.particleMatrixWrites, 15, 'only the 15 live impact shards are updated');
+    assert.equal(st.particleMatrixUploads, 1, 'one matrix upload per active frame');
+
+    v.update(.6, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 0, 'expired shards leave the active set');
+    assert.equal(st.particleMatrixWrites, 30, 'expiration clears only the 15 slots that were active');
+    assert.equal(st.particleMatrixUploads, 2, 'expiration performs one clearing upload');
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, 30, 'idle after expiry stays quiet');
+    assert.equal(v.stats().particleMatrixUploads, 2);
+
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    const beforeClearWrites = st.particleMatrixWrites, beforeClearUploads = st.particleMatrixUploads;
+    v.clear();
+    st = v.stats();
+    assert.equal(st.particles, 0);
+    assert.equal(st.particleMatrixWrites - beforeClearWrites, 15, 'cancel clears only active shard slots');
+    assert.equal(st.particleMatrixUploads - beforeClearUploads, 1, 'cancel publishes the cleared slots once');
+    const afterClearWrites = st.particleMatrixWrites, afterClearUploads = st.particleMatrixUploads;
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, afterClearWrites);
+    assert.equal(v.stats().particleMatrixUploads, afterClearUploads);
+  } finally {
+    v.dispose();
+  }
 });
