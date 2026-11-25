@@ -84,9 +84,9 @@ test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real',
 
 test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
-  assert.match(harness, /candidate\\.moduleHits\\[file\\]/, 'a candidata precisa carregar os dois módulos alterados');
-  assert.match(harness, /session\\.errors\\.console\\.length/, 'erros de console precisam reprovar a sessão');
-  assert.match(harness, /heroPositionDelta/, 'o par compara a posição 3D completa do protagonista');
-  assert.match(harness, /if \\(cam > \\.25\\)/, 'a câmera precisa coincidir nas duas cenas');
-  assert.match(harness, /cameraClear\\(/, 'o protagonista precisa estar enquadrado e sem oclusão');
+  assert.ok(harness.includes('candidate.moduleHits[file]'), 'a candidata precisa carregar os dois módulos alterados');
+  assert.ok(harness.includes('session.errors.console.length'), 'erros de console precisam reprovar a sessão');
+  assert.ok(harness.includes('heroPositionDelta'), 'o par compara a posição 3D completa do protagonista');
+  assert.ok(harness.includes('if (cam > .25)'), 'a câmera precisa coincidir nas duas cenas');
+  assert.ok(harness.includes('cameraClear('), 'o protagonista precisa estar enquadrado e sem oclusão');
 });
