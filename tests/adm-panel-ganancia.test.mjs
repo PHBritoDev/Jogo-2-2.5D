@@ -30,6 +30,7 @@ test('organização PC e celular com três categorias e toque real',()=>{
  assert.match(ui,/PAUSAR INIMIGOS/);
  assert.match(ui,/RETOMAR INIMIGOS/);
  assert.match(ui,/onPause/);
+ assert.match(ui,/createAdmPanel\(\{onTeleport,onDimension,onUltimate,onPhase,onKill,onPause,getState\}\)/);
  assert.match(world,/admFreezeNearby\?0:dt/);
  assert.match(world,/paused:paused\|\|squadQAPause\|\|admFreezeNearby/);
  assert.match(world,/if\(!admFreezeNearby\)updateEnemyAI\(dt\)/);
