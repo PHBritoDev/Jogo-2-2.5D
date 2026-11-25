@@ -721,3 +721,61 @@ test('progresso fracionario em memoria nao deixa missao pronta sem quantidade in
   assert.equal(s.abrigos.progress, 0, 'fracao durante coleta tambem deve ser normalizada');
   assert.equal(s.abrigos.state, 'active');
 });
+
+
+test('falha ao salvar a entrega da vila restaura ready sem pagar', () => {
+  const runtime = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const saveStart = runtime.indexOf('function saveSide(){');
+  const saveEnd = runtime.indexOf('\nfunction savedCampaignProgress()', saveStart);
+  const talkStart = runtime.indexOf('function trySideQuestTalk(vendor){');
+  const talkEnd = runtime.indexOf('\nsideReady=true;refreshSideQuests();', talkStart);
+  assert.ok(saveStart >= 0 && saveEnd > saveStart, 'saveSide real não foi localizado');
+  assert.ok(talkStart >= 0 && talkEnd > talkStart, 'trySideQuestTalk real não foi localizado');
+
+  const source = runtime.slice(saveStart, saveEnd) + '\n' + runtime.slice(talkStart, talkEnd);
+  const state = createSideState({ abrigos: { state: 'ready', progress: 3 } });
+  const calls = { dialogue: null, mapSaves: 0, sideWrites: 0, campaignSaves: 0, settlements: 0, rewards: 0, hud: 0 };
+  const context = {
+    SIDE_STORE: 'seven-sins-3d-side',
+    sideState: state,
+    localStorage: {
+      setItem(key) {
+        calls.sideWrites++;
+        assert.equal(key, 'seven-sins-3d-side');
+        throw new Error('quota exceeded');
+      }
+    },
+    refreshSideQuests() {},
+    questForGiver,
+    showDialogue(_lines, onComplete) { calls.dialogue = onComplete; },
+    turnInSide,
+    mapState: { waystones: eldoriaWaystones(3) },
+    saveMapState(force) { calls.mapSaves++; assert.equal(force, true); return true; },
+    status: { textContent: '' },
+    settlePendingSideReward() { calls.settlements++; return 'applied'; },
+    coins: 100,
+    playerXp: 50,
+    gainXp(amount) { this.playerXp += amount; },
+    save3DProgress() { calls.campaignSaves++; return true; },
+    updateQuestHud() { calls.hud++; },
+    showRewardPop() { calls.rewards++; }
+  };
+  runInNewContext(source + '\nthis.__trySideQuestTalk = trySideQuestTalk;', context);
+
+  assert.equal(context.__trySideQuestTalk({ shortName: 'ARTESANATO', name: 'Vendedor' }), true);
+  assert.equal(typeof calls.dialogue, 'function', 'a entrega deve aguardar a confirmação do diálogo');
+  calls.dialogue();
+
+  assert.equal(calls.mapSaves, 1, 'o mapa é confirmado antes da tentativa de entrega');
+  assert.equal(calls.sideWrites, 1, 'a falha de persistência da vila foi exercitada');
+  assert.equal(state.abrigos.state, 'ready', 'a missão não pode ser consumida quando saveSide falha');
+  assert.equal(state.abrigos.progress, 3, 'o progresso legítimo continua disponível para retry');
+  assert.equal(state.pendingReward, null, 'nenhuma recompensa fica pendente sem recibo da vila');
+  assert.equal(context.coins, 100, 'nenhuma moeda é creditada antes do save da vila');
+  assert.equal(context.playerXp, 50, 'nenhum XP é creditado antes do save da vila');
+  assert.equal(calls.campaignSaves, 0, 'a campanha não é gravada após falha do save da vila');
+  assert.equal(calls.settlements, 0, 'a recuperação não começa sem recibo persistido');
+  assert.equal(calls.rewards, 0, 'não exibe recompensa não persistida');
+  assert.equal(calls.hud, 0);
+  assert.match(context.status.textContent, /Não foi possível salvar a entrega/);
+});
