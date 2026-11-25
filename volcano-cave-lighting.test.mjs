@@ -11,7 +11,8 @@ test('bounce da lava cai com a distância e respeita a orientação da rocha', (
   assert.ok(lavaBounceFalloff(10, 1) < lavaBounceFalloff(0, 1));
   assert.ok(lavaBounceFalloff(30, 1) < lavaBounceFalloff(10, 1));
   assert.ok(lavaBounceFalloff(10, 0) < lavaBounceFalloff(10, 1));
-  assert.equal(lavaBounceFalloff(Number.NaN, 1), 1);
+  assert.equal(lavaBounceFalloff(Number.NaN, 1), 0);
+  assert.equal(lavaBounceFalloff(Infinity, 1), 0);
 });
 
 test('pulsação é lenta, limitada e determinística', () => {
@@ -19,7 +20,7 @@ test('pulsação é lenta, limitada e determinística', () => {
   assert.ok(samples.every(value => value >= .76 && value <= 1.0));
   assert.ok(new Set(samples.map(value => value.toFixed(5))).size > 20);
   assert.equal(lavaBouncePulse(Infinity, Number.NaN), LAVA_BOUNCE_CONFIG.pulseBase);
-  assert.equal(lavaBouncePulse(2.4, .7), lavaBouncePulse(2.4, .7));
+  assert.equal(lavaBouncePulse(0, 0), LAVA_BOUNCE_CONFIG.pulseBase);
   assert.notEqual(lavaBouncePulse(2.4, .7), lavaBouncePulse(2.4, 1.4));
 });
 
