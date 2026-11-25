@@ -19,7 +19,8 @@ const metrics1=measureWalkTrace(trace1,start1,end1), metrics2=measureWalkTrace(t
 const makeSegment=(i,start,end,trace,traceMetrics,elapsedMs)=>{
   const rule=configuredSegments[i],distance=Math.hypot(end.x-start.x,end.z-start.z);
   return {name:rule.name,key:rule.key,yaw:walkYaw(start,rule.target),start,end,target:rule.target,distance,
-    remaining:Math.hypot(end.x-rule.target[0],end.z-rule.target[1]),elapsedMs,cameraSettleMs:1200,timeoutMs:rule.timeoutMs,
+    remaining:Math.hypot(end.x-rule.target[0],end.z-rule.target[1]),elapsedMs,cameraSettleMs:1200,
+    steeringUpdates:20,steeringIntervalMs:750,finalYaw:walkYaw(end,rule.target),timeoutMs:rule.timeoutMs,
     minTravel:rule.minTravel,tolerance:rule.tolerance,reached:true,trace,traceMetrics};
 };
 const summarizeSegments=segments=>({
@@ -128,6 +129,16 @@ test('percurso restaura a origem depois das tomadas e rejeita reset divergente',
   const resetAt=runner.indexOf('D.teleport(x, z, yaw)',shotsAt);
   const walkAt=runner.indexOf('for (let j = 0; j < scene.walk.segments.length; j++)',resetAt);
   assert.ok(shotsAt>=0 && resetAt>shotsAt && walkAt>resetAt,'a origem é restaurada após a última tomada e antes da caminhada');
+});
+test('o percurso recalcula o rumo durante o movimento e reserva tempo para a praça',()=>{
+  assert.equal(configuredSegments[2].timeoutMs,180000);
+  assert.equal(run(report),'game_ran');
+  assert.equal(run({...report,routes:[withSegment(2,{steeringUpdates:0})]}),'game_failed');
+  assert.equal(run({...report,routes:[withSegment(2,{steeringIntervalMs:500})]}),'game_failed');
+  const runner=fs.readFileSync(path.join(__dirname,'scene-agent.cjs'),'utf8');
+  assert.match(runner,/window\.__a1RouteSteer=\{updates:0,lastAt:performance\.now\(\),lastYaw:null,intervalMs:750\}/);
+  assert.match(runner,/Math\.atan2\(-\(target\[0\] - now\.x\), -\(target\[1\] - now\.z\)\)/);
+  assert.match(runner,/D\.view\(yaw, \.12, 5\.5\)/);
 });
 test('câmera de acompanhamento precisa estabilizar antes de cada trecho',()=>{
   assert.equal(run(report),'game_ran');
