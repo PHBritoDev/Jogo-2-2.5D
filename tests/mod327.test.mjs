@@ -197,11 +197,15 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
 });
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
-import { auroraColor, auroraLightK, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
+import { auroraColor, auroraLightK, auroraLowProfile, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
 test('aurora: luz colorida que acompanha o céu (rosa/violeta/azul), some sem aurora e em lugar fechado; mais leve no celular', () => {
   assert.equal(auroraLightK(0, false, false), 0); assert.equal(auroraLightK(.8, true, false), 0, 'caverna/interior/dimensão: nada');
   assert.ok(auroraLightK(.8, false, true) < auroraLightK(.8, false, false) && auroraLightK(.8, false, false) === .8);
   assert.ok(Math.abs(auroraLightK(.8, false, true) - .6) < 1e-9, 'perfil baixo mantém 75% da intensidade, sem alterar a paleta');
+  assert.equal(auroraLowProfile(true, 'high'), false, 'alto explícito preserva o detalhe mesmo no viewport móvel');
+  assert.equal(auroraLowProfile(true, 'medium'), false, 'médio explícito preserva o detalhe completo');
+  assert.equal(auroraLowProfile(false, 'low'), true, 'baixo explícito ativa a variante econômica em qualquer viewport');
+  assert.equal(auroraLowProfile(true, 'auto'), true, 'auto conserva o hint móvel existente sem inventar o tier interno');
   const cs = [0, 30, 60, 90, 120, 200].map(auroraColor); for (const c of cs) { assert.ok(c[2] >= .8 && c.every(v => v >= 0 && v <= 1.01), 'paleta da aurora (azul/violeta dominante)'); }
   assert.ok(Math.abs(cs[0][0] - cs[2][0]) + Math.abs(cs[0][1] - cs[2][1]) > .05, 'a cor anda com o tempo');
 });
@@ -223,7 +227,8 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8');
   assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
   assert.ok(/uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow;/.test(ew), 'uniform de qualidade compartilhado');
-  assert.ok(/if \(uAurLow > \.5\) aurWarp = vn\(/.test(ew) && /else aurWarp = fbm\(/.test(ew), 'perfil baixo usa uma oitava; alto preserva FBM de quatro oitavas');
+  const lowWarp = ew.match(/if \(uAurLow > \.5\) aurWarp = ([^;]+);/);
+  assert.ok(lowWarp && (lowWarp[1].match(/vn\(/g) || []).length === 2 && !/fbm\(/.test(lowWarp[1]) && /else aurWarp = fbm\(/.test(ew), 'perfil baixo usa duas oitavas; alto preserva FBM de quatro oitavas');
   assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
