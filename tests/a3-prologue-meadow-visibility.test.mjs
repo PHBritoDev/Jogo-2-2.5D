@@ -81,3 +81,12 @@ test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real',
   assert.match(source, /dummy\.scale\.set\(t\.s, t\.s \* \(\.8 \+ \(i % 5\) \* \.1\) \* heightScale, t\.s\)/);
   assert.match(world, /const prologueMeadow=buildPrologueMeadow\(THREE,\{[\s\S]{0,500}?road:TEREN_ROAD/);
 });
+
+test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.match(harness, /candidate\\.moduleHits\\[file\\]/, 'a candidata precisa carregar os dois módulos alterados');
+  assert.match(harness, /session\\.errors\\.console\\.length/, 'erros de console precisam reprovar a sessão');
+  assert.match(harness, /heroPositionDelta/, 'o par compara a posição 3D completa do protagonista');
+  assert.match(harness, /if \\(cam > \\.25\\)/, 'a câmera precisa coincidir nas duas cenas');
+  assert.match(harness, /cameraClear\\(/, 'o protagonista precisa estar enquadrado e sem oclusão');
+});

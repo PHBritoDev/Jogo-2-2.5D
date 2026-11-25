@@ -40,6 +40,17 @@ function heroDelta(a, b) {
   return Math.hypot(x.x - y.x, x.z - y.z);
 }
 
+function heroPositionDelta(a, b) {
+  const x = a && a.hero, y = b && b.hero;
+  if (!x || !y || ![x.x, x.y, x.z, y.x, y.y, y.z].every(Number.isFinite)) return Infinity;
+  return Math.hypot(x.x - y.x, x.y - y.y, x.z - y.z);
+}
+
+function cameraClear(state) {
+  const view = state && state.camView;
+  return !!view && view.onScreen === true && !view.blocked;
+}
+
 async function readState(page) {
   return page.evaluate(() => {
     const D = window.SevenSinsDebug3D;
@@ -61,7 +72,7 @@ async function waitCameraStable(page, expectedDistance) {
     const camera = last.camera;
     const cameraStable = previous && distance3(camera, previous) < .035;
     const actualDistance = last.camView && last.camView.camToHero;
-    const near = !Number.isFinite(actualDistance) ||
+    const near = Number.isFinite(actualDistance) &&
       Math.abs(actualDistance - expectedDistance) < Math.max(1.2, expectedDistance * .35);
     stable = cameraStable && near ? stable + 1 : 0;
     if (stable >= 2) return { ...last, settled: true, settleMs: Date.now() - started };
@@ -106,6 +117,10 @@ async function openSession(browser, viewport, variant, baselineModules) {
   const page = await context.newPage();
   page.setDefaultTimeout(30000);
   page.on("pageerror", e => errors.page.push(String(e.message || e).slice(0, 400)));
+  page.on("request", request => {
+    const pathname = new URL(request.url()).pathname;
+    for (const file of CHANGED_MODULES) if (pathname.endsWith("/" + file)) moduleHits[file]++;
+  });
   page.on("console", msg => { if (msg.type() === "error") errors.console.push(msg.text().slice(0, 400)); });
   page.on("response", response => {
     if (response.status() >= 400 && /\.(?:js|glb)(?:[?#]|$)/i.test(response.url())) {
@@ -127,7 +142,6 @@ async function openSession(browser, viewport, variant, baselineModules) {
   if (variant === "baseline") {
     for (const file of CHANGED_MODULES) {
       await page.route("**/" + file + "*", async route => {
-        moduleHits[file]++;
         await route.fulfill({
           status: 200,
           contentType: "text/javascript; charset=utf-8",
@@ -166,6 +180,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
     const before = await setPose(session.page, meadow);
     captures.push(await capture(session.page, viewport, variant, meadow, before));
     if (!before.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera do prado não assentou");
+    if (!cameraClear(before)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto no prado");
 
     if (variant === "candidate") {
       await session.page.evaluate(() => window.focus());
@@ -189,13 +204,14 @@ async function runSession(browser, viewport, variant, baselineModules) {
         onScreen: end.camView ? end.camView.onScreen : null
       });
       if (distance < 2) session.errors.page.push(viewport.id + ": caminhada no prado avançou menos de 2 m");
-      if (end.camView && end.camView.onScreen === false) session.errors.page.push(viewport.id + ": protagonista saiu do quadro após caminhar");
+      if (!cameraClear(end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar");
     }
 
     const forest = SCENES[1];
     const forestState = await setPose(session.page, forest);
     captures.push(await capture(session.page, viewport, variant, forest, forestState));
     if (!forestState.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera da trilha não assentou");
+    if (!cameraClear(forestState)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto na trilha");
   } finally {
     await session.context.close().catch(() => {});
   }
@@ -232,21 +248,23 @@ async function main() {
       sessions.push(baseline, candidate);
       for (const file of CHANGED_MODULES) {
         if (baseline.moduleHits[file] < 1) fatal.push(viewport.id + ": baseline não interceptou " + file);
+        if (candidate.moduleHits[file] < 1) fatal.push(viewport.id + ": candidata não carregou " + file);
       }
       for (const session of [baseline, candidate]) {
-        if (session.errors.page.length || session.errors.requests.length) {
-          fatal.push(viewport.id + " " + session.variant + ": erros de página/requisição");
+        if (session.errors.page.length || session.errors.console.length || session.errors.requests.length) {
+          fatal.push(viewport.id + " " + session.variant + ": erros de página/console/requisição");
         }
       }
       for (const scene of SCENES) {
         const b = baseline.captures.find(c => c.scene === scene.id);
         const c = candidate.captures.find(c => c.scene === scene.id);
-        const h = b && c ? heroDelta(b.state, c.state) : Infinity;
+        const h = b && c ? heroPositionDelta(b.state, c.state) : Infinity;
         const cam = b && c ? distance3(b.state.camera, c.state.camera) : Infinity;
         const pair = { viewport: viewport.id, scene: scene.id, heroDelta: h, cameraDelta: cam, baseline: b?.file || null, candidate: c?.file || null };
         pairs.push(pair);
-        if (h > .2) fatal.push(viewport.id + " " + scene.id + ": posição do herói divergiu " + h.toFixed(3) + " m");
-        if (scene.id === "prado-prologo" && cam > .25) fatal.push(viewport.id + ": câmera A/B do prado divergiu " + cam.toFixed(3) + " m");
+        if (h > .2) fatal.push(viewport.id + " " + scene.id + ": posição 3D do herói divergiu " + h.toFixed(3) + " m");
+        if (cam > .25) fatal.push(viewport.id + " " + scene.id + ": câmera A/B divergiu " + cam.toFixed(3) + " m");
+        if (!cameraClear(b?.state) || !cameraClear(c?.state)) fatal.push(viewport.id + " " + scene.id + ": protagonista não está totalmente visível no par A/B");
       }
       const walk = candidate.walks[0];
       if (!walk || walk.distance < 2) fatal.push(viewport.id + ": caminhada candidata não comprovada");
