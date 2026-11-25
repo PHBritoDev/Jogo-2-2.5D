@@ -228,8 +228,9 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
   assert.ok(/uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow;/.test(ew), 'uniform de qualidade compartilhado');
   assert.ok(/float fbmLow\(vec2 p\)/.test(ew) && /float waterFbm\(vec2 p\)\{ if \(uAurLow > \.5\) return fbmLow\(p\); return fbm\(p\); \}/.test(ew), 'seletor uniforme: duas oitavas no baixo, quatro no alto');
-  const mainShader = ew.slice(ew.indexOf('void main(){'));
-  assert.ok(!/fbm\(/.test(mainShader) && (mainShader.match(/waterFbm\(/g) || []).length >= 11, 'normais, espuma e aurora passam pelo mesmo caminho adaptativo');
+  const fragmentStart = ew.indexOf('const FRAG'), mainStart = ew.indexOf('void main(){', fragmentStart);
+  const mainShader = ew.slice(mainStart);
+  assert.ok(mainStart > fragmentStart && !/fbm\(/.test(mainShader) && (mainShader.match(/waterFbm\(/g) || []).length >= 11, 'normais, espuma e aurora passam pelo mesmo caminho adaptativo');
   assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
