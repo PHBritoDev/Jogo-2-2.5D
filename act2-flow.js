@@ -1,3 +1,4 @@
+import { DEPARTURE_NOTE } from './sakura-route3d.js';
 import { CITY2, GATE2, GUARDS2, VOLCANO2, CAVE2, cinzariaLayout } from './jornada3d.js';
 /**
  * MOD 205 — Marco 3: Ato II como no roteiro original do autor (docs/roteiro/M3-ATO2.md). Dados e transições puras;
@@ -32,7 +33,7 @@ export const DISTRICT_SPOTS = {
   volcanoGuardFuture: { x: CAVE2.futureGuard.x, z: CAVE2.futureGuard.z }, // reservado (sem NPC)
   volcanoGuards: GUARDS2.map(p => ({ x: p.x, z: p.z })),
   volcano: { x: VOLCANO2.x, z: VOLCANO2.z },
-  note: { x: CITY2.x + 8, z: CITY2.z + 4 }
+  note: DEPARTURE_NOTE
 };
 /** Casas da nova Cinzária (formato da jornada: [x, z, largura, fundo, andares, rotação, bairro]). */
 export function cityLayout() { return cinzariaLayout(); }

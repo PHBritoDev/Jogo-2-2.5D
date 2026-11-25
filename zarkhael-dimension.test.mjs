@@ -265,7 +265,7 @@ test('A/B supports main legacy light telemetry and verifies the baseline worktre
   assert.ok(workflow.includes("A4_BASELINE_ROOT: '/tmp/bispo3-baseline'"));
   assert.ok(qa.includes('function verifyBaselinePreset()'));
   assert.ok(qa.includes('A4_BASELINE_ROOT'));
-  assert.ok(qa.includes("if(label==='01-main')"));
+  assert.ok(qa.includes("label==='01-main'&&!Array.isArray(lighting.lights?.activeDetails)"));
   assert.ok(qa.includes('objectsNear(1200,4,1)'));
   assert.ok(qa.includes("item.endsWith('@1200.0,4.0')"));
   assert.ok(qa.includes("item.startsWith('orcamento-luz-')"));

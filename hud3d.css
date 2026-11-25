@@ -365,6 +365,8 @@ body.no-hints #top{display:none!important}
 /* MOD 202 — Apresentação "jogador VS Bispo" (leve: só transform/opacity, sem blur nem filtros pesados). */
 #vs-panel{position:fixed;inset:0;z-index:31;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(6px,2vh,16px);padding:10px 16px;background:#030206;color:#f4ead0;--vs-accent:#e0b040;overflow:hidden}
 #vs-panel[hidden]{display:none}
+/* A1: o atalho de teleporte ADM não pode cobrir o cartão VS no modo de diagnóstico. */
+#vs-panel:not([hidden]) ~ #adm-tp-vulcao-ato2-quick{display:none!important}
 .vs-bg{position:absolute;inset:0;background:radial-gradient(60% 80% at 25% 50%,#1a2a4a66,transparent 70%),radial-gradient(60% 80% at 75% 50%,color-mix(in srgb,var(--vs-accent) 28%,transparent),transparent 70%);opacity:.9}
 .vs-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 47%,var(--vs-accent) 49.6%,var(--vs-accent) 50.4%,transparent 53%);opacity:.5}
 .vs-kicker{position:relative;font:800 clamp(9px,2.4vh,12px)/1 var(--hud-font,system-ui);letter-spacing:.28em;color:var(--vs-accent);text-align:center}
@@ -418,3 +420,79 @@ body.no-hints #top{display:none!important}
 #actions #shield.on .btn-icon{animation:hudUltGlow .6s ease-in-out infinite alternate}
 #actions #shield .skill-cost,#actions #dash .skill-cost{border-color:#bfe9ff}
 #actions #dash.skill-cooling .skill-cost{font-size:10px!important}
+
+
+/* A1 A4-001 — VORGAZHEK: retrato 393×852, HUD nas bordas e corredor central livre. */
+@media (orientation:portrait) and (max-width:388px){
+ body.bishop2-battle #inventory-btn,
+ body.bishop2-battle #map-toggle-3d{display:none!important}
+ body.bishop2-battle #actions #shield{right:calc(var(--u)*3.8)!important}
+ body.bishop2-battle #actions #run{right:calc(var(--u)*3.9)!important}
+ body.bishop2-battle #actions #aim{right:calc(var(--u)*2.8)!important}
+}
+@media (orientation:portrait) and (max-width:600px){
+ body.bishop2-battle{--u:clamp(40px,12.5vw,44px);--P:46px;--hpw:clamp(112px,28.8vw,130px);--hph:14px;--ctrl-scale:.88}
+ body.bishop2-battle #quest-box,
+ body.bishop2-battle #coin-pill,
+ body.bishop2-battle #heart-pill,
+ body.bishop2-battle #objective-arrow,
+ body.bishop2-battle #top,
+ body.bishop2-battle #talk-button{display:none!important}
+ body.bishop2-battle #hud-hero{top:calc(8px + var(--safe-t));left:calc(8px + var(--safe-l))}
+ body.bishop2-battle #hero-portrait{width:var(--P);height:var(--P)}
+ body.bishop2-battle #player-hud{left:calc(var(--P) + 8px)!important;top:3px!important;width:var(--hpw)!important}
+ body.bishop2-battle #player-hp-track{width:var(--hpw)!important;height:14px!important}
+ body.bishop2-battle #player-mana-track{width:calc(var(--hpw)*.78)!important;height:5px!important;margin:3px 0 0 6px!important}
+ body.bishop2-battle #xp-track{display:none!important}
+ body.bishop2-battle #top-right{top:calc(8px + var(--safe-t))!important;right:calc(8px + var(--safe-r))!important;gap:4px!important}
+ body.bishop2-battle #top-right>button{width:38px!important;height:38px!important}
+ body.bishop2-battle #enemy-hud.boss{left:50%!important;top:calc(68px + var(--safe-t))!important;bottom:auto!important;transform:translateX(-50%)!important;width:min(64vw,260px)!important}
+ body.bishop2-battle #enemy-hud.boss #enemy-name{font-size:clamp(10px,1.4vh,12px)!important;letter-spacing:.12em!important;margin-bottom:3px!important}
+ body.bishop2-battle #enemy-hud.boss #enemy-hp-track{height:9px!important}
+ body.bishop2-battle #actions{--ctrl-scale:.88;right:calc(6px + var(--safe-r))!important;bottom:calc(6px + var(--safe-b))!important}
+ body.bishop2-battle #stick{left:calc(10px + var(--safe-l))!important;bottom:calc(10px + var(--safe-b))!important;width:calc(var(--u)*2.35)!important;height:calc(var(--u)*2.35)!important}
+ body.bishop2-battle #marker{left:calc(6px + var(--safe-l))!important;bottom:calc(var(--u)*2.45 + 14px + var(--safe-b))!important}
+}
+
+@media (orientation:portrait) and (max-width:388px){
+ body.bishop2-battle #stick{width:calc(var(--u)*2.15)!important;height:calc(var(--u)*2.15)!important}
+}
+
+/* A1 — cartão VS legível em portrait: dois retratos inteiros, centro e CTA sem corte. */
+@media (orientation:portrait) and (max-width:600px){
+ #vs-panel{
+  box-sizing:border-box;
+  gap:clamp(8px,1.5vh,12px);
+  padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
+ }
+ .vs-kicker{
+  width:100%;max-width:100%;padding:0 4px;box-sizing:border-box;
+  font-size:clamp(8px,1.5vh,10px);letter-spacing:.14em;line-height:1.25;
+ }
+ .vs-stage{
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);box-sizing:border-box;
+  align-items:center;gap:clamp(5px,1.8vw,10px);
+  flex:0 1 auto;width:100%;height:auto;min-width:0;max-height:50vh;
+ }
+ .vs-side{width:100%;min-width:0;height:auto;max-height:none;gap:5px;box-sizing:border-box}
+ .vs-frame{width:100%;height:auto;flex:none;aspect-ratio:2/3;max-height:38vh;box-sizing:border-box}
+ .vs-side figcaption{width:100%;min-width:0;gap:2px}
+ .vs-side strong{
+  max-width:100%;font-size:clamp(9px,1.7vh,14px);letter-spacing:.05em;
+  line-height:1.1;overflow-wrap:anywhere;
+ }
+ .vs-side span{
+  max-width:100%;font-size:clamp(7px,1.2vh,9px);letter-spacing:.04em;
+  line-height:1.15;overflow-wrap:anywhere;
+ }
+ .vs-mark{font-size:clamp(26px,6vh,40px)}
+ #vs-line{width:100%;max-width:92vw;font-size:clamp(10px,1.7vh,13px);line-height:1.3;box-sizing:border-box;overflow-wrap:anywhere}
+ #vs-go{width:min(220px,72vw);min-width:0;height:44px;padding:0 12px;font-size:12px;letter-spacing:.1em;box-sizing:border-box}
+}
+@media (orientation:portrait) and (max-width:360px){
+ .vs-stage{gap:5px;max-height:48vh}
+ .vs-side strong{font-size:clamp(8px,1.55vh,12px)}
+ .vs-side span{letter-spacing:.02em}
+ .vs-mark{font-size:clamp(24px,5.5vh,34px)}
+ #vs-line{max-width:94vw}
+}

@@ -50,7 +50,7 @@ float opening(float t,float seed){float b=mod(t+seed*17.,3.3+seed*4.7);return b<
 `;
 function surfaceMaterial(THREE, kind, uniforms) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .42, metalness: 0, side: THREE.DoubleSide });
-  m.customProgramCacheKey = () => 'zark296-' + kind;
+  m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim2' : '');
   m.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
     const eye = kind === 'eye';
@@ -108,6 +108,13 @@ function surfaceMaterial(THREE, kind, uniforms) {
       vec3 q0=dFdx(vViewPosition),q1=dFdy(vViewPosition);
       vec3 surfN=cross(q0,q1);float det=dot(q0,cross(q1,normal));
       normal=normalize(normal+sign(det)*(dFdx(relief)*cross(q1,normal)+dFdy(relief)*cross(normal,q0))/max(abs(det),.00001));`);
+    if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
+      // Reuse Three.js' geometryViewDir from lights_fragment_begin; no second normalize.
+      // Three.js selects its constant view direction for orthographic cameras.
+      float stemViewCos = clamp(abs(dot(normal,geometryViewDir)),0.,1.);
+      float stemRim = 1. - stemViewCos;
+      totalEmissiveRadiance += vec3(.018,.0018,.0028) * stemRim * (.55 + .45 * n);
+    `);
     if (kind === 'floor') shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       // Broken reflection of the horizon, not a mirror or a full-screen pass.
       float streak=exp(-abs(vOrganic.x)*1.3)*(0.07+n*.20)*(0.3+checker*.7);

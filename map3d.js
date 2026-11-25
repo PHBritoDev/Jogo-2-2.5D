@@ -1,3 +1,4 @@
+import { POIS as SAKURA_POIS, SHELTERS } from './sakura-route3d.js';
 import { JOURNEY_POIS } from './jornada3d.js';
 /**
  * MOD 186 — Mapa com névoa de guerra e abrigos de viagem rápida (regras puras, testadas em map3d.test.mjs).
@@ -7,11 +8,12 @@ import { JOURNEY_POIS } from './jornada3d.js';
 /* Mod 321 — o mapa cobre a jornada a oeste (vale, serra, ponte, terras de cinza, Cinzária e o vulcão). A névoa antiga
    (v3: 80×80 sobre 430 m) é convertida célula a célula para a grade nova (migrateLegacyFog), sem perder o que foi visto. */
 export const LEGACY_MAP_BOUNDS = Object.freeze({ x0: -215, z0: -290, size: 430, cells: 80 });
-export const MAP_BOUNDS = { x0: -1760, z0: -1090, size: 1980 };
+export const V4_MAP_BOUNDS = Object.freeze({x0:-1760,z0:-1090,size:1980,cells:220});
+export const MAP_BOUNDS = { x0:-2080, z0:-2290, size:3360 };
 /** Chave de armazenamento da névoa: muda quando os limites do mapa mudam (Mod 195). */
-export const MAP_STORE_KEY = 'seven-sins-3d-map-v4';
+export const MAP_STORE_KEY = 'seven-sins-3d-map-v5';
 export const LEGACY_MAP_STORE_KEY = 'seven-sins-3d-map-v3';
-export const FOG_CELLS = 220;
+export const FOG_CELLS = 374;
 export const REVEAL_RADIUS = 24;
 
 export const MAP_POIS = [
@@ -26,7 +28,7 @@ export const MAP_POIS = [
   { id: 'portal', name: 'Portal de VHAZRAEL', x: 44, z: -119, kind: 'portal', revealRadius: 34 },
   { id: 'garganta', name: 'Garganta da Dívida', x: -72, z: -60, kind: 'danger' },
   // Mod 321 — a jornada substitui o antigo Distrito/Mina/Canal (ver POI_ALIASES)
-  ...JOURNEY_POIS,
+  ...JOURNEY_POIS, ...SAKURA_POIS,
   { id: 'incenso', name: 'Passagem do Incenso', x: 96, z: -32, kind: 'danger' },
   { id: 'altar', name: 'Invernália', x: 150, z: -40, kind: 'village', revealRadius: 26 }, // MOD 206 — a cidade de neve do Ato III
   { id: 'serra', name: 'Torre de VÉRAXION', x: -36, z: -238, kind: 'village', revealRadius: 26 }, // MOD 207
@@ -45,7 +47,8 @@ export const WAYSTONES = [
   // Mod 321 — abrigos da jornada: vale, antes da ponte e na nova cidade
   { id: 'abrigo-vale', name: 'Abrigo do Vale', x: -236, z: -46 },
   { id: 'abrigo-serra', name: 'Abrigo da Serra', x: -790, z: -54 },
-  { id: 'abrigo-cinzaria', name: 'Abrigo de Cinzária', x: -1228, z: -74 }
+  { id: 'abrigo-cinzaria', name: 'Abrigo de Cinzária', x: -1228, z: -74 },
+  ...SHELTERS
 ];
 export const WAYSTONE_ALIASES = Object.freeze({ 'abrigo-sope': 'abrigo-mata' });
 /** Mod 321 — POIs da Cidade 2 antiga: quem já tinha o Distrito descoberto ganha Cinzária; Mina/Canal deixam de existir. */

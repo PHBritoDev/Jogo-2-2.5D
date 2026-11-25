@@ -31,7 +31,7 @@ const wait = dur => ({ type: 'wait', dur });
 export function act3Presentation(step, sub = 0, city = 'Invernália') {
   const C = city.toUpperCase();
   const pages = {
-    15: ['ATO III · A CIDADE DE NEVE', 'Siga a leste, pela passagem, até a cidade de neve'],
+    15: [['ATO III · CAMINHO DAS PÉTALAS', 'Contorne o vulcão e procure a mestra no dojo das cerejeiras'], ['ATO III · O CASTELO GLACIAL', 'Atravesse o pinhal e o lago. Encontre o trono de Invernália'], ['ATO III · INVERNÁLIA', 'Desça ao bairro antigo e pergunte pelo Anjo']][Math.max(0,Math.min(2,sub))],
     16: [['ATO III · ' + C, 'Pergunte pelo Anjo na cidade'], ['ATO III · ' + C, 'Ninguém viu o Anjo. Fale com os moradores'],
       ['ATO III · A NOITE', 'Ache um lugar para dormir: a estalagem'], ['ATO III · A ESTALAGEM', 'Fale com o estalajadeiro'], ['ATO III · A ESTALAGEM', 'Suba para o quarto e descanse']][Math.max(0, Math.min(4, sub))],
     17: [['ATO III · O PORÃO', 'Liberte-se'], ['ATO III · O PORÃO', 'Suba a escada e saia da estalagem'],

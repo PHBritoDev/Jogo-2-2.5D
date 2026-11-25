@@ -9,7 +9,7 @@ const src=fs.readFileSync(new URL('../mundo-3d-prototype.js',import.meta.url),'u
 
 // THREE mínimo para o orçamento de luzes (só o que o módulo usa).
 class V{constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;}setFromMatrixPosition(m){const e=m.elements;this.x=e[12];this.y=e[13];this.z=e[14];return this;}distanceTo(o){return Math.hypot(this.x-o.x,this.y-o.y,this.z-o.z);}copy(o){this.x=o.x;this.y=o.y;this.z=o.z;return this;}}
-class Light{constructor(c=0xffffff,i=1,d=10,dec=2){this.isPointLight=true;this.intensity=i;this.distance=d;this.decay=dec;this.visible=true;this.parent=null;this.userData={};this.name='';this.castShadow=false;this.color={hex:c,copy(o){this.hex=o.hex;}};this.position=new V();this.layers={mask:1,set(n){this.mask=1<<n;}};this.matrixWorld={elements:new Array(16).fill(0)};}}
+class Light{constructor(c=0xffffff,i=1,d=10,dec=2){this.isPointLight=true;this.intensity=i;this.distance=d;this.decay=dec;this.visible=true;this.parent=null;this.userData={};this.name='';this.castShadow=false;this.color={r:((c>>16)&255)/255,g:((c>>8)&255)/255,b:(c&255)/255,copy(o){this.r=o.r;this.g=o.g;this.b=o.b;}};this.position=new V();this.layers={mask:1,set(n){this.mask=1<<n;}};this.matrixWorld={elements:new Array(16).fill(0)};}}
 const T={PointLight:Light,Vector3:V};
 function scene(){const kids=[];return{kids,visible:true,parent:null,add(o){o.parent=this;kids.push(o);},traverse(f){for(const k of kids)f(k);}};}
 const at=(l,x,z)=>{l.matrixWorld.elements[12]=x;l.matrixWorld.elements[14]=z;return l;};

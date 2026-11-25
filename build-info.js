@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 360;
-export const BUILD = 'mod360-map-save-retry';
-export const DESCRIPTION = 'Mod 360: persistência resiliente do mapa com retry após falha de armazenamento';
+export const MOD = 361;
+export const BUILD = 'mod361-integracao-invernalia';
+export const DESCRIPTION = 'Mod 361: jornada de Invernália, missões opcionais, câmera de duelo e impactos de espada';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);

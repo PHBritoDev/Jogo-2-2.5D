@@ -108,7 +108,10 @@ export function energyBody(T,parent,preset,options={}){
   const validPosition=position===undefined||(position!==null&&typeof position==='object'&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&Number.isFinite(position.z));
   // Explicitly malformed directions must not reuse a pooled projectile's old heading.
   // Omitted direction retains the orientation chosen by its controller.
-  const validDirection=dir===undefined||(dir!==null&&typeof dir==='object'&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)&&Number.isFinite(Math.hypot(dir.x,dir.y??0,dir.z??0))&&Math.hypot(dir.x,dir.y??0,dir.z??0)>.01);
+  // Three normalizes with lengthSq(); reject lengths that overflow that operation.
+  const dirLengthSq=dir&&Number.isFinite(dir.x)&&Number.isFinite(dir.y??0)&&Number.isFinite(dir.z??0)
+    ? dir.x*dir.x+(dir.y??0)**2+(dir.z??0)**2 : 0;
+  const validDirection=dir===undefined||(Number.isFinite(dirLengthSq)&&dirLengthSq>.0001);
   // A malformed impact must not poison the object's transform or render a stale effect.
   mesh.visible=validPosition&&validDirection&&Number.isFinite(alpha)&&alpha>=.015&&Number.isFinite(dissolve)&&dissolve<dissolveCeiling&&Number.isFinite(radius)&&radius>0&&Number.isFinite(length)&&length>0;
   if(position&&validPosition)mesh.position.set(position.x,position.y,position.z);

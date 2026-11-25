@@ -1,0 +1,77 @@
+name: A1 — VORGAZHEK portrait and landscape
+# A1 QA source-test alignment trigger
+on:
+  pull_request:
+    paths:
+      - 'mundo-3d-prototype.js'
+      - 'portrait-camera-fit.js'
+      - 'mundo-3d-prototype.html'
+      - 'hud3d.css'
+      - 'tests/vorgazhek-portrait-framing.test.mjs'
+      - 'tools/visual-lab/a1-vorgazhek-portrait-qa.cjs'
+      - '.github/workflows/a1-vorgazhek-portrait.yml'
+permissions:
+  contents: read
+jobs:
+  portrait:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Checkout exact base for visual comparison
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: work/baseline
+          persist-credentials: false
+      - name: Verify exact head and base checkouts
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          actual_head="$(git rev-parse HEAD)"
+          actual_base="$(git -C work/baseline rev-parse HEAD)"
+          echo "PR head checkout: $actual_head"
+          echo "PR base checkout: $actual_base"
+          test "$actual_head" = "$EXPECTED_HEAD_SHA"
+          test "$actual_base" = "$EXPECTED_BASE_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pinned browser dependencies
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Source tests and syntax
+        run: |
+          node --test tests/vorgazhek-portrait-framing.test.mjs
+          node --input-type=module --check < mundo-3d-prototype.js
+          node --check portrait-camera-fit.js
+          node --check tools/visual-lab/a1-vorgazhek-portrait-qa.cjs
+      - name: Capture normal gameplay at both aspect ratios
+        env:
+          NODE_PATH: '${{ github.workspace }}/work/qa/node_modules'
+          VISUAL_OUTPUT: '${{ github.workspace }}/work/evidence'
+          VISUAL_BASE_URL: 'http://127.0.0.1:4173'
+          VISUAL_BASELINE_URL: 'http://127.0.0.1:4174'
+        run: |
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/a1-head-http.log 2>&1 &
+          python3 -m http.server 4174 --directory "$GITHUB_WORKSPACE/work/baseline" > /tmp/a1-base-http.log 2>&1 &
+          for port in 4173 4174; do
+            for attempt in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:$port/mundo-3d-prototype.html" >/dev/null; then break; fi
+              sleep 1
+            done
+          done
+          node tools/visual-lab/a1-vorgazhek-portrait-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a1-vorgazhek-portrait-${{ github.event.pull_request.head.sha }}
+          path: work/evidence/
+          retention-days: 14

@@ -38,7 +38,7 @@ test('P2: poder inimigo não prende a câmera — tomadas só nas fases de cena 
   assert.ok(/blend: 1 - smooth\(\(u - \.7\) \/ \.3\)/.test(ex), 'a tomada da entrada devolve a câmera com blend antes da queda');
   assert.ok(/cine=!!o&&\/\^\(awaken\|orbit\|entry\)\$\/\.test\(o\.phase\)/.test(m) && /sk\.textContent='PULAR ›'/.test(m), 'tomadas travadas só nas fases de cena, com PULAR');
   assert.ok(/function vzCamRestore\(\)/.test(m) && /\/\*\* MOD 249[^]*nunca trava\s+controle/.test(m), 'deslocamento só no quadro desenhado; câmera do jogador devolvida');
-  assert.ok(/if\(engaged&&!lockOnActive\)\{const k=newHero&&rites\.active\?\.def\?\.drive\?\.3:\.22;/.test(m), 'enquadramento de combate puxa no máx. 30 % para o alvo: o herói nunca sai do quadro');
+  assert.ok(/if\(engaged&&!lockOnActive\)\{const k=portrait\?\.focusBlend\?\?\(newHero&&rites\.active\?\.def\?\.drive\?\.3:\.22\);/.test(m), 'fora do perfil de retrato de VORGAZHEK, o foco de combate conserva o limite de 30 %');
 });
 test('P3: VHAZRAEL — cadência por golpe (leve/médio/pesado), telegraph legível, cadeia de 3–4 e pausa tática', () => {
   const pool = BOSS_MOVES.vhazrael; assert.ok(pool.length >= 6);
