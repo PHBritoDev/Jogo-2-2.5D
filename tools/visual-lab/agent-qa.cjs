@@ -81,12 +81,22 @@ function validContinuousRoute(route) {
   const expected = configured.map(s => ({
     name:s.name, target:s.target, minTravel:s.minTravel, tolerance:s.tolerance, timeoutMs:s.timeoutMs
   }));
-  const origin = {x:-14,z:-82};
+  const configuredStart = walkConfig.start;
+  if (!Array.isArray(configuredStart) || configuredStart.length !== 3 || !configuredStart.every(Number.isFinite)) return false;
+  const origin = {x:configuredStart[0],z:configuredStart[1]};
   const finitePoint = p => p && Number.isFinite(p.x) && Number.isFinite(p.z);
   const finiteWorldPoint = p => finitePoint(p) && Number.isFinite(p.y);
   if (route?.scene !== 'floresta-percurso' || route.completed !== true ||
       !Array.isArray(segments) || segments.length !== expected.length) return false;
-  if (!finiteWorldPoint(segments[0]?.start) || Math.hypot(segments[0].start.x-origin.x,segments[0].start.z-origin.z)>1.5) return false;
+  const reset = route.startReset;
+  if (!reset || reset.verified !== true || !reset.expected || !Number.isFinite(reset.expected.x) ||
+      !Number.isFinite(reset.expected.z) || !Number.isFinite(reset.expected.yaw) ||
+      Math.hypot(reset.expected.x-origin.x, reset.expected.z-origin.z) > .01 ||
+      !finiteWorldPoint(reset.actual) ||
+      Math.hypot(reset.actual.x-origin.x, reset.actual.z-origin.z) > .5 ||
+      !finiteWorldPoint(segments[0]?.start) ||
+      Math.hypot(segments[0].start.x-reset.actual.x, segments[0].start.z-reset.actual.z) > .5 ||
+      Math.abs(segments[0].start.y-reset.actual.y) > .35) return false;
   let total = 0, totalPath = 0, cameraSamples = 0, offScreenSamples = 0, blockedSamples = 0;
   for (let i = 0; i < segments.length; i++) {
     const s = segments[i], rule = expected[i];
