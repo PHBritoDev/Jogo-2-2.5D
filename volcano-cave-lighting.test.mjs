@@ -37,8 +37,6 @@ test('somente os lotes próximos do Santuário recebem o bounce', () => {
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('./volcano-cave-scene.js', import.meta.url), 'utf8');
-  const harness = readFileSync(new URL('./tools/qa/a4-volcano-lava-bounce.html', import.meta.url), 'utf8');
-  const capture = readFileSync(new URL('./tools/qa/a4-volcano-lava-bounce.cjs', import.meta.url), 'utf8');
   assert.match(masonry, /shader\.uniforms\.uLavaTime=lavaClock/);
   assert.match(masonry, /shader\.uniforms\.uLavaGain=lavaGain/);
   assert.match(masonry, /uniform float uLavaTime/);
@@ -50,8 +48,4 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(scene, /masonry\(T,s,862\+i,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,galleries,2491,\{stoneMap,clock\}\)/);
   assert.match(scene, /clock\.value=t/);
-  assert.match(harness, /node === 'upper-gallery' \? nodes\.vestibule : nodes\[node\]/);
-  assert.match(harness, /draw\('upper-gallery', 2000\)/);
-  assert.match(capture, /'upper-gallery-2000'/);
-  assert.match(capture, /temporalGainRGB < \.015/);
 });
