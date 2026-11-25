@@ -230,7 +230,7 @@ async function main(){
     assert.ok(h.obliqueRoi.water.p95 >= b.obliqueRoi.water.p95 - 1,'published silver highlights must be preserved');
     const sideGain=h.roi.water.mean-control.roi.water.mean;
     const grazingGain=h.obliqueRoi.water.mean-control.obliqueRoi.water.mean;
-    assert.ok(sideGain>.35,'moderate-angle water must gain readable sheen over perpendicular incidence');
+    assert.ok(sideGain>.8,'moderate-angle water must gain clearly readable sheen over perpendicular incidence');
     const highlightGain=h.obliqueRoi.water.p95-control.obliqueRoi.water.p95;
     assert.ok(grazingGain>1.0,'grazing-angle water must gain visible sheen over perpendicular incidence');
     assert.ok(highlightGain>2.5,'grazing-angle silver highlights must remain visible');
