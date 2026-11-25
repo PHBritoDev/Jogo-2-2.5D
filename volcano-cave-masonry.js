@@ -72,12 +72,19 @@ export function masonryShaderPatches(lavaEnabled) {
  };
 }
 export function masonryShaderCacheKey(lavaEnabled) {
- const c=LAVA_BOUNCE_CONFIG;
- return 'volcano-cave-masonry-v2:'+JSON.stringify([
-  !!lavaEnabled,c.distanceFalloff,c.regionStartZ,c.regionFullZ,
+ const enabled=!!lavaEnabled,c=LAVA_BOUNCE_CONFIG;
+ const patch=masonryShaderPatches(enabled);
+ const injected=JSON.stringify([
+  patch.vertexPrefix,patch.fragmentPrefix,patch.vertexChunk,patch.fragmentChunk
+ ]);
+ const config=JSON.stringify([
+  enabled,c.distanceFalloff,c.regionStartZ,c.regionFullZ,
   c.sourceBlendStartZ,c.sourceBlendEndZ,c.facingFloor,c.facingGain,
   c.bounceStrength,c.color
  ]);
+ // Include the exact injected GLSL, not only the closure flag/config.
+ // A future shader edit therefore cannot silently reuse an older program.
+ return 'volcano-cave-masonry-v3:'+injected+':'+config;
 }
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
