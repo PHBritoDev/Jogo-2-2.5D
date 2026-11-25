@@ -11,6 +11,15 @@
  *  O shader só trabalha quando uAurK > 0 (ramo uniforme). Mesma chave de programa sempre (sem recompilar à noite).
  */
 let U = null;
+let graphicsModeCache = null, graphicsModeCheckedAt = -Infinity;
+function readAuroraGraphicsMode(time) {
+  if (!Number.isFinite(time) || time < graphicsModeCheckedAt || time - graphicsModeCheckedAt >= .5) {
+    graphicsModeCheckedAt = Number.isFinite(time) ? time : 0;
+    try { graphicsModeCache = globalThis.localStorage?.getItem('seven-sins-3d-graphics') || null; }
+    catch { graphicsModeCache = null; }
+  }
+  return graphicsModeCache;
+}
 /** Uniforms compartilhados (singleton por THREE). */
 export function auroraUniforms(T) {
   // o carregador do jogo (mod181-loader) importa o mundo com ?v=BUILD e os módulos aninhados sem: o MESMO arquivo vira
@@ -31,8 +40,15 @@ export function auroraColor(t) {
 }
 /** Intensidade efetiva: nível do céu × céu aberto; 0 em lugar fechado (caverna, interior, dimensão). Pura. */
 export function auroraLightK(level, closed, low) { return closed || !(level > .01) ? 0 : level * (low ? .75 : 1); }
+/** Perfil explícito sempre vence o hint compacto; auto mantém o fallback móvel já usado pelo mundo. */
+export function auroraLowProfile(lowHint, mode) {
+  if (mode === 'low') return true;
+  if (mode === 'medium' || mode === 'high' || mode === 'max') return false;
+  return !!lowHint;
+}
 export function updateAuroraLight(T, { level = 0, time = 0, closed = false, low = false, dir = null }) {
-  const u = auroraUniforms(T), k = auroraLightK(level, closed, low); u.uAurK.value = k; u.uAurT.value = time; u.uAurLow.value = low ? 1 : 0;
+  const lowMode = auroraLowProfile(low, readAuroraGraphicsMode(time));
+  const u = auroraUniforms(T), k = auroraLightK(level, closed, lowMode); u.uAurK.value = k; u.uAurT.value = time; u.uAurLow.value = lowMode ? 1 : 0;
   if (k > 0) { const c = auroraColor(time); u.uAurC.value.setRGB(c[0], c[1], c[2]); if (dir) u.uAurD.value.set(dir.x, dir.z).normalize(); }
   return k;
 }
