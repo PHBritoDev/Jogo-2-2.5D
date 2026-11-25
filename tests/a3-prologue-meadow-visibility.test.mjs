@@ -97,3 +97,9 @@ test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', ()
   assert.ok(harness.includes('caminhada na trilha avançou menos de 2 m'), 'a trilha tropical precisa provar deslocamento real');
   assert.ok(harness.includes('câmera não assentou após caminhada na trilha'), 'a captura da trilha espera a câmera estabilizar');
 });
+
+test('as câmeras dirigidas começam alinhadas aos eixos reais da estrada e da trilha', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('x: 54, z: 160, yaw: Math.PI'), 'o prado olha para a estrada ao norte do spawn');
+  assert.ok(harness.includes('x: -14, z: -105, yaw: -Math.PI / 2'), 'a trilha começa voltada para oeste, no eixo de samambaias');
+});

@@ -15,8 +15,8 @@ const VIEWPORTS = [
   { id: "desktop", width: 1280, height: 720, isMobile: false, profile: "high" }
 ];
 const SCENES = [
-  { id: "prado-prologo", x: 54, z: 160, yaw: 0, pitch: .12, distance: 6 },
-  { id: "trilha-samambaias", x: -14, z: -105, yaw: Math.PI / 2, pitch: .12, distance: 6 }
+  { id: "prado-prologo", x: 54, z: 160, yaw: Math.PI, pitch: .12, distance: 6 },
+  { id: "trilha-samambaias", x: -14, z: -105, yaw: -Math.PI / 2, pitch: .12, distance: 6 }
 ];
 
 function readBaseModules() {
