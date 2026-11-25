@@ -50,7 +50,7 @@ float opening(float t,float seed){float b=mod(t+seed*17.,3.3+seed*4.7);return b<
 `;
 function surfaceMaterial(THREE, kind, uniforms) {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .42, metalness: 0, side: THREE.DoubleSide });
-  m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim1' : '');
+  m.customProgramCacheKey = () => 'zark296-' + kind + (kind === 'stem' ? '-rim2' : '');
   m.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
     const eye = kind === 'eye';
@@ -109,9 +109,9 @@ function surfaceMaterial(THREE, kind, uniforms) {
       vec3 surfN=cross(q0,q1);float det=dot(q0,cross(q1,normal));
       normal=normalize(normal+sign(det)*(dFdx(relief)*cross(q1,normal)+dFdy(relief)*cross(normal,q0))/max(abs(det),.00001));`);
     if (kind === 'stem') shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
-      // Reuse Three.js' view-space direction; avoids a second per-fragment normalize.
-      // Orthographic cameras also use the renderer's constant view direction.
-      float stemViewCos = clamp(abs(dot(normal,geometry.viewDir)),0.,1.);
+      // Reuse Three.js' geometryViewDir from lights_fragment_begin; no second normalize.
+      // Three.js selects its constant view direction for orthographic cameras.
+      float stemViewCos = clamp(abs(dot(normal,geometryViewDir)),0.,1.);
       float stemRim = 1. - stemViewCos;
       totalEmissiveRadiance += vec3(.018,.0018,.0028) * stemRim * (.55 + .45 * n);
     `);
