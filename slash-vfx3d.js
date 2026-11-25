@@ -40,8 +40,8 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   let time = 0, quality = 'high';
   // ---------------- crescente varrido (faixa com nascimento por amostra) ----------------
   const slashMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false, blending: st.blend === 'normal' ? T.NormalBlending : T.AdditiveBlending, /* Mod 320: 'normal' = faixa carmesim legível sobre cenário claro */
-    uniforms: { uTime: { value: 0 }, uLife: { value: st.life }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 }, uSeed: { value: 0 }, uHead: { value: 0 } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    uniforms: { uTime: { value: 0 }, uLife: { value: st.life }, uCore: { value: new T.Color(st.core) }, uBody: { value: new T.Color(st.body) }, uRim: { value: new T.Color(st.rim) }, uAccent: { value: new T.Color(st.accent) }, uRakes: { value: st.rakes }, uGain: { value: 1 }, uSeed: { value: 0 }, uHead: { value: 0 }, uLength: { value: 1 } },
+    vertexShader: 'attribute float aBirth;uniform float uLength;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=vec2(uv.x/max(uLength,.0001),uv.y);vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
     fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uRakes,uGain,uSeed,uHead;uniform vec3 uCore,uBody,uRim,uAccent;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;
         float lead=smoothstep(uHead-.35,uHead,u);float tail=smoothstep(0.,.22,u);
@@ -56,25 +56,60 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   /* Sombra/fumaça sob o corte (mistura normal): dá contraste em cenário claro como nas referências — núcleo claro sobre
      uma esteira escura que se esgarça, em vez de só somar luz (que some sobre grama ensolarada). */
   const smokeMat = st => new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, toneMapped: false,
-    uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes } },
-    vertexShader: 'attribute float aBirth;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=uv;vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
+    uniforms: { uTime: { value: 0 }, uLife: { value: st.life * 1.25 }, uDark: { value: new T.Color(st.dark || 0x05070d) }, uGain: { value: 1 }, uSeed: { value: 0 }, uRakes: { value: st.rakes }, uLength: { value: 1 } },
+    vertexShader: 'attribute float aBirth;uniform float uLength;varying vec2 vUv;varying float vBirth;varying float vNear;void main(){vUv=vec2(uv.x/max(uLength,.0001),uv.y);vBirth=aBirth;vec4 mv=modelViewMatrix*vec4(position,1.);vNear=smoothstep(.7,2.4,-mv.z);gl_Position=projectionMatrix*mv;}',
     fragmentShader: `precision highp float;varying vec2 vUv;varying float vBirth;varying float vNear;uniform float uTime,uLife,uGain,uSeed,uRakes;uniform vec3 uDark;${NOISE}
       void main(){float age=(uTime-vBirth)/uLife;if(age>1.)discard;float u=vUv.x,v=vUv.y;float n=vn(vec2(u*9.+uSeed,v*4.-uTime*3.));
         float band=uRakes>1.5?smoothstep(.0,.3,fract(v*3.))*(1.-smoothstep(.5,.8,fract(v*3.))):smoothstep(.05,.45,v)*(1.-smoothstep(.7,.92,v));
         float a=band*smoothstep(0.,.25,u)*smoothstep(age,age+.35,n)*(1.-smoothstep(.4,1.,age))*.5*uGain;a*=vNear;if(a<.02)discard;gl_FragColor=vec4(uDark,a);}` });
   function makeSlash() {
     const N = segments, pos = new Float32Array(N * 2 * 3), uv = new Float32Array(N * 2 * 2), birth = new Float32Array(N * 2), idx = [];
-    for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage)); g.setAttribute('uv', new T.BufferAttribute(uv, 2).setUsage(T.DynamicDrawUsage));
-    g.setAttribute('aBirth', new T.BufferAttribute(birth, 1).setUsage(T.DynamicDrawUsage)); g.setIndex(idx); g.setDrawRange(0, 0);
+    for (let i = 0; i < N; i++) {
+      const a = i * 2, o = i * 4, u = N > 1 ? i / (N - 1) : 0;
+      uv[o] = uv[o + 2] = u; uv[o + 1] = 0; uv[o + 3] = 1;
+      if (i < N - 1) idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+    g.setAttribute('uv', new T.BufferAttribute(uv, 2));
+    g.setAttribute('aBirth', new T.BufferAttribute(birth, 1).setUsage(T.DynamicDrawUsage));
+    g.setIndex(idx); g.setDrawRange(0, 0);
     const mats = byStyle(slashMat);
     const m = new T.Mesh(g, mats.prota); m.frustumCulled = false; m.renderOrder = 10; m.visible = false; root.add(m);
     const smokes = byStyle(smokeMat), sm = new T.Mesh(g, smokes.prota); sm.frustumCulled = false; sm.renderOrder = 9; m.add(sm);
-    return { m, sm, smokes, g, pos, uv, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null };
+    return { m, sm, smokes, g, pos, birth, mats, n: 0, key: null, last: 0, style: 'prota', lastP: null, positionRange: { start: 0, count: 0 }, birthRange: { start: 0, count: 0 } };
   }
   const slashPool = Array.from({ length: slashes }, makeSlash), byKey = new Map();
   let slashCursor = 0;
   const _a = new T.Vector3(), _b = new T.Vector3(), _d = new T.Vector3();
+  // Three.js r160 update ranges are component offsets; reuse one pending range per ribbon attribute.
+  function publishSlashRange(attribute, reusableRange, start, count, full = false) {
+    if (typeof attribute.addUpdateRange === 'function' && typeof attribute.clearUpdateRanges === 'function' && Array.isArray(attribute.updateRanges)) {
+      const ranges = attribute.updateRanges;
+      if (full) {
+        ranges.length = 0;
+        reusableRange.start = 0; reusableRange.count = attribute.array.length;
+        ranges.push(reusableRange);
+      } else {
+        let first = start, last = start + count, merged = true;
+        while (merged) {
+          merged = false;
+          for (let i = ranges.length - 1; i >= 0; i--) {
+            const range = ranges[i], rangeEnd = range.start + range.count;
+            if (range === reusableRange || (first <= rangeEnd && last >= range.start)) {
+              if (range.start < first) first = range.start;
+              if (rangeEnd > last) last = rangeEnd;
+              ranges.splice(i, 1); merged = true;
+            }
+          }
+        }
+        reusableRange.start = first; reusableRange.count = last - first;
+        ranges.push(reusableRange);
+      }
+    }
+    attribute.needsUpdate = true;
+  }
+
   /**
    * Amostra da arma: key identifica o golpe (serial); base/tip no mundo; style; gain (0,7 comum … 1,15 finalizador).
    * extend: quanto o halo passa da ponta (m); inner: fração da lâmina onde a faixa começa.
@@ -88,11 +123,19 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     _b.set(tip.x + _d.x * ext * st.width, tip.y + _d.y * ext * st.width, tip.z + _d.z * ext * st.width);
     if (s.lastP && s.lastP.distanceToSquared(_b) < .0009) return; // parado: não acumula amostras inúteis
     s.lastP = (s.lastP || new T.Vector3()).copy(_b);
-    if (s.n === segments) { s.pos.copyWithin(0, 6); s.birth.copyWithin(0, 2); s.n--; }
-    const i = s.n++;
-    s.pos.set([_a.x, _a.y, _a.z, _b.x, _b.y, _b.z], i * 6); s.birth[i * 2] = s.birth[i * 2 + 1] = time; s.last = time;
-    for (let k = 0; k < s.n; k++) { const u = s.n > 1 ? k / (s.n - 1) : 1; s.uv[k * 4] = u; s.uv[k * 4 + 1] = 0; s.uv[k * 4 + 2] = u; s.uv[k * 4 + 3] = 1; }
-    s.g.attributes.position.needsUpdate = s.g.attributes.uv.needsUpdate = s.g.attributes.aBirth.needsUpdate = true; s.g.setDrawRange(0, Math.max(0, (s.n - 1) * 6));
+    const full = s.n === segments;
+    if (full) { s.pos.copyWithin(0, 6); s.birth.copyWithin(0, 2); s.n--; }
+    const i = s.n++, offset = i * 6, birthOffset = i * 2;
+    s.pos[offset] = _a.x; s.pos[offset + 1] = _a.y; s.pos[offset + 2] = _a.z;
+    s.pos[offset + 3] = _b.x; s.pos[offset + 4] = _b.y; s.pos[offset + 5] = _b.z;
+    s.birth[birthOffset] = s.birth[birthOffset + 1] = time; s.last = time;
+    s.g.setDrawRange(0, Math.max(0, (s.n - 1) * 6));
+    const position = s.g.attributes.position, aBirth = s.g.attributes.aBirth;
+    publishSlashRange(position, s.positionRange, full ? 0 : offset, full ? position.array.length : 6, full);
+    publishSlashRange(aBirth, s.birthRange, full ? 0 : birthOffset, full ? aBirth.array.length : 2, full);
+    const denominator = Math.max(1, segments - 1), uLength = Math.max(1 / denominator, (s.n - 1) / denominator);
+    s.m.material.uniforms.uLength.value = uLength;
+    s.sm.material.uniforms.uLength.value = uLength;
     s.m.material.uniforms.uHead.value = 1;
     // faíscas soltas na borda de ataque (poucas por amostra, mais nos golpes grandes)
     if (quality !== 'low' && Math.random() < .55 * gain) spark(_b, { x: _d.x * 2 + (Math.random() - .5) * 3, y: _d.y * 2 + Math.random() * 1.5, z: _d.z * 2 + (Math.random() - .5) * 3 }, s.style, .22);
@@ -158,6 +201,9 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
   const quad = new T.PlaneGeometry(1, 1); quad.translate(0, .5, 0);
   const sparkGeo = new T.InstancedBufferGeometry(); sparkGeo.index = quad.index; sparkGeo.setAttribute('position', quad.attributes.position); sparkGeo.setAttribute('uv', quad.attributes.uv);
   const sp = { pos: new Float32Array(sparks * 3), vel: new Float32Array(sparks * 3), life: new Float32Array(sparks), age: new Float32Array(sparks).fill(1), size: new Float32Array(sparks), col: new Float32Array(sparks * 3) };
+  // Sparse pool: update only live slots instead of scanning the full capacity every frame.
+  const activeSparkIndices = new Uint32Array(sparks), activeSparkPositions = new Int32Array(sparks).fill(-1);
+  let activeSparkCount = 0;
   const aPos = new T.InstancedBufferAttribute(new Float32Array(sparks * 3), 3).setUsage(T.DynamicDrawUsage), aVel = new T.InstancedBufferAttribute(new Float32Array(sparks * 3), 3).setUsage(T.DynamicDrawUsage), aK = new T.InstancedBufferAttribute(new Float32Array(sparks * 2), 2).setUsage(T.DynamicDrawUsage), aCol = new T.InstancedBufferAttribute(new Float32Array(sparks * 3), 3).setUsage(T.DynamicDrawUsage);
   sparkGeo.setAttribute('aPos', aPos); sparkGeo.setAttribute('aVel', aVel); sparkGeo.setAttribute('aK', aK); sparkGeo.setAttribute('aCol', aCol); sparkGeo.instanceCount = 0;
   const sparkMesh = new T.Mesh(sparkGeo, new T.ShaderMaterial({ transparent: true, depthWrite: false, toneMapped: false, blending: T.AdditiveBlending,
@@ -167,8 +213,27 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     fragmentShader: 'precision highp float;varying vec2 vUv;varying float vA;varying vec3 vC;void main(){float x=abs(vUv.x-.5)*2.,y=vUv.y;float a=(1.-x*x)*smoothstep(0.,.25,y)*(1.-smoothstep(.7,1.,y))*vA;if(a<.01)discard;gl_FragColor=vec4(vC*1.8,a);}' }));
   sparkMesh.frustumCulled = false; sparkMesh.renderOrder = 11; root.add(sparkMesh);
   let sparkCursor = 0; const _c = new T.Color();
+  const sparkRanges = {
+    position: { start: 0, count: 0 }, velocity: { start: 0, count: 0 },
+    ageSize: { start: 0, count: 0 }, color: { start: 0, count: 0 }
+  };
+  function publishSparkRange(attribute, reusableRange, count) {
+    const ranges = attribute.updateRanges;
+    if (Array.isArray(ranges)) {
+      // The current write always covers [0,count); widen it to preserve any unconsumed prefix/ranges.
+      let end = count;
+      for (let i = 0; i < ranges.length; i++) end = Math.max(end, ranges[i].start + ranges[i].count);
+      reusableRange.start = 0; reusableRange.count = end;
+      ranges[0] = reusableRange; ranges.length = 1;
+    }
+    attribute.needsUpdate = true;
+  }
   function spark(p, v, style = 'prota', life = .3, size = 1) {
     const i = sparkCursor++ % sparks, st = STYLES[style] || STYLES.prota;
+    if (activeSparkPositions[i] === -1) {
+      activeSparkPositions[i] = activeSparkCount;
+      activeSparkIndices[activeSparkCount++] = i;
+    }
     sp.pos[i * 3] = p.x; sp.pos[i * 3 + 1] = p.y; sp.pos[i * 3 + 2] = p.z; sp.vel[i * 3] = v.x; sp.vel[i * 3 + 1] = v.y; sp.vel[i * 3 + 2] = v.z;
     sp.life[i] = life * (.7 + Math.random() * .6); sp.age[i] = 0; sp.size[i] = size * (.6 + Math.random() * .8);
     _c.setHex(Math.random() < .7 ? st.sparks : st.spark2); sp.col[i * 3] = _c.r; sp.col[i * 3 + 1] = _c.g; sp.col[i * 3 + 2] = _c.b;
@@ -218,15 +283,37 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     for (const s of slashPool) { if (!s.m.visible) continue; s.m.material.uniforms.uTime.value = time; s.sm.material.uniforms.uTime.value = time; if (time - s.last > (STYLES[s.style] || STYLES.prota).life + .05) { s.m.visible = false; if (s.key !== null) { byKey.delete(s.key); s.key = null; } s.n = 0; s.g.setDrawRange(0, 0); } }
     for (const w of wavePool) syncWave(w, dt);
     let live = 0; const P = aPos.array, V = aVel.array, K = aK.array, C = aCol.array;
-    for (let i = 0; i < sparks; i++) { if (sp.age[i] >= 1) continue; sp.age[i] += dt / sp.life[i]; if (sp.age[i] >= 1) continue;
+    for (let active = 0; active < activeSparkCount;) {
+      const i = activeSparkIndices[active];
+      sp.age[i] += dt / sp.life[i];
+      if (sp.age[i] >= 1) {
+        const last = activeSparkIndices[--activeSparkCount];
+        activeSparkIndices[active] = last;
+        activeSparkPositions[last] = active;
+        activeSparkPositions[i] = -1;
+        continue;
+      }
       sp.vel[i * 3 + 1] -= 9 * dt; const drag = Math.exp(-3.5 * dt); sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
       sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
-      P.set(sp.pos.subarray(i * 3, i * 3 + 3), live * 3); V.set(sp.vel.subarray(i * 3, i * 3 + 3), live * 3); K[live * 2] = sp.age[i]; K[live * 2 + 1] = sp.size[i]; C.set(sp.col.subarray(i * 3, i * 3 + 3), live * 3); live++; }
-    sparkGeo.instanceCount = live; if (live) { aPos.needsUpdate = aVel.needsUpdate = aK.needsUpdate = aCol.needsUpdate = true; aPos.addUpdateRange?.(0, live * 3); }
+      const source3 = i * 3, target3 = live * 3, target2 = live * 2;
+      P[target3] = sp.pos[source3]; P[target3 + 1] = sp.pos[source3 + 1]; P[target3 + 2] = sp.pos[source3 + 2];
+      V[target3] = sp.vel[source3]; V[target3 + 1] = sp.vel[source3 + 1]; V[target3 + 2] = sp.vel[source3 + 2];
+      K[target2] = sp.age[i]; K[target2 + 1] = sp.size[i];
+      C[target3] = sp.col[source3]; C[target3 + 1] = sp.col[source3 + 1]; C[target3 + 2] = sp.col[source3 + 2];
+      live++; active++;
+    }
+    sparkGeo.instanceCount = live;
+    if (live) {
+      // Four stable range objects avoid replacing full-pool uploads with per-frame range allocations.
+      publishSparkRange(aPos, sparkRanges.position, live * 3);
+      publishSparkRange(aVel, sparkRanges.velocity, live * 3);
+      publishSparkRange(aK, sparkRanges.ageSize, live * 2);
+      publishSparkRange(aCol, sparkRanges.color, live * 3);
+    }
     for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
   }
-  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; for (const s of splashPool) s.m.visible = false; }
+  function clear() { for (const s of slashPool) { s.m.visible = false; s.key = null; s.n = 0; s.g.setDrawRange(0, 0); } byKey.clear(); for (const w of wavePool) { w.g.visible = false; w.e = null; } sp.age.fill(1); activeSparkCount = 0; activeSparkPositions.fill(-1); sparkGeo.instanceCount = 0; for (const s of starPool) s.m.visible = false; for (const s of splashPool) s.m.visible = false; }
   function stats() { return { slashes: slashPool.filter(s => s.m.visible).length, waves: wavePool.filter(w => w.g.visible).length, sparks: sparkGeo.instanceCount, stars: starPool.filter(s => s.m.visible).length, splashes: splashPool.filter(s => s.m.visible).length, capacity: { slashes, waves, sparks, stars } }; }
   return { sample, end, wave, impact, splash, spark, update, clear, stats, root };
 }
