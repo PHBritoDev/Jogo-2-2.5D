@@ -1,0 +1,73 @@
+name: A4 — Zar’khael stem rim A/B
+on:
+  pull_request:
+    paths:
+      - 'zarkhael-dimension3d.js'
+      - 'tests/a4-zarkhael-stem-rim.test.mjs'
+      - 'tools/visual-lab/bispo3-dimension-qa.cjs'
+      - 'tools/visual-lab/bispo3-dimension-preview.html'
+      - '.github/workflows/a4-zarkhael-stem-rim-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: a4-zarkhael-stem-rim-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  dimension-ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch exact main baseline
+        run: |
+          git fetch origin main --depth=1
+          git worktree add --detach /tmp/a4-baseline FETCH_HEAD
+          printf '{"baseline":"%s","candidate":"%s","renderer":"Chromium/SwiftShader; not Android FPS"}\n' \
+            "$(git -C /tmp/a4-baseline rev-parse HEAD)" \
+            "${{ github.event.pull_request.head.sha || github.sha }}" > work-a4-manifest.json
+      - name: Native regression and syntax
+        run: |
+          node --test dimensions3d.test.mjs zarkhael-dimension.test.mjs tests/a4-zarkhael-stem-rim.test.mjs
+          node --check tools/visual-lab/bispo3-dimension-qa.cjs
+          node --input-type=module --check < zarkhael-dimension3d.js
+      - name: Pinned browser dependencies
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start exact main and candidate servers
+        run: |
+          python3 -m http.server 4173 --directory "$GITHUB_WORKSPACE" > /tmp/a4-candidate-http.log 2>&1 &
+          python3 -m http.server 4174 --directory /tmp/a4-baseline > /tmp/a4-baseline-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173/tools/visual-lab/bispo3-dimension-preview.html >/dev/null &&
+            curl -fsS http://127.0.0.1:4174/tools/visual-lab/bispo3-dimension-preview.html >/dev/null && break
+            sleep 1
+          done
+      - name: Capture exact main dimension
+        env:
+          NODE_PATH: ${{ github.workspace }}/work/qa/node_modules
+          VISUAL_BASE_URL: http://127.0.0.1:4174
+          VISUAL_OUTPUT: ${{ github.workspace }}/work/evidence/main
+        run: node tools/visual-lab/bispo3-dimension-qa.cjs
+      - name: Capture candidate dimension
+        env:
+          NODE_PATH: ${{ github.workspace }}/work/qa/node_modules
+          VISUAL_BASE_URL: http://127.0.0.1:4173
+          VISUAL_OUTPUT: ${{ github.workspace }}/work/evidence/candidate
+        run: node tools/visual-lab/bispo3-dimension-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a4-zarkhael-stem-rim-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            work/evidence/
+            work-a4-manifest.json
+          retention-days: 14
