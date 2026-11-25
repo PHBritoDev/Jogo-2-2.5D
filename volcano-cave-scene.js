@@ -210,15 +210,15 @@ export function buildVolcanoCave(T,g,spec,ctx){
  const stoneMap=new T.TextureLoader().load(new URL('./assets/ui/menu/polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp',import.meta.url).href);
  stoneMap.wrapS=stoneMap.wrapT=T.RepeatWrapping;
  stoneMap.colorSpace=T.SRGBColorSpace;
- const deck=masonry(T,floors,971,{stoneMap});
+ const deck=masonry(T,floors,971,{stoneMap,clock});
  plates.forEach((p,j)=>groundPlate(deck,p,j));basaltPaving(deck);deck.finish();
- for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{stoneMap}),l=molten(T,s,clock),crystals=[],torches=[];
+ for(let i=0;i<3;i++){const s=groups[i],b=masonry(T,s,862+i,{stoneMap,clock}),l=molten(T,s,clock),crystals=[],torches=[];
 
   if(i===0){
    calderaVault(T,s);
    sanctuary(b,l,crystals,torches);
    lowerSpillways(b,l,crystals);
-   const high=masonry(T,galleries,2491,{stoneMap}),flow=molten(T,galleries,clock),gems=[],lamps=[];
+   const high=masonry(T,galleries,2491,{stoneMap,clock}),flow=molten(T,galleries,clock),gems=[],lamps=[];
    upperGalleries(high,flow,gems,lamps);
    for(const [x,y,z,size,rotation] of gems)solids.push({x,z,base:y-(rotation>2?1.85*size:0),r:.7*size,h:1.85*size});
    high.finish();flow.finish();flames(T,galleries,lamps,clock);
