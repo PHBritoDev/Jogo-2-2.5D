@@ -414,73 +414,65 @@ test('SwordRites VFX keeps active slots unique across ring wrap and swap-removal
 });
 
 
-test('SwordRites VFX uploads only the changed ribbon segment until the trail rolls over', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+test('A2: production sword ribbons keep static UVs and upload only changed segments', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
-  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
-  const root = scene.getObjectByName('SwordRites231');
-  const ribbons = root.children.filter(o => o.isMesh && o.geometry?.attributes?.birth);
-  assert.equal(ribbons.length, 3);
-  const ribbon = ribbons[1], position = ribbon.geometry.attributes.position, birth = ribbon.geometry.attributes.birth;
+  const scene = new THREE.Scene(), v = createSlashVFX(THREE, scene, { segments: 40, slashes: 1, waves: 1, sparks: 8, stars: 1 });
+  const ribbon = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aBirth);
+  assert.ok(ribbon, 'a trilha de espada real existe no SlashVFX de produção');
+  const position = ribbon.geometry.attributes.position, uv = ribbon.geometry.attributes.uv, birth = ribbon.geometry.attributes.aBirth;
   const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
-  const sample = (serial, n, sword = 'prota') => v.event('blade', {
-    a: { kind: 'prota', serial, events: 0, sword },
-    blade: { base: { x: n, y: 0, z: n }, tip: { x: n + 1, y: 1, z: n + 1 } }
-  });
+  const sample = x => v.sample('a2-production-ribbon', { x, y: 0, z: 0 }, { x, y: 1, z: 0 });
   try {
-    sample(1, 0);
-    assert.deepEqual(ranges(position), [{ start: 0, count: 6 }], 'first sample uploads only two vertices');
-    assert.deepEqual(ranges(birth), [{ start: 0, count: 2 }], 'first sample uploads only two birth values');
+    const uvVersion = uv.version;
+    assert.equal(uv.usage, THREE.StaticDrawUsage, 'UV é estático e não precisa de upload por amostra');
+    assert.equal(uv.array[0], 0); assert.equal(uv.array[1], 0); assert.equal(uv.array[3], 1);
+    assert.equal(uv.array[156], 1); assert.equal(uv.array[158], 1, 'último segmento mantém U=1');
 
+    sample(0);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 6 }]);
+    assert.deepEqual(ranges(birth), [{ start: 0, count: 2 }]);
+    assert.equal(uv.version, uvVersion, 'UV não é marcado dirty durante a amostragem');
     const positionRange = position.updateRanges[0], birthRange = birth.updateRanges[0];
-    assert.ok(positionRange && birthRange, 'each ribbon attribute receives one pending range object');
+    assert.ok(positionRange && birthRange);
+    assert.ok(Math.abs(ribbon.material.uniforms.uLength.value - 1 / 39) < 1e-8);
+    assert.ok(Math.abs(ribbon.children[0].material.uniforms.uLength.value - 1 / 39) < 1e-8, 'a esteira escura acompanha a mesma extensão');
 
-    sample(1, 1);
-    assert.deepEqual(ranges(position), [{ start: 0, count: 12 }], 'adjacent samples coalesce without replacing the pending range');
+    sample(1);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 12 }], 'amostras adjacentes coalescem');
     assert.deepEqual(ranges(birth), [{ start: 0, count: 4 }]);
-    assert.strictEqual(position.updateRanges[0], positionRange, 'coalescing reuses the same position range object');
-    assert.strictEqual(birth.updateRanges[0], birthRange, 'coalescing reuses the same birth range object');
+    assert.strictEqual(position.updateRanges[0], positionRange, 'o range de posição é reutilizado');
+    assert.strictEqual(birth.updateRanges[0], birthRange, 'o range de nascimento é reutilizado');
 
-    position.clearUpdateRanges();
-    birth.clearUpdateRanges();
-    sample(1, 2);
-    assert.deepEqual(ranges(position), [{ start: 12, count: 6 }], 'after renderer consumption only the new segment is dirty');
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    sample(2);
+    assert.deepEqual(ranges(position), [{ start: 12, count: 6 }], 'após consumo do renderer só o segmento novo fica dirty');
     assert.deepEqual(ranges(birth), [{ start: 4, count: 2 }]);
-    assert.strictEqual(position.updateRanges[0], positionRange, 'a consumed position range is reused on the next sample');
-    assert.strictEqual(birth.updateRanges[0], birthRange, 'a consumed birth range is reused on the next sample');
+    assert.strictEqual(position.updateRanges[0], positionRange);
+    assert.strictEqual(birth.updateRanges[0], birthRange);
 
-    position.clearUpdateRanges();
-    birth.clearUpdateRanges();
-    position.addUpdateRange(12, 6);
-    position.addUpdateRange(6, 6);
-    birth.addUpdateRange(4, 2);
-    birth.addUpdateRange(2, 2);
-    sample(1, 3);
-    assert.deepEqual(ranges(position), [{ start: 6, count: 18 }], 'one new sample merges every adjacent pending position range');
-    assert.deepEqual(ranges(birth), [{ start: 2, count: 6 }], 'one new sample merges every adjacent pending birth range');
-    assert.strictEqual(position.updateRanges[0], positionRange, 'range consolidation keeps the reusable object');
-    assert.strictEqual(birth.updateRanges[0], birthRange, 'birth range consolidation keeps the reusable object');
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    position.addUpdateRange(6, 6); position.addUpdateRange(12, 6);
+    birth.addUpdateRange(2, 2); birth.addUpdateRange(4, 2);
+    sample(3);
+    assert.deepEqual(ranges(position), [{ start: 6, count: 18 }], 'range pendente externo é preservado e coalescido');
+    assert.deepEqual(ranges(birth), [{ start: 2, count: 6 }]);
 
-    for (let i = 4; i < 64; i++) sample(1, i);
-    assert.equal(ribbon.geometry.drawRange.count, 63 * 6, 'the ribbon still draws the same 63 connected segments');
-    position.clearUpdateRanges();
-    birth.clearUpdateRanges();
-    sample(1, 64);
-    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'rolling the full trail publishes its shifted buffer');
+    for (let i = 4; i < 40; i++) sample(i);
+    assert.equal(ribbon.geometry.drawRange.count, 39 * 6);
+    assert.ok(Math.abs(ribbon.material.uniforms.uLength.value - 1) < 1e-8, 'a trilha completa ocupa todo o U');
+
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    sample(40);
+    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'rollover desloca o buffer inteiro');
     assert.deepEqual(ranges(birth), [{ start: 0, count: birth.array.length }]);
-
-    const first = Array.from(position.array.slice(0, 6));
-    const last = Array.from(position.array.slice(position.array.length - 6));
-    assert.ok(Math.abs(first[0] - 1.15) < 1e-5 && Math.abs(first[1] - .15) < 1e-5 && Math.abs(first[2] - 1.15) < 1e-5);
-    assert.deepEqual(first.slice(3), [2, 1, 2], 'the oldest retained segment is unchanged by the upload optimization');
-    assert.ok(Math.abs(last[0] - 64.15) < 1e-5 && Math.abs(last[1] - .15) < 1e-5 && Math.abs(last[2] - 64.15) < 1e-5);
-    assert.deepEqual(last.slice(3), [65, 1, 65], 'the newest segment keeps the original blade tip');
-
-    sample(2, 65, 'aurora');
-    sample(3, 66, 'aurora');
-    sample(4, 67, 'aurora');
-    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'a new attack cannot replace an unconsumed full trail upload with a sparse range');
-    assert.deepEqual(ranges(birth), [{ start: 0, count: birth.array.length }]);
+    assert.strictEqual(position.updateRanges[0], positionRange);
+    assert.strictEqual(birth.updateRanges[0], birthRange);
+    const first = Array.from(position.array.slice(0, 6)), last = Array.from(position.array.slice(-6));
+    assert.ok(Math.abs(first[0] - 1) < 1e-5 && Math.abs(first[1] - .06) < 1e-5);
+    assert.ok(Math.abs(first[3] - 1) < 1e-5 && Math.abs(first[4] - 3.21) < 1e-5);
+    assert.ok(Math.abs(last[0] - 40) < 1e-5 && Math.abs(last[1] - .06) < 1e-5);
+    assert.ok(Math.abs(last[3] - 40) < 1e-5 && Math.abs(last[4] - 3.21) < 1e-5);
   } finally {
-    v.dispose();
+    v.clear(); scene.remove(v.root);
   }
 });
