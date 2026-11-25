@@ -3,13 +3,6 @@ on:
   push:
     branches:
       - agentes/a4/volcano-lava-bounce
-  pull_request:
-    paths:
-      - 'volcano-cave-masonry.js'
-      - 'volcano-cave-scene.js'
-      - 'volcano-cave-lighting.test.mjs'
-      - 'tools/qa/a4-volcano-lava-bounce.*'
-      - '.github/workflows/a4-volcano-lava-bounce.yml'
 permissions:
   contents: read
 jobs:
@@ -20,7 +13,7 @@ jobs:
       - name: Checkout base
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          ref: main
           path: baseline
           sparse-checkout: |
             /*.js
@@ -32,7 +25,7 @@ jobs:
       - name: Checkout candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           path: candidate
           sparse-checkout: |
             /*.js
@@ -56,8 +49,8 @@ jobs:
           BASE_DIR: ${{ github.workspace }}/baseline
           CANDIDATE_DIR: ${{ github.workspace }}/candidate
           OUTPUT_DIR: ${{ github.workspace }}/candidate/artifacts/a4-volcano-lava-bounce
-          BASE_SHA: ${{ github.event.pull_request.base.sha || 'main' }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BASE_SHA: main
+          CANDIDATE_SHA: ${{ github.sha }}
         run: node candidate/tools/qa/a4-volcano-lava-bounce.cjs
       - name: Publicar PNGs, WebM e relatório A/B
         if: always()
