@@ -8,6 +8,7 @@ const output = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "
 fs.mkdirSync(output,{recursive:true});
 const base = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const CENTER = { x:-12.2, z:-44.5 };
+const treeSpot = {name:"arvore-lateral",x:14.8,z:-58.5,up:4.5,back:28,targetY:.35};
 const spots = [
  {name:"ponte-entrada",x:-.4,z:-12.3,up:12,back:20},
  {name:"praca-mercado",x:CENTER.x,z:CENTER.z,up:13,back:15},
@@ -17,7 +18,7 @@ const spots = [
  {name:"fonte-quase-seca",x:CENTER.x-7.5,z:CENTER.z+7.5,up:6,back:9},
  {name:"passarela-e-escadas",x:6,z:-62,up:16,back:21},
  {name:"arvore-ancestral",x:-13.2,z:-70.5,up:11,back:18},
- {name:"arvore-lateral",x:14.8,z:-58.5,up:4.5,back:28,targetY:.35},
+ treeSpot,
  {name:"floresta-contorno",x:34,z:-56,up:17,back:22}
 ];
 const report = {status:"incomplete",cases:[],errors:[],consoleErrors:[],browser:"Chromium WebGL (SwiftShader); NOT physical Android"};
@@ -42,7 +43,6 @@ async function captureMainBaseline(browser,base,output,report){
   await page.goto(base+"/mundo-3d-prototype.html?debug3d=1&qaEldoria=1",{waitUntil:"domcontentloaded",timeout:35000});
   const ready=await page.waitForFunction(()=>{const x=document.getElementById("loading")?.textContent||"";if(x.includes("Falha ao montar o mundo 3D"))return "failed";return window.SevenSinsDebug3D?.fly&&window.EldoriaLiveCityQA?"ready":false;},null,{timeout:120000}).then(h=>h.jsonValue());
   if(ready!=="ready")throw Error("Main baseline world did not load: "+ready);
-  const treeSpot={x:14.8,z:-58.5,up:4.5,back:28,targetY:.35};
   await page.evaluate(s=>{const api=window.SevenSinsDebug3D;api.freeRoam();api.fly([s.x+s.back*.46,s.up,s.z+s.back],[s.x,s.targetY??2,s.z]);},treeSpot);
   await page.waitForTimeout(850);
   const treeCamera=await page.evaluate(()=>window.SevenSinsDebug3D.cam());
