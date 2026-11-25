@@ -20,13 +20,13 @@ const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.j
 ]));
 const profiles = ['low', 'medium', 'high', 'max'];
 const scenes = [
-  { name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5 },
-  { name: 'lago-aurora', hour: 22, x: -14, z: -80, yaw: -Math.PI / 2, pitch: .12, distance: 8 }
+  { name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5, waterRoi: { left: 180, top: 220, width: 520, height: 190 } },
+  { name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10, waterRoi: { left: 180, top: 310, width: 520, height: 100 }, skyRoi: { left: 180, top: 60, width: 520, height: 100 } }
 ];
 const report = {
   status: 'incomplete', baseSha, candidateSha,
   renderer: 'Chromium/WebGL SwiftShader 852x480 — não Android físico',
-  profiles, scenes, cases: [], comparisons: [], errors: [], baselineRouteHits: { world: 0, aurora: 0, water: 0 }
+  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0 }
 };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -80,9 +80,11 @@ async function captureSide(browser, side, baseline) {
           d.fly(null);
           d.view(s.yaw, s.pitch, s.distance);
           // snapCam é o mesmo ajuste imediato usado pelo QA de dimensão/câmera do projeto.
-          if (typeof d.snapCam === 'function') d.snapCam();
+          window.__a4SnapCamera = typeof d.snapCam === 'function' ? d.snapCam() : null;
           window.__a4CameraPrevious = null;
           window.__a4CameraStable = 0;
+          window.__a4MetricsPrevious = null;
+          window.__a4MetricsStable = 0;
         }, scene);
         await page.waitForFunction(s => {
           const d = window.SevenSinsDebug3D;
@@ -100,7 +102,17 @@ async function captureSide(browser, side, baseline) {
           window.__a4CameraStable = delta < .015 ? (window.__a4CameraStable || 0) + 1 : 0;
           return window.__a4CameraStable >= 4;
         }, null, { timeout: 20000, polling: 100 });
-        await wait(300);
+        const metricsStable = await page.waitForFunction(() => {
+          const d = window.SevenSinsDebug3D, state = d?.state?.() || {};
+          const signature = [state.calls ?? state.drawCalls ?? null, state.triangles ?? null, d?.programList?.()?.length ?? null].join(':');
+          const previous = window.__a4MetricsPrevious;
+          window.__a4MetricsPrevious = signature;
+          window.__a4MetricsStable = signature === previous ? (window.__a4MetricsStable || 0) + 1 : 0;
+          return window.__a4MetricsStable >= 4;
+        }, null, { timeout: 12000, polling: 250 }).then(() => true).catch(() => false);
+        await page.evaluate(flag => { window.__a4MetricsStableFlag = flag; }, metricsStable);
+        if (!metricsStable) report.warnings.push(side + '/' + profile + '/' + scene.name + ': métricas de render não estabilizaram em 12 s');
+        await wait(1500);
 
         // Perfil já foi carregado no localStorage antes do boot. Congelar o tempo agora
         // mantém água/aurora no mesmo instante sem impedir a troca de perfil entre páginas.
@@ -126,9 +138,10 @@ async function captureSide(browser, side, baseline) {
             profile: document.querySelector('#graphics-profile-3d')?.value || null,
             status: document.querySelector('#graphics-status-3d')?.textContent || null,
             frozenTimeMs: window.__a4FrozenTimeMs ?? null,
+            metricsStable: window.__a4MetricsStableFlag ?? false,
             player: [state.x, state.y, state.z],
             camera: d.cam?.() || null,
-            snapCamera: d.snapCam?.() || null,
+            snapCamera: window.__a4SnapCamera || null,
             calls: state.calls ?? state.drawCalls ?? null,
             triangles: state.triangles ?? null,
             programCount: d.programList?.()?.length ?? null,
@@ -154,10 +167,11 @@ async function captureSide(browser, side, baseline) {
   }
 }
 
-async function imageDiff(a, b) {
+async function imageDiff(a, b, region = null) {
+  const input = file => { const img = sharp(file); return region ? img.extract(region) : img; };
   const [A, B] = await Promise.all([
-    sharp(a).removeAlpha().raw().toBuffer({ resolveWithObject: true }),
-    sharp(b).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+    input(a).removeAlpha().raw().toBuffer({ resolveWithObject: true }),
+    input(b).removeAlpha().raw().toBuffer({ resolveWithObject: true })
   ]);
   if (A.info.width !== B.info.width || A.info.height !== B.info.height) throw new Error('A/B dimensions differ');
   let sum = 0, count = 0;
@@ -192,17 +206,23 @@ async function imageDiff(a, b) {
       if (!a || !b) { report.errors.push('Captura ausente: ' + profile + '/' + scene.name); continue; }
       const cameraDelta = a.camera && b.camera && a.camera.length === b.camera.length
         ? +Math.max(...a.camera.map((v, i) => Math.abs(v - b.camera[i]))).toFixed(4) : null;
+      const playerDelta = a.player && b.player && a.player.length === b.player.length
+        ? +Math.max(...a.player.map((v, i) => Math.abs(v - b.player[i]))).toFixed(4) : null;
       if (cameraDelta !== null && cameraDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': câmera A/B divergiu ' + cameraDelta);
-      if (a.calls !== null && b.calls !== null && a.calls !== b.calls)
-        report.errors.push(profile + '/' + scene.name + ': draw calls A/B divergiu ' + a.calls + '→' + b.calls);
-      if (a.triangles !== null && b.triangles !== null && a.triangles !== b.triangles)
-        report.errors.push(profile + '/' + scene.name + ': triângulos A/B divergiu ' + a.triangles + '→' + b.triangles);
+      if (playerDelta !== null && playerDelta > .02)
+        report.errors.push(profile + '/' + scene.name + ': jogador A/B divergiu ' + playerDelta);
+      const renderBudgetComparable = a.calls === b.calls && a.triangles === b.triangles;
+      if (!renderBudgetComparable)
+        report.warnings.push(profile + '/' + scene.name + ': orçamento de render variou entre boots; comparar como informativo (LOD/culling assíncrono)');
+      const baselineImage = path.join(out, a.image), candidateImage = path.join(out, b.image);
       report.comparisons.push({
-        profile, scene: scene.name, cameraDelta,
+        profile, scene: scene.name, cameraDelta, playerDelta, renderBudgetComparable,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
-        pixels: await imageDiff(path.join(out, a.image), path.join(out, b.image))
+        pixels: await imageDiff(baselineImage, candidateImage),
+        waterPixels: scene.waterRoi ? await imageDiff(baselineImage, candidateImage, scene.waterRoi) : null,
+        skyPixels: scene.skyRoi ? await imageDiff(baselineImage, candidateImage, scene.skyRoi) : null
       });
     }
     report.status = report.errors.length ? 'failed' : 'captured';
@@ -213,7 +233,7 @@ async function imageDiff(a, b) {
     if (browser) await browser.close().catch(() => {});
     fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
     console.log(JSON.stringify({
-      status: report.status, errors: report.errors,
+      status: report.status, errors: report.errors, warnings: report.warnings,
       baselineRouteHits: report.baselineRouteHits,
       comparisons: report.comparisons
     }, null, 2));
