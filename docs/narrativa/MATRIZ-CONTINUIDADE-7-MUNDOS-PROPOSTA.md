@@ -1,8 +1,8 @@
 # Matriz de continuidade — campanha das sete galáxias (proposta A5)
 
-> **STATUS: CANDIDATO 0.1 — NÃO É CANON APROVADO.** Matriz de auditoria e migração. Não aplicar flags novas nem alterar saves até o criador revisar o Cânone Mestre.
+> **STATUS: CANDIDATO 0.2 — NÃO É CÂNONE APROVADO.** Matriz de auditoria e migração. Não aplicar flags novas nem alterar saves até o criador revisar o Cânone Mestre.
 
-**Main auditada:** 1e17b61253db7bcc443820382f41597d53248f9a (23/11/2026).  
+**Main auditada:** 1b280bc0d9a912380fd6c2f9bda165b19b3f5009 (25/11/2026, Mod 361).  
 **Documento narrativo relacionado:** CANONE-MESTRE-7-MUNDOS-PROPOSTA.md.
 
 ## 1. Fontes e grau de autoridade
@@ -17,7 +17,7 @@
 | docs/eldoria/implementacao-pesquisa.md | Pesquisa e notas de implementação. | Material de trabalho; não chamar v1 de fonte de verdade. |
 | act1-flow.js–act6-flow.js e prologue-flow.js | Diálogos, etapas e transições atuais. | Estado implementado, não canon por si só. |
 | galaxies3d.js | Menu das sete galáxias. | UI atual; contém contradição de nomenclatura (Avareza/Preguiça). |
-| #665/#673 e briefing Codex Ato III | Jornada Sakura/Neve/Castelo. | Trabalho de outro agente; não editar nem incorporar fatos sem revisão. |
+| #673/#682 — integração Mod 361 | Jornada Sakura/Neve/Castelo integrada à main. | Estado técnico confirmado; função dramática não aprovada. Não editar a branch Codex #665. |
 
 ## 2. Arquitetura de save encontrada
 
@@ -181,8 +181,8 @@ Não usar a pontuação como “nota científica”. É uma ferramenta de revis�
 
 ## 9. Coordenação e áreas protegidas
 
-- #670 é a única PR A5 ativa e foi reduzida a correções técnicas de sidequests (BG-004/BG-005 e IDs locais). Não usar como PR de história.
-- #665/#673: Codex, Ato III/Sakura/Neve/Castelo; não editar.
+- #670 foi incorporada à main pelo conjunto #682; seu QA de progressão/save está aprovado no SHA `2a4b7ea0`. A PR A5 atual de proposta é #691 (Draft), sem aprovação de cânone.
+- #665 continua aberta em Draft e `mergeable=false`; #673 foi integrada via #682. Não editar a branch Codex. A jornada Sakura/Neve/Castelo existe tecnicamente, mas sua função narrativa permanece pendente.
 - #672: A3/fauna; não editar.
 - #674: A4/iluminação; não editar.
 - #675: A1/locomoção; não editar.
@@ -253,8 +253,8 @@ Esta seção é uma auditoria de código/documentação, não uma autorização 
 
 | Área | Fato verificado na main | Risco de continuidade | Encaminhamento candidato |
 |---|---|---|---|
-| Vendedor principal de Eldória | `act1-flow.js` identifica o falante como **Téo · Provisões**; `eldoria-village-talk.js` registra Téo como provisões e Lia como frutas. A apresentação de missão em `act1-flow.js` continua dizendo “vendedor de frutas”. | A divergência permanece na main e na PR #670: a PR foi reduzida a correções técnicas de save/waystones e não altera `act1-flow.js`. Não tratar o texto de “frutas” como resolvido; corrigir só depois de o criador aprovar o vendedor e a função narrativa da cena. |
-| Elenco das missões laterais | `eldoria-npc-life.js` e `eldoria-village-talk.js` registram Bento, Téo e Lia como vendedores conversáveis. `sidequests3d.js` ainda mostra “Mara · Ervas” e “Nara · Artesanato”; esses nomes não aparecem nos registros ativos consultados. Os IDs continuam `ERVAS`, `FRUTAS`, `ARTESANATO`. | Fato de runtime: `trySideQuestTalk(vendor)` consulta `questForGiver(sideState,vendor.shortName)`; os shortNames ativos são `ALIMENTOS`, `PROVISÕES`, `FRUTAS`. Portanto, somente `FRUTAS` encontra giver compatível; Flores de Vigília e Pedras que Lembram continuam sem oferta acessível no controlador atual. A PR #670 foi deliberadamente limpa: não remapeia essas categorias nem canoniza Bento/Téo/Lia. A decisão entre adaptar as missões aos vendedores existentes ou reintroduzir Mara/Nara exige revisão narrativa e implementação própria após aprovação.
+| Vendedor principal de Eldória | `act1TalkLabel()` aponta para `villageVendors[1]`; `act1Interact()` executa `vendorScene()` e `SPEAKERS.vendor` é **Téo · Provisões**. O objetivo antigo dizia “vendedor de frutas”. | A PR #691 corrige somente o texto do HUD para “Téo · Provisões” e acrescenta regressão; não altera cena, fala, custo de 5 moedas ou função narrativa. A identidade do vendedor principal já é inequívoca no runtime, embora o nome continue provisório no roteiro M2. |
+| Elenco das missões laterais | `eldoria-npc-life.js` e `eldoria-village-talk.js` registram Bento, Téo e Lia como vendedores conversáveis. `sidequests3d.js` ainda mostra “Mara · Ervas” e “Nara · Artesanato”; esses nomes não aparecem nos registros ativos consultados. Os IDs continuam `ERVAS`, `FRUTAS`, `ARTESANATO`. | Fato de runtime: `trySideQuestTalk(vendor)` consulta `questForGiver(sideState,vendor.shortName)`; os shortNames ativos são `ALIMENTOS`, `PROVISÕES`, `FRUTAS`. Portanto, somente `FRUTAS` encontra giver compatível; Flores de Vigília e Pedras que Lembram continuam sem oferta acessível no controlador atual. A PR #670 foi deliberadamente limpa: não remapeia essas categorias nem canoniza Bento/Téo/Lia. A PR #691 propõe preservar Mara/Nara como givers não comerciais com `questGiverId` independente de `shortName`; a decisão exige revisão narrativa e implementação própria após aprovação.
 | Pingente atribuído a Lia | A oferta chama a pessoa de “meu filho”, depois de “pingente da mãe dele”; a entrega diz “Ela gravou o nome dele”. O giver aparece como `Lia · Frutas`, mas a relação exata entre Lia, a mãe e a criança não está narrativamente consolidada. | A fala alterna primeira e terceira pessoa e deixa ambíguo quem perdeu o pingente e quem gravou o nome. A PR #670 não altera falas nem pronomes após a separação do conteúdo provisório. Manter como contradição aberta; não corrigir por suposição antes da revisão do elenco.
 | Gaiola e crianças | `act1-flow.js` mantém `childrenFreed`; a função de abertura da jaula marca a gaiola aberta, mas a cena seguinte transforma as duas crianças em Seguidores. O teste `tests/a5-vendor-rescue-actual.test.mjs` confirma que abrir a jaula não incrementa estatística de resgates. | O nome da flag pode ser lido como “crianças salvas”, embora o fato persistido seja a abertura da gaiola. | Tratar a flag como estado técnico de jaula aberta; não usá-la como prova de sobreviventes. Uma renomeação exigiria migração e regressão de save, não é necessária para esta revisão narrativa. |
 | Estalajadeiro e filha | Em `act3-flow.js`, o estalajadeiro diz que aceitou prender o herói porque o demônio prometeu libertar sua filha; o demônio o mata e admite que nunca cumpriria a promessa. | A filha vira uma pessoa ausente sem destino conhecido; não se sabe se está presa, morta, escondida ou se a promessa foi inventada. | Resolver explicitamente em cena/diálogo posterior ou marcar como gancho deliberado. Não acrescentar uma morte fora de tela sem evidência/decisão. |
