@@ -37,3 +37,22 @@ test('tronco da figueira não fica opaco na distância de obstrução observada'
   assert.ok(candidateKept <= 0.51 && candidateKept >= 0.49,
     'a distância observada precisa descartar aproximadamente metade dos fragmentos do tronco');
 });
+
+test('árvore ancestral GLB também abre o tronco quando a câmera entra no volume', () => {
+  const live = fs.readFileSync(path.join(__dirname, '../../eldoria-live-village3d.js'), 'utf8');
+  const start = live.indexOf('function addNearCameraFade(material, near = 8.0) {');
+  const end = live.indexOf('\n}', start);
+  assert.ok(start >= 0 && end > start, 'o módulo da vila precisa possuir o mesmo fade por distância');
+  const fadeFn = live.slice(start, end);
+  assert.ok(fadeFn.includes('nearCameraFadeMaterials = new WeakSet()'),
+    'materiais compartilhados pelos dois GLBs não podem receber o hook duas vezes');
+  assert.ok(fadeFn.includes('length(vViewPosition)-0.6') && fadeFn.includes('dither>camFade'),
+    'o GLB usa o mesmo dither espacial do cinturão tropical');
+  assert.ok(fadeFn.includes('customProgramCacheKey') && fadeFn.includes('material.needsUpdate = true'),
+    'o shader precisa invalidar o programa compilado');
+  const treeBlock = live.slice(live.indexOf("if (spec.kind === 'tree')"), live.indexOf('root.add(obj)', live.indexOf("if (spec.kind === 'tree')")));
+  assert.ok(treeBlock.includes('Array.isArray(child.material)'),
+    'malhas GLB com mais de um material também precisam ser cobertas');
+  assert.ok(treeBlock.includes('addNearCameraFade(material, 8.0)'),
+    'o tronco e a copa da árvore ancestral precisam compartilhar a janela de 8 m');
+});
