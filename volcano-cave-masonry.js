@@ -5,7 +5,7 @@ import {addStructure,addCliff} from "./volcano-cave-layout.js";
 export const LAVA_BOUNCE_CONFIG = Object.freeze({
  distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, sourceBlendStartZ: 127, sourceBlendEndZ: 143, facingFloor: .20, facingGain: .80,
  pulseBase: .88, pulseSlow: .08, pulseFast: .04,
- pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73, bounceStrength: 1.45,
+ pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73, bounceStrength: 1.38,
  color: Object.freeze([.88, .46, .065])
 });
 export function lavaBounceFalloff(distance, facing = 1) {

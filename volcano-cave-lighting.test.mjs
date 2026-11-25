@@ -21,7 +21,7 @@ test('pulsação é lenta, limitada e determinística', () => {
   assert.ok(LAVA_BOUNCE_CONFIG.color[0] >= .85);
   assert.ok(LAVA_BOUNCE_CONFIG.color[1] >= .44);
   assert.ok(LAVA_BOUNCE_CONFIG.color[2] >= .06);
-  assert.equal(LAVA_BOUNCE_CONFIG.bounceStrength, 1.45);
+  assert.equal(LAVA_BOUNCE_CONFIG.bounceStrength, 1.38);
   assert.ok(new Set(samples.map(value => value.toFixed(5))).size > 20);
   assert.equal(lavaBouncePulse(Infinity, Number.NaN), LAVA_BOUNCE_CONFIG.pulseBase);
   assert.equal(lavaBouncePulse(0, 0), LAVA_BOUNCE_CONFIG.pulseBase);
@@ -86,7 +86,7 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(scene, /masonry\(T,galleries,2491,\{stoneMap,clock\}\)/);
   assert.match(scene, /clock\.value=t/);
   const enabled = masonryShaderPatches(true);
-  assert.match(enabled.fragmentChunk, /vLavaBounce\*uLavaPulse\*1\.450/);
+  assert.match(enabled.fragmentChunk, /vLavaBounce\*uLavaPulse\*1\.380/);
   assert.match(enabled.fragmentChunk, /wetGlint\*uLavaPulse/);
   assert.doesNotMatch(enabled.fragmentChunk, /sin\(/);
 });

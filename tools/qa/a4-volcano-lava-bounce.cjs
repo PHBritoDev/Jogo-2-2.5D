@@ -155,8 +155,10 @@ async function main() {
         comparisons['spine-3000'].meanRGB > .03 || comparisons['spine-3000'].changedPixelsPct > .05) {
       gateFailures.push('Bounce escapou do Santuário: ' + JSON.stringify({ grove: comparisons['grove-2500'], spine: comparisons['spine-3000'] }));
     }
-    if (comparisons['overlook-1000'].p95RGB > 20 || comparisons['upper-gallery-2000'].p95RGB > 20) {
-      gateFailures.push('Bounce excessivo nas superfícies: ' + JSON.stringify({ overlook: comparisons['overlook-1000'], gallery: comparisons['upper-gallery-2000'] }));
+    const litFrames = ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'falls-3500', 'stair-4000', 'seam-lower-4500', 'seam-center-4500', 'seam-upper-4500'];
+    const excessiveFrames = litFrames.filter(key => comparisons[key].p95RGB > 20);
+    if (excessiveFrames.length) {
+      gateFailures.push('P95 de bounce excede 20 em: ' + JSON.stringify(Object.fromEntries(excessiveFrames.map(key => [key, comparisons[key]]))));
     }
     if (temporalGainRGB < .08) {
       gateFailures.push('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
