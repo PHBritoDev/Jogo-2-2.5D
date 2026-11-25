@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
+import { chooseStoryTwoShotSide } from './story-camera-layout.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
 const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
@@ -268,4 +269,18 @@ test('objetivo e primeira troca da cena principal identificam o mesmo vendedor',
     'a transação original de cinco moedas deve permanecer uma única vez na cena');
   assert.ok(actionIds.indexOf('entregar-ouro') < actionIds.indexOf('anoitecer'),
     'a transação deve ocorrer antes da transição para a noite');
+});
+
+
+test('two-shot narrativo mantém o lado preferido livre e troca quando há barraca no eixo', () => {
+  const a = { x: 0, z: 0 }, b = { x: 0, z: 2 };
+  const open = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: () => false });
+  assert.equal(open.side, -1, 'sem obstáculo, preservar a direção autoral');
+  assert.equal(open.clearSamples, 13);
+  const alternate = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 });
+  assert.equal(alternate.side, 1, 'trocar para o lado livre quando a barraca bloqueia o preferido');
+  assert.equal(alternate.blockedSample, null);
+  const best = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 || x > 2.5 });
+  assert.equal(best.side, 1, 'quando ambos os lados bloqueiam, escolher o maior corredor livre');
+  assert.ok(best.clearSamples > 0);
 });
