@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
-import { chooseStoryTwoShotSide } from './story-camera-layout.js';
+import { chooseStoryTwoShotSide, chooseStoryTwoShotFrame } from './story-camera-layout.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
 const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
@@ -327,4 +327,18 @@ test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da 
   });
   assert.equal(minorOcclusion.side, -1, 'uma única amostra alta bloqueada não deve inverter o plano');
   assert.deepEqual(minorOcclusion.actorVisibilitySamples, [3, 3]);
+});
+
+ 
+test('two-shot eleva a câmera somente até liberar o corpo dos dois atores', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5, 5.5, 6.5],
+    // A cobertura bloqueia tronco/cabeça nas alturas baixas; a vista fica livre acima dela.
+    visibleAt: (camera, actor) => camera.y >= 5.5 || actor.y < 1.0
+  });
+  assert.equal(framing.cameraHeight, 5.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
 });

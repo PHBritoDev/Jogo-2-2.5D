@@ -93,3 +93,23 @@ export function chooseStoryTwoShotSide({
     candidate.clearSamples + candidate.visibilityClearSamples;
   return rank(alternate) > rank(preferred) ? alternate : preferred;
 }
+
+export function chooseStoryTwoShotFrame({
+  cameraHeights = [3.5, 4.5, 5.5, 6.5],
+  ...options
+} = {}) {
+  const heights = Array.isArray(cameraHeights) && cameraHeights.length
+    ? cameraHeights.filter(Number.isFinite)
+    : [Number.isFinite(options.cameraHeight) ? options.cameraHeight : 3.5];
+  let best = null, bestScore = -Infinity;
+  for (const cameraHeight of heights) {
+    const candidate = chooseStoryTwoShotSide({ ...options, cameraHeight });
+    const visibleCount = candidate.visibleActors.filter(Boolean).length;
+    const score = visibleCount * 1000 +
+      (candidate.visibilityClearSamples || 0) * 10 +
+      (candidate.clearSamples || 0);
+    if (score > bestScore) { best = candidate; bestScore = score; }
+    if (visibleCount === 2) return candidate;
+  }
+  return best || chooseStoryTwoShotSide(options);
+}
