@@ -18,7 +18,7 @@ const report={
 };
 function expectedFillFor(label,arenaOrigin) {
   // Presets store offsets relative to the arena floor; telemetry reports world coordinates.
-  const localOffset = label === '01-main' ? [0,18,4] : [0,8,2];
+  const localOffset = label === '01-main' ? [0,18,4] : [0,9,14];
   const position = [
     arenaOrigin.x + localOffset[0],
     arenaOrigin.y + localOffset[1],
@@ -29,8 +29,8 @@ function expectedFillFor(label,arenaOrigin) {
     color:[1,.863157,.737910], minSlotIntensity:3.1
   };
   return {
-    position, localOffset, intensity:16, distance:36, decay:1.1,
-    color:[.737910,.791298,.887923], minSlotIntensity:15
+    position, localOffset, intensity:18, distance:36, decay:1.1,
+    color:[.737910,.791298,.887923], minSlotIntensity:17
   };
 }
 function verifyBaselinePreset() {
