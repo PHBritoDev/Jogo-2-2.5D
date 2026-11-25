@@ -342,3 +342,16 @@ test('two-shot eleva a câmera somente até liberar o corpo dos dois atores', ()
   assert.deepEqual(framing.visibleActors, [true, true]);
   assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
 });
+
+test('two-shot amplia o arco lateral quando a cobertura bloqueia os dois lados próximos', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, cameraHeights: [3.5, 4.5],
+    blockedAt: () => false,
+    // Só um ponto de câmera além da borda lateral da barraca revela os dois corpos.
+    visibleAt: camera => Math.abs(camera.x) >= 5.5
+  });
+  assert.equal(framing.side, -1.5, 'deve preservar o lado preferido e afastar a câmera até sair da cobertura');
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
