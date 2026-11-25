@@ -264,8 +264,22 @@ export function createSlashVFX(T, scene, { segments = 40, slashes = 6, waves = 8
     for (let i = 0; i < sparks; i++) { if (sp.age[i] >= 1) continue; sp.age[i] += dt / sp.life[i]; if (sp.age[i] >= 1) continue;
       sp.vel[i * 3 + 1] -= 9 * dt; const drag = Math.exp(-3.5 * dt); sp.vel[i * 3] *= drag; sp.vel[i * 3 + 2] *= drag;
       sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
-      P.set(sp.pos.subarray(i * 3, i * 3 + 3), live * 3); V.set(sp.vel.subarray(i * 3, i * 3 + 3), live * 3); K[live * 2] = sp.age[i]; K[live * 2 + 1] = sp.size[i]; C.set(sp.col.subarray(i * 3, i * 3 + 3), live * 3); live++; }
-    sparkGeo.instanceCount = live; if (live) { aPos.needsUpdate = aVel.needsUpdate = aK.needsUpdate = aCol.needsUpdate = true; aPos.addUpdateRange?.(0, live * 3); }
+      const source3 = i * 3, target3 = live * 3, target2 = live * 2;
+      P[target3] = sp.pos[source3]; P[target3 + 1] = sp.pos[source3 + 1]; P[target3 + 2] = sp.pos[source3 + 2];
+      V[target3] = sp.vel[source3]; V[target3 + 1] = sp.vel[source3 + 1]; V[target3 + 2] = sp.vel[source3 + 2];
+      K[target2] = sp.age[i]; K[target2 + 1] = sp.size[i];
+      C[target3] = sp.col[source3]; C[target3 + 1] = sp.col[source3 + 1]; C[target3 + 2] = sp.col[source3 + 2];
+      live++;
+    }
+    sparkGeo.instanceCount = live;
+    if (live) {
+      aPos.needsUpdate = aVel.needsUpdate = aK.needsUpdate = aCol.needsUpdate = true;
+      // Compaction rewrites only the live prefix; the renderer can upload these four ranges instead of full pools.
+      aPos.addUpdateRange?.(0, live * 3);
+      aVel.addUpdateRange?.(0, live * 3);
+      aK.addUpdateRange?.(0, live * 2);
+      aCol.addUpdateRange?.(0, live * 3);
+    }
     for (const s of splashPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size); s.m.material.uniforms.k.value = k; }
     for (const s of starPool) { if (!s.m.visible) continue; s.age += dt; const k = s.age / s.life; if (k >= 1) { s.m.visible = false; continue; } s.m.quaternion.copy(camQ); s.m.scale.setScalar(s.size * (.7 + .5 * k)); s.m.material.uniforms.k.value = k; }
   }
