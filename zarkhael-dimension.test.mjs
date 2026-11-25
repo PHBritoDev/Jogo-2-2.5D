@@ -60,7 +60,7 @@ test('Zar’khael balances a raised camera-side fill across both combatants with
   assert.equal(env.bg,0x010102);assert.equal(env.fog,0x010102);
   assert.deepEqual(env.hemi,[0xb7b1af,0x110608,.48]);
   assert.deepEqual(env.sun,[0xffe8dc,1.0]);
-  assert.deepEqual(env.light,[0xdfe6f2,18,36,[0,9,14]]);
+  assert.deepEqual(env.light,[0xdfe6f2,18,45,[0,9,14]]);
   assert.ok(env.light[1]>=18&&env.light[3][1]>=8.5&&env.light[3][1]<=9.5&&env.light[3][2]>=13.5&&env.light[3][2]<=14.5,'fill must stay elevated and camera-side without adding a light or reaching the corridor');
   assert.equal(env.exposure,.85);
   const center=DIMENSIONS.bishop3.center,spots=arenaSpots('bishop3'),[lx,ly,lz]=env.light[3];
@@ -150,9 +150,9 @@ test('light-budget telemetry reports the real selected source, world position an
   assert.equal(details[0].positionSpace,'world');
   assert.equal(details[0].name,'zarkhael-dimension-fill');
   assert.equal(details[0].intensity,18);
-  assert.equal(details[0].distance,36);
+  assert.equal(details[0].distance,45);
   assert.deepEqual(details[0].slotColor,[.737910,.791298,.887923]);
-  assert.equal(details[0].slotDistance,36);
+  assert.equal(details[0].slotDistance,45);
   assert.equal(details[0].slotDecay,2);
   assert.ok(details[0].slotIntensity>17);
 });
@@ -207,7 +207,7 @@ test('A/B validates the original main fill separately from the new Zar’khael c
   assert.match(qa,/const localOffset = label === '01-main' \? \[0,18,4\] : \[0,9,14\]/);
   assert.match(qa,/arenaOrigin\.y \+ localOffset\[1\]/);
   assert.match(qa,/position, localOffset, intensity:3\.5, distance:110/);
-  assert.match(qa,/position, localOffset, intensity:18, distance:36/);
+  assert.match(qa,/position, localOffset, intensity:18, distance:45/);
   assert.match(qa,/expectedFillFor\(label,arenaOrigin\)/);
   assert.match(qa,/source\.worldPosition/);
   assert.match(qa,/expectedFill\.position\[1\]/,'world height must distinguish the original high fill from the lower candidate fill');
