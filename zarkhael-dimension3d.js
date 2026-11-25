@@ -112,8 +112,7 @@ function surfaceMaterial(THREE, kind, uniforms) {
       // Low-energy maroon rim reveals stem silhouettes without adding a scene light.
       float stemViewCos = clamp(abs(dot(normal,normalize(vViewPosition))),0.,1.);
       float stemRim = 1. - stemViewCos;
-      stemRim *= stemRim;
-      totalEmissiveRadiance += vec3(.012,.0015,.0024) * stemRim * (.55 + .45 * n);
+      totalEmissiveRadiance += vec3(.018,.0018,.0028) * stemRim * (.55 + .45 * n);
     `);
     if (kind === 'floor') shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       // Broken reflection of the horizon, not a mirror or a full-screen pass.
