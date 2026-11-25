@@ -124,9 +124,9 @@ export function masonry(T, group, seed, palette){
     '}else{\\n'+
     ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\\n'+
     '}\\n';
-   shader.vertexShader='varying float wetGlint;\\nvarying float vLavaBounce;\\nvarying float vLavaPhase;\\nuniform float uLavaGain;\\n'+
+   shader.vertexShader='varying float wetGlint;\nvarying float vLavaBounce;\nvarying float vLavaPhase;\nuniform float uLavaGain;\n'+
     shader.vertexShader.replace('#include <project_vertex>',vertexChunk);
-   shader.fragmentShader='varying float wetGlint;\\nvarying float vLavaBounce;\\nvarying float vLavaPhase;\\nuniform float uLavaTime;\\nuniform float uLavaGain;\\n'+
+   shader.fragmentShader='varying float wetGlint;\nvarying float vLavaBounce;\nvarying float vLavaPhase;\nuniform float uLavaTime;\nuniform float uLavaGain;\n'+
     shader.fragmentShader.replace('#include <map_fragment>',fragmentChunk);
   };
  }
