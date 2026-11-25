@@ -121,7 +121,8 @@ test('QA projeta o corpo visível do alvo da esquadra, não o proxy invisível',
   assert.match(qa, /const fovScale = Math\.tan\(56 \* Math\.PI \/ 360\) \/ Math\.tan\(fov \* Math\.PI \/ 360\)/);
   assert.match(qa, /const baseMinProjectedSeparation = worldSeparation < 1\.3 \? \.17 : worldSeparation < 2 \? \.22 : worldSeparation < 3 \? \.42 : worldSeparation < 6 \? \.48 : \.42/);
   assert.match(qa, /const minProjectedSeparation = baseMinProjectedSeparation \* fovScale/);
-  assert.match(qa, /Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\) >= minProjectedSeparation/);
+  assert.match(qa, /const actualSeparation = Math\.abs\(state\.actors\.player\.center\.x - state\.actors\.enemy\.center\.x\)/);
+  assert.match(qa, /actualSeparation >= minProjectedSeparation/);
 });
 
 test('zoom manual por pinça e roda suspende a recentralização automática', () => {
