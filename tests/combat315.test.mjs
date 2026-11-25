@@ -209,3 +209,25 @@ test('SwordRites VFX updates only active shard slots and skips idle instance-mat
     v.dispose();
   }
 });
+
+
+test('SwordRites VFX disposes the InstancedMesh GPU buffers on teardown', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const originalDispose = THREE.InstancedMesh.prototype.dispose;
+  let disposeCalls = 0;
+  THREE.InstancedMesh.prototype.dispose = function () {
+    disposeCalls++;
+    return originalDispose.call(this);
+  };
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  try {
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    v.dispose();
+    assert.equal(disposeCalls, 1, 'teardown must dispatch InstancedMesh disposal exactly once');
+    assert.equal(scene.children.length, 0, 'teardown removes the VFX root from its scene');
+  } finally {
+    if (disposeCalls === 0) v.dispose();
+    THREE.InstancedMesh.prototype.dispose = originalDispose;
+  }
+});
