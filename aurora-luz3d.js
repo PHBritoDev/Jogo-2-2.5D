@@ -40,7 +40,7 @@ export function auroraColor(t) {
 }
 /** Intensidade efetiva: nível do céu × céu aberto; 0 em lugar fechado (caverna, interior, dimensão). Pura. */
 export function auroraLightK(level, closed, low) { return closed || !(level > .01) ? 0 : level * (low ? .75 : 1); }
-/** Perfil explícito sempre vence o hint compacto; auto mantém o fallback móvel já usado pelo mundo. */
+/** Perfil explícito sempre vence o hint; em auto, o mundo passa o tier adaptativo atual. */
 export function auroraLowProfile(lowHint, mode) {
   if (mode === 'low') return true;
   if (mode === 'medium' || mode === 'high' || mode === 'max') return false;
