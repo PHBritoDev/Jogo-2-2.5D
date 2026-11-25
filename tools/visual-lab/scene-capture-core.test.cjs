@@ -44,7 +44,21 @@ test("floresta-percurso contorna a árvore colossal pelo corredor oeste antes de
   assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-arvore-oeste", "vila-praca-entrada"]);
   assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-20.5, -76], [-13, -49.5]]);
   assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,180000]);
-  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,1],['KeyW',26,3]]);
+  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,1],['KeyW',23,3]]);
+  // A tolerância de chegada e a do waypoint anterior definem o menor deslocamento
+  // possível. O gate anti-teleporte não pode exigir mais do que esse limite geométrico.
+  let previousTarget = scene.walk.start;
+  let previousTolerance = 0;
+  for (const segment of scene.walk.segments) {
+    const availableDisplacement = Math.hypot(
+      segment.target[0] - previousTarget[0],
+      segment.target[1] - previousTarget[1]
+    ) - previousTolerance - segment.tolerance;
+    assert.ok(segment.minTravel <= availableDisplacement,
+      `${segment.name}: minTravel não pode exceder o deslocamento compatível com as tolerâncias`);
+    previousTarget = segment.target;
+    previousTolerance = segment.tolerance;
+  }
   assert.equal(scene.walk.captureQuality, "low", "movimento usa perfil baixo para reduzir o custo do SwiftShader");
   const [{ELDORIA_CENTER}, {ELDORIA_MAIN_TREE}, {ELDORIA_PROPS}] = await Promise.all([
     import("../../act1-world-layout.js"), import("../../eldoria-city-layout.js"), import("../../eldoria-live-village3d.js")
