@@ -46,9 +46,9 @@ test('somente os lotes próximos do Santuário recebem o bounce', () => {
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
   const scene = readFileSync(new URL('./volcano-cave-scene.js', import.meta.url), 'utf8');
-  assert.match(masonry, /shader\.uniforms\.uLavaTime=lavaClock/);
+  assert.match(masonry, /shader\.uniforms\.uLavaPulse=lavaPulseUniform/);
   assert.match(masonry, /shader\.uniforms\.uLavaGain=lavaGain/);
-  assert.match(masonry, /uniform float uLavaTime/);
+  assert.match(masonry, /uniform float uLavaPulse/);
   assert.match(masonry, /vLavaBounce/);
   assert.match(masonry, /smoothstep\('\+glslNumber\(cfg\.regionStartZ\)/);
   assert.match(masonry, /vLavaBounce=wet\*\([^;]+\)\*lavaRegion/);
@@ -58,4 +58,10 @@ test('shader usa o relógio real da caverna e só anima os lotes do Santuário',
   assert.match(scene, /masonry\(T,s,862\+i,\{stoneMap,clock\}\)/);
   assert.match(scene, /masonry\(T,galleries,2491,\{stoneMap,clock\}\)/);
   assert.match(scene, /clock\.value=t/);
+  assert.match(masonry, /m\.onBeforeRender=\(\)=>\{/);
+  assert.match(masonry, /lavaPulseUniform\.value=lavaBouncePulse\(lavaClock\.value,pulsePhase\)/);
+  assert.doesNotMatch(masonry, /uLavaTime|vLavaPhase/);
+  const fragmentChunk = masonry.slice(masonry.indexOf('const fragmentChunk='), masonry.indexOf('material.onBeforeCompile='));
+  assert.match(fragmentChunk, /uLavaPulse/);
+  assert.doesNotMatch(fragmentChunk, /sin\(/);
 });
