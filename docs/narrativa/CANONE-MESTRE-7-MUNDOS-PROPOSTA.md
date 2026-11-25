@@ -156,7 +156,7 @@ Os nomes aparecem no PDF/runtime/M1–M14; os epítetos devem ser conferidos no 
 8. **Duelo com o Anjo.** A luta precisa de causa explícita: selo, teste ou conflito de deveres. O Anjo usa apenas 5% do poder no mundo material. O protagonista vence sem que a cena trate o guia como traidor gratuito.
 9. **Captura.** A Ganância leva o Anjo. O Ato IV começa sem o principal aliado.
 
-**Rota Sakura/Neve/Castelo:** o briefing Codex #665/#673 propõe uma jornada ambiental com Sakura, dojo e castelo. Candidata a rota opcional ou região de transição antes de Invernália. Não substituir a armadilha, a caverna de gelo ou ZAR'KHAEL sem revisão A5.
+**Rota Sakura/Neve/Castelo:** o fluxo/ambiente foi integrado à main pela #673/#682 (Mod 361). Isso confirma a existência técnica, não a função dramática. Não substituir a armadilha, a caverna de gelo ou ZAR'KHAEL nem decidir se a jornada é obrigatória/opcional sem revisão A5.
 
 ### Ato IV — Torre: o preço da justiça
 
