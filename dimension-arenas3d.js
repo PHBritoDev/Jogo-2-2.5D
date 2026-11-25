@@ -12,7 +12,7 @@ import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=a4-zarkhael-fill-5';
 import { SEWER } from './sewer3d.js';
 import { crystalClusterGeometry } from './eldoria-crystal-geometry.js';
-import { buildVolcanoCave } from './volcano-cave-scene.js';
+const { buildVolcanoCave } = await import('./volcano-cave-scene.js' + new URL(import.meta.url).search);
 import { createLava } from './fluidos3d.js';
 import { INN, ICE_CAVE, DISTORTED } from './snow3d.js';
 import { TOWER_HALL } from './tower3d.js';

@@ -40,3 +40,22 @@ test('loader: aquece o grafo antes do import do blob e mostra o arquivo real + T
   assert.ok(/describeFailure\(err, failures\)/.test(l) && /id = 'load-retry'/.test(l) && /location\.reload\(\)/.test(l));
   assert.ok(!/setInterval|while \(true\)/.test(l), 'sem retry infinito');
 });
+
+test('pré-carga segue a versão do importador no vulcão, inclusive nas duas rotas da alvenaria', () => {
+  const sources = {
+    'dimension-arenas3d.js': ['volcano-cave-scene.js'],
+    'volcano-cave-scene.js': ['volcano-cave-grove.js', 'volcano-cave-masonry.js'],
+    'volcano-cave-grove.js': ['volcano-cave-masonry.js'],
+    'mod181-loader.js': ['module-warm.js']
+  };
+  for (const [name, dependencies] of Object.entries(sources)) {
+    const code = fs.readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+    for (const suffix of ['', '?v=anterior', '?v=atual']) {
+      const specs = importSpecs(code, suffix);
+      for (const file of dependencies) {
+        assert.ok(specs.includes('./' + file + suffix), name + ' → ' + file + suffix);
+        if (suffix) assert.ok(!specs.includes('./' + file), 'evitar uma segunda cópia sem versão');
+      }
+    }
+  }
+});

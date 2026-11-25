@@ -1,4 +1,4 @@
-import { masonry } from './volcano-cave-masonry.js';
+const { masonry } = await import('./volcano-cave-masonry.js' + new URL(import.meta.url).search);
 import {solids,supported,nodes,basin,fixedRocks,creek,tributary,bankDistance} from './volcano-cave-layout.js';
 
 // A rotating cross-section follows each branch's tangent. A split on the same

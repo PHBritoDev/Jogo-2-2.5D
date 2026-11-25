@@ -2,7 +2,7 @@
  * MOD 186 — carrega mundo-3d-prototype.js (e seus módulos locais: Ato I, terreno), reescreve caminhos relativos dos GLB
  * e o módulo do Ato I, aplica Mod 181 se faltar e correções de combate do Enemy1.
  */
-import { fetchText, warmModuleGraph, pageImportMap, describeFailure } from './module-warm.js';
+const { fetchText, warmModuleGraph, pageImportMap, describeFailure } = await import('./module-warm.js' + new URL(import.meta.url).search);
 
 // Download com tentativas limitadas e erro com a URL real (ver module-warm.js).
 async function loadText(url) { return fetchText(url); }
