@@ -30,7 +30,9 @@ const summarizeSegments=segments=>({
   },{samples:0,offScreenSamples:0,blockedSamples:0})
 });
 const routeSegments=[makeSegment(0,start1,end1,trace1,metrics1,9000),makeSegment(1,start2,end2,trace2,metrics2,10000),makeSegment(2,start3,end3,trace3,metrics3,12000)];
-const route={scene:env.SCENARIO,completed:true,...summarizeSegments(routeSegments),
+const route={scene:env.SCENARIO,completed:true,
+  startReset:{expected:{x:-14,z:-82,yaw:0},actual:{x:-14,y:0,z:-82},verified:true},
+  ...summarizeSegments(routeSegments),
   captureQuality:{requested:configuredWalk.captureQuality,applied:true,previous:'auto',selected:configuredWalk.captureQuality},segments:routeSegments};
 const report={commit:sha,build:'Mod',shots:[{scene:env.SCENARIO,status:'ok',file:'a.png'}],videos:[{scene:env.SCENARIO,bytes:4100,file:'a.webm'}],routes:[route]};
 const run=(r,e={},valid=()=>true)=>classify({...env,...e},r,sha,valid);
@@ -117,15 +119,25 @@ test('trace de câmera usa o alvo padrão do protagonista nos dois extremos',()=
   assert.equal(block.split('D.camView()').length-1,2,'uma sonda no início e outra no fim usam o jogador como alvo');
   assert.equal(block.replaceAll('D.camView()','').includes('D.camView('),false,'não passa argumento de tipo incerto para a sonda do protagonista');
 });
+test('percurso restaura a origem depois das tomadas e rejeita reset divergente',()=>{
+  assert.equal(run(report),'game_ran');
+  assert.equal(run({...report,routes:[{...route,startReset:{...route.startReset,verified:false}}]}),'game_failed');
+  assert.equal(run({...report,routes:[{...route,startReset:{...route.startReset,actual:{x:-28.815,y:0,z:-94.586}}}]}),'game_failed');
+  const runner=fs.readFileSync(path.join(__dirname,'scene-agent.cjs'),'utf8');
+  const shotsAt=runner.indexOf('for (let i = 0; i < scene.shots.length; i++)');
+  const resetAt=runner.indexOf('D.teleport(x, z, yaw)',shotsAt);
+  const walkAt=runner.indexOf('for (let j = 0; j < scene.walk.segments.length; j++)',resetAt);
+  assert.ok(shotsAt>=0 && resetAt>shotsAt && walkAt>resetAt,'a origem é restaurada após a última tomada e antes da caminhada');
+});
 test('câmera de acompanhamento precisa estabilizar antes de cada trecho',()=>{
   assert.equal(run(report),'game_ran');
   assert.equal(run({...report,routes:[withSegment(0,{cameraSettleMs:-1})]}),'game_failed','timeout de estabilização reprova a captura');
   assert.equal(run({...report,routes:[withSegment(0,{cameraSettleMs:9001})]}),'game_failed','tempo fora do limite não aprova');
   const runner=fs.readFileSync(path.join(__dirname,'scene-agent.cjs'),'utf8');
   const viewAt=runner.indexOf('window.SevenSinsDebug3D.view(yaw, .12, 5.5)');
-  const settleAt=runner.indexOf('const cameraSettleMs = await waitCameraStable(page, 9000)',viewAt);
+  const settleAt=runner.indexOf('const cameraSettleMs = await waitCameraStable(page, 9000, 5.5)',viewAt);
   const keyAt=runner.indexOf('await page.keyboard.down(segment.key)',viewAt);
-  assert.ok(viewAt>=0 && settleAt>viewAt && keyAt>settleAt,'a câmera termina a curva antes de receber KeyW');
+  assert.ok(viewAt>=0 && settleAt>viewAt && keyAt>settleAt,'a câmera termina a curva e confirma a distância de acompanhamento antes de receber KeyW');
   assert.match(runner,/cameraSettleMs, trace,|cameraSettleMs/);
 });
 test('percurso exige o perfil de captura configurado realmente aplicado',()=>{
