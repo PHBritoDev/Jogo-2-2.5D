@@ -1,6 +1,6 @@
 # Eldória — pesquisa aplicada à implementação (Mod 291)
 
-> Base técnica e narrativa das decisões do Mod 291. Fonte de verdade da história: `docs/narrativa/ato-1-eldoria-roteiro-v1.md`.
+> Base técnica e narrativa das decisões do Mod 291. Hierarquia narrativa atualizada em 25/11/2026: o PDF original `docs/GALAXIA-1-ROTEIRO-INTEGRAL-E-DIRECAO.pdf` é a fonte primária do enredo de Galáxia 1; `docs/roteiro/M2-ATO1.md` registra a transcrição de produção; `docs/narrativa/ato-1-eldoria-roteiro-v1.md` é uma proposta alternativa não canônica. Esta nota documenta decisões técnicas do Mod 291 e não define o cânone.
 > As referências visuais do criador (prado, vila entre árvores ancestrais, lago turquesa, boca de caverna, túnel de cristais e
 > círculo ritual) foram usadas como **relações de composição**, nunca copiadas. Referências bibliográficas abaixo são conhecidas
 > e citadas pelo título; os links não foram reabertos nesta sessão de trabalho.

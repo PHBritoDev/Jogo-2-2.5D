@@ -153,3 +153,21 @@ test('orçamento de passos acompanha waypoints longos sem cortar o percurso em 1
   }
   assert.equal(waypointStepBudget(10, { metersPerSample: 0 }), 0);
 });
+
+
+test('shelter approach requires staging, first step, then registration on the same radial side', async () => {
+  const { rankShelterApproaches, shelterApproachWaypoints } = await import('./a5-waystone-pathfinding.mjs');
+  const sides = rankShelterApproaches({
+    center: { x: 2, z: -4 }, radius: 3.35, deckY: 1.1, stepUp: 0.55,
+    sample: () => ({ height: 0.9, edge: -20, water: false })
+  });
+  const stages = shelterApproachWaypoints({ x: 2, z: -4 }, sides[0], 0.55);
+  assert.deepEqual(stages.map(stage => stage.kind), ['staging', 'entry', 'registration']);
+  const distances = stages.map(stage => Math.hypot(stage.x - 2, stage.z + 4));
+  assert.ok(distances[0] > distances[1] && distances[1] > distances[2]);
+  for (const stage of stages) {
+    const dx = stage.x - 2, dz = stage.z + 4;
+    assert.ok(Math.abs(dx * Math.sin(sides[0].angle) - dz * Math.cos(sides[0].angle)) < 1e-6);
+  }
+  assert.deepEqual(shelterApproachWaypoints({ x: 2, z: -4 }, sides[0], 0), []);
+});
