@@ -57,6 +57,22 @@ test('manchas distantes preservam capim alto e o plano continua determinístico'
   assert.ok(distant.some(item => item.height > 1.2), 'o campo continua tendo capim alto');
 });
 
+test('a queda em FALL_SPOT mantém vegetação legível em baixo e alto sem esvaziar o prado', () => {
+  for (const lowSpec of [false, true]) {
+    const plan = planMeadow({ ...options, lowSpec });
+    const nearby = plan.tufts.map((tuft, index) => ({
+      tuft,
+      distance: Math.hypot(tuft.x - FALL_SPOT.x, tuft.z - FALL_SPOT.z),
+      height: maxBladeHeight(tuft, index)
+    })).filter(item => item.distance <= 8);
+
+    assert.ok(nearby.length >= (lowSpec ? 35 : 70), lowSpec ? 'low preserva densidade próxima ao spawn' : 'high preserva densidade próxima ao spawn');
+    assert.ok(nearby.every(item => item.tuft.heightScale < 1), 'vegetação no entorno inicial recebe altura reduzida');
+    assert.ok(nearby.every(item => item.height <= 1.05), 'vegetação no entorno inicial não ultrapassa 1,05 m');
+    assert.ok(nearby.some(item => item.height > .55), 'o prado mantém variação e não vira gramado raspado');
+  }
+});
+
 test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real', () => {
   const source = readFileSync(new URL('../eldoria-prologue-meadow.js', import.meta.url), 'utf8');
   const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
