@@ -38,7 +38,7 @@ test('the rim reuses the existing tissue noise and does not add light or render 
 });
 
 test('only the stem program cache key changes for the rim shader', () => {
-  assert.equal((material.match(/kind === 'stem' \? '-rim1' : ''/g) || []).length, 1);
+  assert.equal((material.match(/kind === 'stem' \? '-rim2' : ''/g) || []).length, 1);
   assert.equal((material.match(/if \(kind === 'stem'\) shader\.fragmentShader/g) || []).length, 1);
 });
 
