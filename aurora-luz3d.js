@@ -39,7 +39,7 @@ export function auroraColor(t) {
   return c.map((v, i) => v + (green[i] - v) * g * .35);
 }
 /** Intensidade efetiva: nível do céu × céu aberto; 0 em lugar fechado (caverna, interior, dimensão). Pura. */
-export function auroraLightK(level, closed, low) { return closed || !(level > .01) ? 0 : level * (low ? .75 : 1); }
+export function auroraLightK(level, closed, _low) { return closed || !(level > .01) ? 0 : level; } // Perfil baixo economiza FBM, não reduz a intensidade da aurora.
 /** Perfil explícito sempre vence o hint; em auto, o mundo passa o tier adaptativo atual. */
 export function auroraLowProfile(lowHint, mode) {
   if (mode === 'low') return true;
