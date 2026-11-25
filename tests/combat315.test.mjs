@@ -489,19 +489,23 @@ test('A2: SlashVFX compacts spark buffers without temporary views and uploads on
     v.spark({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }, 'prota', 1, 1);
     v.spark({ x: 7, y: 8, z: 9 }, { x: 1, y: 2, z: 3 }, 'prota', 1, 1);
     const versions = Object.fromEntries(['aPos', 'aVel', 'aK', 'aCol'].map(name => [name, attrs[name].version]));
-    const originalSubarray = Float32Array.prototype.subarray;
-    try {
-      Float32Array.prototype.subarray = function () { throw new Error('SlashVFX não deve criar views temporárias no hot path de faíscas'); };
-      v.update(1 / 60, camera, 'high');
-    } finally {
-      Float32Array.prototype.subarray = originalSubarray;
-    }
+    const updateWithoutViews = dt => {
+      const originalSubarray = Float32Array.prototype.subarray;
+      try {
+        Float32Array.prototype.subarray = function () { throw new Error('SlashVFX não deve criar views temporárias no hot path de faíscas'); };
+        v.update(dt, camera, 'high');
+      } finally {
+        Float32Array.prototype.subarray = originalSubarray;
+      }
+    };
+    updateWithoutViews(1 / 60);
 
     assert.equal(sparkMesh.geometry.instanceCount, 2, 'duas faíscas ativas são compactadas no prefixo');
     assert.deepEqual(ranges(attrs.aPos), [{ start: 0, count: 6 }]);
     assert.deepEqual(ranges(attrs.aVel), [{ start: 0, count: 6 }]);
     assert.deepEqual(ranges(attrs.aK), [{ start: 0, count: 4 }]);
     assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 6 }]);
+    const rangeRefs = Object.fromEntries(['aPos', 'aVel', 'aK', 'aCol'].map(name => [name, attrs[name].updateRanges[0]]));
     for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
       assert.equal(attrs[name].version, versions[name] + 1, name + ' recebe uma atualização');
     }
@@ -509,6 +513,19 @@ test('A2: SlashVFX compacts spark buffers without temporary views and uploads on
     assert.deepEqual(Array.from(attrs.aVel.array.slice(0, 6)), [4, 5, 6, 1, 2, 3]);
     assert.ok(attrs.aK.array[0] > 0 && attrs.aK.array[1] > 0 && attrs.aK.array[2] > 0 && attrs.aK.array[3] > 0);
     assert.ok(Array.from(attrs.aCol.array.slice(0, 6)).every(Number.isFinite), 'as cores compactadas continuam válidas');
+
+    updateWithoutViews(1 / 60);
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
+      assert.strictEqual(attrs[name].updateRanges[0], rangeRefs[name], name + ' reutiliza o mesmo range antes do renderer consumir');
+      assert.equal(attrs[name].version, versions[name] + 2);
+    }
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) attrs[name].clearUpdateRanges();
+    updateWithoutViews(1 / 60);
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
+      assert.deepEqual(ranges(attrs[name]), [{ start: 0, count: name === 'aK' ? 4 : 6 }]);
+      assert.strictEqual(attrs[name].updateRanges[0], rangeRefs[name], name + ' reutiliza o range após consumo pelo renderer');
+      assert.equal(attrs[name].version, versions[name] + 3);
+    }
 
     v.update(10, camera, 'high');
     assert.equal(sparkMesh.geometry.instanceCount, 0, 'a expiração remove instâncias sem depender de limpar o buffer inteiro');
