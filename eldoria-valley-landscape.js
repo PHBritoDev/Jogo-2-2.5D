@@ -145,9 +145,15 @@ export function planValleyOutcrops(env, count = 14) {
 /** Cobertura do chão das encostas: manchas de capim alto e flores do campo (não um tapete uniforme), fora da estrada,
  *  do prado (que já tem as dele) e das clareiras de pedra. Reaproveita a geometria do prado (eldoria-prologue-meadow.js). */
 export function planValleyGroundCover(env, { tufts = 1400, flowers = 420 } = {}) {
-  const { height, boundary, water, road, meadow, seed = 9127 } = env, A = VALLEY_AREA, T = [], F = [];
+  const { boundary, water, road, meadow, seed = 9127 } = env, A = VALLEY_AREA, T = [], F = [];
+  // A cobertura também respeita os quatro vazios de composição: não preencher as clareiras
+  // que a floresta e os afloramentos deixam intencionalmente livres.
+  const clearOf = (x, z, radius) => VALLEY_CLEARINGS.every(c => Math.hypot(x - c.x, z - c.z) > c.r + radius)
+    && distToPolyline(x, z, VIGIA_TRAIL.points) > VIGIA_TRAIL.width * .5 + 1.4 + radius;
+  const free = (x, z, radius = 1) => boundary(x, z) < 34 && water(x, z) < -.15
+    && !meadow(x, z, 1 + radius) && distToPolyline(x, z, road) > 2.6 + radius && clearOf(x, z, radius);
   let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const free = (x, z) => boundary(x, z) < 34 && water(x, z) < -.15 && !meadow(x, z, 1) && distToPolyline(x, z, road) > 2.6 && distToPolyline(x, z, VIGIA_TRAIL.points) > 1.6 && Math.hypot(x - VIGIA.x, z - VIGIA.z) > 5.2;
+
   for (let i = 0; i < tufts * 6 && T.length < tufts; i++) {
     const x = A.x0 + rnd() * (A.x1 - A.x0), z = A.z0 + rnd() * (A.z1 - A.z0), patch = vnoise(x / 9, z / 9, seed + 3) * .7 + vnoise(x / 3.5, z / 3.5, seed + 5) * .3;
     if (patch < .5 || !free(x, z)) continue;

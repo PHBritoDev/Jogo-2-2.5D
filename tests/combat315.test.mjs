@@ -412,3 +412,160 @@ test('SwordRites VFX keeps active slots unique across ring wrap and swap-removal
     v.dispose();
   }
 });
+
+
+test('A2: production sword ribbons keep static UVs and upload only changed segments', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSlashVFX(THREE, scene, { segments: 40, slashes: 1, waves: 1, sparks: 8, stars: 1 });
+  const ribbon = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aBirth);
+  assert.ok(ribbon, 'a trilha de espada real existe no SlashVFX de produção');
+  const position = ribbon.geometry.attributes.position, uv = ribbon.geometry.attributes.uv, birth = ribbon.geometry.attributes.aBirth;
+  const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  const sample = x => v.sample('a2-production-ribbon', { x, y: 0, z: 0 }, { x, y: 1, z: 0 });
+  try {
+    const uvVersion = uv.version;
+    assert.equal(uv.usage, THREE.StaticDrawUsage, 'UV é estático e não precisa de upload por amostra');
+    assert.equal(uv.array[0], 0); assert.equal(uv.array[1], 0); assert.equal(uv.array[3], 1);
+    assert.equal(uv.array[156], 1); assert.equal(uv.array[158], 1, 'último segmento mantém U=1');
+
+    sample(0);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 6 }]);
+    assert.deepEqual(ranges(birth), [{ start: 0, count: 2 }]);
+    assert.equal(uv.version, uvVersion, 'UV não é marcado dirty durante a amostragem');
+    const positionRange = position.updateRanges[0], birthRange = birth.updateRanges[0];
+    assert.ok(positionRange && birthRange);
+    assert.ok(Math.abs(ribbon.material.uniforms.uLength.value - 1 / 39) < 1e-8);
+    assert.ok(Math.abs(ribbon.children[0].material.uniforms.uLength.value - 1 / 39) < 1e-8, 'a esteira escura acompanha a mesma extensão');
+
+    sample(1);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 12 }], 'amostras adjacentes coalescem');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: 4 }]);
+    assert.strictEqual(position.updateRanges[0], positionRange, 'o range de posição é reutilizado');
+    assert.strictEqual(birth.updateRanges[0], birthRange, 'o range de nascimento é reutilizado');
+
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    sample(2);
+    assert.deepEqual(ranges(position), [{ start: 12, count: 6 }], 'após consumo do renderer só o segmento novo fica dirty');
+    assert.deepEqual(ranges(birth), [{ start: 4, count: 2 }]);
+    assert.strictEqual(position.updateRanges[0], positionRange);
+    assert.strictEqual(birth.updateRanges[0], birthRange);
+
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    position.addUpdateRange(6, 6); position.addUpdateRange(12, 6);
+    birth.addUpdateRange(2, 2); birth.addUpdateRange(4, 2);
+    sample(3);
+    assert.deepEqual(ranges(position), [{ start: 6, count: 18 }], 'range pendente externo é preservado e coalescido');
+    assert.deepEqual(ranges(birth), [{ start: 2, count: 6 }]);
+
+    for (let i = 4; i < 40; i++) sample(i);
+    assert.equal(ribbon.geometry.drawRange.count, 39 * 6);
+    assert.ok(Math.abs(ribbon.material.uniforms.uLength.value - 1) < 1e-8, 'a trilha completa ocupa todo o U');
+
+    position.clearUpdateRanges(); birth.clearUpdateRanges();
+    sample(40);
+    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'rollover desloca o buffer inteiro');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: birth.array.length }]);
+    assert.strictEqual(position.updateRanges[0], positionRange);
+    assert.strictEqual(birth.updateRanges[0], birthRange);
+    const first = Array.from(position.array.slice(0, 6)), last = Array.from(position.array.slice(-6));
+    assert.ok(Math.abs(first[0] - 1) < 1e-5 && Math.abs(first[1] - .06) < 1e-5);
+    assert.ok(Math.abs(first[3] - 1) < 1e-5 && Math.abs(first[4] - 3.21) < 1e-5);
+    assert.ok(Math.abs(last[0] - 40) < 1e-5 && Math.abs(last[1] - .06) < 1e-5);
+    assert.ok(Math.abs(last[3] - 40) < 1e-5 && Math.abs(last[4] - 3.21) < 1e-5);
+  } finally {
+    v.clear(); scene.remove(v.root);
+  }
+});
+
+test('A2: SlashVFX compacts spark buffers without temporary views and uploads only the live prefix', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 8, stars: 1 });
+  const sparkMesh = v.root.children.find(o => o.isMesh && o.geometry?.attributes?.aPos);
+  assert.ok(sparkMesh, 'o pool instanciado de faíscas pertence ao SlashVFX de produção');
+  const attrs = sparkMesh.geometry.attributes;
+  const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  try {
+    v.spark({ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }, 'prota', 1, 1);
+    v.spark({ x: 7, y: 8, z: 9 }, { x: 1, y: 2, z: 3 }, 'prota', 1, 1);
+    const versions = Object.fromEntries(['aPos', 'aVel', 'aK', 'aCol'].map(name => [name, attrs[name].version]));
+    const updateWithoutViews = dt => {
+      const originalSubarray = Float32Array.prototype.subarray;
+      try {
+        Float32Array.prototype.subarray = function () { throw new Error('SlashVFX não deve criar views temporárias no hot path de faíscas'); };
+        v.update(dt, camera, 'high');
+      } finally {
+        Float32Array.prototype.subarray = originalSubarray;
+      }
+    };
+    updateWithoutViews(1 / 60);
+
+    assert.equal(sparkMesh.geometry.instanceCount, 2, 'duas faíscas ativas são compactadas no prefixo');
+    assert.deepEqual(ranges(attrs.aPos), [{ start: 0, count: 6 }]);
+    assert.deepEqual(ranges(attrs.aVel), [{ start: 0, count: 6 }]);
+    assert.deepEqual(ranges(attrs.aK), [{ start: 0, count: 4 }]);
+    assert.deepEqual(ranges(attrs.aCol), [{ start: 0, count: 6 }]);
+    const rangeRefs = Object.fromEntries(['aPos', 'aVel', 'aK', 'aCol'].map(name => [name, attrs[name].updateRanges[0]]));
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
+      assert.equal(attrs[name].version, versions[name] + 1, name + ' recebe uma atualização');
+    }
+    const dt = 1 / 60, pos = attrs.aPos.array, vel = attrs.aVel.array;
+    for (const [offset, initial] of [[0, [1, 2, 3]], [3, [7, 8, 9]]]) {
+      for (let axis = 0; axis < 3; axis++) {
+        assert.ok(Math.abs(pos[offset + axis] - (initial[axis] + vel[offset + axis] * dt)) < 1e-5,
+          'a posição compactada acompanha a velocidade pós-gravidade/arrasto');
+      }
+    }
+    assert.ok(Array.from(vel.slice(0, 6)).every(Number.isFinite), 'as velocidades compactadas continuam válidas');
+    assert.ok(attrs.aK.array[0] > 0 && attrs.aK.array[1] > 0 && attrs.aK.array[2] > 0 && attrs.aK.array[3] > 0);
+    assert.ok(Array.from(attrs.aCol.array.slice(0, 6)).every(Number.isFinite), 'as cores compactadas continuam válidas');
+
+    updateWithoutViews(1 / 60);
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
+      assert.strictEqual(attrs[name].updateRanges[0], rangeRefs[name], name + ' reutiliza o mesmo range antes do renderer consumir');
+      assert.equal(attrs[name].version, versions[name] + 2);
+    }
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) attrs[name].clearUpdateRanges();
+    updateWithoutViews(1 / 60);
+    for (const name of ['aPos', 'aVel', 'aK', 'aCol']) {
+      assert.deepEqual(ranges(attrs[name]), [{ start: 0, count: name === 'aK' ? 4 : 6 }]);
+      assert.strictEqual(attrs[name].updateRanges[0], rangeRefs[name], name + ' reutiliza o range após consumo pelo renderer');
+      assert.equal(attrs[name].version, versions[name] + 3);
+    }
+
+    v.update(10, camera, 'high');
+    assert.equal(sparkMesh.geometry.instanceCount, 0, 'a expiração remove instâncias sem depender de limpar o buffer inteiro');
+  } finally {
+    v.clear(); scene.remove(v.root);
+  }
+});
+
+test('A2: SlashVFX percorre slots vivos e mantém o pool correto após expiração e sobrescrita circular', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const source = fs.readFileSync(new URL('../slash-vfx3d.js', import.meta.url), 'utf8');
+  assert.match(source, /for \(let active = 0; active < activeSparkCount;/, 'update percorre somente a lista densa de faíscas vivas');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const v = createSlashVFX(THREE, scene, { segments: 4, slashes: 1, waves: 1, sparks: 4, stars: 1 });
+  try {
+    v.spark({ x: 0, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', .01, 1);
+    v.spark({ x: 1, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 2, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(.02, camera, 'high');
+    assert.equal(v.stats().sparks, 2, 'expiração remove um slot sem deixar buraco no prefixo renderizado');
+
+    v.spark({ x: 3, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 4, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.spark({ x: 5, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(v.stats().sparks, 4, 'sobrescrever um slot ainda vivo não duplica a entrada ativa');
+
+    v.update(2, camera, 'high');
+    assert.equal(v.stats().sparks, 0, 'todos os slots expirados saem da lista ativa');
+    v.clear();
+    v.spark({ x: 6, y: 1, z: 0 }, { x: 1, y: 2, z: 0 }, 'prota', 1, 1);
+    v.update(1 / 60, camera, 'high');
+    assert.equal(v.stats().sparks, 1, 'clear permite reutilizar o pool sem índices residuais');
+  } finally {
+    v.clear(); scene.remove(v.root);
+  }
+});

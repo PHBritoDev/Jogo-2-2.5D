@@ -2,10 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { planValleyForest, planValleyOutcrops, VALLEY_AREA, VALLEY_CLEARINGS, VALLEY_LANDMARKS, VIGIA, VIGIA_TRAIL, distToPolyline } from '../eldoria-valley-landscape.js';
+import { planValleyForest, planValleyOutcrops, planValleyGroundCover, VALLEY_AREA, VALLEY_CLEARINGS, VALLEY_LANDMARKS, VIGIA, VIGIA_TRAIL, distToPolyline } from '../eldoria-valley-landscape.js';
 import { TEREN_ROAD, insideMeadow, FOREST_TRAILS, FOREST_CLEARINGS, ROAD_BANDITS, FALL_SPOT } from '../act1-world-layout.js';
 
 const world = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+const qaScript = fs.readFileSync(new URL('../tools/visual-lab/renascimento-f1-qa.cjs', import.meta.url), 'utf8');
 // relevo sintético com a forma do vale real: fundo na estrada, encostas subindo dos dois lados
 const height = (x, z) => { const d = distToPolyline(x, z, TEREN_ROAD); return Math.min(26, Math.max(0, (d - 6) * .45)) + Math.sin(x * .07) * .6 + Math.cos(z * .05) * .5; };
 const env = { height, boundary: (x, z) => distToPolyline(x, z, TEREN_ROAD) - 14, water: () => -1, road: TEREN_ROAD, meadow: (x, z, p) => insideMeadow(x, z, p),
@@ -33,6 +34,28 @@ test('vale: estrada, prado, clareiras, trilha do Vigia, emboscada e despertar fi
   for (let i = 0; i < plan.length; i++) for (let j = i + 1; j < plan.length; j++) if (plan[i].sp === plan[j].sp) assert.ok(Math.hypot(plan[i].x - plan[j].x, plan[i].z - plan[j].z) > 2.4);
 });
 
+test('vale: cobertura do chão preserva clareiras, estrada, prado e Trilha do Vigia em alto e baixo', () => {
+  const plans = [
+    ['alto', planValleyGroundCover(env), 1300, 390],
+    ['mobile', planValleyGroundCover(env, { tufts: 900, flowers: 260 }), 800, 230],
+  ];
+  for (const [mode, cover, minTufts, minFlowers] of plans) {
+    assert.ok(cover.tufts.length > minTufts, mode + ': capim insuficiente (' + cover.tufts.length + ')');
+    assert.ok(cover.flowers.length > minFlowers, mode + ': flores insuficientes (' + cover.flowers.length + ')');
+    for (const clearing of VALLEY_CLEARINGS) {
+      for (const [kind, items] of [['capim', cover.tufts], ['flores', cover.flowers]]) {
+        const intruders = items.filter(p => Math.hypot(p.x - clearing.x, p.z - clearing.z) <= clearing.r + 1);
+        assert.equal(intruders.length, 0, mode + ': ' + kind + ' invadindo a clareira ' + clearing.id + ': ' + intruders.length);
+      }
+    }
+    for (const p of [...cover.tufts, ...cover.flowers]) {
+      assert.ok(distToPolyline(p.x, p.z, TEREN_ROAD) > 3.6, mode + ': cobertura invade a estrada');
+      assert.ok(distToPolyline(p.x, p.z, VIGIA_TRAIL.points) > VIGIA_TRAIL.width * .5 + 2.4, mode + ': cobertura invade a trilha');
+      assert.ok(!insideMeadow(p.x, p.z, 2), mode + ': cobertura invade o prado do prólogo');
+    }
+  }
+});
+
 test('vale: afloramentos nas encostas, longe da estrada e da trilha; marcos de horizonte declarados', () => {
   const r = planValleyOutcrops(env, 14);
   assert.ok(r.length >= 6);
@@ -46,6 +69,34 @@ test('layout: Trilha e Clareira do Vigia registradas como trilha/clareira do Ato
   // a trilha sai da estrada e termina na clareira do posto
   assert.ok(distToPolyline(...VIGIA_TRAIL.points[0], TEREN_ROAD) < 6);
   const end = VIGIA_TRAIL.points.at(-1); assert.ok(Math.hypot(end[0] - VIGIA.x, end[1] - VIGIA.z) < VIGIA.r);
+});
+
+test('integração: cobertura do vale continua ligada ao instancing real e ao A/B das quatro clareiras', () => {
+  assert.match(world, /const gc=planValleyGroundCover\(valleyEnv/);
+  assert.match(world, /tu\.name='vale-capim'/);
+  assert.match(world, /m\.name='vale-flores-'/);
+  assert.match(world, /window\.SevenSinsValleyReport\.groundCover=/);
+  for (const id of ['vigia', 'respiro-leste', 'respiro-oeste', 'garganta']) {
+    assert.ok(qaScript.includes(`id: '${id}'`), 'A/B sem captura da clareira ' + id);
+  }
+  assert.match(qaScript, /VISUAL_BASELINE_URL/);
+  assert.match(qaScript, /baselineSha/);
+  assert.match(qaScript, /D\.fly\(null\)/, 'reseta override da câmera antes de cada enquadramento');
+  assert.match(qaScript, /D\.snapCam\(\)/, 'força o enquadramento após teleporte e view');
+  assert.match(qaScript, /waitCameraStable/, 'não captura após um atraso fixo sem estabilizar a câmera');
+  assert.match(qaScript, /D\.cam\(\)/);
+  assert.match(qaScript, /D\.camView\(\)/, 'verifica oclusão da linha de visão');
+  assert.match(qaScript, /cameraDeltaFromBaseline/);
+  assert.match(qaScript, /let state = 0xA3D11A/, 'semente aleatória fixa e repetível entre baseline e candidata');
+  assert.match(qaScript, /Math\.random = \(\) =>/, 'controla Math.random antes de carregar o mundo');
+  assert.match(qaScript, /CAMERA_TRIES/, 'procura ângulo desobstruído antes de aceitar a foto');
+  assert.match(qaScript, /baseline\?\.cameraSettings/, 'candidata reutiliza o enquadramento escolhido na baseline');
+  assert.match(qaScript, /framing\?\.onScreen === true/, 'confere que o protagonista está no quadro');
+  assert.match(qaScript, /playerDeltaFromBaseline/, 'compara posição XYZ real do jogador');
+  assert.match(qaScript, /sameViewportAndCamera = allStable && sameCamera/, 'só declara câmera idêntica após comparação medida');
+  assert.match(qaScript, /samePlayerPosition = samePlayer/, 'exige posição XYZ equivalente');
+  assert.match(qaScript, /allActorsFramed = allFramed/, 'exige enquadramento limpo em baseline e candidata');
+  assert.match(qaScript, /body \*\{visibility:hidden!important\}canvas#scene\{visibility:visible!important\}/, 'captura somente a cena, sem HUD sobre as clareiras');
 });
 
 test('integração: vale entra no mesmo instancing do cinturão, rollback por flag, relicário único salvo', () => {

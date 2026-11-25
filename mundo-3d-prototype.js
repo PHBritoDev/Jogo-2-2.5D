@@ -958,7 +958,7 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  tropicalBelt=mountTropicalForest(THREE,lib,{group:scene,plan:tropicalPlan,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,profile:tropicalProfile(),name:'cinturao'});
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
- addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
+ addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,8.0); // tronco precisa abrir junto da copa no braço de câmera: a figueira ocultou o herói a 4,64 m.
  // O GLB chega de modo assíncrono: compilar materiais das 5 espécies ANTES
  // de o jogador girar a câmera para a mata evita compilação de shader no giro.
  // Não troca LOD, resolução, textura nem quantidade de árvores.
@@ -4465,6 +4465,8 @@ function useRig(name){
    outros visíveis esperando a vez (o motor de combate é de um adversário). O esgoto é uma área abaixo do mundo
    (tema "sewer", layout em sewer3d.js), como as dimensões. */
 var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=false,act1Lock=false,hordeClones=[],guideFighting=false;
+// O primeiro updateQuestHud roda antes de act1Sub receber o save. Recalcula apos a inicializacao do modulo.
+queueMicrotask(updateQuestHud);
 const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
 const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME]:'guide',[GUIDE_PUBLIC_NAME]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};

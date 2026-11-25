@@ -7,7 +7,7 @@ import { createGreedAbyss } from './greed-abyss3d.js?v=colosso341';
  * lua sorridente), Zar'khael (cogumelos gigantes com olhos sobre piso xadrez), Véraxion (corredor torto com claraboias).
  */
 import { buildGoldenMeadow } from './bishop1-golden-meadow3d.js';
-import { buildVorgazhekAbyss } from './vorgazhek-abyss-dimension3d.js';
+const { buildVorgazhekAbyss } = await import('./vorgazhek-abyss-dimension3d.js' + new URL(import.meta.url).search);
 import { buildHallDimension } from './veraxion-hall-dimension3d.js';
 import { buildMushroomDimension } from './zarkhael-dimension3d.js?v=a4-zarkhael-fill-5';
 import { SEWER } from './sewer3d.js';

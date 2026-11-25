@@ -56,7 +56,7 @@ function imageDiff(aPath, bPath) {
 async function runVersion(browser, label, port, threeRoot) {
   const context = await browser.newContext({
     viewport: { width: 960, height: 540 },
-    recordVideo: { dir: videoDir, size: { width: 960, height: 540 } }
+    recordVideo: label === 'control' ? undefined : { dir: videoDir, size: { width: 960, height: 540 } }
   });
   const page = await context.newPage();
   const errors = [];
@@ -79,6 +79,24 @@ async function runVersion(browser, label, port, threeRoot) {
     }
     return route.fulfill({ path: file, contentType: relative.endsWith('.js') ? 'text/javascript' : 'application/octet-stream' });
   });
+  // The published baseline may already contain bounce lighting. For the
+  // optical control, build the same masonry without its optional lava clock.
+  if (label === 'control') {
+    await page.route(/\/volcano-cave-masonry\.js(?:\?|$)/, async route => {
+      const original = new URL(route.request().url());
+      if (original.searchParams.has('with-clock')) return route.continue();
+      original.searchParams.set('with-clock', '1');
+      const source = JSON.stringify(original.href);
+      await route.fulfill({
+        contentType: 'text/javascript',
+        body: `export * from ${source};
+          import { masonry as build } from ${source};
+          export function masonry(T, group, seed, palette) {
+            return build(T, group, seed, { ...palette, clock: null });
+          }`
+      });
+    });
+  }
   const video = page.video();
   try {
     await page.goto('http://127.0.0.1:' + port + '/tools/qa/a4-volcano-lava-bounce.html', { waitUntil: 'domcontentloaded' });
@@ -92,7 +110,7 @@ async function runVersion(browser, label, port, threeRoot) {
       fs.writeFileSync(file, Buffer.from(frame.data.split(',')[1], 'base64'));
       metrics.push({ key: frame.key, now: frame.now, file, metrics: frame.metrics });
     }
-    await page.evaluate(() => window.a4VolcanoAnimate(2400));
+    if (video) await page.evaluate(() => window.a4VolcanoAnimate(2400));
     return { label, report: captured.report, frames: metrics, errors };
   } finally {
     await context.close();
@@ -114,14 +132,18 @@ async function main() {
     browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     const baseline = await runVersion(browser, 'baseline', 4263, threeRoot);
     const candidate = await runVersion(browser, 'candidate', 4264, threeRoot);
+    const control = await runVersion(browser, 'control', 4264, threeRoot);
     const comparisons = {};
+    const publishedDelta = {};
     const budget = {};
     const gateFailures = [];
     for (const key of ['overlook-1000', 'overlook-1500', 'upper-gallery-2000', 'grove-2500', 'spine-3000', 'falls-3500', 'stair-4000', 'seam-lower-4500', 'seam-center-4500', 'seam-upper-4500']) {
       const a = baseline.frames.find(frame => frame.key + '-' + frame.now === key);
       const b = candidate.frames.find(frame => frame.key + '-' + frame.now === key);
-      if (!a || !b) throw new Error('Captura A/B ausente: ' + key);
-      comparisons[key] = imageDiff(a.file, b.file);
+      const unlit = control.frames.find(frame => frame.key + '-' + frame.now === key);
+      if (!a || !b || !unlit) throw new Error('Captura ausente: ' + key);
+      comparisons[key] = imageDiff(unlit.file, b.file);
+      publishedDelta[key] = imageDiff(a.file, b.file);
       budget[key] = {
         callsEqual: a.metrics.calls === b.metrics.calls,
         trianglesEqual: a.metrics.triangles === b.metrics.triangles,
@@ -134,17 +156,12 @@ async function main() {
         gateFailures.push('Orçamento de renderização mudou em ' + key + ': ' + JSON.stringify(budget[key]));
       }
     }
-    const temporal = {
-      baseline: imageDiff(
-        baseline.frames.find(frame => frame.key === 'overlook' && frame.now === 1000).file,
-        baseline.frames.find(frame => frame.key === 'overlook' && frame.now === 1500).file
-      ),
-      candidate: imageDiff(
-        candidate.frames.find(frame => frame.key === 'overlook' && frame.now === 1000).file,
-        candidate.frames.find(frame => frame.key === 'overlook' && frame.now === 1500).file
-      )
-    };
-    const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.baseline.meanRGB).toFixed(5));
+    const pulseDelta = version => imageDiff(
+      version.frames.find(frame => frame.key === 'overlook' && frame.now === 1000).file,
+      version.frames.find(frame => frame.key === 'overlook' && frame.now === 1500).file
+    );
+    const temporal = { baseline: pulseDelta(baseline), candidate: pulseDelta(candidate), control: pulseDelta(control) };
+    const temporalGainRGB = Number((temporal.candidate.meanRGB - temporal.control.meanRGB).toFixed(5));
     if (comparisons['overlook-1000'].meanRGB < 5.5 || comparisons['overlook-1000'].changedPixelsPct < 30) {
       gateFailures.push('Bounce localizado ainda pouco legível no Santuário: ' + JSON.stringify(comparisons['overlook-1000']));
     }
@@ -161,10 +178,10 @@ async function main() {
       gateFailures.push('P95 de bounce excede 20 em: ' + JSON.stringify(Object.fromEntries(excessiveFrames.map(key => [key, comparisons[key]]))));
     }
     if (temporalGainRGB < .08) {
-      gateFailures.push('Pulsação dinâmica insuficiente frente ao baseline: ' + temporalGainRGB);
+      gateFailures.push('Pulsação dinâmica insuficiente frente ao controle sem pulso: ' + temporalGainRGB);
     }
-    if (baseline.errors.length || candidate.errors.length) {
-      gateFailures.push('Erros de browser/GLSL: ' + JSON.stringify({ baseline: baseline.errors, candidate: candidate.errors }));
+    if (baseline.errors.length || candidate.errors.length || control.errors.length) {
+      gateFailures.push('Erros de browser/GLSL: ' + JSON.stringify({ baseline: baseline.errors, candidate: candidate.errors, control: control.errors }));
     }
     const report = {
       baseSha,
@@ -173,8 +190,10 @@ async function main() {
       viewport: '960x540',
       baseline: { report: baseline.report, errors: baseline.errors },
       candidate: { report: candidate.report, errors: candidate.errors },
+      control: { report: control.report, errors: control.errors },
       gateThresholds: { overlookMeanRGB: 5.5, upperGalleryMeanRGB: 4.3, temporalGainRGB: .08, maxP95RGB: 20, sourceBlendZ: [127, 143], changedPixelsPct: { overlook: 30, upperGallery: 20 } },
-      imageDelta: comparisons,
+      imageDelta: publishedDelta,
+      bounceAgainstControl: comparisons,
       temporalDelta: temporal,
       temporalGainRGB,
       renderBudget: budget,

@@ -17,7 +17,7 @@ const root = path.resolve(process.env.QA_OUT || 'visual-lab-results/renascimento
 fs.mkdirSync(root, { recursive: true });
 const report = { status: 'incomplete', platform: 'Chromium WebGL (SwiftShader em CI) — não representa Android real', commit: process.env.GITHUB_SHA || 'local', profiles: {}, errors: [] };
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const SEED = () => { try { if (!sessionStorage.getItem('qa-seed')) { sessionStorage.setItem('qa-seed', '1'); localStorage.clear(); } } catch (e) {} };
+const SEED = () => { let state = 0xA3D11A; Math.random = () => { state = (Math.imul(1664525, state) + 1013904223) >>> 0; return state / 4294967296; }; try { if (!sessionStorage.getItem('qa-seed')) { sessionStorage.setItem('qa-seed', '1'); localStorage.clear(); } } catch (e) {} };
 
 const NAV = [
   ['rocha-baixa', [33.66, 171.18, 39.66, 171.18, { seconds: 2.2 }], r => r.pen === 0 && !r.fell],
@@ -62,7 +62,15 @@ const SHOTS = [
   ['praca', 'D.teleport(-12,-40,Math.PI);D.view(Math.PI*1.1,.2,9)'],
 ];
 
-async function session(browser, viewport, mobile, out, rec) {
+const CLEARING_SHOTS = [
+  { id: 'vigia', x: 29, z: 96.5, yaw: Math.PI / 2, pitch: .55, dist: 20 },
+  { id: 'respiro-leste', x: 96, z: 70, yaw: Math.PI / 2, pitch: .55, dist: 20 },
+  { id: 'respiro-oeste', x: 20, z: 128, yaw: Math.PI / 2, pitch: .55, dist: 18 },
+  { id: 'garganta', x: 70, z: 200, yaw: 0, pitch: .55, dist: 16 },
+];
+const CAMERA_TRIES = [[0, 1], [.55, 1], [-.55, 1], [0, .7], [1.1, .85], [-1.1, .85], [Math.PI, 1]];
+
+async function session(browser, viewport, mobile, out, rec, baseUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173') {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile, ...(rec ? { recordVideo: { dir: out, size: viewport } } : {}) });
   await ctx.addInitScript(SEED);
   const page = await ctx.newPage(); const errs = [];
@@ -70,14 +78,189 @@ async function session(browser, viewport, mobile, out, rec) {
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 200)); });
   page.on('response', r => { if (r.status() >= 400 && /\.(?:glb|js|png|jpg|webp)(?:\?|$)/.test(r.url())) errs.push('HTTP ' + r.status() + ' ' + r.url().slice(0, 140)); });
   if (process.env.THREE_LOCAL) await page.route(/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/(.*)/, async r => { const rel = r.request().url().split('three@0.160.0/')[1].split('?')[0]; await r.fulfill({ path: path.join(process.env.THREE_LOCAL, rel), contentType: 'text/javascript' }); });
-  const base = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173';
-  await page.goto(base + '/mundo-3d-prototype.html?debug3d=1&build=r' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(baseUrl + '/mundo-3d-prototype.html?debug3d=1&build=r' + Date.now(), { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 300000 });
   await wait(2500); await page.evaluate(() => window.SevenSinsDebug3D.freeRoam());
   return { ctx, page, errs };
 }
 const frames = (page, ms) => page.evaluate(async ms => { const d = []; let last = null; const t0 = performance.now(); return new Promise(res => { function f(t) { if (last !== null) d.push(t - last); last = t; if (t - t0 > ms) { d.sort((a, b) => a - b); const q = x => +d[Math.min(d.length - 1, Math.floor(d.length * x))].toFixed(1); const r = window.SevenSinsDebug3D.combatReport().draw; res({ n: d.length, p50: q(.5), p95: q(.95), p99: q(.99), max: +d[d.length - 1].toFixed(1), calls: r.calls, tris: r.triangles }); } else requestAnimationFrame(f); } requestAnimationFrame(f); }); }, ms);
 const snap = async (page, file) => { try { await page.screenshot({ path: file, timeout: 150000 }); } catch (e) { await wait(3000); await page.screenshot({ path: file, timeout: 150000 }); } };
+
+// Não basta esperar um tempo fixo: SwiftShader pode renderizar poucos frames em 1,8 s.
+// O A/B só é válido quando a câmera real parou e pode ser comparada entre os dois servidores.
+async function waitCameraStable(page, maxMs = 9000, expectDist = null) {
+  const started = Date.now();
+  let previous = null, stableSamples = 0, camera = null;
+  while (Date.now() - started < maxMs) {
+    const sample = await page.evaluate(expected => {
+      const D = window.SevenSinsDebug3D, camera = D.cam();
+      const framing = typeof D.camView === 'function' ? D.camView() : null;
+      const near = expected == null || !framing || !Number.isFinite(framing.camToHero)
+        || Math.abs(framing.camToHero - expected) < Math.max(1.2, expected * .35);
+      return { camera, near };
+    }, expectDist);
+    camera = sample.camera;
+    const valid = Array.isArray(camera) && camera.length === 3 && camera.every(Number.isFinite);
+    const delta = valid && previous ? Math.hypot(...camera.map((v, i) => v - previous[i])) : Infinity;
+    if (valid && sample.near && delta < .03) {
+      if (++stableSamples >= 2) return { stable: true, camera, elapsedMs: Date.now() - started };
+    } else stableSamples = 0;
+    previous = valid ? camera : null;
+    await wait(400);
+  }
+  return { stable: false, camera, elapsedMs: Date.now() - started };
+}
+
+function isOccluded(framing) {
+  return !!(framing?.blocked && Number.isFinite(framing.blocked.dist)
+    && Number.isFinite(framing.camToHero) && framing.blocked.dist < framing.camToHero - 1.5);
+}
+
+async function captureClearingsAB(browser, profileName, viewport, mobile) {
+  const baselineUrl = process.env.VISUAL_BASELINE_URL;
+  if (!baselineUrl) return null;
+  const candidateUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173';
+  const out = path.join(root, profileName, 'clearings-ab');
+  fs.mkdirSync(out, { recursive: true });
+  const result = { baseline: { shots: [] }, candidate: { shots: [] } };
+
+  for (const [variant, url] of [['baseline', baselineUrl], ['candidate', candidateUrl]]) {
+    const { ctx, page, errs } = await session(browser, viewport, mobile, out, false, url);
+    await page.addStyleTag({ content: 'body *{visibility:hidden!important}canvas#scene{visibility:visible!important}' });
+    await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(15); D.weather('limpo'); });
+    await page.waitForFunction(() => window.SevenSinsValleyReport?.groundCover?.tufts > 0, null, { timeout: 120000 });
+    const groundCover = await page.evaluate(() => window.SevenSinsValleyReport.groundCover);
+    result[variant].groundCover = groundCover;
+    if (groundCover.tufts < 800 || groundCover.flowers < 230) {
+      const msg = profileName + '/' + variant + ': cobertura do vale ausente ou insuficiente ' + JSON.stringify(groundCover);
+      result[variant].error = msg;
+      report.errors.push(msg);
+    }
+
+    for (const shot of CLEARING_SHOTS) {
+      await page.evaluate(s => {
+        const D = window.SevenSinsDebug3D;
+        D.teleport(s.x, s.z, s.yaw);
+        D.fly(null);
+        D.motionStep(.4, { x: 0, z: 0 });
+      }, shot);
+
+      const baseline = variant === 'candidate' ? result.baseline.shots.find(x => x.id === shot.id) : null;
+      const views = baseline?.cameraSettings
+        ? [baseline.cameraSettings]
+        : CAMERA_TRIES.map(([dy, scale]) => ({
+            yaw: shot.yaw + dy,
+            pitch: shot.pitch,
+            distance: +(shot.dist * scale).toFixed(2),
+          }));
+      let selectedView = null, cameraStability = null, diagnostics = null;
+      const cameraAttempts = [];
+      for (const view of views) {
+        await page.evaluate(v => {
+          const D = window.SevenSinsDebug3D;
+          D.view(v.yaw, v.pitch, v.distance);
+          D.snapCam();
+        }, view);
+        cameraStability = await waitCameraStable(page, 9000, view.distance);
+        await wait(400);
+        diagnostics = await page.evaluate(() => {
+          const D = window.SevenSinsDebug3D, state = D.state();
+          return {
+            state,
+            camera: D.cam(),
+            framing: typeof D.camView === 'function' ? D.camView() : null,
+          };
+        });
+        const cameraValid = Array.isArray(diagnostics.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
+        const visible = diagnostics.framing?.onScreen === true;
+        const blocked = isOccluded(diagnostics.framing);
+        cameraAttempts.push({
+          yaw: +view.yaw.toFixed(3), pitch: view.pitch, distance: view.distance,
+          stable: cameraStability.stable, onScreen: visible, blocked: blocked ? diagnostics.framing.blocked : null,
+        });
+        selectedView = view;
+        if (cameraStability.stable && cameraValid && visible && !blocked) break;
+        if (variant === 'candidate') break;
+      }
+
+      const state = diagnostics?.state || {};
+      const rawPosition = [state.x, state.y, state.z].map(Number);
+      const position = rawPosition.map(v => Number.isFinite(v) ? +v.toFixed(3) : null);
+      const file = variant + '-' + shot.id + '.png';
+      await snap(page, path.join(out, file));
+      const cameraValid = Array.isArray(diagnostics?.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
+      const entry = {
+        id: shot.id, file, walkable: !!state.walkable,
+        position,
+        camera: diagnostics?.camera || null,
+        cameraStable: !!cameraStability?.stable,
+        cameraStableMs: cameraStability?.elapsedMs ?? null,
+        framing: diagnostics?.framing || null,
+        cameraSettings: selectedView,
+        cameraAttempts,
+      };
+      result[variant].shots.push(entry);
+      if (!entry.cameraStable || !cameraValid) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': câmera inválida, instável ou fora da distância esperada';
+        report.errors.push(msg);
+      }
+      if (!entry.framing) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': camView indisponível; enquadramento não verificável';
+        report.errors.push(msg);
+      } else {
+        if (entry.framing.onScreen !== true) {
+          const msg = profileName + '/' + variant + '/' + shot.id + ': protagonista fora do quadro';
+          report.errors.push(msg);
+        }
+        if (isOccluded(entry.framing)) {
+          const msg = profileName + '/' + variant + '/' + shot.id + ': linha de visão bloqueada por ' +
+            (entry.framing.blocked.name || 'objeto') + ' a ' + entry.framing.blocked.dist.toFixed(2) + ' m';
+          report.errors.push(msg);
+        }
+      }
+      if (variant === 'candidate') {
+        if (baseline?.camera && cameraValid) {
+          const delta = Math.hypot(...diagnostics.camera.map((v, i) => v - baseline.camera[i]));
+          entry.cameraDeltaFromBaseline = +delta.toFixed(3);
+          if (delta > .5) {
+            const msg = profileName + '/' + shot.id + ': câmera A/B divergiu ' + delta.toFixed(2) + ' m';
+            report.errors.push(msg);
+          }
+        } else {
+          const msg = profileName + '/' + shot.id + ': não foi possível comparar a câmera A/B';
+          report.errors.push(msg);
+        }
+        if (baseline?.position?.every(Number.isFinite) && position.every(Number.isFinite)) {
+          const delta = Math.hypot(...position.map((v, i) => v - baseline.position[i]));
+          entry.playerDeltaFromBaseline = +delta.toFixed(3);
+          if (delta > .05) {
+            const msg = profileName + '/' + shot.id + ': posição XYZ do jogador divergiu ' + delta.toFixed(3) + ' m';
+            report.errors.push(msg);
+          }
+        } else {
+          const msg = profileName + '/' + shot.id + ': não foi possível comparar a posição XYZ do jogador';
+          report.errors.push(msg);
+        }
+        if (baseline?.framing?.onScreen !== true || entry.framing?.onScreen !== true) {
+          const msg = profileName + '/' + shot.id + ': protagonista não ficou enquadrado nos dois lados do A/B';
+          report.errors.push(msg);
+        }
+        if (!entry.walkable && baseline?.walkable) {
+          const msg = profileName + '/candidate/' + shot.id + ': perdeu walkability em relação à main';
+          result[variant].error = result[variant].error ? result[variant].error + '; ' + msg : msg;
+          report.errors.push(msg);
+        }
+      }
+    }
+    if (errs.length) {
+      result[variant].pageErrors = errs;
+      const real = errs.filter(e => !/KHR_parallel|PropertyBinding|WebGL/.test(e));
+      if (real.length) report.errors.push(profileName + '/' + variant + ': ' + real.slice(0, 3).join(' | '));
+    }
+    await ctx.close();
+  }
+  return result;
+}
 
 async function profile(browser, name, viewport, mobile) {
   const out = path.join(root, name); fs.mkdirSync(out, { recursive: true });
@@ -118,6 +301,32 @@ async function profile(browser, name, viewport, mobile) {
     browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--ignore-gpu-blocklist', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     await profile(browser, 'mobile', { width: 852, height: 393 }, true);
     if (!process.env.QA_ONLY_MOBILE) await profile(browser, 'desktop', { width: 1280, height: 720 }, false);
+    if (process.env.VISUAL_BASELINE_URL) {
+      report.clearingsAB = {
+        baselineSha: process.env.PR_BASE_SHA || null,
+        candidateSha: process.env.PR_HEAD_SHA || process.env.GITHUB_SHA || null,
+        conditions: { hour: 15, weather: 'limpo', randomSeed: '0xA3D11A', sameViewportAndCamera: false, samePlayerPosition: false, allActorsFramed: false },
+        profiles: {},
+      };
+      report.clearingsAB.profiles.mobile = await captureClearingsAB(browser, 'mobile', { width: 852, height: 393 }, true);
+      if (!process.env.QA_ONLY_MOBILE) report.clearingsAB.profiles.desktop = await captureClearingsAB(browser, 'desktop', { width: 1280, height: 720 }, false);
+      const abProfiles = Object.values(report.clearingsAB.profiles).filter(Boolean);
+      const allAbShots = abProfiles.flatMap(p => [...p.baseline.shots, ...p.candidate.shots]);
+      const candidateShots = abProfiles.flatMap(p => p.candidate.shots);
+      const expectedPairs = abProfiles.length * CLEARING_SHOTS.length;
+      const allStable = allAbShots.length === expectedPairs * 2 && allAbShots.every(s => s.cameraStable === true && Array.isArray(s.camera) && s.camera.length === 3 && s.camera.every(Number.isFinite));
+      const sameCamera = candidateShots.length === expectedPairs && candidateShots.every(s => Number.isFinite(s.cameraDeltaFromBaseline) && s.cameraDeltaFromBaseline <= .5);
+      const samePlayer = candidateShots.length === expectedPairs && candidateShots.every(s => Number.isFinite(s.playerDeltaFromBaseline) && s.playerDeltaFromBaseline <= .05);
+      const allFramed = allAbShots.length === expectedPairs * 2 && allAbShots.every(s => s.framing?.onScreen === true && !isOccluded(s.framing));
+      report.clearingsAB.conditions.sameViewportAndCamera = allStable && sameCamera;
+      report.clearingsAB.conditions.samePlayerPosition = samePlayer;
+      report.clearingsAB.conditions.allActorsFramed = allFramed;
+      if (!allStable) report.errors.push('A/B: pelo menos uma câmera não estabilizou na distância esperada ou não foi medida');
+      if (!sameCamera) report.errors.push('A/B: câmera candidata não corresponde à câmera baseline em todos os pontos');
+      if (!samePlayer) report.errors.push('A/B: posição XYZ do jogador não corresponde à baseline em todos os pontos');
+      if (!allFramed) report.errors.push('A/B: protagonista fora do quadro ou obstruído em pelo menos um enquadramento');
+      report.clearingsAB.status = report.errors.length ? 'failed' : 'captured';
+    }
     for (const [k, P] of Object.entries(report.profiles)) {
       const real = P.errors.filter(e => !/KHR_parallel|PropertyBinding|WebGL/.test(e)); if (real.length) report.errors.push(k + ': ' + real.slice(0, 3).join(' | '));
       const bad = P.nav.filter(n => !n.ok).map(n => n.id); if (bad.length) report.errors.push(k + ': navegação falhou em ' + bad.join(', '));

@@ -230,10 +230,14 @@ async function main(){
     assert.ok(h.obliqueRoi.water.p95 >= b.obliqueRoi.water.p95 - 1,'published silver highlights must be preserved');
     const sideGain=h.roi.water.mean-control.roi.water.mean;
     const grazingGain=h.obliqueRoi.water.mean-control.obliqueRoi.water.mean;
+    assert.ok(sideGain>1.05,'moderate-angle water must gain clearly readable sheen over perpendicular incidence');
     const highlightGain=h.obliqueRoi.water.p95-control.obliqueRoi.water.p95;
-    assert.ok(grazingGain>1.0,'grazing-angle water must gain visible sheen over perpendicular incidence');
-    assert.ok(highlightGain>2.5,'grazing-angle silver highlights must remain visible');
-    assert.ok(grazingGain>sideGain+.4,'grazing angle must respond more strongly than the moderate angle');
+    assert.ok(grazingGain>3.4,'grazing-angle water must gain visible sheen over perpendicular incidence');
+    assert.ok(highlightGain>10.0,'grazing-angle silver highlights must remain visible');
+    assert.ok(grazingGain>sideGain+.7,'grazing angle must respond more strongly than the moderate angle');
+    assert.ok(h.roi.water.mean-b.roi.water.mean>.8,'moderate-angle water must improve over the published main shader');
+    assert.ok(h.obliqueRoi.water.mean-b.obliqueRoi.water.mean>2.0,'grazing-angle water must improve over the published main shader');
+    assert.ok(h.obliqueRoi.water.p95-b.obliqueRoi.water.p95>6.0,'grazing-angle highlights must improve over the published main shader');
     assert.ok(Math.abs(h.obliqueRoi.horizon.mean-b.obliqueRoi.horizon.mean)<1.5,'black horizon must remain stable');
     report.comparison={
       sideGain,grazingGain,highlightGain,

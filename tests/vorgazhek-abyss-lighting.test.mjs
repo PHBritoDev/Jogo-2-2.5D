@@ -40,10 +40,10 @@ test('water adds a camera-local grazing reflection without allocating another sc
   assert.ok(source.includes('vec3 viewDelta=vec3(uCamera.xy-p,uCamera.z);'));
   assert.ok(source.includes('float invViewDistance=inversesqrt(max(dot(viewDelta,viewDelta),.000001));'));
   assert.ok(source.includes('float viewCos=clamp(abs(uCamera.z)*invViewDistance,0.0,1.0);'));
-  assert.ok(source.includes('float fresnel=grazing*grazing*grazing;'));
+  assert.ok(source.includes('float fresnel=grazing*grazing*(.60+.40*grazing);'));
   assert.doesNotMatch(source, /float viewDistance=max\(length\(vec3\(uCamera\.xy-p,uCamera\.z\)\),\.001\)/);
   assert.doesNotMatch(source, /pow\(1\.0-viewCos,3\.0\)/);
-  assert.ok(source.includes('float glancingReflection=fresnel*(.02+ribbons*.1375+silverPatch*.0625+gleam*.20);'));
+  assert.ok(source.includes('float glancingReflection=fresnel*(.02+ribbons*.37+silverPatch*.17+gleam*.54);'));
   assert.ok(source.includes('water.uniforms.uCamera.value.set(cameraPos.x,-cameraPos.z,cameraPos.y)'));
   assert.doesNotMatch(source, /new T\.(?:PointLight|DirectionalLight|HemisphereLight)/);
 });
@@ -74,23 +74,15 @@ test('runtime QA records landscape video at fixed size and captures portrait sep
   assert.match(runtimeQA, /report\.portraitState=/);
 });
 
-test('mobile Fresnel arithmetic preserves the previous angle response', () => {
-  const reference = (x,y,z) => {
-    const distance = Math.max(Math.hypot(x,y,z), .001);
-    const cosine = Math.max(0, Math.min(1, Math.abs(z) / distance));
-    return Math.pow(1 - cosine, 3);
-  };
-  const optimized = (x,y,z) => {
-    const inverseDistance = 1 / Math.sqrt(Math.max(x*x + y*y + z*z, .000001));
-    const cosine = Math.max(0, Math.min(1, Math.abs(z) * inverseDistance));
-    const grazing = 1 - cosine;
-    return grazing * grazing * grazing;
-  };
-  for (const x of [-110,-50,-5,0,5,50,110]) {
-    for (const y of [-110,-25,0,25,110]) {
-      for (const z of [.001,3.5,8,30]) {
-        assert.ok(Math.abs(reference(x,y,z)-optimized(x,y,z)) < 1e-12);
-      }
-    }
-  }
+test('mobile Fresnel soft knee improves moderate angles and remains monotonic', () => {
+  const cubic = grazing => grazing * grazing * grazing;
+  const softKnee = grazing => grazing * grazing * (.60 + .40 * grazing);
+  const samples = Array.from({ length: 101 }, (_, i) => i / 100);
+  assert.equal(softKnee(0), 0);
+  assert.equal(softKnee(1), 1);
+  assert.ok(samples.every((value, i) => value >= 0 && value <= 1 && (i === 0 || softKnee(value) >= softKnee(samples[i - 1]))));
+  assert.ok(softKnee(.35) > cubic(.35) * 2.0);
+  assert.ok(softKnee(.6) > cubic(.6));
+  assert.ok(softKnee(.8) > softKnee(.6));
+  assert.ok(softKnee(.8) < 1);
 });

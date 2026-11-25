@@ -58,6 +58,20 @@ jobs:
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
           ./tools/visual-lab/node_modules/.bin/playwright install chromium --only-shell
+      - name: Preparar baseline da base da PR para A/B das clareiras
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch origin "$BASE_SHA" --depth=1
+          git worktree add --detach /tmp/renascimento-baseline "$BASE_SHA"
+          python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/renascimento-baseline >/tmp/ren-base.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4174/mundo-3d-prototype.html -o /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ren-base.log
+          exit 1
       - name: Servir o jogo de teste sem publicar
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ren.log 2>&1 &
@@ -68,6 +82,11 @@ jobs:
           cat /tmp/ren.log
           exit 1
       - name: QA jogável em paisagem mobile e desktop (SwiftShader, não Android)
+        env:
+          VISUAL_BASE_URL: http://127.0.0.1:4173
+          VISUAL_BASELINE_URL: ${{ github.event_name == 'pull_request' && 'http://127.0.0.1:4174' || '' }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/renascimento-f1-qa.cjs
       - name: Publicar evidências
         if: always()

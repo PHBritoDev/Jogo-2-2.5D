@@ -220,6 +220,10 @@ export function migrateProgress(raw) {
   return { ...base, coins };
 }
 
+const VENDOR_FIRST_NAME = 'Téo';
+const VENDOR_ROLE = 'Provisões';
+const VENDOR_LABEL = `${VENDOR_FIRST_NAME} · ${VENDOR_ROLE}`;
+
 /** Texto do HUD de missão para cada etapa (e sub-etapa) do Ato I. */
 export function questPresentation(step, sub = 0) {
   // Bad values from an old save must not display a future mission checkpoint.
@@ -227,7 +231,7 @@ export function questPresentation(step, sub = 0) {
   const pages = {
     0: ['ATO I · O PREÇO DE UMA VIDA', 'Fale com o Anjo-Guia'],
     1: safeSub >= 1
-      ? ['ATO I · A VILA DA CLAREIRA', 'Pergunte ao vendedor de frutas sobre o Pecado da Ganância']
+      ? ['ATO I · A VILA DA CLAREIRA', `Pergunte a ${VENDOR_FIRST_NAME} sobre o Pecado da Ganância`]
       : ['ATO I · O PREÇO DE UMA VIDA', 'Siga a trilha até a pequena vila e fale com um vendedor'],
     2: ['ATO I · A FLORESTA À NOITE', 'Investigue o choro de crianças na floresta'],
     3: safeSub >= 2
@@ -254,7 +258,7 @@ export function combatStep(step) {
 
 /* ---------- Falas (texto revisado; o original está em docs/roteiro/M2-ATO1.md) ---------- */
 export const SPEAKERS = {
-  hero: 'heroi', guide: 'Anjo-Guia', vendor: 'Téo · Provisões', follower: 'Seguidor da Ganância',
+  hero: 'heroi', guide: 'Anjo-Guia', vendor: VENDOR_LABEL, follower: 'Seguidor da Ganância',
   demon: 'Demônio da Ganância', child: 'Criança', warden: 'Guardião do Portal', vhazrael: 'VHAZRAEL', victim: 'Morador'
 };
 const S = SPEAKERS;
