@@ -29,13 +29,14 @@ function focusHandoffSweep(fps){
   event:(type,data)=>{if(type==='impact')impacts.push(data);}
  });
  assert.equal(rites.attack('prota',{target:outgoing}),true);
- const dt=1/fps,travel=PROTA_DASH.distance/PROTA_DASH.travel*dt;
- outgoing.x=-travel*.46;
+ const dt=1/fps,travel=PROTA_DASH.distance/PROTA_DASH.travel*dt,fraction=fps===20?.5:.58;
+ outgoing.x=-travel*fraction;
  // Production shape: the focused actor is absent from others; only the new focus is excluded after handoff.
  rites.update(dt,{from:{x:0,y:0,z:0},target:outgoing,others:[incoming],sword:'prota',grounded:true});
- outgoing.x=travel*.46;
+ const hitsBeforeHandoff=hits.length;
+ outgoing.x=travel*fraction;
  rites.update(dt,{from:{x:0,y:0,z:0},target:incoming,others:[outgoing],sword:'prota',grounded:true});
- return{hits,impacts};
+ return{hits,impacts,hitsBeforeHandoff};
 }
 function movingSecondarySweep(fps,{blocked=()=>false,fromX=null,toX=null}={}){
  const focus=enemy('focus',20,20),side=enemy('side',-1,3);side.radius=.35;
@@ -63,6 +64,7 @@ test('one physical swing damages primary and secondary capsule once, never dista
 test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
  for(const fps of [20,30]){
   const result=focusHandoffSweep(fps);
+  assert.equal(result.hitsBeforeHandoff,0,'FPS '+fps+': the outgoing focus starts outside the blade before the handoff');
   assert.deepEqual(result.hits.map(h=>h.id),['outgoing-focus'],'FPS '+fps+': the old focus must still be swept after it becomes secondary');
   assert.equal(result.impacts.length,1,'FPS '+fps+': focus handoff must produce one real impact');
  }
