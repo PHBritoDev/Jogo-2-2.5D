@@ -293,3 +293,18 @@ test('two-shot narrativo mantém o lado preferido livre e troca quando há barra
   assert.deepEqual(visibleAlternative.visibleActors, [true, true],
     'o lado alternativo precisa manter os dois atores visíveis');
 });
+
+
+test('two-shot verifica oclusão 3D da cobertura, não apenas a pegada no chão', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, cameraHeight: 3.5, targetHeight: 1.45,
+    blockedAt: () => false,
+    // Simula a cobertura que avança sobre o vendedor no lado preferido.
+    visibleAt: camera => camera.x > 0
+  });
+  assert.equal(framing.side, 1, 'trocar de lado quando a geometria 3D encobre os atores');
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.equal(framing.camera.y, 3.5);
+  assert.equal(framing.target.y, 1.45);
+});
