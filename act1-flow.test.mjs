@@ -400,3 +400,15 @@ test('two-shot procura um deslocamento longitudinal quando os dois lados laterai
   assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
   assert.ok(framing.attempts.length > 1, 'a busca deve registrar as alternativas testadas');
 });
+
+
+test('two-shot aceita mira baixa para manter os atores acima do painel cinematográfico', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, targetHeight: 0.3,
+    blockedAt: () => false
+  });
+  assert.equal(framing.targetHeight, 0.3);
+  assert.equal(framing.target.y, 0.3);
+  assert.equal(framing.complete, true);
+});

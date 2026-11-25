@@ -8,6 +8,7 @@ on:
       - 'map3d.test.mjs'
       - 'mundo-3d-prototype.js'
       - 'story-camera-layout.js'
+      - 'cine3d.css'
       - 'tools/qa/a5-waystone-gameplay.cjs'
       - 'tools/qa/a5-waystone-qa-utils.cjs'
       - 'tools/qa/a5-waystone-qa-utils.test.cjs'

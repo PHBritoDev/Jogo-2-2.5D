@@ -732,13 +732,14 @@ async function exposePathfinder() {
       const hero = D.heroState().p;
       const vendor = D.sideQuestQA().vendors.find(v => v.shortName === 'PROVISÕES');
       const camera = D.cam();
+      const story = D.storyState();
       const dx = vendor.x - hero[0], dz = vendor.z - hero[2], length = Math.hypot(dx, dz) || 1;
       const mx = (hero[0] + vendor.x) * .5, mz = (hero[2] + vendor.z) * .5;
       const sideProjection = (camera[0] - mx) * (dz / length) + (camera[2] - mz) * (-dx / length);
       return { hero: [hero[0], hero[2]], vendor: [vendor.x, vendor.z], camera,
         horizontalDistance: +Math.hypot(camera[0] - mx, camera[2] - mz).toFixed(3),
         sideProjection: +sideProjection.toFixed(3), cameraSide: sideProjection < 0 ? -1 : 1,
-        twoShot: D.storyState().twoShot };
+        twoShot: story.twoShot, dialogueLayout: story.dialogueLayout };
     });
     report.mainQuestPrompt = {
       ...report.mainQuestPrompt,
@@ -761,6 +762,13 @@ async function exposePathfinder() {
     assert.ok(vendorFraming.twoShot?.visibilitySamples?.length === 2 &&
       vendorFraming.twoShot.visibilitySamples.every(samples => samples === 4),
       'o enquadramento ainda deixa parte do corpo sob a cobertura; exige 4/4 pontos por ator: ' + JSON.stringify(vendorFraming));
+    const dialogueLayout = vendorFraming.dialogueLayout;
+    assert.ok(dialogueLayout?.panel && dialogueLayout.actors?.hero?.length === 4 && dialogueLayout.actors?.vendor?.length === 4,
+      'o QA não recebeu a projeção dos dois atores contra o painel cinematográfico: ' + JSON.stringify(vendorFraming));
+    for (const [actor, points] of Object.entries(dialogueLayout.actors)) {
+      assert.ok(points.every(point => point.insideViewport && point.y <= dialogueLayout.panel.top - 8),
+        actor + ' ficou fora da área segura ou atrás do painel #cine-say: ' + JSON.stringify({ panel: dialogueLayout.panel, points }));
+    }
 
     // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
     // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.

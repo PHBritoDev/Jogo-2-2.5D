@@ -19,7 +19,7 @@ export function chooseStoryTwoShotSide({
   const count = Math.max(2, Math.floor(Number.isFinite(samples) ? samples : 14));
   const arm = Math.max(0, Number.isFinite(distance) ? distance : 4);
   const lift = Math.max(1.6, Number.isFinite(cameraHeight) ? cameraHeight : 3.5);
-  const look = Math.max(.8, Number.isFinite(targetHeight) ? targetHeight : 1.45);
+  const look = Math.max(.2, Number.isFinite(targetHeight) ? targetHeight : 1.45);
   const baseY = ((Number.isFinite(a.y) ? a.y : 0) + (Number.isFinite(b.y) ? b.y : 0)) * .5;
   const trace = (from, to, skipEnd = 0) => {
     const dx = to.x - from.x, dz = to.z - from.z, length = Math.hypot(dx, dz);
