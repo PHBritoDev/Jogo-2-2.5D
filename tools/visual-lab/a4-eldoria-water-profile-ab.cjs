@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
 const sharp = require('sharp');
 
 const baseSha = process.env.BASE_SHA || '';
-const candidateSha = process.env.GITHUB_SHA || 'local';
+const candidateSha = process.env.CANDIDATE_SHA || process.env.GITHUB_SHA || 'local';
 const baseUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173';
 const out = path.resolve('visual-lab-results/a4-water-profile-ab');
 fs.mkdirSync(out, { recursive: true });
