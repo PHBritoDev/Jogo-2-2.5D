@@ -370,7 +370,7 @@ const waterMaterials=[eldoriaRiver.material,eldoriaLake.material,eldoriaFalls.ma
 const eldoriaBridge=buildBridge(THREE,BRIDGE,{level:RIVER.level,lowSpec:terrainLowSpec});scene.add(eldoriaBridge);
 /* Ponte.glb (asset do criador) substitui a ponte procedural de reserva: escala pelo vão, tabuleiro medido por raio para
    a caminhada (bridgeDeck usa a mesma curva) e cabeceiras assentadas no barranco. */
-const cameraOccluders=[],camRay=new THREE.Raycaster(),camRayO=new THREE.Vector3(),camRayD=new THREE.Vector3(); // RENASCIMENTO F1: malhas grandes que o braço da câmera não atravessa (raio só quando o herói está perto)
+const cameraOccluders=[],storyMarketOccluders=[],camRay=new THREE.Raycaster(),camRayO=new THREE.Vector3(),camRayD=new THREE.Vector3(); // RENASCIMENTO F1: malhas grandes que o braço da câmera não atravessa (raio só quando o herói está perto)
 new GLTFLoader().load('./Ponte.glb',gltf=>{clampBakedMips(THREE,gltf.scene,terrainLowSpec?4:3.5);const m=gltf.scene,b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),k=BRIDGE.halfLength*2.18/Math.max(.01,sz.x);
  m.scale.setScalar(k);m.position.set(-c.x*k,-b.min.y*k,-c.z*k);const g=new THREE.Group();g.add(m);g.rotation.y=Math.atan2(-BRIDGE.axisZ,BRIDGE.axisX);g.position.set(BRIDGE.x,0,BRIDGE.z);scene.add(g);g.updateMatrixWorld(true);cameraOccluders.push({obj:g,x:BRIDGE.x,z:BRIDGE.z,r:BRIDGE.halfLength+14});
  m.traverse(o=>{if(o.isMesh){o.castShadow=!terrainLowSpec;o.receiveShadow=true;}});
@@ -4472,6 +4472,23 @@ const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feed
 const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME]:'guide',[GUIDE_PUBLIC_NAME]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
+const storyMarketRay=new THREE.Raycaster(),storyMarketFrom=new THREE.Vector3(),storyMarketTo=new THREE.Vector3(),storyMarketDirection=new THREE.Vector3();
+function storyMarketVisible(cameraPoint,actorPoint){
+ if(!storyMarketOccluders.length)return true;
+ storyMarketFrom.set(cameraPoint.x,cameraPoint.y,cameraPoint.z);
+ storyMarketTo.set(actorPoint.x,actorPoint.y,actorPoint.z);
+ storyMarketDirection.subVectors(storyMarketTo,storyMarketFrom);
+ const length=storyMarketDirection.length();if(length<.2)return true;
+ storyMarketDirection.multiplyScalar(1/length);storyMarketRay.set(storyMarketFrom,storyMarketDirection);
+ storyMarketRay.near=.05;storyMarketRay.far=Math.max(.05,length-.35);
+ for(const oc of storyMarketOccluders){
+  if(oc.bounds?.containsPoint(storyMarketFrom))return false;
+  if(Math.hypot(storyMarketFrom.x-oc.x,storyMarketFrom.z-oc.z)>oc.r+length)continue;
+  const hit=storyMarketRay.intersectObject(oc.obj,true)[0];
+  if(hit&&hit.distance<length-.35)return false;
+ }
+ return true;
+}
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
 function actorObj(key){if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[1]||null;return null;}
 function actorPos(key,out){
@@ -4483,9 +4500,9 @@ function actorYaw(key){if(key==='hero')return playerYaw;const a=storyAnchors[key
 function actorLocal(key,off,out){actorPos(key,out);const yaw=actorYaw(key),s=Math.sin(yaw),c=Math.cos(yaw);out.x+=off[0]*c+off[2]*s;out.y+=off[1];out.z+=-off[0]*s+off[2]*c;return out;}
 function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=target.z-obj.position.z;if(Math.hypot(dx,dz)<.01)return;const yaw=Math.atan2(dx,dz);if(obj===player){playerYaw=yaw;player.rotation.y=yaw;}else obj.rotation.y=yaw;}
 function playStory(id,steps,opts){
- opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,twoStable:!!opts.twoStable,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4};
+ opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,twoStable:!!opts.twoStable,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4,twoCameraHeight:Number.isFinite(opts.twoCameraHeight)?Math.max(2.4,opts.twoCameraHeight):3.5,twoTargetHeight:Number.isFinite(opts.twoTargetHeight)?Math.max(1,opts.twoTargetHeight):1.45};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
- if(storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z),distance=Math.max(storyScene.twoDist,span*1.25);const framing=chooseStoryTwoShotSide({a:{x:a.x,z:a.z},b:{x:b.x,z:b.z},preferredSide:storyScene.side,distance,blockedAt});storyScene.side=framing.side;storyScene.twoClearSamples=framing.clearSamples;}
+ if(storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z),distance=Math.max(storyScene.twoDist,span*1.25);const framing=chooseStoryTwoShotSide({a:{x:a.x,y:a.y,z:a.z},b:{x:b.x,y:b.y,z:b.z},preferredSide:storyScene.side,distance,cameraHeight:storyScene.twoCameraHeight,targetHeight:storyScene.twoTargetHeight,blockedAt,visibleAt:storyMarketVisible});storyScene.side=framing.side;storyScene.twoClearSamples=framing.clearSamples;storyScene.twoVisibleActors=framing.visibleActors;}
  cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
  if(opts.skippable===false)cineEl('cine-skip').hidden=true;
  cineDirector.play(id,steps,null,{skippable:opts.skippable!==false});
@@ -4513,7 +4530,7 @@ function updateStoryCine(dt,now){
   const S=st.actor||SPEAKER_ACTOR[st.who]||'hero',L=S==='hero'?storyScene&&storyScene.focus:'hero';
   const sp=actorPos(S,_sa),lp=actorPos(L||'hero',_sb);let dx=sp.x-lp.x,dz=sp.z-lp.z;const d=Math.hypot(dx,dz);
   if(!L||L===S||d<.4){const yaw=actorYaw(S);dx=Math.sin(yaw);dz=Math.cos(yaw);storyCam(sp.x+dx*2.4,sp.y+STORY_EYE[S]+.1,sp.z+dz*2.4,sp.x,sp.y+STORY_EYE[S]-.1,sp.z,3,dt);return;}
-  if(storyScene&&storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z);if(span>.01){const ux=(b.x-a.x)/span,uz=(b.z-a.z)/span,rx=uz,rz=-ux,mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,my=(a.y+b.y)/2,dist=Math.max(storyScene.twoDist||3.4,span*1.25),side=storyScene.side||1;storyCam(mx+rx*side*dist+ux*.6,my+1.75,mz+rz*side*dist+uz*.6,mx+ux*.5,my+1.35,mz+uz*.5,3,dt);return;}}
+  if(storyScene&&storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z);if(span>.01){const ux=(b.x-a.x)/span,uz=(b.z-a.z)/span,rx=uz,rz=-ux,mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,my=(a.y+b.y)/2,dist=Math.max(storyScene.twoDist||3.4,span*1.25),side=storyScene.side||1;storyCam(mx+rx*side*dist+ux*.6,my+(storyScene.twoCameraHeight||3.5),mz+rz*side*dist+uz*.6,mx+ux*.5,my+(storyScene.twoTargetHeight||1.45),mz+uz*.5,3,dt,true);return;}}
   dx/=d;dz/=d;const rx=dz,rz=-dx,back=Math.min(2.2,1.2+d*.18);
   // O Anjo é alto e tem asas: com ele na cena, plano lateral dos dois (sem câmera atrás das asas).
   if(L==='guide'||S==='guide'||(storyScene&&storyScene.two)){const mx=(sp.x+lp.x)/2,mz=(sp.z+lp.z)/2,my=(sp.y+lp.y)/2,side=storyScene&&storyScene.side||1,dist=Math.max(storyScene&&storyScene.twoDist||3.4,d*1.25);storyCam(mx+rx*side*dist+dx*.6,my+1.75,mz+rz*side*dist+dz*.6,mx+dx*.5,my+1.35,mz+dz*.5,3,dt);return;}
@@ -4523,7 +4540,7 @@ function updateStoryCine(dt,now){
  const a=st.args||{},u=cineU,e=cineSmooth(u),L3=THREE.MathUtils.lerp;
  if(a.cam==='interior'&&road.cart){cartInteriorCam(a.look||'guide',dt,!!a.doze,u);return;}
  if(a.cam==='crane'){const o=actorPos(a.anchor,_sc),f=a.from,to=a.to,lf=a.lookFrom,lt=a.lookTo;cineCam(o.x+L3(f[0],to[0],e),o.y+L3(f[1],to[1],e),o.z+L3(f[2],to[2],e),o.x+L3(lf[0],lt[0],e),o.y+L3(lf[1],lt[1],e),o.z+L3(lf[2],lt[2],e),0,dt);return;}
- if(a.cam==='two'){const p=actorPos(a.a,_sa),q=actorPos(a.b,_sb);let dx=q.x-p.x,dz=q.z-p.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const side=storyScene&&storyScene.twoStable?storyScene.side:(a.side||1),dist=(a.dist||4)+e*.4;const mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,my=(p.y+q.y)/2;storyCam(mx+dz*side*dist,my+1.6,mz-dx*side*dist,mx,my+1.15,mz,0,dt);return;}
+ if(a.cam==='two'){const p=actorPos(a.a,_sa),q=actorPos(a.b,_sb);let dx=q.x-p.x,dz=q.z-p.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const stable=!!(storyScene&&storyScene.twoStable),side=stable?storyScene.side:(a.side||1),dist=stable?Math.max(storyScene.twoDist||a.dist||4,d*1.25):(a.dist||4)+e*.4;const mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,my=(p.y+q.y)/2,rx=dz,rz=-dx,cx=mx+rx*side*dist+(stable?dx*.6:0),cz=mz+rz*side*dist+(stable?dz*.6:0),tx=mx+(stable?dx*.5:0),tz=mz+(stable?dz*.5:0),camY=my+(stable?storyScene.twoCameraHeight||3.5:1.6),lookY=my+(stable?storyScene.twoTargetHeight||1.45:1.15);storyCam(cx,camY,cz,tx,lookY,tz,0,dt,stable);return;}
  if(a.cam==='look'||a.cam==='follow'){const p=actorLocal(a.on,a.off,_sa),q=actorLocal(a.on,a.at||[0,1,0],_sb);storyCam(p.x,p.y,p.z,q.x,q.y,q.z,a.cam==='follow'?5:0,dt,a.off[1]>4);return;}
  if(a.cam==='orbit'){const c=actorPos(a.on,_sa),yaw=actorYaw(a.on)+L3(a.from||0,a.to||1,e);storyCam(c.x+Math.sin(yaw)*a.r,c.y+a.h,c.z+Math.cos(yaw)*a.r,c.x,c.y+.6,c.z,0,dt);return;}
  cineCam(cinePos.x,cinePos.y,cinePos.z,cineLook.x,cineLook.y,cineLook.z,0,dt);
@@ -5197,6 +5214,13 @@ function buildAct1Props(){
   lamps:[], // MOD 316: os 10 postes/lanternas de caixa saíram; a praça usa só as 2 tochas GLB
   isFree:(x,z)=>!trailRoutes.some(r=>closeToPolyline(x,z,r.points,r.width*.5+.5))&&!closeToPolyline(x,z,RIVER_POINTS,RIVER.width+1)&&!marketObstacles.some(o=>Math.hypot(o.x-x,o.z-z)<(o.radius||1)+.4)});
  eldoriaCity.complete.then(report=>{
+   const storyMarketWorldPos=new THREE.Vector3(),storyMarketBounds=new THREE.Box3(),storyMarketSize=new THREE.Vector3();
+   for(const obj of report.root.children){
+     if(!String(obj.name||'').startsWith('Eldoria_market_'))continue;
+     obj.updateWorldMatrix(true,true);obj.getWorldPosition(storyMarketWorldPos);
+     storyMarketBounds.setFromObject(obj);storyMarketBounds.getSize(storyMarketSize);
+     storyMarketOccluders.push({obj,x:storyMarketWorldPos.x,z:storyMarketWorldPos.z,r:Math.max(storyMarketSize.x,storyMarketSize.z)*.75+1,bounds:storyMarketBounds.clone()});
+   }
    window.EldoriaLiveCityQA={loaded:report.loaded,expected:report.expected,failures:report.failures,
      village:{...VILLAGE_CENTER},spawnDistance:+Math.hypot(FALL_SPOT.x-VILLAGE_CENTER.x,FALL_SPOT.z-VILLAGE_CENTER.z).toFixed(1),
      overlaps:report.overlaps,market:marketStalls.map(m=>({label:m.label,x:+m.x.toFixed(1),z:+m.z.toFixed(1)})),well:{x:VILLAGE_CENTER.x-1.4,z:VILLAGE_CENTER.z-.6},fountain:{x:VILLAGE_CENTER.x+ELDORIA_DRY_FOUNTAIN.x,z:VILLAGE_CENTER.z+ELDORIA_DRY_FOUNTAIN.z},grounding:report.grounding,lodDistance:report.lodDistance,lodAudit:report.lodAudit,maxSlope:Math.max(0,...report.grounding.map(g=>g.slope)),lods:report.grounding.filter(g=>g.lod).length};
