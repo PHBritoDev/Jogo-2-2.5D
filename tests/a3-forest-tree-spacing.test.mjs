@@ -21,6 +21,8 @@ test('forest retains dense natural clusters without overlapping tree trunks', ()
   assert.ok(trees.some(tree => tree.kind === 'oak'));
   assert.ok(trees.some(tree => tree.kind === 'conifer'));
   assert.ok(trees.some(tree => tree.kind === 'round'));
+  const previous = scatterForest(terrain, { seed: 9137, attempts: 2600 });
+  assert.deepEqual(trees.slice(0, previous.length), previous, 'existing tree transforms must survive the density update');
   verifySpacing(trees);
   assert.deepEqual(trees, scatterForest(terrain, { seed: 9137 }), 'placements must remain deterministic');
 });
@@ -28,6 +30,9 @@ test('forest retains dense natural clusters without overlapping tree trunks', ()
 test('low spec and route exclusion retain spacing and clear protected paths', () => {
   const terrain = createTerrain();
   const trees = scatterForest(terrain, { seed: 9137, lowSpec: true, isFree: (x, z) => Math.hypot(x, z + 64) > 60 });
+  assert.deepEqual(trees, scatterForest(terrain, {
+    seed: 9137, attempts: 2600, lowSpec: true, isFree: (x, z) => Math.hypot(x, z + 64) > 60
+  }), 'low-detail distribution must retain its original budget and transforms');
   assert.ok(trees.length > 100);
   assert.ok(trees.every(tree => Math.hypot(tree.x, tree.z + 64) > 60));
   verifySpacing(trees);
