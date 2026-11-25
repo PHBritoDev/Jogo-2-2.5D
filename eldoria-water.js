@@ -73,9 +73,10 @@ void main(){
   // Mod 327 — reflexo colorido e animado da aurora: depende da direção refletida (visão + ondulação), sem espelho
   if (uAurK > .001) {
     float aUp = smoothstep(.04, .5, R.y), aurWarp;
-    // Perfil baixo: uma oitava de ruído em vez das quatro do FBM completo; o uniforme evita recompilar o shader.
-    if (uAurLow > .5) aurWarp = vn(vWorld.xz * .05 + uAurT * .03) * 2.4;
-    else aurWarp = fbm(vWorld.xz * .05 + uAurT * .03) * 2.4;
+    // Perfil baixo: duas primeiras oitavas (50% menos ruído); a amplitude normalizada preserva o movimento amplo.
+    vec2 aurP = vWorld.xz * .05 + uAurT * .03;
+    if (uAurLow > .5) aurWarp = (vn(aurP) * .5 + vn(aurP * 2.03 + 11.7) * .25) * 3.0;
+    else aurWarp = fbm(aurP) * 2.4;
     float curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + aurWarp);
     float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23);
     col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5);
