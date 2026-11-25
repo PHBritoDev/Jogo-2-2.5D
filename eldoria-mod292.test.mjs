@@ -151,6 +151,10 @@ test('cinturão: espécies em manchas, espaçamento por estrato e respeito à fu
 test('QA A/B da árvore lateral enquadra as raízes e inclui desktop', () => {
   const sweep = readFileSync(new URL('./tools/visual-lab/eldoria-city-sweep.cjs', import.meta.url), 'utf8');
   assert.match(sweep, /name:"arvore-lateral",x:14\.8,z:-58\.5,up:4\.5,back:28,targetY:\.35/);
-  assert.match(sweep, /const spots = \[[\s\S]*?\btreeSpot,/);
+  const baselineFn = sweep.slice(sweep.indexOf('async function captureMainBaseline'), sweep.indexOf('\n}\n\n(async()=>'));
+  const declaration = baselineFn.indexOf('const treeSpot=');
+  const tryBlock = baselineFn.indexOf('try{');
+  const resultUse = baselineFn.indexOf('report.treeRootSinkAB=');
+  assert.ok(declaration >= 0 && declaration < tryBlock && declaration < resultUse, 'treeSpot must stay in captureMainBaseline function scope');
   assert.match(sweep, /spots\.filter\(\(_,i\)=>\[0,1,4,6,7,8,9\]\.includes\(i\)\)/);
 });
