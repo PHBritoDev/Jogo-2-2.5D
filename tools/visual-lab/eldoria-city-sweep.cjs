@@ -17,26 +17,39 @@ const spots = [
  {name:"fonte-quase-seca",x:CENTER.x-7.5,z:CENTER.z+7.5,up:6,back:9},
  {name:"passarela-e-escadas",x:6,z:-62,up:16,back:21},
  {name:"arvore-ancestral",x:-13.2,z:-70.5,up:11,back:18},
+ {name:"arvore-lateral",x:14.8,z:-58.5,up:4.5,back:28,targetY:.35},
  {name:"floresta-contorno",x:34,z:-56,up:17,back:22}
 ];
 const report = {status:"incomplete",cases:[],errors:[],consoleErrors:[],browser:"Chromium WebGL (SwiftShader); NOT physical Android"};
 const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
 
 async function captureMainBaseline(browser,base,output,report){
+ const treeSpot={x:14.8,z:-58.5,up:4.5,back:28,targetY:.35};
  const file=process.env.A3_BASELINE_TERRAIN_FILE;
- if(!file||!fs.existsSync(file))throw Error("Main baseline source missing: "+file);
+ const cityFile=process.env.A3_BASELINE_CITY_FILE;
+ if(!file||!fs.existsSync(file))throw Error("Main terrain baseline source missing: "+file);
+ if(!cityFile||!fs.existsSync(cityFile))throw Error("Main live-village baseline source missing: "+cityFile);
  const source=fs.readFileSync(file,"utf8");
- const baseline={sha:process.env.A3_BASELINE_SHA||"unknown",viewport:{width:852,height:480,coarsePointer:true},moduleRouteHits:[],cases:[]};
+ const citySource=fs.readFileSync(cityFile,"utf8");
+ const baseline={sha:process.env.A3_BASELINE_SHA||"unknown",viewport:{width:852,height:480,coarsePointer:true},moduleRouteHits:[],cityModuleRouteHits:[],cases:[],cityCases:[]};
  const dir=path.join(output,"baseline-main");fs.mkdirSync(dir,{recursive:true});
  const context=await browser.newContext({viewport:{width:852,height:480},deviceScaleFactor:1,isMobile:true,hasTouch:true});
  const page=await context.newPage();
  page.on("pageerror",e=>report.errors.push("baseline: "+e.message.slice(0,350)));
  page.on("console",m=>{if(m.type()==="error")report.consoleErrors.push("baseline: "+m.text().slice(0,350));});
  await page.route(/world3d-terrain\.js(?:\?|$)/,async route=>{baseline.moduleRouteHits.push(route.request().url());await route.fulfill({status:200,contentType:"text/javascript; charset=utf-8",body:source});});
+ await page.route(/eldoria-live-village3d\.js(?:\?|$)/,async route=>{baseline.cityModuleRouteHits.push(route.request().url());await route.fulfill({status:200,contentType:"text/javascript; charset=utf-8",body:citySource});});
  try{
   await page.goto(base+"/mundo-3d-prototype.html?debug3d=1&qaEldoria=1",{waitUntil:"domcontentloaded",timeout:35000});
   const ready=await page.waitForFunction(()=>{const x=document.getElementById("loading")?.textContent||"";if(x.includes("Falha ao montar o mundo 3D"))return "failed";return window.SevenSinsDebug3D?.fly&&window.EldoriaLiveCityQA?"ready":false;},null,{timeout:120000}).then(h=>h.jsonValue());
   if(ready!=="ready")throw Error("Main baseline world did not load: "+ready);
+  await page.evaluate(s=>{const api=window.SevenSinsDebug3D;api.freeRoam();api.fly([s.x+s.back*.46,s.up,s.z+s.back],[s.x,s.targetY??2,s.z]);},treeSpot);
+  await page.waitForTimeout(850);
+  const treeCamera=await page.evaluate(()=>window.SevenSinsDebug3D.cam());
+  const treeImage=path.join(dir,"arvore-lateral.png");
+  await page.screenshot({path:treeImage,timeout:65000,animations:"disabled"});
+  baseline.cityCases.push({name:"arvore-lateral",image:path.relative(output,treeImage),camera:treeCamera});
+  await page.evaluate(()=>{const api=window.SevenSinsDebug3D;api.teleport(-12.2,-44.5,0);api.freeRoam();});
   const device=await page.evaluate(()=>{const api=window.SevenSinsDebug3D;api.seamMode(true);return{coarsePointer:matchMedia("(pointer: coarse)").matches,innerWidth,innerHeight};});
   baseline.viewport=device;
   if(!(device.coarsePointer||device.innerWidth<700))throw Error("Main baseline did not activate the mobile terrain preset");
@@ -90,7 +103,15 @@ async function captureMainBaseline(browser,base,output,report){
   }
  }finally{await context.close();}
  if(!baseline.moduleRouteHits.length)throw Error("Playwright did not intercept world3d-terrain.js; main baseline is invalid");
+ if(!baseline.cityModuleRouteHits.length)throw Error("Playwright did not intercept eldoria-live-village3d.js; main tree baseline is invalid");
  report.baselineMain=baseline;
+ const baseTree=baseline.cityCases.find(c=>c.name==="arvore-lateral");
+ const prTree=report.cases.find(c=>c.preset==="android-landscape"&&c.name==="arvore-lateral");
+ const a=baseTree?.camera||[],b=prTree?.camera||[];
+ const cameraDelta=a.length===b.length&&a.length?Math.max(...a.map((v,i)=>Math.abs(v-b[i]))):Infinity;
+ const cameraMatch=cameraDelta<=.05;
+ report.treeRootSinkAB={mainSha:baseline.sha,baselineImage:baseTree?.image||null,candidateImage:prTree?.image||null,cameraDelta,cameraMatch,cameraPreset:"ground-root",cameraHeight:treeSpot.up,cameraBack:treeSpot.back,cameraTargetY:treeSpot.targetY};
+ if(!cameraMatch)report.errors.push("A/B camera mismatch for side ancestral tree: "+cameraDelta);
  const prCases=report.cases.filter(c=>c.preset==="android-landscape"&&c.terrainEdge);
  report.abComparisons=baseline.cases.map(mainCase=>{
   const prCase=prCases.find(c=>c.name===mainCase.name),a=mainCase.terrainEdge,b=prCase?.terrainEdge;
@@ -119,16 +140,17 @@ async function captureMainBaseline(browser,base,output,report){
      return {city:window.EldoriaLiveCityQA,structure:treeStructurePlan({x:-12.2,z:-44.5}),cull:a.cullInfo()?.length};
    });
    report[preset.name]={plan,video:null};
-   for(const s of (preset.name==="desktop" ? spots.filter((_,i)=>[0,1,4,6,7].includes(i)) : spots)) {
-     const data=await page.evaluate(({x,z,up,back})=>{
+   for(const s of (preset.name==="desktop" ? spots.filter((_,i)=>[0,1,4,6,7,8,9].includes(i)) : spots)) {
+     const data=await page.evaluate(({x,z,up,back,targetY})=>{
        const api=window.SevenSinsDebug3D;
-       api.fly([x+back*.46,up,z+back],[x,2,z]);return {state:api.state(),camera:api.cam(),meshes:api.villageMeshes()?.slice(0,6),cull:api.cullInfo()?.slice(0,3)};
+       api.fly([x+back*.46,up,z+back],[x,targetY??2,z]);return {state:api.state(),camera:api.cam(),meshes:api.villageMeshes()?.slice(0,6),cull:api.cullInfo()?.slice(0,3)};
      },s);
      await page.waitForTimeout(850);
      const filename=path.join(dir,safe(s.name)+".png");
      await page.screenshot({path:filename,timeout:65000,animations:"disabled"});
      const actual=await page.evaluate(()=>({fps:document.body.innerText.match(/\b\d{1,3}\s*FPS\b/)?.[0]||null,sceneVisible:!!document.querySelector("#scene"),quality:document.getElementById("graphics-status-3d")?.textContent||null}));
-     report.cases.push({preset:preset.name,name:s.name,image:path.relative(output,filename),...actual,drawCalls:data.state?.calls,triangles:data.state?.triangles});
+     const camera=s.name==="arvore-lateral"?await page.evaluate(()=>window.SevenSinsDebug3D.cam()):null;
+     report.cases.push({preset:preset.name,name:s.name,image:path.relative(output,filename),...actual,drawCalls:data.state?.calls,triangles:data.state?.triangles,...(camera?{camera}:{})});
    }
    // A3: fotografa as quatro costuras na mesma página WebGL do vídeo.
    // Um segundo contexto Chromium/SwiftShader excedeu 120 s ao montar a mesma cena; reutilizar a página evita duplicar GPU/memória.

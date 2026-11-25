@@ -4,8 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { ELDORIA_CENTER, RIVER_POINTS, RIVER, BRIDGE, bridgeDeck, CART_ROUTE, ELDORIA_DROP, TEREN_ROAD } from './act1-world-layout.js';
-import { ELDORIA_HOUSES, ELDORIA_SMITHY, ELDORIA_STREETS, ELDORIA_MAIN_TREE, ELDORIA_SIDE_TREE, ANCESTRAL_ROOT_SPREAD, yawFacing, doorDirection, doorstep, doorPaths, housePlots } from './eldoria-city-layout.js';
-import { eldoriaSpecs, planOverlaps, footprintRadius } from './eldoria-live-village3d.js';
+import { ELDORIA_HOUSES, ELDORIA_SMITHY, ELDORIA_STREETS, ELDORIA_MAIN_TREE, ELDORIA_SIDE_TREE, ANCESTRAL_ROOT_SPREAD, ANCESTRAL_ROOT_SINK, yawFacing, doorDirection, doorstep, doorPaths, housePlots } from './eldoria-city-layout.js';
+import { eldoriaSpecs, planOverlaps, footprintRadius, treeRootSink } from './eldoria-live-village3d.js';
 
 const src = readFileSync(new URL('./mundo-3d-prototype.js', import.meta.url), 'utf8');
 const grab = name => JSON.parse(src.match(new RegExp('const ' + name + '=(\\[\\[[^;]*?\\]\\])[;.]'))[1].replace(/([[,])(-?)\./g, '$1$20.'));
@@ -63,6 +63,14 @@ test('núcleo urbano sem árvores pequenas; colossal ao fundo da praça e latera
   const trees = eldoriaSpecs().filter(s => s.kind === 'tree');
   assert.equal(trees.length, 2, 'só as duas árvores ancestrais no núcleo');
   assert.ok(trees.every(t => t.file === 'ArvoreAncestralEldoria.glb'));
+  const mainTree = trees.find(t => t.treeRole === 'main');
+  const sideTree = trees.find(t => t.treeRole === 'side');
+  assert.ok(mainTree && sideTree, 'cada GLB compartilhado precisa manter o papel da instância');
+  assert.equal(treeRootSink(mainTree), .20, 'a colossal mantém o afundamento profundo');
+  assert.equal(treeRootSink(sideTree), ANCESTRAL_ROOT_SINK, 'a lateral preserva a cota da casa e passarela');
+  assert.ok(Math.abs(sideTree.size * treeRootSink(sideTree) - 2.24) < 1e-9);
+  assert.ok(Math.abs(mainTree.size * treeRootSink(mainTree) - 6.8) < 1e-9);
+  assert.equal(treeRootSink({ kind: 'house' }), 0);
   // a colossal fica no eixo de quem atravessa a ponte (à frente, ao norte, atrás da praça)
   const m = W(ELDORIA_MAIN_TREE); assert.ok(m.z < C.z - 18 && Math.abs(m.x - BRIDGE.x) < 18);
   const ang = Math.atan2(m.x - BRIDGE.x, -(m.z - BRIDGE.z)) * 180 / Math.PI; assert.ok(Math.abs(ang) < 30, 'colossal visível de frente ao sair da ponte (' + ang.toFixed(0) + '°)');
@@ -137,4 +145,16 @@ test('cinturão: espécies em manchas, espaçamento por estrato e respeito à fu
   for (const t of a) for (const o of a) if (o !== t && o.sp === t.sp) assert.ok(Math.hypot(o.x - t.x, o.z - t.z) >= Math.max(t.gap, o.gap) - 1e-6);
   for (const k of ['low', 'auto', 'high']) { const [n, m, f] = TROPICAL_BANDS[k]; assert.ok(n < m && m < f); }
   assert.ok(speciesBandK({ height: 30 }) > speciesBandK({ height: 14 }));
+});
+
+
+test('QA A/B da árvore lateral enquadra as raízes e inclui desktop', () => {
+  const sweep = readFileSync(new URL('./tools/visual-lab/eldoria-city-sweep.cjs', import.meta.url), 'utf8');
+  assert.match(sweep, /name:"arvore-lateral",x:14\.8,z:-58\.5,up:4\.5,back:28,targetY:\.35/);
+  const baselineFn = sweep.slice(sweep.indexOf('async function captureMainBaseline'), sweep.indexOf('\n}\n\n(async()=>'));
+  const declaration = baselineFn.indexOf('const treeSpot=');
+  const tryBlock = baselineFn.indexOf('try{');
+  const resultUse = baselineFn.indexOf('report.treeRootSinkAB=');
+  assert.ok(declaration >= 0 && declaration < tryBlock && declaration < resultUse, 'treeSpot must stay in captureMainBaseline function scope');
+  assert.match(sweep, /spots\.filter\(\(_,i\)=>\[0,1,4,6,7,8,9\]\.includes\(i\)\)/);
 });
