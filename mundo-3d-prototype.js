@@ -958,7 +958,7 @@ const tropicalReady=loadTropicalTrees(THREE,GLTFLoader,{windUniform:tropicalWind
  tropicalBelt=mountTropicalForest(THREE,lib,{group:scene,plan:tropicalPlan,registerCull:registerInstanceCull,lowSpec:terrainLowSpec,profile:tropicalProfile(),name:'cinturao'});
  for(const o of tropicalBelt.obstacles)treeObstacles.push(o);refreshInstanceCulling();
  // câmera encostada numa copa/tronco: pontilhado em vez de tela tapada (mesmo recurso das coníferas)
- addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,2.6);
+ addNearCameraFade(lib.materials.leaves,8.0);addNearCameraFade(lib.materials.bark,8.0); // tronco precisa abrir junto da copa no braço de câmera: a figueira ocultou o herói a 4,64 m.
  // O GLB chega de modo assíncrono: compilar materiais das 5 espécies ANTES
  // de o jogador girar a câmera para a mata evita compilação de shader no giro.
  // Não troca LOD, resolução, textura nem quantidade de árvores.
