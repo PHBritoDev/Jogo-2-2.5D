@@ -10,6 +10,7 @@ import { Enemy1Squad, E1 } from '../enemy1-squad3d.js';
 import { DEMON1_MOVES, DEMON1_LEAP, clawReaches } from '../demon1-combat3d.js';
 import { createSlashVFX } from '../slash-vfx3d.js';
 import { createShieldVFX } from '../shield-vfx3d.js';
+import { createSwordRitesVFX } from '../sword-rites-vfx3d.js';
 const src = fs.readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 // three.js real para os pools de VFX: o CI (combat315.yml) instala three@0.160.0 e aponta COMBAT_THREE_DIR
 let THREE = null;
@@ -161,4 +162,253 @@ test('Mod 315: legado do Enemy1 fora do jogo em execução (sem asset morto, sem
   assert.match(src, /function ensureEnemySprite\(\)/); assert.match(src, /ensureEnemySprite\(\);enemyLoadState='idle';/);
   assert.doesNotMatch(src, /retargetEnemyMovementClipToPlayer/, 'retarget morto do Enemy1 → herói removido');
   assert.match(src, /new GLTFLoader\(\)\.load\(ENEMY1_MODEL_URL,/, 'Demonio1.glb continua sendo o modelo');
+});
+
+
+test('SwordRites VFX updates active shards and queues partial GPU matrix ranges', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const root = scene.getObjectByName('SwordRites231'), shards = root.children.find(o => o.isInstancedMesh);
+  assert.ok(shards, 'InstancedMesh de estilhaços existe na raiz do VFX');
+  const ranges = () => shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count }));
+  try {
+    v.update(1 / 60, 'high', false);
+    let st = v.stats();
+    assert.equal(st.particleMatrixWrites, 0, 'idle frames do not rewrite inactive shard matrices');
+    assert.equal(st.particleMatrixUploads, 0, 'idle frames do not mark the matrix attribute dirty');
+    assert.equal(st.particleMatrixUploadBytes, 0);
+    assert.deepEqual(ranges(), []);
+
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    assert.equal(st.particleMatrixWrites, 15, 'only the 15 live impact shards are updated');
+    assert.equal(st.particleMatrixUploads, 1, 'one matrix update mark per active frame');
+    assert.equal(st.particleMatrixUploadComponents, 240, '15 matrices × 16 float components');
+    assert.equal(st.particleMatrixUploadBytes, 960, '15 matrices × 64 bytes');
+    assert.deepEqual(ranges(), [{ start: 0, count: 240 }], 'only the first 15 instance matrices are queued');
+    shards.instanceMatrix.clearUpdateRanges(); // simula o renderer consumindo o range no frame
+
+    v.update(.6, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 0, 'expired shards leave the active set');
+    assert.equal(st.particleMatrixWrites, 30, 'expiration clears only the 15 slots that were active');
+    assert.equal(st.particleMatrixUploads, 2, 'expiration publishes one clearing update');
+    assert.equal(st.particleMatrixUploadComponents, 480);
+    assert.equal(st.particleMatrixUploadBytes, 1920);
+    assert.deepEqual(ranges(), [{ start: 0, count: 240 }], 'expiration uploads only the cleared slots');
+    shards.instanceMatrix.clearUpdateRanges();
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, 30, 'idle after expiry stays quiet');
+    assert.equal(v.stats().particleMatrixUploads, 2);
+
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    assert.deepEqual(ranges(), [{ start: 240, count: 240 }], 'the ring cursor updates only slots 15–29');
+    shards.instanceMatrix.clearUpdateRanges();
+
+    const beforeClearWrites = st.particleMatrixWrites, beforeClearUploads = st.particleMatrixUploads;
+    const beforeClearBytes = st.particleMatrixUploadBytes;
+    v.clear();
+    st = v.stats();
+    assert.equal(st.particles, 0);
+    assert.equal(st.particleMatrixWrites - beforeClearWrites, 15, 'cancel clears only active shard slots');
+    assert.equal(st.particleMatrixUploads - beforeClearUploads, 1, 'cancel publishes the cleared slots once');
+    assert.equal(st.particleMatrixUploadBytes - beforeClearBytes, 960);
+    assert.deepEqual(ranges(), [{ start: 240, count: 240 }]);
+    shards.instanceMatrix.clearUpdateRanges();
+
+    const afterClearWrites = st.particleMatrixWrites, afterClearUploads = st.particleMatrixUploads;
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, afterClearWrites);
+    assert.equal(v.stats().particleMatrixUploads, afterClearUploads);
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX retains pending matrix ranges until the renderer consumes them', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  try {
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 30);
+    assert.deepEqual(shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count })), [{ start: 0, count: 480 }], 'pending and new ranges coalesce without dropping an earlier update');
+  } finally {
+    v.dispose();
+  }
+});
+
+
+test('SwordRites VFX queues partial instance-color ranges and preserves pending color changes', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  const ranges = () => shards.instanceColor?.updateRanges.map(({ start, count }) => ({ start, count })) || [];
+  try {
+    assert.equal(shards.instanceColor, null, 'instance colors are allocated lazily');
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    let st = v.stats();
+    assert.ok(shards.instanceColor);
+    assert.equal(st.particleColorUpdates, 1);
+    assert.equal(st.particleColorUpdateComponents, 45, '15 colors × 3 components');
+    assert.equal(st.particleColorUpdateBytes, 180, '15 RGB colors × 3 float32 components');
+    assert.deepEqual(ranges(), [{ start: 0, count: 45 }]);
+
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 30);
+    assert.equal(st.particleColorUpdates, 2);
+    assert.equal(st.particleColorUpdateComponents, 135, 'the pending first range is retained and coalesced');
+    assert.equal(st.particleColorUpdateBytes, 540);
+    assert.deepEqual(ranges(), [{ start: 0, count: 90 }], 'pending and new color slots coalesce without losing the first burst');
+
+    shards.instanceColor.clearUpdateRanges(); // simula o renderer consumindo os ranges
+    v.event('impact', { p: { x: 2, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particleColorUpdates, 3);
+    assert.equal(st.particleColorUpdateComponents, 180);
+    assert.equal(st.particleColorUpdateBytes, 720);
+    assert.deepEqual(ranges(), [{ start: 90, count: 45 }], 'the next burst updates only slots 30–44');
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX falls back to a full matrix update when sparse ranges become too costly', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  try {
+    for (let i = 0; i < 8; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    const st = v.stats();
+    assert.equal(st.particles, 120);
+    assert.equal(st.particleMatrixWrites, 120);
+    assert.equal(st.particleMatrixUploadComponents, shards.instanceMatrix.array.length, 'dense activity chooses one full upload');
+    assert.equal(st.particleMatrixUploadBytes, shards.instanceMatrix.array.byteLength);
+    assert.deepEqual(shards.instanceMatrix.updateRanges, [{ start: 0, count: shards.instanceMatrix.array.length }], 'full update remains explicit until the renderer consumes it');
+  } finally {
+    v.dispose();
+  }
+});
+
+
+test('SwordRites VFX keeps pending full uploads when later sparse writes happen before render', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  const fullRange = attribute => [{ start: 0, count: attribute.array.length }];
+  const matrixRanges = () => shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count }));
+  const colorRanges = () => shards.instanceColor?.updateRanges.map(({ start, count }) => ({ start, count })) || [];
+  try {
+    for (let i = 0; i < 8; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    assert.deepEqual(colorRanges(), fullRange(shards.instanceColor), 'dense color writes leave an explicit full range pending');
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 120);
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'dense matrix writes leave an explicit full range pending');
+
+    v.update(.6, 'high', false);
+    assert.equal(v.stats().particles, 0, 'the dense burst expires before the renderer consumes its pending upload');
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'expiration cannot erase the pending full matrix upload');
+
+    v.event('impact', { p: { x: 9, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 15);
+    assert.deepEqual(matrixRanges(), fullRange(shards.instanceMatrix), 'a later sparse matrix write cannot replace the pending full upload');
+    assert.deepEqual(colorRanges(), fullRange(shards.instanceColor), 'a later sparse color write cannot replace the pending full upload');
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX disposes the InstancedMesh GPU buffers on teardown', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const originalDispose = THREE.InstancedMesh.prototype.dispose;
+  let disposeCalls = 0;
+  THREE.InstancedMesh.prototype.dispose = function () {
+    disposeCalls++;
+    return originalDispose.call(this);
+  };
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  try {
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    v.dispose();
+    assert.equal(disposeCalls, 1, 'teardown must dispatch InstancedMesh disposal exactly once');
+    assert.equal(scene.children.length, 0, 'teardown removes the VFX root from its scene');
+  } finally {
+    if (disposeCalls === 0) v.dispose();
+    THREE.InstancedMesh.prototype.dispose = originalDispose;
+  }
+});
+
+test('SwordRites VFX reuses fixed scratch buffers in the particle hot path', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const NativeSet = globalThis.Set, nativeMap = Array.prototype.map, nativeSort = Array.prototype.sort, nativeAssign = Object.assign;
+  let st;
+  try {
+    globalThis.Set = class extends NativeSet {
+      constructor(values) {
+        if (values !== undefined) throw new Error('particle hot path must not allocate a transient Set');
+        super();
+      }
+    };
+    Array.prototype.map = function () { throw new Error('particle hot path must not allocate a mapped array'); };
+    Array.prototype.sort = function () { throw new Error('particle hot path must not sort a transient array'); };
+    Object.assign = function () { throw new Error('particle burst must not allocate a temporary state object'); };
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+  } finally {
+    globalThis.Set = NativeSet;
+    Array.prototype.map = nativeMap;
+    Array.prototype.sort = nativeSort;
+    Object.assign = nativeAssign;
+  }
+  try {
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    assert.equal(st.particleMatrixWrites, 15);
+    assert.equal(st.particleMatrixUploads, 1);
+    assert.equal(st.particleColorUpdates, 1);
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX keeps active slots unique across ring wrap and swap-removal', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  try {
+    for (let i = 0; i < 13; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 192, 'ring overwrite keeps exactly one active entry per slot');
+    assert.equal(v.stats().particleMatrixWrites, 192, 'all live slots update once despite three overwritten indices');
+
+    v.update(.6, 'high', false);
+    assert.equal(v.stats().particles, 0, 'swap-removal expires every active slot without skipping the swapped entry');
+    assert.equal(v.stats().particleMatrixWrites, 384, 'each of the 192 slots is cleared exactly once');
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, 384, 'empty frames stay idle after dense expiration');
+    v.event('impact', { p: { x: 14, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 15, 'the fixed active list can be reused after a full drain');
+    assert.equal(v.stats().particleMatrixWrites, 399);
+  } finally {
+    v.dispose();
+  }
 });
