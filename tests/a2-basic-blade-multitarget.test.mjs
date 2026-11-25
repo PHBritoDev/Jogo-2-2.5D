@@ -33,10 +33,11 @@ function focusHandoffSweep(fps){
  outgoing.x=-travel*fraction;
  // Production shape: the focused actor is absent from others; only the new focus is excluded after handoff.
  rites.update(dt,{from:{x:0,y:0,z:0},target:outgoing,others:[incoming],sword:'prota',grounded:true});
- const hitsBeforeHandoff=hits.length;
+ const hitsBeforeHandoff=hits.length,previousFocus=rites.previousOthers.get(outgoing.id);
+ const previousFocusX=previousFocus?.x,activeKind=rites.active?.kind;
  outgoing.x=travel*fraction;
  rites.update(dt,{from:{x:0,y:0,z:0},target:incoming,others:[outgoing],sword:'prota',grounded:true});
- return{hits,impacts,hitsBeforeHandoff};
+ return{hits,impacts,hitsBeforeHandoff,previousFocusX,expectedPreviousX:-travel*fraction,activeKind};
 }
 function movingSecondarySweep(fps,{blocked=()=>false,fromX=null,toX=null}={}){
  const focus=enemy('focus',20,20),side=enemy('side',-1,3);side.radius=.35;
@@ -65,6 +66,8 @@ test('focus handoff keeps the outgoing target in actor history for a swept side 
  for(const fps of [20,30]){
   const result=focusHandoffSweep(fps);
   assert.equal(result.hitsBeforeHandoff,0,'FPS '+fps+': the outgoing focus starts outside the blade before the handoff');
+  assert.equal(result.activeKind,'basic','FPS '+fps+': the physical swing must remain active across the handoff');
+  assert.equal(result.previousFocusX,result.expectedPreviousX,'FPS '+fps+': the outgoing focus position must be retained before it becomes secondary');
   assert.deepEqual(result.hits.map(h=>h.id),['outgoing-focus'],'FPS '+fps+': the old focus must still be swept after it becomes secondary');
   assert.equal(result.impacts.length,1,'FPS '+fps+': focus handoff must produce one real impact');
  }
