@@ -9,12 +9,15 @@ export const LAVA_BOUNCE_CONFIG = Object.freeze({
  color: Object.freeze([.12, .032, .007])
 });
 export function lavaBounceFalloff(distance, facing = 1) {
- const d=Math.max(0,Number(distance)||0), f=Math.max(0,Math.min(1,Number(facing)||0));
+ const rawDistance=Number(distance), rawFacing=Number(facing);
+ const d=Number.isFinite(rawDistance)?Math.max(0,rawDistance):0;
+ const f=Number.isFinite(rawFacing)?Math.max(0,Math.min(1,rawFacing)):0;
  return (1/(1+d*d*LAVA_BOUNCE_CONFIG.distanceFalloff))*
   (LAVA_BOUNCE_CONFIG.facingFloor+LAVA_BOUNCE_CONFIG.facingGain*f);
 }
 export function lavaBouncePulse(time, phase = 0) {
- const t=Number(time)||0, p=Number(phase)||0, c=LAVA_BOUNCE_CONFIG;
+ const rawTime=Number(time), rawPhase=Number(phase), c=LAVA_BOUNCE_CONFIG;
+ const t=Number.isFinite(rawTime)?rawTime:0, p=Number.isFinite(rawPhase)?rawPhase:0;
  return c.pulseBase+c.pulseSlow*Math.sin(t*c.pulseSlowRate+p)+
   c.pulseFast*Math.sin(t*c.pulseFastRate-p*c.pulsePhaseRate);
 }
