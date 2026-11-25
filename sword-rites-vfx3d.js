@@ -53,7 +53,11 @@ export function createSwordRitesVFX(T,scene){
  const cuts=Array.from({length:16},()=>{const g=new T.Group(),mat=makeMaterial(),glow=makeMaterial('prota',1),m=new T.Mesh(crescent,mat),h=new T.Mesh(crescent,glow);h.scale.set(1.02,1.12,1.1);g.add(m,h);root.add(g);g.visible=false;return{g,mat,glow,age:10,life:.5,wave:null};});
  function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4){const c=cuts[cutCursor++%cuts.length];c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>m.rotation.z=roll);c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}return c;}
  const shardGeo=new T.TetrahedronGeometry(1,0),shardMat=new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,toneMapped:false}),shards=new T.InstancedMesh(shardGeo,shardMat,192);shards.frustumCulled=false;shards.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(shards);const dummy=new T.Object3D(),color=new T.Color();
- const particles=Array.from({length:192},()=>({life:0,age:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:0})),activeParticles=new Set();
+ const particles=Array.from({length:192},()=>({life:0,age:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:0}));
+ const activeIndices=new Uint16Array(particles.length),activePositions=new Int16Array(particles.length),changedMatrixIndices=new Uint16Array(particles.length),changedColorIndices=new Uint16Array(particles.length),rangeFlags=new Uint8Array(particles.length);
+ activePositions.fill(-1);let activeCount=0;
+ function activateParticle(index){if(activePositions[index]!==-1)return;activePositions[index]=activeCount;activeIndices[activeCount++]=index;}
+ function deactivateParticleAt(position){const index=activeIndices[position],last=activeIndices[--activeCount];if(position<activeCount){activeIndices[position]=last;activePositions[last]=position;}activePositions[index]=-1;}
  // InstancedMesh starts with identity matrices; hide every slot once so later bursts can update only live indices.
  for(let i=0;i<particles.length;i++){dummy.position.set(0,0,0);dummy.rotation.set(0,0,0);dummy.scale.setScalar(0);dummy.updateMatrix();shards.setMatrixAt(i,dummy.matrix);}
  shards.instanceMatrix.needsUpdate=true;
@@ -64,31 +68,51 @@ export function createSwordRitesVFX(T,scene){
   dummy.updateMatrix();shards.setMatrixAt(index,dummy.matrix);particleMatrixWrites++;
  }
  // Three.js r160 aceita update ranges em componentes; ranges pendentes são preservados até o renderer consumi-los.
- function publishAttributeRanges(attribute,indices,stride){
-  if(!indices.length)return 0;
+ function publishAttributeRanges(attribute,indices,indexCount,stride){
+  if(!indexCount)return 0;
   if(typeof attribute.addUpdateRange!=='function'||typeof attribute.clearUpdateRanges!=='function'||!Array.isArray(attribute.updateRanges)){
    attribute.needsUpdate=true;return attribute.array.length;
   }
-  const ranges=attribute.updateRanges.map(r=>({start:r.start,end:r.start+r.count}));
-  const slots=[...new Set(indices)].sort((a,b)=>a-b);
-  for(const i of slots)ranges.push({start:i*stride,end:(i+1)*stride});
-  ranges.sort((a,b)=>a.start-b.start||a.end-b.end);
-  const merged=[];
-  for(const range of ranges){
-   const last=merged[merged.length-1];
-   if(last&&range.start<=last.end)last.end=Math.max(last.end,range.end);
-   else merged.push({start:range.start,end:range.end});
+  let min=particles.length,max=-1;
+  const pending=attribute.updateRanges;
+  for(let r=0;r<pending.length;r++){
+   const range=pending[r],first=Math.max(0,Math.floor(range.start/stride)),last=Math.min(particles.length,Math.ceil((range.start+range.count)/stride));
+   for(let slot=first;slot<last;slot++)if(!rangeFlags[slot]){rangeFlags[slot]=1;if(slot<min)min=slot;if(slot>max)max=slot;}
   }
-  const components=merged.reduce((sum,r)=>sum+r.end-r.start,0);
-  const full=merged.length>8||components>=attribute.array.length*.55;
+  for(let i=0;i<indexCount;i++){
+   const slot=indices[i];
+   if(slot>=0&&slot<particles.length&&!rangeFlags[slot]){rangeFlags[slot]=1;if(slot<min)min=slot;if(slot>max)max=slot;}
+  }
+  if(max<0)return 0;
+  let start=-1,last=-1,rangeCount=0,components=0;
+  for(let slot=min;slot<=max;slot++){
+   if(rangeFlags[slot]){
+    if(start<0){start=last=slot;rangeCount++;}
+    else if(slot===last+1)last=slot;
+    else{components+=(last-start+1)*stride;start=last=slot;rangeCount++;}
+   }else if(start>=0){components+=(last-start+1)*stride;start=last=-1;}
+  }
+  if(start>=0)components+=(last-start+1)*stride;
+  const full=rangeCount>8||components>=attribute.array.length*.55;
   attribute.clearUpdateRanges();
   // Keep a full upload explicit until the renderer consumes it; a later sparse write must not replace it.
   if(full)attribute.addUpdateRange(0,attribute.array.length);
-  else for(const range of merged)attribute.addUpdateRange(range.start,range.end-range.start);
+  else{
+   start=-1;last=-1;
+   for(let slot=min;slot<=max;slot++){
+    if(rangeFlags[slot]){
+     if(start<0)start=last=slot;
+     else if(slot===last+1)last=slot;
+     else{attribute.addUpdateRange(start*stride,(last-start+1)*stride);start=last=slot;}
+    }else if(start>=0){attribute.addUpdateRange(start*stride,(last-start+1)*stride);start=last=-1;}
+   }
+   if(start>=0)attribute.addUpdateRange(start*stride,(last-start+1)*stride);
+  }
+  for(let slot=min;slot<=max;slot++)rangeFlags[slot]=0;
   attribute.needsUpdate=true;
   return full?attribute.array.length:components;
  }
- function burst(p,sword,amount=18){const count=quality==='low'?Math.ceil(amount*.4):quality==='medium'?Math.ceil(amount*.7):amount,changedColors=[];for(let i=0;i<count;i++){const k=particleCursor++%particles.length,a=particles[k],ang=i*2.399+time,speed=1.2+(i%5)*.7;Object.assign(a,{age:0,life:.28+(i%5)*.065,x:p.x,y:p.y,z:p.z,vx:Math.sin(ang)*speed,vy:((i%7)/7-.25)*speed,vz:Math.cos(ang)*speed,size:.025+(i%3)*.016});activeParticles.add(k);color.setHex(palettes[sword][i%4]);shards.setColorAt(k,color);changedColors.push(k);}if(shards.instanceColor&&changedColors.length){const components=publishAttributeRanges(shards.instanceColor,changedColors,shards.instanceColor.itemSize);particleColorUpdates++;particleColorUpdateComponents+=components;particleColorUpdateBytes+=components*shards.instanceColor.array.BYTES_PER_ELEMENT;}}
+ function burst(p,sword,amount=18){const count=quality==='low'?Math.ceil(amount*.4):quality==='medium'?Math.ceil(amount*.7):amount;let changedColorCount=0;for(let i=0;i<count;i++){const k=particleCursor++%particles.length,a=particles[k],ang=i*2.399+time,speed=1.2+(i%5)*.7;Object.assign(a,{age:0,life:.28+(i%5)*.065,x:p.x,y:p.y,z:p.z,vx:Math.sin(ang)*speed,vy:((i%7)/7-.25)*speed,vz:Math.cos(ang)*speed,size:.025+(i%3)*.016});activateParticle(k);color.setHex(palettes[sword][i%4]);shards.setColorAt(k,color);if(count<particles.length)changedColorIndices[changedColorCount++]=k;}if(count>=particles.length){changedColorCount=particles.length;for(let i=0;i<particles.length;i++)changedColorIndices[i]=i;}if(shards.instanceColor&&changedColorCount){const components=publishAttributeRanges(shards.instanceColor,changedColorIndices,changedColorCount,shards.instanceColor.itemSize);particleColorUpdates++;particleColorUpdateComponents+=components;particleColorUpdateBytes+=components*shards.instanceColor.array.BYTES_PER_ELEMENT;}}
  const mark=new T.Group(),markMaterial=new T.MeshBasicMaterial({color:0xfff0bc,transparent:true,depthWrite:false,toneMapped:false}),markGeometry=new T.OctahedronGeometry(.09,0);for(let i=0;i<4;i++){const m=new T.Mesh(markGeometry,markMaterial),a=i*Math.PI/2;m.position.set(Math.cos(a)*.48,Math.sin(a)*.48,0);m.scale.set(1,2.5,1);m.rotation.z=a-Math.PI/2;mark.add(m);}root.add(mark);mark.visible=false;let markAge=1;
  let hero=null,ghosts=[];
  function setHero(model,clone){hero=model;ghosts=Array.from({length:3},()=>{const g=clone(model),mat=new T.MeshBasicMaterial({color:0xffe4a6,transparent:true,opacity:0,depthWrite:false,wireframe:false,toneMapped:false,blending:T.AdditiveBlending}),bones=[];g.traverse(o=>{if(o.isMesh){o.material=mat;o.castShadow=false;}if(o.isBone)bones.push(o);});scene.add(g);g.visible=false;return{g,mat,bones,age:1};});}
@@ -112,10 +136,10 @@ export function createSwordRitesVFX(T,scene){
  }
  function update(dt,level='high',firstPerson=false){time+=dt;quality=level;markAge+=dt;mark.visible=markAge<.3;markMaterial.opacity=Math.max(0,1-markAge/.3);mark.rotation.y+=dt*4;for(const t of trails){t.material.uniforms.clock.value=time;t.material.uniforms.opacity.value=firstPerson?.38:1;t.mesh.visible=t.n>1&&time-t.last<.25;}
   for(const c of cuts){c.age+=dt;if(c.wave){c.g.position.set(c.wave.p.x,c.wave.p.y,c.wave.p.z);c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=.06;c.g.scale.setScalar(c.wave.radius);const opacity=firstPerson?Math.min(1,.25+c.wave.travel/2.4):1;c.mat.uniforms.opacity.value=c.glow.uniforms.opacity.value=opacity;}else{c.g.visible=c.age<c.life;c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=c.age;}c.g.children[1].visible=quality!=='low';}
-  let count=0;const changed=[];for(const i of activeParticles){const p=particles[i];p.age+=dt;if(p.age<p.life){p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=2.8*dt;const s=p.size*(1-p.age/p.life);writeParticleMatrix(i,p,s);count++;}else{p.life=0;writeParticleMatrix(i,p,0);activeParticles.delete(i);}changed.push(i);}shards.visible=count>0;if(changed.length){const components=publishAttributeRanges(shards.instanceMatrix,changed,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}
+  let count=0,changedMatrixCount=0;for(let n=0;n<activeCount;){const i=activeIndices[n],p=particles[i];p.age+=dt;if(p.age<p.life){p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=2.8*dt;const s=p.size*(1-p.age/p.life);writeParticleMatrix(i,p,s);count++;n++;}else{p.life=0;writeParticleMatrix(i,p,0);deactivateParticleAt(n);}changedMatrixIndices[changedMatrixCount++]=i;}shards.visible=count>0;if(changedMatrixCount){const components=publishAttributeRanges(shards.instanceMatrix,changedMatrixIndices,changedMatrixCount,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}
   for(const h of ghosts){h.age+=dt;h.g.visible=!firstPerson&&h.age<.2;h.mat.opacity=.16*Math.max(0,1-h.age/.2);}
  }
- function clear(){markAge=1;mark.visible=false;trails.forEach(t=>{t.n=0;t.mesh.visible=false;});cuts.forEach(c=>{c.wave=null;c.age=10;c.g.visible=false;});const changed=[];for(const i of activeParticles){particles[i].life=0;writeParticleMatrix(i,particles[i],0);changed.push(i);}activeParticles.clear();particles.forEach(p=>p.life=0);if(changed.length){const components=publishAttributeRanges(shards.instanceMatrix,changed,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}ghosts.forEach(h=>{h.age=1;h.g.visible=false;});shards.visible=false;}
+ function clear(){markAge=1;mark.visible=false;trails.forEach(t=>{t.n=0;t.mesh.visible=false;});cuts.forEach(c=>{c.wave=null;c.age=10;c.g.visible=false;});const changedMatrixCount=activeCount;for(let n=0;n<changedMatrixCount;n++){const i=activeIndices[n];particles[i].life=0;writeParticleMatrix(i,particles[i],0);changedMatrixIndices[n]=i;activePositions[i]=-1;}activeCount=0;if(changedMatrixCount){const components=publishAttributeRanges(shards.instanceMatrix,changedMatrixIndices,changedMatrixCount,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}ghosts.forEach(h=>{h.age=1;h.g.visible=false;});shards.visible=false;}
  function dispose(){clear();scene.remove(root);shards.dispose();trails.forEach(t=>{t.geometry.dispose();t.material.dispose();});cuts.forEach(c=>{c.mat.dispose();c.glow.dispose();});crescent.dispose();markGeometry.dispose();markMaterial.dispose();shardGeo.dispose();shardMat.dispose();ghosts.forEach(h=>{scene.remove(h.g);h.mat.dispose();});}
- return{event,update,clear,dispose,setHero,stats:()=>({cuts:cuts.filter(c=>c.g.visible).length,trails:trails.filter(t=>t.mesh.visible).length,particles:activeParticles.size,ghosts:ghosts.filter(h=>h.g.visible).length,particleMatrixWrites,particleMatrixUploads,particleMatrixUploadComponents,particleMatrixUploadBytes,particleColorUpdates,particleColorUpdateComponents,particleColorUpdateBytes,capacity:{cuts:16,trails:3,particles:192,ghosts:3}})};
+ return{event,update,clear,dispose,setHero,stats:()=>({cuts:cuts.filter(c=>c.g.visible).length,trails:trails.filter(t=>t.mesh.visible).length,particles:activeCount,ghosts:ghosts.filter(h=>h.g.visible).length,particleMatrixWrites,particleMatrixUploads,particleMatrixUploadComponents,particleMatrixUploadBytes,particleColorUpdates,particleColorUpdateComponents,particleColorUpdateBytes,capacity:{cuts:16,trails:3,particles:192,ghosts:3}})};
 }
