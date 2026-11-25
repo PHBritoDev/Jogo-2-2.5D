@@ -51,7 +51,8 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    float invViewDistance=inversesqrt(max(dot(viewDelta,viewDelta),.000001));
    float viewCos=clamp(abs(uCamera.z)*invViewDistance,0.0,1.0);
    float grazing=1.0-viewCos;
-   float fresnel=grazing*grazing*grazing;
+   // A soft knee broadens mid-angle readability without pow()/sqrt() in the fragment path.
+   float fresnel=grazing*grazing*(.60+.40*grazing);
    float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
    // Keep the arena abyssal, but make foot contact readable without adding a light or pass.
    // Only the existing localized ripple receives the extra silver reflection.
