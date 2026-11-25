@@ -1,6 +1,24 @@
 // Static masonry batches share vertices' world-space texture scale. No shadow
 // maps: rock faces retain the warm/cold bounce of the surrounding emitters.
 import {addStructure,addCliff} from "./volcano-cave-layout.js";
+
+export const LAVA_BOUNCE_CONFIG = Object.freeze({
+ distanceFalloff: .003, facingFloor: .20, facingGain: .80,
+ pulseBase: .88, pulseSlow: .08, pulseFast: .04,
+ pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73,
+ color: Object.freeze([.12, .032, .007])
+});
+export function lavaBounceFalloff(distance, facing = 1) {
+ const d=Math.max(0,Number(distance)||0), f=Math.max(0,Math.min(1,Number(facing)||0));
+ return (1/(1+d*d*LAVA_BOUNCE_CONFIG.distanceFalloff))*
+  (LAVA_BOUNCE_CONFIG.facingFloor+LAVA_BOUNCE_CONFIG.facingGain*f);
+}
+export function lavaBouncePulse(time, phase = 0) {
+ const t=Number(time)||0, p=Number(phase)||0, c=LAVA_BOUNCE_CONFIG;
+ return c.pulseBase+c.pulseSlow*Math.sin(t*c.pulseSlowRate+p)+
+  c.pulseFast*Math.sin(t*c.pulseFastRate-p*c.pulsePhaseRate);
+}
+const glslNumber = value => Number(value).toFixed(3);
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -76,21 +94,40 @@ export function masonry(T, group, seed, palette){
  function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const material=new T.MeshBasicMaterial({map:palette.stoneMap||tex,vertexColors:true,side:T.DoubleSide});
  if(palette.stoneMap){
   tex.dispose();
-  // The scan gives the baked lighting relief at walking distance. Sample
-  // neutral luminance so that mineral colours still come from local emitters.
+  // O reflexo estático da calha permanece; no Santuário, a mesma fonte também
+  // produz um bounce quente e lento, sem PointLight, sombra ou draw call extra.
+  const cfg=LAVA_BOUNCE_CONFIG, lavaClock=palette.clock||{value:0};
+  const lavaGain={value:!!palette.clock&&(group.name.includes('Santuário')||group.name.includes('pisos'))?1:0};
+  const color=cfg.color.map(glslNumber).join(',');
+  const pulse='float lavaPulse='+glslNumber(cfg.pulseBase)+'+'+
+   glslNumber(cfg.pulseSlow)+'*sin(uLavaTime*'+glslNumber(cfg.pulseSlowRate)+'+vLavaPhase)+'+
+   glslNumber(cfg.pulseFast)+'*sin(uLavaTime*'+glslNumber(cfg.pulseFastRate)+'-vLavaPhase*'+glslNumber(cfg.pulsePhaseRate)+');\\n';
   material.onBeforeCompile=shader=>{
-   // Interpolate the reflection of the nearest spillway at vertices. A
-   // single scanned stone texture breaks the highlight into wet facets.
-   shader.vertexShader='varying float wetGlint;\n'+shader.vertexShader.replace('#include <project_vertex>',`
-    #include <project_vertex>
-    vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);
-    vec3 delta=spill-position;
-    vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));
-    float wet=1./(1.+dot(delta,delta)*.003);
-    wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);
-   `);
-   shader.fragmentShader='varying float wetGlint;\n'+shader.fragmentShader.replace('#include <map_fragment>',
-    'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17)); diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8); diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);');
+   shader.uniforms.uLavaTime=lavaClock;
+   shader.uniforms.uLavaGain=lavaGain;
+   const vertexChunk='\\n#include <project_vertex>\\n'+
+    'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);\\n'+
+    'vec3 delta=spill-position;\\n'+
+    'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));\\n'+
+    'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');\\n'+
+    'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);\\n'+
+    'if(uLavaGain>.001){\\n'+
+    ' float facing=max(dot(normalize(normal),normalize(delta)),0.);\\n'+
+    ' vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing);\\n'+
+    ' vLavaPhase=dot(position.xz,vec2(.071,.047))+position.y*.12;\\n'+
+    '}else{vLavaBounce=0.;vLavaPhase=0.;}\\n';
+   const fragmentChunk='\\nfloat relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));\\n'+
+    'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);\\n'+
+    'if(uLavaGain>.001){\\n'+pulse+
+    ' diffuseColor.rgb+=vec3('+color+')*vLavaBounce*lavaPulse;\\n'+
+    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*lavaPulse*smoothstep(.045,.32,relief);\\n'+
+    '}else{\\n'+
+    ' diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);\\n'+
+    '}\\n';
+   shader.vertexShader='varying float wetGlint;\\nvarying float vLavaBounce;\\nvarying float vLavaPhase;\\nuniform float uLavaGain;\\n'+
+    shader.vertexShader.replace('#include <project_vertex>',vertexChunk);
+   shader.fragmentShader='varying float wetGlint;\\nvarying float vLavaBounce;\\nvarying float vLavaPhase;\\nuniform float uLavaTime;\\nuniform float uLavaGain;\\n'+
+    shader.fragmentShader.replace('#include <map_fragment>',fragmentChunk);
   };
  }
  const m=new T.Mesh(g,material);m.name=group.name+'-basalto';group.add(m);return m;}
