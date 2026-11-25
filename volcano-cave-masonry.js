@@ -5,7 +5,7 @@ import {addStructure,addCliff} from "./volcano-cave-layout.js";
 export const LAVA_BOUNCE_CONFIG = Object.freeze({
  distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, facingFloor: .20, facingGain: .80,
  pulseBase: .88, pulseSlow: .08, pulseFast: .04,
- pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73,
+ pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73, bounceStrength: 1.35,
  color: Object.freeze([.78, .25, .045])
 });
 export function lavaBounceFalloff(distance, facing = 1) {
@@ -53,7 +53,7 @@ export function masonryShaderPatches(lavaEnabled) {
  const fragmentChunk=[
   'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));',
   'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);',
-  ...(lavaEnabled ? ['diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse;'] : []),
+  ...(lavaEnabled ? ['diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse*'+glslNumber(cfg.bounceStrength)+';'] : []),
   'diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint'+(lavaEnabled?'*uLavaPulse':'')+'*smoothstep(.045,.32,relief);'
  ].join('\n')+'\n';
  return {
