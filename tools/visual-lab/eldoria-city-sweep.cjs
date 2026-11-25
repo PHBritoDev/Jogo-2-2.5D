@@ -8,7 +8,6 @@ const output = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "
 fs.mkdirSync(output,{recursive:true});
 const base = process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173";
 const CENTER = { x:-12.2, z:-44.5 };
-const treeSpot = {name:"arvore-lateral",x:14.8,z:-58.5,up:4.5,back:28,targetY:.35};
 const spots = [
  {name:"ponte-entrada",x:-.4,z:-12.3,up:12,back:20},
  {name:"praca-mercado",x:CENTER.x,z:CENTER.z,up:13,back:15},
@@ -18,13 +17,14 @@ const spots = [
  {name:"fonte-quase-seca",x:CENTER.x-7.5,z:CENTER.z+7.5,up:6,back:9},
  {name:"passarela-e-escadas",x:6,z:-62,up:16,back:21},
  {name:"arvore-ancestral",x:-13.2,z:-70.5,up:11,back:18},
- treeSpot,
+ {name:"arvore-lateral",x:14.8,z:-58.5,up:4.5,back:28,targetY:.35},
  {name:"floresta-contorno",x:34,z:-56,up:17,back:22}
 ];
 const report = {status:"incomplete",cases:[],errors:[],consoleErrors:[],browser:"Chromium WebGL (SwiftShader); NOT physical Android"};
 const safe = s => String(s||"").replace(/[^a-z0-9_-]/gi,"-");
 
 async function captureMainBaseline(browser,base,output,report){
+ const treeSpot=spots.find(spot=>spot.name==="arvore-lateral");
  const file=process.env.A3_BASELINE_TERRAIN_FILE;
  const cityFile=process.env.A3_BASELINE_CITY_FILE;
  if(!file||!fs.existsSync(file))throw Error("Main terrain baseline source missing: "+file);
