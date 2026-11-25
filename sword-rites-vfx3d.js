@@ -39,11 +39,37 @@ export function createSwordRitesVFX(T,scene){
  const segments=64;
  function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0};}
  const trails=Array.from({length:3},ribbon);
+ function publishRibbonRange(attribute,start,count,full=false){
+  if(typeof attribute.addUpdateRange==='function'&&typeof attribute.clearUpdateRanges==='function'&&Array.isArray(attribute.updateRanges)){
+   if(full){attribute.clearUpdateRanges();attribute.addUpdateRange(0,attribute.array.length);}
+   else{
+    const end=start+count,ranges=attribute.updateRanges;
+    let merged=false;
+    for(let i=0;i<ranges.length;i++){
+     const range=ranges[i],rangeEnd=range.start+range.count;
+     if(start<=rangeEnd&&end>=range.start){
+      const first=Math.min(start,range.start),last=Math.max(end,rangeEnd);
+      range.start=first;range.count=last-first;merged=true;break;
+     }
+    }
+    if(!merged)attribute.addUpdateRange(start,count);
+   }
+  }
+  attribute.needsUpdate=true;
+ }
  function sample({a,blade}){
   const serial=a.kind==='aurora'?a.serial*10+a.events:a.serial*10;
   if(serial!==trailSerial){trailSerial=serial;trailCursor=(trailCursor+1)%trails.length;const t=trails[trailCursor];t.n=0;t.geometry.setDrawRange(0,0);tint(t.material,a.sword);}
-  const t=trails[trailCursor];if(t.n===segments){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
-  const i=t.n++,o=i*6,b=blade.base,p=blade.tip;t.positions.set([b.x+(p.x-b.x)*.15,b.y+(p.y-b.y)*.15,b.z+(p.z-b.z)*.15,p.x,p.y,p.z],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.mesh.visible=true;t.material.uniforms.life.value=.24;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
+  const t=trails[trailCursor],full=t.n===segments;
+  if(full){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
+  const i=t.n++,o=i*6,b=blade.base,p=blade.tip;
+  t.positions[o]=b.x+(p.x-b.x)*.15;t.positions[o+1]=b.y+(p.y-b.y)*.15;t.positions[o+2]=b.z+(p.z-b.z)*.15;
+  t.positions[o+3]=p.x;t.positions[o+4]=p.y;t.positions[o+5]=p.z;
+  t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.mesh.visible=true;t.material.uniforms.life.value=.24;
+  t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);
+  const position=t.geometry.attributes.position,birth=t.geometry.attributes.birth;
+  publishRibbonRange(position,full?0:o,full?position.array.length:6,full);
+  publishRibbonRange(birth,full?0:i*2,full?birth.array.length:2,full);
  }
  // Thick curved crescent with a tapered, serrated inner edge and a 3D bow.
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;

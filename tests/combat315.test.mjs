@@ -412,3 +412,56 @@ test('SwordRites VFX keeps active slots unique across ring wrap and swap-removal
     v.dispose();
   }
 });
+
+
+test('SwordRites VFX uploads only the changed ribbon segment until the trail rolls over', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const root = scene.getObjectByName('SwordRites231');
+  const ribbons = root.children.filter(o => o.isMesh && o.geometry?.attributes?.birth);
+  assert.equal(ribbons.length, 3);
+  const ribbon = ribbons[1], position = ribbon.geometry.attributes.position, birth = ribbon.geometry.attributes.birth;
+  const ranges = attribute => attribute.updateRanges.map(({ start, count }) => ({ start, count }));
+  const sample = (serial, n, sword = 'prota') => v.event('blade', {
+    a: { kind: 'prota', serial, events: 0, sword },
+    blade: { base: { x: n, y: 0, z: n }, tip: { x: n + 1, y: 1, z: n + 1 } }
+  });
+  try {
+    sample(1, 0);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 6 }], 'first sample uploads only two vertices');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: 2 }], 'first sample uploads only two birth values');
+
+    sample(1, 1);
+    assert.deepEqual(ranges(position), [{ start: 0, count: 12 }], 'adjacent samples coalesce without replacing the pending range');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: 4 }]);
+
+    position.clearUpdateRanges();
+    birth.clearUpdateRanges();
+    sample(1, 2);
+    assert.deepEqual(ranges(position), [{ start: 12, count: 6 }], 'after renderer consumption only the new segment is dirty');
+    assert.deepEqual(ranges(birth), [{ start: 4, count: 2 }]);
+
+    for (let i = 3; i < 64; i++) sample(1, i);
+    assert.equal(ribbon.geometry.drawRange.count, 63 * 6, 'the ribbon still draws the same 63 connected segments');
+    position.clearUpdateRanges();
+    birth.clearUpdateRanges();
+    sample(1, 64);
+    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'rolling the full trail publishes its shifted buffer');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: birth.array.length }]);
+
+    const first = Array.from(position.array.slice(0, 6));
+    const last = Array.from(position.array.slice(position.array.length - 6));
+    assert.ok(Math.abs(first[0] - 1.15) < 1e-5 && Math.abs(first[1] - .15) < 1e-5 && Math.abs(first[2] - 1.15) < 1e-5);
+    assert.deepEqual(first.slice(3), [2, 1, 2], 'the oldest retained segment is unchanged by the upload optimization');
+    assert.ok(Math.abs(last[0] - 64.15) < 1e-5 && Math.abs(last[1] - .15) < 1e-5 && Math.abs(last[2] - 64.15) < 1e-5);
+    assert.deepEqual(last.slice(3), [65, 1, 65], 'the newest segment keeps the original blade tip');
+
+    sample(2, 65, 'aurora');
+    sample(3, 66, 'aurora');
+    sample(4, 67, 'aurora');
+    assert.deepEqual(ranges(position), [{ start: 0, count: position.array.length }], 'a new attack cannot replace an unconsumed full trail upload with a sparse range');
+    assert.deepEqual(ranges(birth), [{ start: 0, count: birth.array.length }]);
+  } finally {
+    v.dispose();
+  }
+});
