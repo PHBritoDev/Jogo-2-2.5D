@@ -43,7 +43,7 @@ test('water adds a camera-local grazing reflection without allocating another sc
   assert.ok(source.includes('float fresnel=grazing*grazing*(.60+.40*grazing);'));
   assert.doesNotMatch(source, /float viewDistance=max\(length\(vec3\(uCamera\.xy-p,uCamera\.z\)\),\.001\)/);
   assert.doesNotMatch(source, /pow\(1\.0-viewCos,3\.0\)/);
-  assert.ok(source.includes('float glancingReflection=fresnel*(.02+ribbons*.1375+silverPatch*.0625+gleam*.20);'));
+  assert.ok(source.includes('float glancingReflection=fresnel*(.02+ribbons*.275+silverPatch*.125+gleam*.40);'));
   assert.ok(source.includes('water.uniforms.uCamera.value.set(cameraPos.x,-cameraPos.z,cameraPos.y)'));
   assert.doesNotMatch(source, /new T\.(?:PointLight|DirectionalLight|HemisphereLight)/);
 });
