@@ -21,7 +21,7 @@ function encounter(blocked=()=>false) {
  return {primary,side,hidden,hits,impacts,rites,ctx};
 }
 function focusHandoffSweep(fps){
- const outgoing=enemy('outgoing-focus',20,20),incoming=enemy('incoming-focus',30,30);
+ const outgoing=enemy('outgoing-focus',20,3),incoming=enemy('incoming-focus',30,30);
  const hits=[],impacts=[],rites=new SwordRites({
   moveset:()=>({id:'focus-handoff',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
   pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
