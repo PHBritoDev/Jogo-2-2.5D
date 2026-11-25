@@ -15,7 +15,7 @@ const out = path.resolve('visual-lab-results/a4-water-profile-ab');
 fs.mkdirSync(out, { recursive: true });
 if (!/^[a-f0-9]{40}$/.test(baseSha)) throw new Error('BASE_SHA ausente ou inválido');
 
-const baseModules = Object.fromEntries(['aurora-luz3d.js', 'eldoria-water.js'].map(file => [
+const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.js', 'eldoria-water.js'].map(file => [
   file, execFileSync('git', ['show', baseSha + ':' + file], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
 ]));
 const profiles = ['low', 'medium', 'high', 'max'];
@@ -26,7 +26,7 @@ const scenes = [
 const report = {
   status: 'incomplete', baseSha, candidateSha,
   renderer: 'Chromium/WebGL SwiftShader 852x480 — não Android físico',
-  profiles, scenes, cases: [], comparisons: [], errors: [], baselineRouteHits: { aurora: 0, water: 0 }
+  profiles, scenes, cases: [], comparisons: [], errors: [], baselineRouteHits: { world: 0, aurora: 0, water: 0 }
 };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -39,13 +39,16 @@ async function captureSide(browser, side, baseline) {
   });
   const page = await context.newPage();
   page.on('pageerror', e => report.errors.push(side + ' pageerror: ' + String(e.message || e).slice(0, 400)));
+  page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' console: ' + msg.text().slice(0, 400)); });
+  page.on('requestfailed', req => { const why = req.failure()?.errorText || ''; if (!/ERR_ABORTED|cancelled/i.test(why)) report.errors.push(side + ' requestfailed: ' + why + ' ' + req.url().slice(0, 180)); });
   page.on('response', r => {
     if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url()))
       report.errors.push(side + ' HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
   });
   if (baseline) {
-    await page.route(/\/(?:aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
+    await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
       const name = path.basename(new URL(route.request().url()).pathname);
+      if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
       if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
       if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
       await route.fulfill({
@@ -140,16 +143,22 @@ async function imageDiff(a, b) {
     ] });
     await captureSide(browser, 'baseline', true);
     await captureSide(browser, 'candidate', false);
-    if (!report.baselineRouteHits.aurora || !report.baselineRouteHits.water)
-      report.errors.push('Baseline inválido: não interceptou os dois módulos A4');
+    if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water)
+      report.errors.push('Baseline inválido: não interceptou mundo + os dois módulos A4');
     for (const profile of profiles) for (const scene of scenes) {
       const a = report.cases.find(x => x.side === 'baseline' && x.profile === profile && x.scene === scene.name);
       const b = report.cases.find(x => x.side === 'candidate' && x.profile === profile && x.scene === scene.name);
       if (!a || !b) { report.errors.push('Captura ausente: ' + profile + '/' + scene.name); continue; }
+      const cameraDelta = a.camera && b.camera && a.camera.length === b.camera.length
+        ? +Math.max(...a.camera.map((v, i) => Math.abs(v - b.camera[i]))).toFixed(4) : null;
+      if (cameraDelta !== null && cameraDelta > .02)
+        report.errors.push(profile + '/' + scene.name + ': câmera A/B divergiu ' + cameraDelta);
+      if (a.calls !== null && b.calls !== null && a.calls !== b.calls)
+        report.errors.push(profile + '/' + scene.name + ': draw calls A/B divergiu ' + a.calls + '→' + b.calls);
+      if (a.triangles !== null && b.triangles !== null && a.triangles !== b.triangles)
+        report.errors.push(profile + '/' + scene.name + ': triângulos A/B divergiu ' + a.triangles + '→' + b.triangles);
       report.comparisons.push({
-        profile, scene: scene.name,
-        cameraDelta: a.camera && b.camera && a.camera.length === b.camera.length
-          ? +Math.max(...a.camera.map((v, i) => Math.abs(v - b.camera[i]))).toFixed(4) : null,
+        profile, scene: scene.name, cameraDelta,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
         pixels: await imageDiff(path.join(out, a.image), path.join(out, b.image))
