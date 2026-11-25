@@ -132,7 +132,7 @@ try {
   window.a4VolcanoAnimate = async durationMs => {
     placeCamera('overlook');
     for (let elapsed = 0; elapsed < durationMs; elapsed += 33) {
-      arena.update(4000 + elapsed, camera, 180), { player: camera.position, quality: 'low' });
+      arena.update(4000 + elapsed, camera, 180, { player: camera.position, quality: 'low' });
       syncEnvironment();
       renderer.render(scene, camera);
       await new Promise(resolve => setTimeout(resolve, 33));
