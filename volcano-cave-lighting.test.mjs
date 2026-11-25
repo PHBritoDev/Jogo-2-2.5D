@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse } from './volcano-cave-masonry.js';
+import { LAVA_BOUNCE_CONFIG, lavaBounceFalloff, lavaBouncePulse, lavaBounceEnabled } from './volcano-cave-masonry.js';
 
 test('bounce da lava cai com a distância e respeita a orientação da rocha', () => {
   assert.equal(lavaBounceFalloff(0, 1), 1);
@@ -20,6 +20,16 @@ test('pulsação é lenta, limitada e determinística', () => {
   assert.ok(new Set(samples.map(value => value.toFixed(5))).size > 20);
   assert.equal(lavaBouncePulse(Infinity, Number.NaN), LAVA_BOUNCE_CONFIG.pulseBase);
   assert.equal(lavaBouncePulse(2.4, .7), lavaBouncePulse(2.4, .7));
+  assert.notEqual(lavaBouncePulse(2.4, .7), lavaBouncePulse(2.4, 1.4));
+});
+
+test('somente os lotes próximos do Santuário recebem o bounce', () => {
+  assert.equal(lavaBounceEnabled('Santuário das Cataratas de Fogo', true), true);
+  assert.equal(lavaBounceEnabled('Santuário • galeria superior', true), true);
+  assert.equal(lavaBounceEnabled('pisos da caverna', true), true);
+  assert.equal(lavaBounceEnabled('Bosque das Veias Ardentes', true), false);
+  assert.equal(lavaBounceEnabled('Abismo das Coroas Mortas', true), false);
+  assert.equal(lavaBounceEnabled('Santuário das Cataratas de Fogo', false), false);
 });
 
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
