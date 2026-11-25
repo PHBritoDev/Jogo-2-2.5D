@@ -23,8 +23,11 @@ jobs:
           set -euo pipefail
           git fetch --no-tags --depth=1 origin main
           git show FETCH_HEAD:world3d-terrain.js > /tmp/a3-world3d-terrain-main.js
+          git show FETCH_HEAD:eldoria-live-village3d.js > /tmp/a3-eldoria-live-village3d-main.js
           test -s /tmp/a3-world3d-terrain-main.js
+          test -s /tmp/a3-eldoria-live-village3d-main.js
           echo "A3_BASELINE_TERRAIN_FILE=/tmp/a3-world3d-terrain-main.js" >> "$GITHUB_ENV"
+          echo "A3_BASELINE_CITY_FILE=/tmp/a3-eldoria-live-village3d-main.js" >> "$GITHUB_ENV"
           echo "A3_BASELINE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
