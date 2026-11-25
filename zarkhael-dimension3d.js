@@ -186,8 +186,8 @@ export function getZarkhaelLighting() {
     hemi:[0xb7b1af,0x110608,.48], sun:[0xffe8dc,1.0],
     // Put the existing fill on the camera-facing side of both combatants.
     // At 9m high it reveals the hero's rear silhouette without adding a floor-level hotspot.
-    // The player (z=10) and boss (z=-2) remain inside the 36m falloff; the distant corridor stays outside.
-    light:[0xdfe6f2,18,36,[0,9,14]], exposure:.85
+    // The player (z=10) and boss (z=-2) remain inside the 45m falloff; the distant corridor stays outside.
+    light:[0xdfe6f2,18,45,[0,9,14]], exposure:.85
   };
 }
 export function buildMushroomDimension(THREE,group,spec,ctx) {
