@@ -165,27 +165,40 @@ test('Mod 315: legado do Enemy1 fora do jogo em execução (sem asset morto, sem
 });
 
 
-test('SwordRites VFX updates only active shard slots and skips idle instance-matrix uploads', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+test('SwordRites VFX updates active shards and queues partial GPU matrix ranges', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
   const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const root = scene.getObjectByName('SwordRites231'), shards = root.children.find(o => o.isInstancedMesh);
+  assert.ok(shards, 'InstancedMesh de estilhaços existe na raiz do VFX');
+  const ranges = () => shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count }));
   try {
     v.update(1 / 60, 'high', false);
     let st = v.stats();
-    assert.equal(st.particleMatrixWrites, 0, 'idle frames must not rewrite 192 inactive shard matrices');
-    assert.equal(st.particleMatrixUploads, 0, 'idle frames must not upload the instance matrix');
+    assert.equal(st.particleMatrixWrites, 0, 'idle frames do not rewrite inactive shard matrices');
+    assert.equal(st.particleMatrixUploads, 0, 'idle frames do not mark the matrix attribute dirty');
+    assert.equal(st.particleMatrixUploadBytes, 0);
+    assert.deepEqual(ranges(), []);
 
     v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
     v.update(1 / 60, 'high', false);
     st = v.stats();
     assert.equal(st.particles, 15);
     assert.equal(st.particleMatrixWrites, 15, 'only the 15 live impact shards are updated');
-    assert.equal(st.particleMatrixUploads, 1, 'one matrix upload per active frame');
+    assert.equal(st.particleMatrixUploads, 1, 'one matrix update mark per active frame');
+    assert.equal(st.particleMatrixUploadComponents, 240, '15 matrices × 16 float components');
+    assert.equal(st.particleMatrixUploadBytes, 960, '15 matrices × 64 bytes');
+    assert.deepEqual(ranges(), [{ start: 0, count: 240 }], 'only the first 15 instance matrices are queued');
+    shards.instanceMatrix.clearUpdateRanges(); // simula o renderer consumindo o range no frame
 
     v.update(.6, 'high', false);
     st = v.stats();
     assert.equal(st.particles, 0, 'expired shards leave the active set');
     assert.equal(st.particleMatrixWrites, 30, 'expiration clears only the 15 slots that were active');
-    assert.equal(st.particleMatrixUploads, 2, 'expiration performs one clearing upload');
+    assert.equal(st.particleMatrixUploads, 2, 'expiration publishes one clearing update');
+    assert.equal(st.particleMatrixUploadComponents, 480);
+    assert.equal(st.particleMatrixUploadBytes, 1920);
+    assert.deepEqual(ranges(), [{ start: 0, count: 240 }], 'expiration uploads only the cleared slots');
+    shards.instanceMatrix.clearUpdateRanges();
 
     v.update(1 / 60, 'high', false);
     assert.equal(v.stats().particleMatrixWrites, 30, 'idle after expiry stays quiet');
@@ -195,16 +208,58 @@ test('SwordRites VFX updates only active shard slots and skips idle instance-mat
     v.update(1 / 60, 'high', false);
     st = v.stats();
     assert.equal(st.particles, 15);
+    assert.deepEqual(ranges(), [{ start: 240, count: 240 }], 'the ring cursor updates only slots 15–29');
+    shards.instanceMatrix.clearUpdateRanges();
+
     const beforeClearWrites = st.particleMatrixWrites, beforeClearUploads = st.particleMatrixUploads;
+    const beforeClearBytes = st.particleMatrixUploadBytes;
     v.clear();
     st = v.stats();
     assert.equal(st.particles, 0);
     assert.equal(st.particleMatrixWrites - beforeClearWrites, 15, 'cancel clears only active shard slots');
     assert.equal(st.particleMatrixUploads - beforeClearUploads, 1, 'cancel publishes the cleared slots once');
+    assert.equal(st.particleMatrixUploadBytes - beforeClearBytes, 960);
+    assert.deepEqual(ranges(), [{ start: 240, count: 240 }]);
+    shards.instanceMatrix.clearUpdateRanges();
+
     const afterClearWrites = st.particleMatrixWrites, afterClearUploads = st.particleMatrixUploads;
     v.update(1 / 60, 'high', false);
     assert.equal(v.stats().particleMatrixWrites, afterClearWrites);
     assert.equal(v.stats().particleMatrixUploads, afterClearUploads);
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX retains pending matrix ranges until the renderer consumes them', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  try {
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 30);
+    assert.deepEqual(shards.instanceMatrix.updateRanges.map(({ start, count }) => ({ start, count })), [{ start: 0, count: 480 }], 'pending and new ranges coalesce without dropping an earlier update');
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX falls back to a full matrix update when sparse ranges become too costly', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  try {
+    for (let i = 0; i < 8; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    const st = v.stats();
+    assert.equal(st.particles, 120);
+    assert.equal(st.particleMatrixWrites, 120);
+    assert.equal(st.particleMatrixUploadComponents, shards.instanceMatrix.array.length, 'dense activity chooses one full upload');
+    assert.equal(st.particleMatrixUploadBytes, shards.instanceMatrix.array.byteLength);
+    assert.deepEqual(shards.instanceMatrix.updateRanges, [], 'full update has no partial ranges');
   } finally {
     v.dispose();
   }
