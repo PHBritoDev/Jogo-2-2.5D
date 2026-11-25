@@ -354,3 +354,59 @@ test('SwordRites VFX disposes the InstancedMesh GPU buffers on teardown', { skip
     THREE.InstancedMesh.prototype.dispose = originalDispose;
   }
 });
+
+test('SwordRites VFX reuses fixed scratch buffers in the particle hot path', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const NativeSet = globalThis.Set, nativeMap = Array.prototype.map, nativeSort = Array.prototype.sort;
+  let st;
+  try {
+    globalThis.Set = class extends NativeSet {
+      constructor(values) {
+        if (values !== undefined) throw new Error('particle hot path must not allocate a transient Set');
+        super();
+      }
+    };
+    Array.prototype.map = function () { throw new Error('particle hot path must not allocate a mapped array'); };
+    Array.prototype.sort = function () { throw new Error('particle hot path must not sort a transient array'); };
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+  } finally {
+    globalThis.Set = NativeSet;
+    Array.prototype.map = nativeMap;
+    Array.prototype.sort = nativeSort;
+  }
+  try {
+    st = v.stats();
+    assert.equal(st.particles, 15);
+    assert.equal(st.particleMatrixWrites, 15);
+    assert.equal(st.particleMatrixUploads, 1);
+    assert.equal(st.particleColorUpdates, 1);
+  } finally {
+    v.dispose();
+  }
+});
+
+test('SwordRites VFX keeps active slots unique across ring wrap and swap-removal', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  try {
+    for (let i = 0; i < 13; i++) v.event('impact', { p: { x: i, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 192, 'ring overwrite keeps exactly one active entry per slot');
+    assert.equal(v.stats().particleMatrixWrites, 192, 'all live slots update once despite three overwritten indices');
+
+    v.update(.6, 'high', false);
+    assert.equal(v.stats().particles, 0, 'swap-removal expires every active slot without skipping the swapped entry');
+    assert.equal(v.stats().particleMatrixWrites, 384, 'each of the 192 slots is cleared exactly once');
+
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particleMatrixWrites, 384, 'empty frames stay idle after dense expiration');
+    v.event('impact', { p: { x: 14, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    assert.equal(v.stats().particles, 15, 'the fixed active list can be reused after a full drain');
+    assert.equal(v.stats().particleMatrixWrites, 399);
+  } finally {
+    v.dispose();
+  }
+});
