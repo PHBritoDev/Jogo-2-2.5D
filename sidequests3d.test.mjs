@@ -728,7 +728,7 @@ test('falha ao salvar a entrega da vila restaura ready sem pagar', () => {
   const saveStart = runtime.indexOf('function saveSide(){');
   const saveEnd = runtime.indexOf('\nfunction savedCampaignProgress()', saveStart);
   const talkStart = runtime.indexOf('function trySideQuestTalk(vendor){');
-  const talkEnd = runtime.indexOf('\n sideReady=true;refreshSideQuests();', talkStart);
+  const talkEnd = runtime.indexOf('\nsideReady=true;refreshSideQuests();', talkStart);
   assert.ok(saveStart >= 0 && saveEnd > saveStart, 'saveSide real não foi localizado');
   assert.ok(talkStart >= 0 && talkEnd > talkStart, 'trySideQuestTalk real não foi localizado');
 
