@@ -1,10 +1,12 @@
-name: A3 — regressão dos cipós fora das trilhas
+name: A3 — visibilidade da vegetação nas rotas de Eldória
 on:
   pull_request:
     branches: [main]
     paths:
       - 'eldoria-undergrowth.js'
+      - 'eldoria-prologue-meadow.js'
       - 'tests/a3-tropical-vines-path-clearance.test.mjs'
+      - 'tests/a3-prologue-meadow-visibility.test.mjs'
       - 'eldoria-mod291.test.mjs'
       - '.github/workflows/a3-undergrowth-vines-regression.yml'
 permissions:
@@ -21,6 +23,8 @@ jobs:
       - name: Sintaxe e regressões de vegetação
         run: |
           node --check eldoria-undergrowth.js
+          node --check eldoria-prologue-meadow.js
           node --check tests/a3-tropical-vines-path-clearance.test.mjs
+          node --check tests/a3-prologue-meadow-visibility.test.mjs
           node --input-type=module --check < mundo-3d-prototype.js
-          node --test tests/a3-tropical-vines-path-clearance.test.mjs eldoria-mod291.test.mjs
+          node --test tests/a3-tropical-vines-path-clearance.test.mjs tests/a3-prologue-meadow-visibility.test.mjs eldoria-mod291.test.mjs

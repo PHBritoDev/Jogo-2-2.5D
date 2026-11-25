@@ -98,9 +98,15 @@ export function planMeadow({ meadow, road, fall, wheel, stop, lowSpec = false, i
   const nT = lowSpec ? 1500 : 3000, nF = lowSpec ? 1300 : 2600;
   for (let i = 0; i < nT * 2 && tufts.length < nT; i++) {
     const x = meadow.cx + (rnd() * 2 - 1) * (meadow.hx + 6), z = meadow.cz + (rnd() * 2 - 1) * (meadow.hz + 6);
-    if (inM(x, z, 6) > 1 || roadDist(x, z) < 2.1 || !isFree(x, z)) continue;
+    const dRoad = roadDist(x, z);
+    if (inM(x, z, 6) > 1 || dRoad < 2.1 || !isFree(x, z)) continue;
     if (boulders.some(b => Math.hypot(b.x - x, b.z - z) < b.r * .92)) continue;
-    tufts.push({ x, z, s: .7 + rnd() * .9, rot: rnd() * 6.28 });
+    // A câmera de terceira pessoa fica alguns metros atrás do herói: reduzir a altura no ombro da estrada
+    // mantém a silhueta legível sem transformar o campo inteiro em grama baixa. Não consome RNG.
+    const shoulder = Math.max(0, Math.min(1, (dRoad - 2.1) / 7.9));
+    const smoothShoulder = shoulder * shoulder * (3 - 2 * shoulder);
+    const heightScale = .42 + smoothShoulder * .58;
+    tufts.push({ x, z, s: .7 + rnd() * .9, rot: rnd() * 6.28, heightScale });
   }
   for (let i = 0; i < nF * 3 && flowers.length < nF; i++) {
     const x = meadow.cx + (rnd() * 2 - 1) * meadow.hx, z = meadow.cz + (rnd() * 2 - 1) * meadow.hz;
@@ -135,7 +141,7 @@ export function buildPrologueMeadow(THREE, o) {
   const grassMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide });
   if (addWind) addWind(grassMat, .09, 'clamp(position.y*2.0,0.0,1.0)', 1.1, 'mod291-meadow-grass');
   const tuft = new THREE.InstancedMesh(grassTuftGeometry(THREE), grassMat, Math.max(1, plan.tufts.length));
-  plan.tufts.forEach((t, i) => { dummy.position.set(t.x, groundHeightAt(t.x, t.z) - .02, t.z); dummy.rotation.set(0, t.rot, 0); dummy.scale.set(t.s, t.s * (.8 + (i % 5) * .1), t.s); dummy.updateMatrix(); tuft.setMatrixAt(i, dummy.matrix); });
+  plan.tufts.forEach((t, i) => { const heightScale = t.heightScale ?? 1; dummy.position.set(t.x, groundHeightAt(t.x, t.z) - .02, t.z); dummy.rotation.set(0, t.rot, 0); dummy.scale.set(t.s, t.s * (.8 + (i % 5) * .1) * heightScale, t.s); dummy.updateMatrix(); tuft.setMatrixAt(i, dummy.matrix); });
   tuft.count = plan.tufts.length; tuft.instanceMatrix.needsUpdate = true; tuft.name = 'meadow-grass'; tuft.receiveShadow = true; group.add(tuft);
   const flowerMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, side: THREE.DoubleSide });
   if (addWind) addWind(flowerMat, .06, 'clamp(position.y*2.4,0.0,1.0)', 1.3, 'mod291-meadow-flower');
