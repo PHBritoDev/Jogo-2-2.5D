@@ -258,12 +258,16 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
 
-test('A4 A/B: cada perfil inicia em contexto isolado, preferência pré-carregada e câmera sincronizada', () => {
+test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métricas informativas', () => {
   const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
   assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
+  assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
+  assert.ok(/skyRoi: \{ left: 180, top: 60, width: 520, height: 100 \}/.test(qa) && /waterRoi:/.test(qa), 'separa a inspeção de aurora e água');
+  assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
+  assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
 });
 
