@@ -85,6 +85,24 @@ async function session(browser, viewport, mobile, out, rec, baseUrl = process.en
 const frames = (page, ms) => page.evaluate(async ms => { const d = []; let last = null; const t0 = performance.now(); return new Promise(res => { function f(t) { if (last !== null) d.push(t - last); last = t; if (t - t0 > ms) { d.sort((a, b) => a - b); const q = x => +d[Math.min(d.length - 1, Math.floor(d.length * x))].toFixed(1); const r = window.SevenSinsDebug3D.combatReport().draw; res({ n: d.length, p50: q(.5), p95: q(.95), p99: q(.99), max: +d[d.length - 1].toFixed(1), calls: r.calls, tris: r.triangles }); } else requestAnimationFrame(f); } requestAnimationFrame(f); }); }, ms);
 const snap = async (page, file) => { try { await page.screenshot({ path: file, timeout: 150000 }); } catch (e) { await wait(3000); await page.screenshot({ path: file, timeout: 150000 }); } };
 
+// Não basta esperar um tempo fixo: SwiftShader pode renderizar poucos frames em 1,8 s.
+// O A/B só é válido quando a câmera real parou e pode ser comparada entre os dois servidores.
+async function waitCameraStable(page, maxMs = 9000) {
+  const started = Date.now();
+  let previous = null, stableSamples = 0, camera = null;
+  while (Date.now() - started < maxMs) {
+    camera = await page.evaluate(() => window.SevenSinsDebug3D.cam());
+    const valid = Array.isArray(camera) && camera.length === 3 && camera.every(Number.isFinite);
+    const delta = valid && previous ? Math.hypot(...camera.map((v, i) => v - previous[i])) : Infinity;
+    if (valid && delta < .03) {
+      if (++stableSamples >= 2) return { stable: true, camera, elapsedMs: Date.now() - started };
+    } else stableSamples = 0;
+    previous = valid ? camera : null;
+    await wait(400);
+  }
+  return { stable: false, camera, elapsedMs: Date.now() - started };
+}
+
 async function captureClearingsAB(browser, profileName, viewport, mobile) {
   const baselineUrl = process.env.VISUAL_BASELINE_URL;
   if (!baselineUrl) return null;
@@ -109,23 +127,65 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
         const D = window.SevenSinsDebug3D;
         D.setHour(15); D.weather('limpo');
         D.teleport(s.x, s.z, s.yaw);
+        // Limpa qualquer override de câmera livre, aplica a vista e força o snap no mesmo frame lógico.
+        D.fly(null);
         D.view(s.yaw, s.pitch, s.dist);
         D.motionStep(.4, { x: 0, z: 0 });
+        D.snapCam();
       }, shot);
-      await wait(1800);
-      const state = await page.evaluate(() => window.SevenSinsDebug3D.state());
-      const file = `${variant}-${shot.id}.png`;
+      const cameraStability = await waitCameraStable(page);
+      await wait(500);
+      const diagnostics = await page.evaluate(() => {
+        const D = window.SevenSinsDebug3D, state = D.state();
+        return {
+          state,
+          camera: D.cam(),
+          framing: typeof D.camView === 'function' ? D.camView() : null,
+        };
+      });
+      const state = diagnostics.state;
+      const file = variant + '-' + shot.id + '.png';
       await snap(page, path.join(out, file));
+      const cameraValid = Array.isArray(diagnostics.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
       const entry = {
         id: shot.id, file, walkable: !!state.walkable,
         position: [+state.x.toFixed(2), +state.y.toFixed(2), +state.z.toFixed(2)],
-        camera: { yaw: shot.yaw, pitch: shot.pitch, distance: shot.dist },
+        camera: diagnostics.camera,
+        cameraStable: cameraStability.stable,
+        cameraStableMs: cameraStability.elapsedMs,
+        framing: diagnostics.framing,
+        cameraSettings: { yaw: shot.yaw, pitch: shot.pitch, distance: shot.dist },
       };
       result[variant].shots.push(entry);
-      if (variant === 'candidate' && !entry.walkable) {
+      if (!cameraStability.stable || !cameraValid) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': câmera inválida ou instável no A/B';
+        report.errors.push(msg);
+      }
+      if (!diagnostics.framing) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': camView indisponível; enquadramento não verificável';
+        report.errors.push(msg);
+      } else if (diagnostics.framing.blocked && Number.isFinite(diagnostics.framing.blocked.dist)
+          && Number.isFinite(diagnostics.framing.camToHero)
+          && diagnostics.framing.blocked.dist < diagnostics.framing.camToHero - 1.5) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': linha de visão bloqueada por ' +
+          (diagnostics.framing.blocked.name || 'objeto') + ' a ' + diagnostics.framing.blocked.dist.toFixed(2) + ' m';
+        report.errors.push(msg);
+      }
+      if (variant === 'candidate') {
         const baseline = result.baseline.shots.find(x => x.id === shot.id);
-        if (baseline?.walkable) {
-          const msg = `${profileName}/candidate/${shot.id}: perdeu walkability em relação à main`;
+        if (baseline?.camera && cameraValid) {
+          const delta = Math.hypot(...diagnostics.camera.map((v, i) => v - baseline.camera[i]));
+          entry.cameraDeltaFromBaseline = +delta.toFixed(3);
+          if (delta > .5) {
+            const msg = profileName + '/' + shot.id + ': câmera A/B divergiu ' + delta.toFixed(2) + ' m';
+            report.errors.push(msg);
+          }
+        } else {
+          const msg = profileName + '/' + shot.id + ': não foi possível comparar a câmera A/B';
+          report.errors.push(msg);
+        }
+        if (!entry.walkable && baseline?.walkable) {
+          const msg = profileName + '/candidate/' + shot.id + ': perdeu walkability em relação à main';
           result[variant].error = result[variant].error ? result[variant].error + '; ' + msg : msg;
           report.errors.push(msg);
         }
@@ -189,6 +249,15 @@ async function profile(browser, name, viewport, mobile) {
       };
       report.clearingsAB.profiles.mobile = await captureClearingsAB(browser, 'mobile', { width: 852, height: 393 }, true);
       if (!process.env.QA_ONLY_MOBILE) report.clearingsAB.profiles.desktop = await captureClearingsAB(browser, 'desktop', { width: 1280, height: 720 }, false);
+      const abProfiles = Object.values(report.clearingsAB.profiles).filter(Boolean);
+      const allAbShots = abProfiles.flatMap(p => [...p.baseline.shots, ...p.candidate.shots]);
+      const candidateShots = abProfiles.flatMap(p => p.candidate.shots);
+      const expectedPairs = abProfiles.length * CLEARING_SHOTS.length;
+      const allStable = allAbShots.length === expectedPairs * 2 && allAbShots.every(s => s.cameraStable === true && Array.isArray(s.camera) && s.camera.length === 3 && s.camera.every(Number.isFinite));
+      const sameCamera = candidateShots.length === expectedPairs && candidateShots.every(s => Number.isFinite(s.cameraDeltaFromBaseline) && s.cameraDeltaFromBaseline <= .5);
+      report.clearingsAB.conditions.sameViewportAndCamera = allStable && sameCamera;
+      if (!allStable) report.errors.push('A/B: pelo menos uma câmera não estabilizou ou não foi medida');
+      if (!sameCamera) report.errors.push('A/B: câmera candidata não corresponde à câmera baseline em todos os pontos');
       report.clearingsAB.status = report.errors.length ? 'failed' : 'captured';
     }
     for (const [k, P] of Object.entries(report.profiles)) {
