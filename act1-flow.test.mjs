@@ -252,8 +252,10 @@ test('objetivo e primeira troca da cena principal identificam o mesmo vendedor',
     assert.equal(opening?.type, 'shot', label + ': enquadramento de dois atores deve vir antes da primeira fala');
     assert.equal(opening?.id, 'teo-primeira-troca');
     assert.equal(opening.dur, 0.65);
-    assert.deepEqual(opening.args, { cam: 'two', a: 'hero', b: 'vendor', side: 1, dist: 4.4 });
+    assert.deepEqual(opening.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
   }
+  const paymentShot = scene.find(s => s.type === 'shot' && s.id === 'saco-de-ouro');
+  assert.deepEqual(paymentShot?.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
   const heroLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.hero);
   const vendorLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.vendor);
   assert.equal(questPresentation(1, 1).objective, 'Pergunte a Téo sobre o Pecado da Ganância');

@@ -43,14 +43,14 @@ function createProgressWatch(initialDistance, { threshold = 0.04, now = Date.now
   assert.equal(advanced.stalledMs, 0);
   assert.equal(watch.sample(0.94, 9750).stalledMs, 8000);
 }
-let shelterGeometry = null, stepUpLimit = null;
+let shelterGeometry = null, stepUpLimit = null, bridgeGeometry = null;
 
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
+  method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order and recognizes the walkable bridge deck; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
+  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals, treating river water as blocked except on the real bridge deck; real #talk-button tap; no walkMove/teleport/sprint helper',
   narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; V6 questStep/act1Sub are verified after reload without reseeding; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
@@ -226,7 +226,7 @@ async function aimJoystick(dx, dz, offset) {
   return yaw;
 }
 async function findWalkPath(start, target, stone) {
-  return page.evaluate(({ start, target, stone }) => {
+  return page.evaluate(({ start, target, stone, bridge }) => {
     const api = window.SevenSinsDebug3D;
     const step = 0.65, pad = 8;
     const minX = Math.floor((Math.min(start.x, target.x) - pad) / step) * step;
@@ -238,16 +238,24 @@ async function findWalkPath(start, target, stone) {
     const catalog = api.navCatalog((start.x + target.x) * .5, (start.z + target.z) * .5,
       Math.hypot(target.x - start.x, target.z - start.z) + 18);
     const cache = new Map();
-    let sampled = 0;
+    let sampled = 0, bridgeSamples = 0;
+    const onBridgeDeck = (x, z) => {
+      const dx = x - bridge.x, dz = z - bridge.z;
+      const along = dx * bridge.axisX + dz * bridge.axisZ;
+      const side = dx * bridge.axisZ - dz * bridge.axisX;
+      return Math.abs(along) <= bridge.halfLength && Math.abs(side) <= bridge.halfWidth - .32;
+    };
     const blocked = (x, z) => {
       const key = Math.round(x * 20) + ':' + Math.round(z * 20);
       if (cache.has(key)) return cache.get(key);
       const why = api.whyBlocked(x, z);
+      const bridgeDeck = onBridgeDeck(x, z);
+      if (bridgeDeck) bridgeSamples++;
       const rock = (catalog.rocks || []).some(r => r.h > .55 && Math.hypot(x - r.x, z - r.z) < r.r + .42);
       const market = (catalog.market || []).some(m => m.h > .68 &&
         Math.abs(x - m.x) < m.hx + .42 && Math.abs(z - m.z) < m.hz + .42);
       const value = !!(why.blockedAt || why.player || why.walk || why.tree || why.market || why.npc ||
-        why.water > .08 || rock || market);
+        (why.water > .08 && !bridgeDeck) || rock || market);
       cache.set(key, value);
       sampled++;
       return value;
@@ -271,7 +279,7 @@ async function findWalkPath(start, target, stone) {
       }
     }
     goals.sort((a, b) => a.d - b.d);
-    if (!goals.length) return { ok: false, reason: 'nenhuma célula livre dentro do raio de registro', sampled, goalRadius, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    if (!goals.length) return { ok: false, reason: 'nenhuma célula livre dentro do raio de registro', sampled, bridgeSamples, goalRadius, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
     const goal = goals[0], goalIndex = goal.iz * cols + goal.ix;
     const total = cols * rows;
     const scores = new Float64Array(total); scores.fill(Infinity);
@@ -309,18 +317,18 @@ async function findWalkPath(start, target, stone) {
         open.push({ index: ni, f: tentative + heuristic(nx, nz) });
       }
     }
-    if (!found) return { ok: false, reason: 'A* não encontrou caminho livre', explored, sampled, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    if (!found) return { ok: false, reason: 'A* não encontrou caminho livre', explored, sampled, bridgeSamples, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
     const nodes = [];
     let cursor = goalIndex, guard = 0;
     while (cursor !== startIndex && cursor >= 0 && guard++ < total) {
       nodes.push(point(cursor % cols, Math.floor(cursor / cols)));
       cursor = came[cursor];
     }
-    if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled };
+    if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled, bridgeSamples };
     nodes.reverse();
     const raw = [{ x: start.x, z: start.z }, ...nodes];
     if (!window.__a5AxisSeparatedPathClear(raw, blocked, .12)) {
-      return { ok: false, reason: 'segmento adjacente do caminho bruto não é caminhável no eixo X→Z', explored, sampled };
+      return { ok: false, reason: 'segmento adjacente do caminho bruto não é caminhável no eixo X→Z', explored, sampled, bridgeSamples };
     }
     // O controlador de produção testa X e depois Z; uma reta só é válida se ambos os passos forem livres.
     const clearLine = (a, b) => window.__a5AxisSeparatedSegmentClear(a, b, blocked, .12);
@@ -334,11 +342,11 @@ async function findWalkPath(start, target, stone) {
       points.push(raw[far]); at = far;
     }
     return {
-      ok: true, points, rawPoints: raw.length, explored, sampled, step,
+      ok: true, points, rawPoints: raw.length, explored, sampled, bridgeSamples, step,
       goal: goal.p, goalDistance: +goal.d.toFixed(3), goalRadius: +goalRadius.toFixed(3),
       catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 }
     };
-  }, { start, target, stone });
+  }, { start, target, stone, bridge: bridgeGeometry });
 }
 async function inspectShelterApproaches(stone) {
   const result = await page.evaluate(({ x, z, radius, stepUp, centerY }) => {
@@ -384,7 +392,7 @@ async function walkTo(stone, label) {
     const target = { x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 };
     const plan = await findWalkPath(start, target, stone);
     if (plan.ok) { selected = { target, plan, side }; break; }
-    rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled });
+    rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled, bridgeSamples: plan.bridgeSamples });
   }
   if (!selected) {
     const summary = sides.map(side => ({ side: side.index, rise: side.rise, ok: side.ok, reason: side.reason }));
@@ -395,7 +403,7 @@ async function walkTo(stone, label) {
     label, target: selected.target, approachSide: selected.side.index,
     approachRise: selected.side.rise, approachGroundY: selected.side.groundY,
     points: selected.plan.points, rawPoints: selected.plan.rawPoints,
-    explored: selected.plan.explored, sampled: selected.plan.sampled,
+    explored: selected.plan.explored, sampled: selected.plan.sampled, bridgeSamples: selected.plan.bridgeSamples,
     goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
   });
   let travelled = 0, totalSteps = 0, joystickStarted = false;
@@ -556,6 +564,8 @@ async function exposePathfinder() {
   try {
     fs.mkdirSync(OUT, { recursive: true });
     const { ACT1 } = await import('../../act1-flow.js');
+    const { BRIDGE } = await import('../../act1-world-layout.js');
+    bridgeGeometry = BRIDGE;
     const { SIDE_QUESTS, SIDE_QUEST_WAYSTONES } = await import('../../sidequests3d.js');
     const { MAP_STORE_KEY } = await import('../../map3d.js');
     const { SHELTER } = await import('../../eldoria-shelter3d.js');
@@ -661,13 +671,31 @@ async function exposePathfinder() {
     }));
     assert.ok(teoOpening.who.toLowerCase().includes('téo · provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
     assert.ok(teoOpening.text.includes('Rumor não enche barriga, forasteiro.'), 'fala de Téo inesperada: ' + teoOpening.text);
+    await wait(650);
+    const vendorFraming = await page.evaluate(() => {
+      const D = window.SevenSinsDebug3D;
+      const hero = D.heroState().p;
+      const vendor = D.sideQuestQA().vendors.find(v => v.shortName === 'PROVISÕES');
+      const camera = D.cam();
+      const dx = vendor.x - hero[0], dz = vendor.z - hero[2], length = Math.hypot(dx, dz) || 1;
+      const mx = (hero[0] + vendor.x) * .5, mz = (hero[2] + vendor.z) * .5;
+      const sideProjection = (camera[0] - mx) * (dz / length) + (camera[2] - mz) * (-dx / length);
+      return { hero: [hero[0], hero[2]], vendor: [vendor.x, vendor.z], camera,
+        horizontalDistance: +Math.hypot(camera[0] - mx, camera[2] - mz).toFixed(3),
+        sideProjection: +sideProjection.toFixed(3) };
+    });
+    assert.ok(vendorFraming.horizontalDistance >= 4.0,
+      'two-shot de Téo foi comprimido pela colisão da câmera: ' + JSON.stringify(vendorFraming));
+    assert.ok(vendorFraming.sideProjection < -3.4,
+      'two-shot de Téo permaneceu no lado bloqueado da barraca: ' + JSON.stringify(vendorFraming));
     report.mainQuestPrompt = {
       ...report.mainQuestPrompt,
       dialogueOpened: true,
       heroOpening,
       dialogueSpeaker: teoOpening.who,
       dialogueLine: teoOpening.text,
-      dialogueScope: 'first exchange only; stopped before entregar-ouro'
+      dialogueScope: 'first exchange only; stopped before entregar-ouro',
+      framing: vendorFraming
     };
     await shot('00-vendor-dialogue-teo');
 
@@ -771,14 +799,15 @@ async function exposePathfinder() {
     assert.equal(afterReload.xp, beforeReload.xp, 'XP mudou durante reload');
     await shot('03-two-waystones-after-reload');
 
-    // O save do mapa restaura a posição no abrigo da Mata. A busca direta Mata→Caverna falhou neste QA.
-    // Recuar à Vila por toque testa uma rota alternativa sem teleport; a continuação até Caverna
-    // só será considerada aprovada se o mesmo run completar a caminhada e o registro.
+    // O save do mapa preserva névoa e IDs dos abrigos, não as coordenadas do jogador: após reload ele volta ao spawn.
+    // A volta à Vila deve cruzar a ponte real. A água sob o tabuleiro é passável no jogo, então o A* precisa
+    // ignorar waterDepth apenas dentro da faixa caminhável da ponte; fora dela, água continua bloqueando.
     const afterTwoWaystonesReloadPlayer = await playerState();
     report.afterTwoWaystonesReload = {
       x: +afterTwoWaystonesReloadPlayer.x.toFixed(3),
       y: +afterTwoWaystonesReloadPlayer.y.toFixed(3),
-      z: +afterTwoWaystonesReloadPlayer.z.toFixed(3)
+      z: +afterTwoWaystonesReloadPlayer.z.toFixed(3),
+      positionSource: 'world spawn; map save persists fog and waystone IDs, not player coordinates'
     };
     await walkTo(stones[0], 'return-to-abrigo-vila');
     const afterReturnToVillage = await qa();

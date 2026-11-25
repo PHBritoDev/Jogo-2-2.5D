@@ -4482,7 +4482,7 @@ function actorYaw(key){if(key==='hero')return playerYaw;const a=storyAnchors[key
 function actorLocal(key,off,out){actorPos(key,out);const yaw=actorYaw(key),s=Math.sin(yaw),c=Math.cos(yaw);out.x+=off[0]*c+off[2]*s;out.y+=off[1];out.z+=-off[0]*s+off[2]*c;return out;}
 function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=target.z-obj.position.z;if(Math.hypot(dx,dz)<.01)return;const yaw=Math.atan2(dx,dz);if(obj===player){playerYaw=yaw;player.rotation.y=yaw;}else obj.rotation.y=yaw;}
 function playStory(id,steps,opts){
- opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,side:opts.side||1};
+ opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
  cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
  if(opts.skippable===false)cineEl('cine-skip').hidden=true;
@@ -4513,7 +4513,7 @@ function updateStoryCine(dt,now){
   if(!L||L===S||d<.4){const yaw=actorYaw(S);dx=Math.sin(yaw);dz=Math.cos(yaw);storyCam(sp.x+dx*2.4,sp.y+STORY_EYE[S]+.1,sp.z+dz*2.4,sp.x,sp.y+STORY_EYE[S]-.1,sp.z,3,dt);return;}
   dx/=d;dz/=d;const rx=dz,rz=-dx,back=Math.min(2.2,1.2+d*.18);
   // O Anjo é alto e tem asas: com ele na cena, plano lateral dos dois (sem câmera atrás das asas).
-  if(L==='guide'||S==='guide'||(storyScene&&storyScene.two)){const mx=(sp.x+lp.x)/2,mz=(sp.z+lp.z)/2,my=(sp.y+lp.y)/2,side=storyScene&&storyScene.side||1,dist=Math.max(3.4,d*1.25);storyCam(mx+rx*side*dist+dx*.6,my+1.75,mz+rz*side*dist+dz*.6,mx+dx*.5,my+1.35,mz+dz*.5,3,dt);return;}
+  if(L==='guide'||S==='guide'||(storyScene&&storyScene.two)){const mx=(sp.x+lp.x)/2,mz=(sp.z+lp.z)/2,my=(sp.y+lp.y)/2,side=storyScene&&storyScene.side||1,dist=Math.max(storyScene&&storyScene.twoDist||3.4,d*1.25);storyCam(mx+rx*side*dist+dx*.6,my+1.75,mz+rz*side*dist+dz*.6,mx+dx*.5,my+1.35,mz+dz*.5,3,dt);return;}
   storyCam(lp.x-dx*back+rx*.75,lp.y+(STORY_EYE[L]||1.5)+.25,lp.z-dz*back+rz*.75,sp.x,sp.y+(STORY_EYE[S]||1.4)-.05,sp.z,3,dt);return;
  }
  if(!st||st.type!=='shot'){cineCam(cinePos.x,cinePos.y,cinePos.z,cineLook.x,cineLook.y,cineLook.z,0,dt);return;}
@@ -5432,8 +5432,8 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor',two:true});return true;}
-  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',two:true,done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
+ if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor',two:true,side:-1,twoDist:4.8});return true;}
+  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',two:true,side:-1,twoDist:4.8,done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
  if(label==='SAIR DO ESGOTO'){travelVeil(()=>leaveSewer());return true;}
