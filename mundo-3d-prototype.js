@@ -2796,7 +2796,7 @@ function forestPerfUpdate(start,renderStart,end){
  forestPerf.sumUpdate=0;forestPerf.sumRender=0;forestPerf.frames=0;forestPerf.last=end;
 }
 var debugDtScale=1;// só o modo de teste (?debug3d=1) muda isto, para acelerar as cenas no navegador sem GPU
-function animate(){requestAnimationFrame(animate);const forestFrameStart=forestPerfEnabled?performance.now():0;if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=weatherWindPhase;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
+function animate(){requestAnimationFrame(animate);const forestFrameStart=forestPerfEnabled?performance.now():0;if(whiteLease.locked&&(vsOpen||menuGate))finishWhiteHole();if(vsOpen||gamePaused||menuGate){clock.getDelta();return;}const frameDelta=clock.getDelta();if(whiteLease.locked){tickWhiteHole(frameDelta*debugDtScale);renderer.render(scene,camera);return;}const rawDt=Math.min(frameDelta,.04)*debugDtScale,now=performance.now(),dt=now<hitStopUntil?rawDt*.06:now<slowMoUntil?rawDt*slowMoK:rawDt;if(lunarUlt&&tickLunarUlt(Math.min(frameDelta,.05)*debugDtScale))return; /* MOD 288: o filme da ultimate congela o combate */updatePlayerRespawn(now);updateHolyProjectiles(dt);for(const uniform of forestWindUniforms)uniform.value=weatherWindPhase;portalRing.rotation.z=Math.sin(now*.00045)*.045;portalInnerRing.rotation.z=-now*.00032;vortex.rotation.z=-now*.00165;portalLight.intensity=2.7+Math.sin(now*.003)*.45;portalSigil.rotation.z=now*.00022;for(const relic of floatingRelics){relic.mesh.position.y=relic.baseY+Math.sin(now*.0015+relic.phase)*.16;relic.mesh.rotation.y+=dt*.42;}for(const cloud of movingClouds){cloud.group.position.x+=cloud.speed*dt;cloud.group.position.y=cloud.baseY+Math.sin(now*.00018+cloud.phase)*.34;if(cloud.group.position.x>145)cloud.group.position.x=-145;else if(cloud.group.position.x<-145)cloud.group.position.x=145;}for(const npc of villageNpcBreathing){npc.root.position.y=npc.baseY+Math.sin(now*.00145+npc.phase)*.022;npc.root.rotation.z=Math.sin(now*.0011+npc.phase)*.008;}if(mixer){mixer.update(dt);restoreRiteScales();}if(heroShadows){heroShadows.quality(graphics3DMode);}if(enemyMixer)enemyMixer.update(admFreezeNearby?0:dt);if(model&&grounded&&!cineActive&&!rites.busy&&activeAction!==actions.run&&Math.abs(verticalVelocity)<.015&&playerHP>0){model.updateMatrixWorld(true);// O modelo deve acompanhar o piso REAL sob o root (escada/deque), não o terreno abaixo dele.
  const floorY=player.position.y;if(!model.userData.footBones){const fb=[];model.traverse(o=>{if(o.isBone&&/(left|right).*(foot|toe|ankle)|(foot|toe|ankle).*(left|right)/i.test(o.name||''))fb.push(o);});model.userData.footBones=fb;}let lowFoot=Infinity;for(const o of model.userData.footBones){footTmpVec.setFromMatrixPosition(o.matrixWorld);if(Number.isFinite(footTmpVec.y)&&footTmpVec.y<lowFoot)lowFoot=footTmpVec.y;}if(lowFoot<Infinity){model.position.y+=floorY-lowFoot;}}if(guideProceduralBreath){const breath=Math.sin(now*.00175);guideBreathingPivot.scale.set(1-breath*.008,1+breath*.022,1-breath*.008);guideBreathingPivot.position.y=.012+breath*.018;if(guideModel&&guideModel.userData.breathBones){for(const b of guideModel.userData.breathBones){b.bone.rotation.x=b.baseX+breath*.018;b.bone.scale.y=b.baseScaleY*(1+breath*.012);}}}if(enemyModel){
  // Reancora pelo ponto mais baixo dos ossos dos pés após cada atualização do rig.
  // MOD 186 — a raiz do inimigo acompanha o relevo; antes ficava em y=0 e, na subida, os golpes "passavam por cima".
@@ -2807,7 +2807,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(zarkUltBossLock){enemyModelRoot.position.y=zarkUltBossLock.modelRootY;}
  else if(footPoints.length){enemyModelRoot.position.y+=floorY-Math.min(...footPoints);}
  else{const animatedBounds=new THREE.Box3().setFromObject(enemyModel);if(!animatedBounds.isEmpty()&&Number.isFinite(animatedBounds.min.y))enemyModelRoot.position.y+=floorY-animatedBounds.min.y;}
- }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);updateGuideWings(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-dt);if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-dt);if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-dt);if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-dt);for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}npcIdleLife(dt);updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
+ }if(guideIdleMixer){updateGuideMotion();guideIdleMixer.update(dt);relaxGuideArms(dt);updateGuideWings(dt);}if(enemyDashCooldown>0)enemyDashCooldown=Math.max(0,enemyDashCooldown-(admFreezeNearby?0:dt));if(enemySpecialCooldown>0)enemySpecialCooldown=Math.max(0,enemySpecialCooldown-(admFreezeNearby?0:dt));if(enemyCastCooldown>0)enemyCastCooldown=Math.max(0,enemyCastCooldown-(admFreezeNearby?0:dt));if(enemyBlockCooldown>0)enemyBlockCooldown=Math.max(0,enemyBlockCooldown-(admFreezeNearby?0:dt));for(const npcMixer of villageNpcMixers){if(!npcMixer.__far)npcMixer.update(dt);}npcIdleLife(dt);updateNpcCulling();updateVillagers(dt);if(!swordTraining&&combatStepNow()&&questStep<13&&enemyLoadState==='idle')loadEnemyModel();updatePortalPull(dt);
  if(pendingEnemyHitAt&&now>=pendingEnemyHitAt){pendingEnemyHitAt=0;resolvePlayerAttackHit();}
     updatePlayerSwordMount();
  if(enemyHitFlash>0){enemyHitFlash=Math.max(0,enemyHitFlash-dt);setEnemyHitFlash(true);}else setEnemyHitFlash(false);
@@ -2826,7 +2826,7 @@ function animate(){requestAnimationFrame(animate);const forestFrameStart=forestP
  if(!zarkSword?.holdBoss&&!zarkUltBossLock&&combatStepNow()&&enemy.visible&&enemyAlive&&Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z)<6.5)enemy.rotation.y=Math.atan2(player.position.x-enemy.position.x,player.position.z-enemy.position.z);
  if(dialogueOpen&&actions.idle&&now>actionUntil)play('idle',.08);
 updatePlayerMovement(dt,now);applyTornadoSuction(dt);applyCycloneSuction(dt);
-updateSquadCombat(dt,now);updateEnemy1Lab(dt);updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();for(const ts of torchSets)ts.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();checkVigiaRuin(now);
+updateSquadCombat(dt,now);updateEnemy1Lab(dt);if(!admFreezeNearby)updateEnemyAI(dt);updateEnemyHud();updatePlayerHud();playerMana=regenMana(playerMana,dt*act3ManaMul(),combatStepNow()&&enemy.visible&&enemyAlive);updateSkillHud(now);updateDayNight(dt);applySquadDim();for(const ts of torchSets)ts.update(now*.001,dayNightState.t);applyVzTint();vzUpdateLock();updateZoneStreaming();updateEldoriaWater(now);checkSecretRuin();checkVigiaRuin(now);
  undoCyShake();undoVxShake();undoBfShake();undoHydraShake();undoCosmicShake();updatePlayerCamera(dt);
 updatePoses(dt);updatePlayerSwordMount();updateFirstPerson(dt,now);updateRites(dt);
 // Vegetação instanciada permanece imóvel; evita rotações por quadro de centenas de instâncias.
@@ -4365,7 +4365,7 @@ if(new URLSearchParams(location.search).get('adm')==='1'){
   createAdmPanel({
    getState:()=>{
     const a=squadSq()?.actors.find(x=>x.alive&&(x.kind==='greedA'||x.kind==='greedB'));
-    return{inGreed:!!dimBattle?.active&&dimBattle.key==='greed',phase:a?.gk?.phase||0};
+    return{inGreed:!!dimBattle?.active&&dimBattle.key==='greed',phase:a?.gk?.phase||0,paused:admFreezeNearby};
    },
    onTeleport:key=>journeyTeleport(key)?'Teleporte realizado.':'Teleporte indisponível neste local ou durante combate.',
    onDimension:key=>{
@@ -4378,6 +4378,10 @@ if(new URLSearchParams(location.search).get('adm')==='1'){
    onKill:()=>{
     const count=window.SevenSinsDebug3D?.killNearby?.(12)??0;
     return count?'Foram atingidos '+count+' adversário(s).':'Nenhum adversário próximo.';
+   },
+   onPause:()=>{
+    const state=window.SevenSinsDebug3D?.admFreeze?.();
+    return state?.paused?'Inimigos e chefes do encontro congelados. O protagonista continua livre.':'Movimento dos inimigos retomado.';
    }
   });
  };
@@ -4587,6 +4591,7 @@ function packHandleDefeat(){
  return true;
 }
 function updatePack(dt){
+ if(admFreezeNearby)return;
  updateFallen(dt);const lists=[pack?pack.clones:[],hordeClones];
  for(const list of lists)for(const c of list){if(!c)continue;c.mixer.update(dt);const h=c.holder;if(!h.visible)continue;
   const tx=c.lookAt||player.position;h.rotation.y=Math.atan2(tx.x-h.position.x,tx.z-h.position.z);
@@ -4599,6 +4604,7 @@ function updatePack(dt){
    diferença de vida/posição vai para o ator certo. Corte da espada, projéteis e magias em área alcançam os outros atores.
    ?esquadraLegada=1 volta ao modo antigo (um por vez). ?testeEnemy1=1 abre o laboratório isolado do progresso. */
 var squadQAPause=false; // MOD 315: QA congela a IA da esquadra (o dano do herói continua valendo)
+var admFreezeNearby=false; // MOD 369: congela inimigos do encontro sem pausar o protagonista ou o mundo.
 var vzDuel=false,vzMeteorIframe=0,vzLocked=false,vzLockPos=null,squadSakugaCd=0,squadLabLoading=false,squadLabelN=0,squadCycleN=0,squadRT=null,squadOn=false,squadFocus=null,squadManual=false,squadProxy={hp:0,x:0,z:0},squadSwallowUntil=0,squadEndAt=0,squadStopAt=0,squadKnock=null,squadAllies=[],squadLab=null,squadProjN=0;
 const squadEdge={atk:0,dash:false,def:false,mana:0,castUntil:0},squadBlockCache=new Map();
 function squadBlocked(x,z){const k=Math.round(x*4)+':'+Math.round(z*4);let v=squadBlockCache.get(k);if(v===undefined){v=blockedAt(x,z)||(questStep>=2&&!childrenFreed&&CAGE_SPOTS.some(c=>Math.abs(x-c.x)<.72&&Math.abs(z-c.z)<.72));if(squadBlockCache.size>60000)squadBlockCache.clear();squadBlockCache.set(k,v);}return v;}
@@ -5051,9 +5057,10 @@ function updateSquadCombat(dt,now){
  if(playerHP>0&&!dashing){const pl=pullOn(s,targets[0]);if(pl.x||pl.z){const nx=player.position.x+pl.x*dt,nz=player.position.z+pl.z*dt;if(!playerBlockedAt(nx,player.position.z))player.position.x=nx;if(!playerBlockedAt(player.position.x,nz))player.position.z=nz;}}
  for(const al of squadAllies)targets.push(allyTarget(al));
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
- const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')
- squadRT.update(dt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||!!greedAtomic?.active});greedAtomicTick(dt,paused||squadQAPause);vzAuditTick(dt);
- updateAllies(dt);
+ const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')||admFreezeNearby
+ const enemyDt=admFreezeNearby?0:dt;
+ squadRT.update(enemyDt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||admFreezeNearby||!!greedAtomic?.active});greedAtomicTick(enemyDt,paused||squadQAPause||admFreezeNearby);vzAuditTick();
+ updateAllies(enemyDt);
  // 5) foco e procurador
  pickSquadFocus(false);
  const nAlive=squadAlive().length;if(nAlive){writeSquadProxy();if(nAlive!==squadLabelN){squadLabelN=nAlive;syncEnemyLabel();const el=document.getElementById('enemy-name');if(el&&nAlive>1)el.textContent+=' ×'+nAlive;}}
@@ -8612,8 +8619,9 @@ function turnBone(b,axis,ang){
  b.parent.getWorldQuaternion(_pq3).invert();b.quaternion.copy(_pq3.multiply(_pq));b.updateMatrixWorld(true);
 }
 function updatePoses(dt){
+ const frozenEnemyRoot=admFreezeNearby?enemyPoseRoot():null;
  for(let i=poseJobs.length-1;i>=0;i--){
-  const j=poseJobs[i];j.t+=dt;
+  const j=poseJobs[i];if(frozenEnemyRoot&&j.root===frozenEnemyRoot)continue;j.t+=dt;
   if(j.dead||j.t>j.dur||!j.root.parent){if(j.base!==null)j.root.position.y=j.base;poseJobs.splice(i,1);continue;}
   const R=j.rig,w=Math.min(1,j.t/.18)*Math.min(1,Math.max(0,(j.dur-j.t)/.3)),yaw=j.yawFn(),f=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),r=new THREE.Vector3().crossVectors(f,UPV).normalize();
   const D=(x,y,z)=>new THREE.Vector3().addScaledVector(f,x).addScaledVector(UPV,y).addScaledVector(r,z).normalize(),k=j.t/j.dur;
@@ -9293,6 +9301,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   squadForce(skill,id){const s=squadSq();if(!s)return null;const a=id?s.actor(id):(squadFocus||s.alive[0]),t=s.targets[0];if(!a||!t)return null;a.act=null;a.cds[skill]=0;a.cds.spellGap=0;s.lastAttackAt=-9;s.startCast(a,t,skill);return this.squadState();},
   /** QA (Mod 315): força salto predatório / escudo / combo de garra do Demônio1. */
   squadPause(on=true){squadQAPause=!!on;return !!squadSq();},
+  admFreeze(on){admFreezeNearby=on===undefined?!admFreezeNearby:!!on;return{paused:admFreezeNearby,alive:squadAlive().length};},
   squadLeap(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.cds.leap=0;s.startLeap(a,t);return this.combat315();},
   squadShield(id){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus;if(!a||!a.shield)return null;a.shield.readyAt=-1e9;a.shield.update(s.time);a.shield.activate(s.time);return this.combat315();},
   squadNative(id,move){const s=squadSq();if(!s)return null;const a=s.actor(id)||squadFocus,t=s.targets[0];if(!a||!t)return null;a.act=null;a.alert=0;a.combo=null;s.startNative(a,t,move);return this.combat315();},

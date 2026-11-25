@@ -3,7 +3,7 @@
 export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill,getState}){
  if(document.getElementById('adm-panel'))return null;
  const style=document.createElement('style');style.id='adm-panel-styles';style.textContent=`
- #adm-panel{position:fixed;right:max(8px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 105px);z-index:82;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:calc(100vw - 16px);font:500 12px/1.4 system-ui,sans-serif;pointer-events:none}
+ #adm-panel{position:fixed;right:max(8px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 105px);z-index:82;display:flex;flex-direction:column;align-items:flex-end;gap:6px;width:min(420px,calc(100vw - 16px));max-width:calc(100vw - 16px);font:500 12px/1.4 system-ui,sans-serif;pointer-events:none}
  body.usura-cine #adm-panel{visibility:hidden}
  #adm-panel *{box-sizing:border-box}
  #adm-panel button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -28,8 +28,8 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  .adm-action.wide{grid-column:1/-1}
  .adm-status{border-top:1px solid #493541;padding:9px 12px 11px;color:#f0d3bd;min-height:36px;font-size:11px;line-height:1.4}
  #adm-panel [data-adm-hidden="true"]{display:none}
- @media(max-width:680px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px);right:7px}#adm-content{width:min(390px,calc(100vw - 14px));max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px)}.adm-action{min-height:43px}}
- @media(max-height:510px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px)}#adm-content{width:min(390px,calc(100vw - 20px));max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 144px)}.adm-scroll{padding-bottom:8px}}
+ @media(max-width:680px){#adm-panel{top:calc(env(safe-area-inset-top) + 60px);left:7px;right:7px;width:auto;max-width:none;align-items:stretch}#adm-toggle{align-self:flex-end;min-width:104px;min-height:44px}#adm-content{width:100%;max-height:min(66dvh,560px);border-radius:16px}.adm-heading{padding:10px 12px 7px}.adm-tabs{padding:5px 10px 8px;gap:6px}.adm-tab{min-height:43px;padding:6px 3px;font-size:11px}.adm-scroll{padding:4px 10px 10px}.adm-grid{gap:7px}.adm-action{min-height:48px;padding:10px}.adm-status{padding-bottom:calc(10px + env(safe-area-inset-bottom))}}
+ @media(max-height:510px){#adm-panel{top:calc(env(safe-area-inset-top) + 64px);left:7px;right:7px;width:auto;align-items:stretch}#adm-toggle{align-self:flex-end}#adm-content{width:100%;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 144px)}.adm-scroll{padding-bottom:8px}}
  @media(max-width:355px){.adm-grid{grid-template-columns:1fr}.adm-action.wide{grid-column:auto}.adm-heading strong{font-size:13px}}
  `;document.head.append(style);
  const panel=document.createElement('div');panel.id='adm-panel';panel.setAttribute('aria-label','Ferramentas ADM de teste');
@@ -41,13 +41,13 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  const scroll=document.createElement('div');scroll.className='adm-scroll';
  const status=document.createElement('div');status.className='adm-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent='Escolha uma ferramenta. Os testes de dimensão não alteram o progresso salvo.';
  const defs=[['ganancia','⚔ Ganância'],['dimensoes','Dimensões'],['viagem','Viagem']];
- const pages=new Map(),tabButtons=new Map();let current='ganancia';
+ const pages=new Map(),tabButtons=new Map();let current='ganancia',pauseButton=null;
  const message=text=>{status.textContent=String(text||'Ação enviada ao jogo.');};
  function open(yes){box.hidden=!yes;toggle.setAttribute('aria-expanded',String(yes));toggle.textContent=yes?'⚙ ADM ▴':'⚙ ADM';if(yes)refresh();}
  function select(id){current=id;for(const [key,p] of pages)p.hidden=key!==id;for(const [key,b] of tabButtons)b.setAttribute('aria-selected',String(id===key));scroll.scrollTop=0;refresh();}
  function action(page,title,callback,{primary=false,wide=false}={}){
   const b=document.createElement('button');b.className='adm-action'+(primary?' primary':'')+(wide?' wide':'');b.type='button';b.textContent=title;
-  b.addEventListener('click',e=>{e.stopPropagation();try{const result=callback();message(typeof result==='string'?result:result===false?'Ação indisponível neste momento.':'Ação executada.');}catch(err){message('Erro ao executar ação: '+err.message);}});
+  b.addEventListener('click',e=>{e.stopPropagation();try{const result=callback();message(typeof result==='string'?result:result===false?'Ação indisponível neste momento.':'Ação executada.');refresh();}catch(err){message('Erro ao executar ação: '+err.message);}});
   pages.get(page).querySelector('.adm-grid').append(b);return b;
  }
  for(const [id,label] of defs){
@@ -57,18 +57,20 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  const ultimateButton=action('ganancia','💥 ATIVAR ULTIMATE · JUÍZO DA USURA',onUltimate,{primary:true,wide:true});
  action('ganancia','⏭ Próxima fase da Ganância',onPhase,{wide:true});
  action('ganancia','🎮 Abrir teste da Ganância',()=>onDimension('greed'),{wide:true});
+ pauseButton=action('ganancia','⏸ PAUSAR INIMIGOS',()=>onPause?.(),{wide:true});
+ action('ganancia','☠ Eliminar inimigos próximos',onKill,{wide:true});
  action('dimensoes','I · VHAZRAEL',()=>onDimension('bishop1'));
  action('dimensoes','II · VORGAZHEK',()=>onDimension('bishop2'));
  action('dimensoes',"III · ZAR’KHAEL",()=>onDimension('bishop3'));
  action('dimensoes','IV · VÉRAXION',()=>onDimension('bishop4'));
  action('dimensoes','V · GANÂNCIA',()=>onDimension('greed'),{primary:true});
- action('dimensoes','☠ Eliminar inimigos próximos',onKill,{wide:true});
+ // Eliminar inimigos foi agrupado com os controles de combate na aba Ganância.
  action('viagem','🏘 Cidade 1 · Eldória',()=>onTeleport('eldoria'));
  action('viagem','🌄 Vale do Entardecer',()=>onTeleport('vale'));
  action('viagem','🌋 Cidade 2 · Cinzária',()=>onTeleport('cinzaria'));
  action('viagem','🌿 Começar jornada',()=>{location.href='mundo-3d-prototype.html?adm=1&debug3d=1&jornadaInicio=1';return 'Abrindo jornada.'},{wide:true});
  action('viagem','↩ Laboratório de inimigos',()=>{location.href='laboratorio-inimigos.html';return 'Abrindo laboratório.'},{wide:true});
- function refresh(){const s=getState?.()||{};ultimateButton.title=s.phase===3?'Ativar o Juízo da Usura agora':s.inGreed?'Disponível depois da transformação para a fase III':'Entre na Dimensão da Ganância para usar';}
+ function refresh(){const s=getState?.()||{};ultimateButton.title=s.phase===3?'Ativar o Juízo da Usura agora':s.inGreed?'Disponível depois da transformação para a fase III':'Entre na Dimensão da Ganância para usar';if(pauseButton){pauseButton.textContent=s.paused?'▶ RETOMAR INIMIGOS':'⏸ PAUSAR INIMIGOS';pauseButton.setAttribute('aria-pressed',String(!!s.paused));pauseButton.title=s.paused?'Retomar movimento dos inimigos e chefes':'Congelar inimigos e chefes do encontro';}}
  toggle.addEventListener('click',e=>{e.stopPropagation();open(box.hidden);});close.addEventListener('click',()=>open(false));
  panel.append(toggle,box);box.append(header,tabs,scroll,status);document.body.append(panel);
  panel.addEventListener('pointerdown',e=>e.stopPropagation());

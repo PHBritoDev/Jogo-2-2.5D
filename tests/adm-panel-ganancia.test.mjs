@@ -27,6 +27,13 @@ test('organização PC e celular com três categorias e toque real',()=>{
  assert.match(ui,/Cidade 2 · Cinzária/);
  assert.match(ui,/Vale do Entardecer/);
  assert.match(ui,/V · GANÂNCIA/);
+ assert.match(ui,/PAUSAR INIMIGOS/);
+ assert.match(ui,/RETOMAR INIMIGOS/);
+ assert.match(ui,/onPause/);
+ assert.match(world,/admFreezeNearby\?0:dt/);
+ assert.match(world,/paused:paused\|\|squadQAPause\|\|admFreezeNearby/);
+ assert.match(world,/if\(!admFreezeNearby\)updateEnemyAI\(dt\)/);
+ assert.match(world,/admFreeze\(on\)/);
 });
 test('botão ativa a ultimate real sem matar chefe ou alterar vida',()=>{
  assert.match(world,/onUltimate:\(\)=>greedAdmCastUltimate\(\)/);
