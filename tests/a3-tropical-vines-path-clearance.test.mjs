@@ -7,10 +7,17 @@ const trees = Array.from({ length: 20 }, (_, i) => ({ x: i * 4, z: 0, h: 12 }));
 const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
 
 function vineFootprintFree(isFree, x, z) {
-  if (!isFree(x, z)) return false;
+  const radius = .4, gridSteps = 4;
+  for (let ix = -gridSteps; ix <= gridSteps; ix++) {
+    for (let iz = -gridSteps; iz <= gridSteps; iz++) {
+      const dx = ix * radius / gridSteps, dz = iz * radius / gridSteps;
+      if (dx * dx + dz * dz > radius * radius + 1e-9) continue;
+      if (!isFree(x + dx, z + dz)) return false;
+    }
+  }
   for (let i = 0; i < 16; i++) {
     const a = i * Math.PI * 2 / 16;
-    if (!isFree(x + Math.cos(a) * .4, z + Math.sin(a) * .4)) return false;
+    if (!isFree(x + Math.cos(a) * radius, z + Math.sin(a) * radius)) return false;
   }
   return true;
 }
@@ -26,6 +33,26 @@ test('cipós tropicais respeitam o corredor livre, assim como as folhas', () => 
   assert.ok(plan.vines.length < unobstructed.vines.length, 'cipós dentro do corredor são removidos');
   assert.ok(plan.leaves.every(p => isFree(p.x, p.z)), 'folhas respeitam a máscara');
   assert.ok(plan.vines.every(p => vineFootprintFree(isFree, p.x, p.z)), 'a malha completa e sua oscilação ficam fora do corredor');
+});
+
+test('cipó é rejeitado quando a máscara bloqueia um bolsão dentro do envelope', () => {
+  const singleTree = [{ x: 0, z: 0, h: 12 }];
+  const baseline = planTropical({ trees: singleTree, zone: null, isFree: () => true, seed: 2926 });
+  const target = baseline.vines[0];
+  // O bloqueio fica a 0,2 m na direção longitudinal da malha, fora do centro e do anel de 0,4 m.
+  const blockedX = target.x + Math.cos(target.rot) * .2;
+  const blockedZ = target.z - Math.sin(target.rot) * .2;
+  const isFree = (x, z) => Math.hypot(x - blockedX, z - blockedZ) > .025;
+
+  assert.ok(isFree(target.x, target.z), 'o pivô continua livre');
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI * 2 / 16;
+    assert.ok(isFree(target.x + Math.cos(a) * .4, target.z + Math.sin(a) * .4), 'o perímetro continua livre');
+  }
+  assert.equal(isFree(blockedX, blockedZ), false, 'o bolsão interno está bloqueado');
+
+  const filtered = planTropical({ trees: singleTree, zone: null, isFree, seed: 2926 });
+  assert.ok(!filtered.vines.some(v => v.x === target.x && v.z === target.z), 'o cipó que cobre o bolsão é removido');
 });
 
 test('sem área livre, nenhum cipó ou folha é planejado', () => {
