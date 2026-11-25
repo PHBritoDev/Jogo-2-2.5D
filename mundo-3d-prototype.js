@@ -5027,11 +5027,11 @@ function updateSquadCombat(dt,now){
  if(ENEMY4_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy4)startEnemy1Lab('y3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy4').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY3_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy3)startEnemy1Lab('x3');else if(!squadLabLoading){squadLabLoading=true;Promise.all([loadRig('enemy3')]).catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
  if(ENEMY2_LAB&&!squadLab&&model&&mixer&&player.userData.ready){if(rigs.enemy2)startEnemy1Lab('e3');else if(!squadLabLoading){squadLabLoading=true;loadRig('enemy2').catch(()=>{}).finally(()=>{squadLabLoading=false;});}}
- if(squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
+ if(!admFreezeNearby&&squadStopAt&&now>=squadStopAt&&!squadOn){squadStopAt=0;squadRT&&squadRT.stop();}
  if(!squadOn&&pack&&pack.squad&&pack.waitRig&&rigSource(squadRig(pack)))startSquadPack();
- if(!squadOn){greedAtomicEnd();if(squadRT&&squadRT.squad)squadRT.update(dt,{camera,quality:graphics3DIsLow()?0:1});return;}
+ if(!squadOn){greedAtomicEnd();if(squadRT&&squadRT.squad)squadRT.update(admFreezeNearby?0:dt,{camera,quality:graphics3DIsLow()?0:1,paused:admFreezeNearby});return;}
  const s=squadSq();if(!s)return;
- zkBeastHero(s,now);
+ if(!admFreezeNearby)zkBeastHero(s,now);
  // 1) o que o herói fez no procurador vai para o ator em foco
  const f=squadFocus;
  if(f&&f.alive){
@@ -5059,13 +5059,13 @@ function updateSquadCombat(dt,now){
  const foreign=[];for(const p of holyProjectiles){if(p.hit||p.life<=0||p.delay>0||p.orbit>0)continue;if(!p.sid)p.sid='h'+(++squadProjN);foreign.push({id:p.sid,team:'hero',x:p.group.position.x,y:p.group.position.y,z:p.group.position.z,dx:p.dirX,dz:p.dirZ,speed:p.speed,r:p.kind==='arc'?.8:.5,power:p.damage,kill(){p.life=0;p.hit=true;},weaken(n){p.damage=Math.max(1,Math.round(p.damage-n*.5));}});}
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')||admFreezeNearby
  const enemyDt=admFreezeNearby?0:dt;
- squadRT.update(enemyDt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||admFreezeNearby||!!greedAtomic?.active});greedAtomicTick(enemyDt,paused||squadQAPause||admFreezeNearby);vzAuditTick();
+ squadRT.update(enemyDt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||admFreezeNearby||!!greedAtomic?.active});greedAtomicTick(enemyDt,paused||squadQAPause||admFreezeNearby);if(!admFreezeNearby)vzAuditTick();
  updateAllies(enemyDt);
  // 5) foco e procurador
  pickSquadFocus(false);
  const nAlive=squadAlive().length;if(nAlive){writeSquadProxy();if(nAlive!==squadLabelN){squadLabelN=nAlive;syncEnemyLabel();const el=document.getElementById('enemy-name');if(el&&nAlive>1)el.textContent+=' ×'+nAlive;}}
- else if(!squadEndAt){squadEndAt=now+1300;enemyAlive=false;enemy.visible=false;document.getElementById('enemy-hud').style.display='none';squadSwallowUntil=now+2600;}
- if(squadEndAt&&now>=squadEndAt)finishSquad();
+ else if(!squadEndAt&&!admFreezeNearby){squadEndAt=now+1300;enemyAlive=false;enemy.visible=false;document.getElementById('enemy-hud').style.display='none';squadSwallowUntil=now+2600;}
+ if(!admFreezeNearby&&squadEndAt&&now>=squadEndAt)finishSquad();
 }
 /** Fim do encontro: todos caíram. Mesmo fechamento do pacote antigo (onDone, perfil e rig de volta). */
 function finishSquad(){
