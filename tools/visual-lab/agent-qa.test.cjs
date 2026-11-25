@@ -123,6 +123,7 @@ test('trace de câmera usa o alvo padrão do protagonista nos dois extremos',()=
 test('percurso restaura a origem depois das tomadas e rejeita reset divergente',()=>{
   assert.equal(run(report),'game_ran');
   assert.equal(run({...report,routes:[{...route,startReset:{...route.startReset,verified:false}}]}),'game_failed');
+  assert.equal(run({...report,routes:[{...route,startReset:{...route.startReset,expected:{...route.startReset.expected,yaw:1}}}]}),'game_failed');
   assert.equal(run({...report,routes:[{...route,startReset:{...route.startReset,actual:{x:-28.815,y:0,z:-94.586}}}]}),'game_failed');
   const runner=fs.readFileSync(path.join(__dirname,'scene-agent.cjs'),'utf8');
   const shotsAt=runner.indexOf('for (let i = 0; i < scene.shots.length; i++)');
