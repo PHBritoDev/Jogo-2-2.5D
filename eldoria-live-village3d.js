@@ -84,9 +84,9 @@ function addNearCameraFade(material, near = 8.0) {
   material.onBeforeCompile = (shader, renderer) => {
     if (previous) previous(shader, renderer);
     const chunk = '#include <clipping_planes_fragment>';
-    if (!shader.fragmentShader.includes(chunk)) return;
+    if (!shader.fragmentShader.includes(chunk) || !shader.fragmentShader.includes('vViewPosition')) return;
     shader.fragmentShader = shader.fragmentShader.replace(chunk,
-      chunk + '\\n{float camFade=clamp((length(vViewPosition)-0.6)/' + near.toFixed(2) + ',0.0,1.0);float dither=fract(dot(floor(gl_FragCoord.xy),vec2(0.5,0.25))+fract(floor(gl_FragCoord.y)*0.5)*0.5);if(camFade<0.999&&dither>camFade)discard;}');
+      chunk + '\n{float camFade=clamp((length(vViewPosition)-0.6)/' + near.toFixed(2) + ',0.0,1.0);float dither=fract(dot(floor(gl_FragCoord.xy),vec2(0.5,0.25))+fract(floor(gl_FragCoord.y)*0.5)*0.5);if(camFade<0.999&&dither>camFade)discard;}');
   };
   const key = previousKey ? previousKey.call(material) : '';
   material.customProgramCacheKey = () => key + '|near-fade';
