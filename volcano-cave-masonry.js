@@ -10,7 +10,7 @@ export const LAVA_BOUNCE_CONFIG = Object.freeze({
 });
 export function lavaBounceFalloff(distance, facing = 1) {
  const rawDistance=Number(distance), rawFacing=Number(facing);
- const d=Number.isFinite(rawDistance)?Math.max(0,rawDistance):0;
+ const d=Number.isFinite(rawDistance)?Math.max(0,rawDistance):Infinity;
  const f=Number.isFinite(rawFacing)?Math.max(0,Math.min(1,rawFacing)):0;
  return (1/(1+d*d*LAVA_BOUNCE_CONFIG.distanceFalloff))*
   (LAVA_BOUNCE_CONFIG.facingFloor+LAVA_BOUNCE_CONFIG.facingGain*f);
