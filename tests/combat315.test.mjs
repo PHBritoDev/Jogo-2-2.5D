@@ -247,6 +247,45 @@ test('SwordRites VFX retains pending matrix ranges until the renderer consumes t
   }
 });
 
+
+test('SwordRites VFX queues partial instance-color ranges and preserves pending color changes', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
+  assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
+  const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
+  const shards = scene.getObjectByName('SwordRites231').children.find(o => o.isInstancedMesh);
+  const ranges = () => shards.instanceColor?.updateRanges.map(({ start, count }) => ({ start, count })) || [];
+  try {
+    assert.equal(shards.instanceColor, null, 'instance colors are allocated lazily');
+    v.event('impact', { p: { x: 0, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    let st = v.stats();
+    assert.ok(shards.instanceColor);
+    assert.equal(st.particleColorUpdates, 1);
+    assert.equal(st.particleColorUpdateComponents, 45, '15 colors × 3 components');
+    assert.equal(st.particleColorUpdateBytes, 180, '15 RGB colors × 3 float32 components');
+    assert.deepEqual(ranges(), [{ start: 0, count: 45 }]);
+
+    v.event('impact', { p: { x: 1, y: 1, z: 0 }, sword: 'aurora' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particles, 30);
+    assert.equal(st.particleColorUpdates, 2);
+    assert.equal(st.particleColorUpdateComponents, 135, 'the pending first range is retained and coalesced');
+    assert.equal(st.particleColorUpdateBytes, 540);
+    assert.deepEqual(ranges(), [{ start: 0, count: 90 }], 'pending and new color slots coalesce without losing the first burst');
+
+    shards.instanceColor.clearUpdateRanges(); // simula o renderer consumindo os ranges
+    v.event('impact', { p: { x: 2, y: 1, z: 0 }, sword: 'prota' });
+    v.update(1 / 60, 'high', false);
+    st = v.stats();
+    assert.equal(st.particleColorUpdates, 3);
+    assert.equal(st.particleColorUpdateComponents, 180);
+    assert.equal(st.particleColorUpdateBytes, 720);
+    assert.deepEqual(ranges(), [{ start: 90, count: 45 }], 'the next burst updates only slots 30–44');
+  } finally {
+    v.dispose();
+  }
+});
+
 test('SwordRites VFX falls back to a full matrix update when sparse ranges become too costly', { skip: !THREE && !process.env.CI && 'three.js indisponível (defina COMBAT_THREE_DIR)' }, () => {
   assert.ok(THREE, 'CI precisa de three.js (COMBAT_THREE_DIR)');
   const scene = new THREE.Scene(), v = createSwordRitesVFX(THREE, scene);
