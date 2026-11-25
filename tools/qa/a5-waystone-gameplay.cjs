@@ -693,8 +693,19 @@ async function exposePathfinder() {
     assert.equal(afterVendorControl.story.q, 1, 'reload não restaurou o questStep da vila no runtime');
     assert.equal(afterVendorControl.state.objective, 'Pergunte a Téo sobre o Pecado da Ganância',
       'reload não restaurou o objetivo principal de Téo');
-    assert.equal(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
-      'reload não restaurou a interação principal de Téo');
+    const teoAfterReload = afterVendorReload.vendors.find(v => v.shortName === 'PROVISÕES');
+    assert.ok(teoAfterReload, 'QA não encontrou Téo na lista de vendedores após reload');
+    const distanceToTeoAfterReload = Math.hypot(
+      teoAfterReload.x - afterVendorControl.story.x,
+      teoAfterReload.z - afterVendorControl.story.z
+    );
+    if (distanceToTeoAfterReload <= 2.9) {
+      assert.equal(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+        'o prompt de Téo deveria estar visível dentro do alcance após reload');
+    } else {
+      assert.notEqual(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+        'o prompt de Téo não deve ficar visível quando o jogador recarrega longe dele');
+    }
     assert.equal(afterVendorReload.side.abrigos.progress, 0, 'diálogo alterou indevidamente o progresso dos abrigos');
     assert.equal(afterVendorReload.coins, initial.coins, 'diálogo cobrou moedas antes da ação entregar-ouro');
     assert.equal(afterVendorReload.xp, initial.xp, 'diálogo alterou XP antes da ação entregar-ouro');
@@ -705,6 +716,7 @@ async function exposePathfinder() {
       act1Sub: afterVendorCampaign.act1Sub,
       objective: afterVendorControl.state.objective,
       interaction: afterVendorControl.story.label,
+      interactionDistanceToTeo: +distanceToTeoAfterReload.toFixed(2),
       coins: afterVendorReload.coins,
       xp: afterVendorReload.xp,
       sideWaystonesProgress: afterVendorReload.side.abrigos.progress
@@ -715,6 +727,11 @@ async function exposePathfinder() {
     // e devolve ao jogador a posição/estado de QA usados pelo pathfinder, sem mascarar o reload.
     await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
     await wait(700);
+    const rearmedVendorControl = await controlState();
+    assert.equal(rearmedVendorControl.story.label, 'PERGUNTAR · TÉO',
+      'o prompt contextual de Téo não voltou quando o jogador foi reposicionado ao vendedor');
+    report.vendorDialogueReload.interactionAtRearmedVendor = rearmedVendorControl.story.label;
+    await shot('02-vendor-prompt-rearmed');
 
     await page.waitForFunction(ids => {
       const current = window.SevenSinsDebug3D.sideQuestQA().waystones.filter(w => ids.includes(w.id));

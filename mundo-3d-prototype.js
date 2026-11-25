@@ -5432,8 +5432,8 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor'});return true;}
-  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
+ if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor',two:true});return true;}
+  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',two:true,done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
  if(label==='SAIR DO ESGOTO'){travelVeil(()=>leaveSewer());return true;}
