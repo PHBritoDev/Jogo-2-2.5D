@@ -146,3 +146,11 @@ test('cinturão: espécies em manchas, espaçamento por estrato e respeito à fu
   for (const k of ['low', 'auto', 'high']) { const [n, m, f] = TROPICAL_BANDS[k]; assert.ok(n < m && m < f); }
   assert.ok(speciesBandK({ height: 30 }) > speciesBandK({ height: 14 }));
 });
+
+
+test('QA A/B da árvore lateral enquadra as raízes e inclui desktop', () => {
+  const sweep = readFileSync(new URL('./tools/visual-lab/eldoria-city-sweep.cjs', import.meta.url), 'utf8');
+  assert.match(sweep, /name:"arvore-lateral",x:14\.8,z:-58\.5,up:4\.5,back:28,targetY:\.35/);
+  assert.match(sweep, /const treeSpot=\{x:14\.8,z:-58\.5,up:4\.5,back:28,targetY:\.35\}/);
+  assert.match(sweep, /spots\.filter\(\(_,i\)=>\[0,1,4,6,7,8,9\]\.includes\(i\)\)/);
+});
