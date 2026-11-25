@@ -673,7 +673,27 @@ async function exposePathfinder() {
     assert.equal(initialControl.state.objective, expectedObjective, 'HUD do Ato I não mostra o objetivo corrigido de Téo');
     assert.equal(initialControl.story.label, expectedTalkLabel, 'estado narrativo não aponta para a interação principal com Téo');
     const talkButton = page.locator('#talk-button');
-    assert.equal(await talkButton.isVisible(), true, 'botão principal de interação não está visível');
+    try {
+      await page.waitForFunction(expected => {
+        const D = window.SevenSinsDebug3D, button = document.getElementById('talk-button');
+        const state = D?.state?.(), story = D?.storyState?.();
+        return !!button && !button.classList.contains('hidden') && button.textContent.trim() === expected &&
+          story?.label === expected && state?.awakeningActive !== true &&
+          state?.dialogueOpen !== true && state?.namePromptOpen !== true;
+      }, expectedTalkLabel, { timeout: 90000, polling: 100 });
+    } catch (error) {
+      report.mainQuestPrompt = {
+        objective: await page.locator('#quest-objective').textContent().catch(() => null),
+        label: initialControl.story.label, buttonVisible: await talkButton.isVisible().catch(() => false),
+        diagnostics: await page.evaluate(() => {
+          const D = window.SevenSinsDebug3D, button = document.getElementById('talk-button');
+          return { buttonText: button?.textContent, buttonClass: button?.className,
+            state: D?.state?.(), story: D?.storyState?.(), regression: D?.regressionState?.() };
+        }).catch(() => null)
+      };
+      throw error;
+    }
+    assert.equal(await talkButton.isVisible(), true, 'botão principal de interação não ficou visível após a cena inicializar');
     const talkButtonText = (await talkButton.innerText()).replace(/\s+/g, ' ').trim();
     assert.match(talkButtonText, /PERGUNTAR\s*·\s*TÉO/i, 'texto visível do botão não corresponde ao vendedor da cena principal');
     report.mainQuestPrompt = { objective: initialControl.state.objective, label: initialControl.story.label, buttonVisible: true, buttonText: talkButtonText, dialogueOpened: initialControl.state.dialogueOpen };
