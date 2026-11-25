@@ -1,9 +1,10 @@
 name: A4 — Reflexo dinâmico de lava (A/B)
 on:
-  push:
+  pull_request:
     branches:
-      - agentes/a4/volcano-lava-bounce
+      - main
     paths:
+      - '.github/workflows/a4-volcano-lava-bounce.yml'
       - 'volcano*.js'
       - 'volcano-cave-lighting.test.mjs'
       - 'volcano-cave-bark.webp'
@@ -22,7 +23,7 @@ jobs:
       - name: Checkout base
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.base.sha }}
           path: baseline
           sparse-checkout: |
             /*.js
@@ -35,7 +36,7 @@ jobs:
       - name: Checkout candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           path: candidate
           sparse-checkout: |
             /*.js
@@ -60,14 +61,14 @@ jobs:
           BASE_DIR: ${{ github.workspace }}/baseline
           CANDIDATE_DIR: ${{ github.workspace }}/candidate
           OUTPUT_DIR: ${{ github.workspace }}/candidate/artifacts/a4-volcano-lava-bounce
-          BASE_SHA: main
-          CANDIDATE_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
         run: node candidate/tools/qa/a4-volcano-lava-bounce.cjs
       - name: Publicar PNGs, WebM e relatório A/B
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a4-volcano-lava-bounce-${{ github.sha }}
+          name: a4-volcano-lava-bounce-${{ github.event.pull_request.head.sha }}
           path: candidate/artifacts/a4-volcano-lava-bounce/
           if-no-files-found: warn
           retention-days: 7
