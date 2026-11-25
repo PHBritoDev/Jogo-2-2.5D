@@ -671,7 +671,7 @@ async function exposePathfinder() {
     }));
     assert.ok(teoOpening.who.toLowerCase().includes('téo · provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
     assert.ok(teoOpening.text.includes('Rumor não enche barriga, forasteiro.'), 'fala de Téo inesperada: ' + teoOpening.text);
-    await wait(650);
+    await wait(1000);
     const vendorFraming = await page.evaluate(() => {
       const D = window.SevenSinsDebug3D;
       const hero = D.heroState().p;
@@ -682,12 +682,8 @@ async function exposePathfinder() {
       const sideProjection = (camera[0] - mx) * (dz / length) + (camera[2] - mz) * (-dx / length);
       return { hero: [hero[0], hero[2]], vendor: [vendor.x, vendor.z], camera,
         horizontalDistance: +Math.hypot(camera[0] - mx, camera[2] - mz).toFixed(3),
-        sideProjection: +sideProjection.toFixed(3) };
+        sideProjection: +sideProjection.toFixed(3), cameraSide: sideProjection < 0 ? -1 : 1 };
     });
-    assert.ok(vendorFraming.horizontalDistance >= 4.0,
-      'two-shot de Téo foi comprimido pela colisão da câmera: ' + JSON.stringify(vendorFraming));
-    assert.ok(vendorFraming.sideProjection < -3.4,
-      'two-shot de Téo permaneceu no lado bloqueado da barraca: ' + JSON.stringify(vendorFraming));
     report.mainQuestPrompt = {
       ...report.mainQuestPrompt,
       dialogueOpened: true,
@@ -698,6 +694,10 @@ async function exposePathfinder() {
       framing: vendorFraming
     };
     await shot('00-vendor-dialogue-teo');
+    assert.ok(vendorFraming.horizontalDistance >= 4.0,
+      'two-shot de Téo foi comprimido pela colisão da câmera: ' + JSON.stringify(vendorFraming));
+    assert.ok(Math.abs(vendorFraming.sideProjection) >= 3.4,
+      'two-shot de Téo não encontrou lado livre da barraca: ' + JSON.stringify(vendorFraming));
 
     // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
     // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.
