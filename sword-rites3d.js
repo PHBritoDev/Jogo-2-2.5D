@@ -1,5 +1,5 @@
 import {combatMove,WEAPON_STYLES} from './combat-choreography3d.js';
-import {makeEnergy,energyStep,energyTouches,energyFalloff} from './prota-combat3d.js';
+import {makeEnergy,energyStep,energyTouches,energyFalloff,PROTA_DASH} from './prota-combat3d.js';
 /** Mod 231. Deterministic sword combat, independent of Three, DOM and wall time. */
 export const SWORD_RITES=Object.freeze({
  prota:{name:'Passagem do Julgamento',label:'PASSAGEM',mana:28,cooldown:12,duration:1.95,clip:'Rite_Judgment'},
@@ -14,6 +14,25 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const copy=p=>({x:p.x,y:p.y,z:p.z});
 const BLADE_SWEEP_RAILS=Object.freeze([0,.25,.5,.75,1]);
+// Conservative frame envelope for 20/30 FPS crossings; the hard cap is the longest squad dash.
+// Current actors reach 14 m/s (Véraxion); Demon1's leap dash covers 11 m/s × .30 s = 3.3 m.
+const TARGET_SWEEP_MAX_SPEED=PROTA_DASH.distance/PROTA_DASH.travel;
+const TARGET_SWEEP_MAX_DISTANCE=3.3;
+const TARGET_SWEEP_MARGIN=.25;
+const distance3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+function snapshotSquadActors(snapshots,others,focus,epoch){
+ const remember=actor=>{
+  if(!actor?.alive||actor.id==null||!Number.isFinite(actor.x)||!Number.isFinite(actor.y)||!Number.isFinite(actor.z))return;
+  let position=snapshots.get(actor.id);
+  if(!position){position={x:actor.x,y:actor.y,z:actor.z,epoch};snapshots.set(actor.id,position);}
+  else{position.x=actor.x;position.y=actor.y;position.z=actor.z;position.epoch=epoch;}
+ };
+ for(const other of others||[])remember(other);
+ // The focused actor is omitted from ctx.others by the world adapter. Keep it so a later focus handoff can sweep it.
+ remember(focus);
+ for(const [id,position] of snapshots)if(position.epoch!==epoch)snapshots.delete(id);
+ return snapshots;
+}
 const ENERGY_OCCLUSION_STEP=.008;
 /** Resolve the source and damage class for a secondary squad contact.
  * Waves push along their travel direction; sectors push radially from their origin.
@@ -174,7 +193,7 @@ function auroraWaveImpactPoint(w,o){
  return{x:o.x-fx*r,y:o.y,z:o.z-fz*r};
 }
 export class SwordRites {
- constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.queued=false;this.energies=[];}
+ constructor(api={}){this.api={event(){},pose(){},hit(){},move(){},blocked:()=>false,...api};this.cooldowns={prota:0,aurora:0};this.active=null;this.waves=[];this.time=0;this.next=0;this.lastEnd=-100;this.serial=0;this.prevBlade=null;this.previousOthers=new Map();this.previousOthersEpoch=0;this.queued=false;this.energies=[];}
  get canCancel(){return !this.active||(this.active.kind==='basic'&&(this.active.t<this.active.def.open*.65||this.active.t>this.active.def.close+.04));}
  get busy(){return !!this.active;}
  get locksMovement(){return !!this.active&&this.active.kind!=='basic';}
@@ -208,14 +227,42 @@ export class SwordRites {
   const e=makeEnergy(spec,{x:origin.x,y:origin.y,z:origin.z},a.aimYaw??a.yaw,0);e.owner=a;e.sword=a.sword;e.serial=++this.serial;this.energies.push(e);this.api.event('energy',e);
  }
  update(dt,ctx={}){
-  if(ctx.paused)return;if(!Number.isFinite(dt)||dt<=0)return;
-  if(ctx.valid===false){this.cancel('context');return;}
-  // Substeps retain all events at 30/60/120 FPS; large stalls are bounded.
-  let left=Math.min(dt,.25);while(left>1e-8){const h=Math.min(left,1/120);left-=h;this.tick(h,ctx);}
+  if(ctx.paused){snapshotSquadActors(this.previousOthers,ctx.others,ctx.target,++this.previousOthersEpoch);return;}
+  if(!Number.isFinite(dt)||dt<=0)return;
+  if(ctx.valid===false){this.cancel('context');this.previousOthers.clear();return;}
+  // Secondary bodies are swept between world frames at the same 120 Hz cadence as the blade.
+  // The bound covers the protagonist's measured dash speed; larger jumps are treated as teleports.
+  const simDt=Math.min(dt,.25),others=Array.isArray(ctx.others)?ctx.others:[];
+  const trackPhysicalOthers=this.active?.kind==='basic'&&this.active.def?.hit!=='energy';
+  let frames=[],stepCtx=ctx;
+  if(trackPhysicalOthers){
+   const maxTravel=Math.min(TARGET_SWEEP_MAX_DISTANCE,simDt*TARGET_SWEEP_MAX_SPEED+TARGET_SWEEP_MARGIN);
+   const physicalOthers=others.map(other=>{
+    if(!other?.alive||other.id==null||!Number.isFinite(other.x)||!Number.isFinite(other.y)||!Number.isFinite(other.z))return other;
+    const to=copy(other),previous=this.previousOthers.get(other.id);
+    const from=previous&&distance3(previous,to)<=maxTravel?previous:to;
+    const sample={...other};frames.push({id:other.id,from,to,sample});return sample;
+   });
+   stepCtx={...ctx,physicalOthers};
+  }else snapshotSquadActors(this.previousOthers,others,ctx.target,++this.previousOthersEpoch);
+  let left=simDt,elapsed=0;
+  while(left>1e-8){
+   const h=Math.min(left,1/120);left-=h;elapsed+=h;
+   if(frames.length){
+    const u=Math.min(1,elapsed/simDt);
+    for(const frame of frames){
+     frame.sample.x=frame.from.x+(frame.to.x-frame.from.x)*u;
+     frame.sample.y=frame.from.y+(frame.to.y-frame.from.y)*u;
+     frame.sample.z=frame.from.z+(frame.to.z-frame.from.z)*u;
+    }
+   }
+   this.tick(h,stepCtx);
+  }
+  if(trackPhysicalOthers)snapshotSquadActors(this.previousOthers,others,ctx.target,++this.previousOthersEpoch);
  }
  tick(dt,ctx){
   this.time+=dt;for(const id of ['prota','aurora'])this.cooldowns[id]=Math.max(0,this.cooldowns[id]-dt);
-  const a=this.active,target=ctx.target;
+  const a=this.active,target=ctx.target,physicalOthers=ctx.physicalOthers||ctx.others;
   if(a){
    if(ctx.sword!==undefined&&ctx.sword!==a.sword){this.cancel('weapon');return;}
    if(a.kind==='prota'&&(!target?.alive||target.id!==a.targetId||dist(ctx.from,target)>9)){this.cancel('target');return;}
@@ -241,7 +288,7 @@ export class SwordRites {
     // A stationary contact already hidden by an occluded LOS cannot damage, so its five rails are unnecessary.
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live)a.bladeSideHits=a.bladeSideHits||new Set();
     const needsPrimarySweep=!a.hit&&target?.alive&&(target.id===a.targetId||a.def.drive);
-    const needsSideSweep=!!ctx.others?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
+    const needsSideSweep=!!physicalOthers?.some(other=>other?.alive&&other.id!=null&&other.id!==target?.id&&!a.bladeSideHits?.has(other.id)&&!a.sideHits?.has(other.id));
     let physicalSweep=null,primarySweepCandidate=false,sideSweepCandidates=[],stationaryOcclusion=null;
     if(a.kind==='basic'&&a.def.hit!=='energy'&&live&&(needsPrimarySweep||needsSideSweep)){
      const prev=this.prevBlade||blade;
@@ -253,7 +300,7 @@ export class SwordRites {
       minZ:Math.min(prev.base.z,prevTip.z,blade.base.z,currentTip.z),maxZ:Math.max(prev.base.z,prevTip.z,blade.base.z,currentTip.z)
      };
      if(needsPrimarySweep)primarySweepCandidate=bladeSweepMayTouch(bounds,target,(target.radius||.48)+(a.def.drive?.2:.12));
-     if(needsSideSweep)for(const other of ctx.others){
+     if(needsSideSweep)for(const other of physicalOthers||[]){
       if(!other?.alive||other.id==null||other.id===target?.id||a.bladeSideHits.has(other.id)||a.sideHits?.has(other.id))continue;
       if(bladeSweepMayTouch(bounds,other,(other.radius||.48)+.12))sideSweepCandidates.push(other);
      }
