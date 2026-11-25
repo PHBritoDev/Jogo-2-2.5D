@@ -17,7 +17,7 @@ const root = path.resolve(process.env.QA_OUT || 'visual-lab-results/renascimento
 fs.mkdirSync(root, { recursive: true });
 const report = { status: 'incomplete', platform: 'Chromium WebGL (SwiftShader em CI) — não representa Android real', commit: process.env.GITHUB_SHA || 'local', profiles: {}, errors: [] };
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const SEED = () => { try { if (!sessionStorage.getItem('qa-seed')) { sessionStorage.setItem('qa-seed', '1'); localStorage.clear(); } } catch (e) {} };
+const SEED = () => { let state = 0xA3D11A; Math.random = () => { state = (Math.imul(1664525, state) + 1013904223) >>> 0; return state / 4294967296; }; try { if (!sessionStorage.getItem('qa-seed')) { sessionStorage.setItem('qa-seed', '1'); localStorage.clear(); } } catch (e) {} };
 
 const NAV = [
   ['rocha-baixa', [33.66, 171.18, 39.66, 171.18, { seconds: 2.2 }], r => r.pen === 0 && !r.fell],
@@ -68,6 +68,7 @@ const CLEARING_SHOTS = [
   { id: 'respiro-oeste', x: 20, z: 128, yaw: Math.PI / 2, pitch: .55, dist: 18 },
   { id: 'garganta', x: 70, z: 200, yaw: 0, pitch: .55, dist: 16 },
 ];
+const CAMERA_TRIES = [[0, 1], [.55, 1], [-.55, 1], [0, .7], [1.1, .85], [-1.1, .85], [Math.PI, 1]];
 
 async function session(browser, viewport, mobile, out, rec, baseUrl = process.env.VISUAL_BASE_URL || 'http://127.0.0.1:4173') {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile, ...(rec ? { recordVideo: { dir: out, size: viewport } } : {}) });
@@ -87,20 +88,32 @@ const snap = async (page, file) => { try { await page.screenshot({ path: file, t
 
 // Não basta esperar um tempo fixo: SwiftShader pode renderizar poucos frames em 1,8 s.
 // O A/B só é válido quando a câmera real parou e pode ser comparada entre os dois servidores.
-async function waitCameraStable(page, maxMs = 9000) {
+async function waitCameraStable(page, maxMs = 9000, expectDist = null) {
   const started = Date.now();
   let previous = null, stableSamples = 0, camera = null;
   while (Date.now() - started < maxMs) {
-    camera = await page.evaluate(() => window.SevenSinsDebug3D.cam());
+    const sample = await page.evaluate(expected => {
+      const D = window.SevenSinsDebug3D, camera = D.cam();
+      const framing = typeof D.camView === 'function' ? D.camView() : null;
+      const near = expected == null || !framing || !Number.isFinite(framing.camToHero)
+        || Math.abs(framing.camToHero - expected) < Math.max(1.2, expected * .35);
+      return { camera, near };
+    }, expectDist);
+    camera = sample.camera;
     const valid = Array.isArray(camera) && camera.length === 3 && camera.every(Number.isFinite);
     const delta = valid && previous ? Math.hypot(...camera.map((v, i) => v - previous[i])) : Infinity;
-    if (valid && delta < .03) {
+    if (valid && sample.near && delta < .03) {
       if (++stableSamples >= 2) return { stable: true, camera, elapsedMs: Date.now() - started };
     } else stableSamples = 0;
     previous = valid ? camera : null;
     await wait(400);
   }
   return { stable: false, camera, elapsedMs: Date.now() - started };
+}
+
+function isOccluded(framing) {
+  return !!(framing?.blocked && Number.isFinite(framing.blocked.dist)
+    && Number.isFinite(framing.camToHero) && framing.blocked.dist < framing.camToHero - 1.5);
 }
 
 async function captureClearingsAB(browser, profileName, viewport, mobile) {
@@ -113,11 +126,13 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
 
   for (const [variant, url] of [['baseline', baselineUrl], ['candidate', candidateUrl]]) {
     const { ctx, page, errs } = await session(browser, viewport, mobile, out, false, url);
+    await page.addStyleTag({ content: 'body *{visibility:hidden!important}canvas#scene{visibility:visible!important}' });
+    await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(15); D.weather('limpo'); });
     await page.waitForFunction(() => window.SevenSinsValleyReport?.groundCover?.tufts > 0, null, { timeout: 120000 });
     const groundCover = await page.evaluate(() => window.SevenSinsValleyReport.groundCover);
     result[variant].groundCover = groundCover;
     if (groundCover.tufts < 800 || groundCover.flowers < 230) {
-      const msg = `${profileName}/${variant}: cobertura do vale ausente ou insuficiente ${JSON.stringify(groundCover)}`;
+      const msg = profileName + '/' + variant + ': cobertura do vale ausente ou insuficiente ' + JSON.stringify(groundCover);
       result[variant].error = msg;
       report.errors.push(msg);
     }
@@ -125,54 +140,85 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
     for (const shot of CLEARING_SHOTS) {
       await page.evaluate(s => {
         const D = window.SevenSinsDebug3D;
-        D.setHour(15); D.weather('limpo');
         D.teleport(s.x, s.z, s.yaw);
-        // Limpa qualquer override de câmera livre, aplica a vista e força o snap no mesmo frame lógico.
         D.fly(null);
-        D.view(s.yaw, s.pitch, s.dist);
         D.motionStep(.4, { x: 0, z: 0 });
-        D.snapCam();
       }, shot);
-      const cameraStability = await waitCameraStable(page);
-      await wait(500);
-      const diagnostics = await page.evaluate(() => {
-        const D = window.SevenSinsDebug3D, state = D.state();
-        return {
-          state,
-          camera: D.cam(),
-          framing: typeof D.camView === 'function' ? D.camView() : null,
-        };
-      });
-      const state = diagnostics.state;
+
+      const baseline = variant === 'candidate' ? result.baseline.shots.find(x => x.id === shot.id) : null;
+      const views = baseline?.cameraSettings
+        ? [baseline.cameraSettings]
+        : CAMERA_TRIES.map(([dy, scale]) => ({
+            yaw: shot.yaw + dy,
+            pitch: shot.pitch,
+            distance: +(shot.dist * scale).toFixed(2),
+          }));
+      let selectedView = null, cameraStability = null, diagnostics = null;
+      const cameraAttempts = [];
+      for (const view of views) {
+        await page.evaluate(v => {
+          const D = window.SevenSinsDebug3D;
+          D.view(v.yaw, v.pitch, v.distance);
+          D.snapCam();
+        }, view);
+        cameraStability = await waitCameraStable(page, 9000, view.distance);
+        await wait(400);
+        diagnostics = await page.evaluate(() => {
+          const D = window.SevenSinsDebug3D, state = D.state();
+          return {
+            state,
+            camera: D.cam(),
+            framing: typeof D.camView === 'function' ? D.camView() : null,
+          };
+        });
+        const cameraValid = Array.isArray(diagnostics.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
+        const visible = diagnostics.framing?.onScreen === true;
+        const blocked = isOccluded(diagnostics.framing);
+        cameraAttempts.push({
+          yaw: +view.yaw.toFixed(3), pitch: view.pitch, distance: view.distance,
+          stable: cameraStability.stable, onScreen: visible, blocked: blocked ? diagnostics.framing.blocked : null,
+        });
+        selectedView = view;
+        if (cameraStability.stable && cameraValid && visible && !blocked) break;
+        if (variant === 'candidate') break;
+      }
+
+      const state = diagnostics?.state || {};
+      const rawPosition = [state.x, state.y, state.z].map(Number);
+      const position = rawPosition.map(v => Number.isFinite(v) ? +v.toFixed(3) : null);
       const file = variant + '-' + shot.id + '.png';
       await snap(page, path.join(out, file));
-      const cameraValid = Array.isArray(diagnostics.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
+      const cameraValid = Array.isArray(diagnostics?.camera) && diagnostics.camera.length === 3 && diagnostics.camera.every(Number.isFinite);
       const entry = {
         id: shot.id, file, walkable: !!state.walkable,
-        position: [+state.x.toFixed(2), +state.y.toFixed(2), +state.z.toFixed(2)],
-        camera: diagnostics.camera,
-        cameraStable: cameraStability.stable,
-        cameraStableMs: cameraStability.elapsedMs,
-        framing: diagnostics.framing,
-        cameraSettings: { yaw: shot.yaw, pitch: shot.pitch, distance: shot.dist },
+        position,
+        camera: diagnostics?.camera || null,
+        cameraStable: !!cameraStability?.stable,
+        cameraStableMs: cameraStability?.elapsedMs ?? null,
+        framing: diagnostics?.framing || null,
+        cameraSettings: selectedView,
+        cameraAttempts,
       };
       result[variant].shots.push(entry);
-      if (!cameraStability.stable || !cameraValid) {
-        const msg = profileName + '/' + variant + '/' + shot.id + ': câmera inválida ou instável no A/B';
+      if (!entry.cameraStable || !cameraValid) {
+        const msg = profileName + '/' + variant + '/' + shot.id + ': câmera inválida, instável ou fora da distância esperada';
         report.errors.push(msg);
       }
-      if (!diagnostics.framing) {
+      if (!entry.framing) {
         const msg = profileName + '/' + variant + '/' + shot.id + ': camView indisponível; enquadramento não verificável';
         report.errors.push(msg);
-      } else if (diagnostics.framing.blocked && Number.isFinite(diagnostics.framing.blocked.dist)
-          && Number.isFinite(diagnostics.framing.camToHero)
-          && diagnostics.framing.blocked.dist < diagnostics.framing.camToHero - 1.5) {
-        const msg = profileName + '/' + variant + '/' + shot.id + ': linha de visão bloqueada por ' +
-          (diagnostics.framing.blocked.name || 'objeto') + ' a ' + diagnostics.framing.blocked.dist.toFixed(2) + ' m';
-        report.errors.push(msg);
+      } else {
+        if (entry.framing.onScreen !== true) {
+          const msg = profileName + '/' + variant + '/' + shot.id + ': protagonista fora do quadro';
+          report.errors.push(msg);
+        }
+        if (isOccluded(entry.framing)) {
+          const msg = profileName + '/' + variant + '/' + shot.id + ': linha de visão bloqueada por ' +
+            (entry.framing.blocked.name || 'objeto') + ' a ' + entry.framing.blocked.dist.toFixed(2) + ' m';
+          report.errors.push(msg);
+        }
       }
       if (variant === 'candidate') {
-        const baseline = result.baseline.shots.find(x => x.id === shot.id);
         if (baseline?.camera && cameraValid) {
           const delta = Math.hypot(...diagnostics.camera.map((v, i) => v - baseline.camera[i]));
           entry.cameraDeltaFromBaseline = +delta.toFixed(3);
@@ -182,6 +228,21 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
           }
         } else {
           const msg = profileName + '/' + shot.id + ': não foi possível comparar a câmera A/B';
+          report.errors.push(msg);
+        }
+        if (baseline?.position?.every(Number.isFinite) && position.every(Number.isFinite)) {
+          const delta = Math.hypot(...position.map((v, i) => v - baseline.position[i]));
+          entry.playerDeltaFromBaseline = +delta.toFixed(3);
+          if (delta > .05) {
+            const msg = profileName + '/' + shot.id + ': posição XYZ do jogador divergiu ' + delta.toFixed(3) + ' m';
+            report.errors.push(msg);
+          }
+        } else {
+          const msg = profileName + '/' + shot.id + ': não foi possível comparar a posição XYZ do jogador';
+          report.errors.push(msg);
+        }
+        if (baseline?.framing?.onScreen !== true || entry.framing?.onScreen !== true) {
+          const msg = profileName + '/' + shot.id + ': protagonista não ficou enquadrado nos dois lados do A/B';
           report.errors.push(msg);
         }
         if (!entry.walkable && baseline?.walkable) {
@@ -194,7 +255,7 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
     if (errs.length) {
       result[variant].pageErrors = errs;
       const real = errs.filter(e => !/KHR_parallel|PropertyBinding|WebGL/.test(e));
-      if (real.length) report.errors.push(`${profileName}/${variant}: ${real.slice(0, 3).join(' | ')}`);
+      if (real.length) report.errors.push(profileName + '/' + variant + ': ' + real.slice(0, 3).join(' | '));
     }
     await ctx.close();
   }
@@ -244,7 +305,7 @@ async function profile(browser, name, viewport, mobile) {
       report.clearingsAB = {
         baselineSha: process.env.PR_BASE_SHA || null,
         candidateSha: process.env.PR_HEAD_SHA || process.env.GITHUB_SHA || null,
-        conditions: { hour: 15, weather: 'limpo', sameViewportAndCamera: true },
+        conditions: { hour: 15, weather: 'limpo', randomSeed: '0xA3D11A', sameViewportAndCamera: false, samePlayerPosition: false, allActorsFramed: false },
         profiles: {},
       };
       report.clearingsAB.profiles.mobile = await captureClearingsAB(browser, 'mobile', { width: 852, height: 393 }, true);
@@ -255,9 +316,15 @@ async function profile(browser, name, viewport, mobile) {
       const expectedPairs = abProfiles.length * CLEARING_SHOTS.length;
       const allStable = allAbShots.length === expectedPairs * 2 && allAbShots.every(s => s.cameraStable === true && Array.isArray(s.camera) && s.camera.length === 3 && s.camera.every(Number.isFinite));
       const sameCamera = candidateShots.length === expectedPairs && candidateShots.every(s => Number.isFinite(s.cameraDeltaFromBaseline) && s.cameraDeltaFromBaseline <= .5);
+      const samePlayer = candidateShots.length === expectedPairs && candidateShots.every(s => Number.isFinite(s.playerDeltaFromBaseline) && s.playerDeltaFromBaseline <= .05);
+      const allFramed = allAbShots.length === expectedPairs * 2 && allAbShots.every(s => s.framing?.onScreen === true && !isOccluded(s.framing));
       report.clearingsAB.conditions.sameViewportAndCamera = allStable && sameCamera;
-      if (!allStable) report.errors.push('A/B: pelo menos uma câmera não estabilizou ou não foi medida');
+      report.clearingsAB.conditions.samePlayerPosition = samePlayer;
+      report.clearingsAB.conditions.allActorsFramed = allFramed;
+      if (!allStable) report.errors.push('A/B: pelo menos uma câmera não estabilizou na distância esperada ou não foi medida');
       if (!sameCamera) report.errors.push('A/B: câmera candidata não corresponde à câmera baseline em todos os pontos');
+      if (!samePlayer) report.errors.push('A/B: posição XYZ do jogador não corresponde à baseline em todos os pontos');
+      if (!allFramed) report.errors.push('A/B: protagonista fora do quadro ou obstruído em pelo menos um enquadramento');
       report.clearingsAB.status = report.errors.length ? 'failed' : 'captured';
     }
     for (const [k, P] of Object.entries(report.profiles)) {

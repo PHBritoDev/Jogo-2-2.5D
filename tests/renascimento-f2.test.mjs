@@ -87,7 +87,16 @@ test('integração: cobertura do vale continua ligada ao instancing real e ao A/
   assert.match(qaScript, /D\.cam\(\)/);
   assert.match(qaScript, /D\.camView\(\)/, 'verifica oclusão da linha de visão');
   assert.match(qaScript, /cameraDeltaFromBaseline/);
+  assert.match(qaScript, /let state = 0xA3D11A/, 'semente aleatória fixa e repetível entre baseline e candidata');
+  assert.match(qaScript, /Math\.random = \(\) =>/, 'controla Math.random antes de carregar o mundo');
+  assert.match(qaScript, /CAMERA_TRIES/, 'procura ângulo desobstruído antes de aceitar a foto');
+  assert.match(qaScript, /baseline\?\.cameraSettings/, 'candidata reutiliza o enquadramento escolhido na baseline');
+  assert.match(qaScript, /framing\?\.onScreen === true/, 'confere que o protagonista está no quadro');
+  assert.match(qaScript, /playerDeltaFromBaseline/, 'compara posição XYZ real do jogador');
   assert.match(qaScript, /sameViewportAndCamera = allStable && sameCamera/, 'só declara câmera idêntica após comparação medida');
+  assert.match(qaScript, /samePlayerPosition = samePlayer/, 'exige posição XYZ equivalente');
+  assert.match(qaScript, /allActorsFramed = allFramed/, 'exige enquadramento limpo em baseline e candidata');
+  assert.match(qaScript, /body \*\{visibility:hidden!important\}canvas#scene\{visibility:visible!important\}/, 'captura somente a cena, sem HUD sobre as clareiras');
 });
 
 test('integração: vale entra no mesmo instancing do cinturão, rollback por flag, relicário único salvo', () => {
