@@ -112,9 +112,9 @@ try {
     const frames = [
       draw('overlook', 1000),
       draw('overlook', 1500),
-      draw('gallery', 1000),
-      draw('grove', 1000),
-      draw('spine', 1000)
+      draw('gallery', 2000),
+      draw('grove', 2500),
+      draw('spine', 3000)
     ];
     return {
       frames,
@@ -132,7 +132,7 @@ try {
   window.a4VolcanoAnimate = async durationMs => {
     placeCamera('overlook');
     for (let elapsed = 0; elapsed < durationMs; elapsed += 33) {
-      arena.update(2000 + elapsed, camera, 180, { player: camera.position, quality: 'low' });
+      arena.update(4000 + elapsed, camera, 180), { player: camera.position, quality: 'low' });
       syncEnvironment();
       renderer.render(scene, camera);
       await new Promise(resolve => setTimeout(resolve, 33));
@@ -147,6 +147,7 @@ try {
 
   window.a4VolcanoReady = true;
   document.getElementById('status').textContent = 'Arena real carregada · 3 biomas · captura A/B pronta';
+  document.getElementById('status').style.display = 'none';
 } catch (error) {
   window.a4VolcanoError = error && error.stack ? error.stack : String(error);
   document.getElementById('status').textContent = window.a4VolcanoError;
