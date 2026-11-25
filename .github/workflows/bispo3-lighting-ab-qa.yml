@@ -2,10 +2,8 @@ name: Bispo 3 — actor lighting A/B
 on:
   pull_request:
     paths:
-      - 'zarkhael-dimension3d.js'
       - 'zarkhael-dimension.test.mjs'
       - 'tools/visual-lab/bispo3-lighting-ab-qa.cjs'
-      - '.github/workflows/bispo3-lighting-ab-qa.yml'
   workflow_dispatch:
 permissions:
   contents: read
