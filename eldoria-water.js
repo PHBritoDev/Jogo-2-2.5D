@@ -33,7 +33,7 @@ uniform vec4 uRipples[${WATER_MAX_RIPPLES}];
 uniform vec4 uRocks[${WATER_MAX_ROCKS}];
 uniform int uRockCount;
 uniform vec4 uFord; // F2 vau: início, fim (m ao longo do rio), transição, intensidade
-uniform vec3 uAurC; uniform float uAurK, uAurT; uniform vec2 uAurD; // Mod 327: luz da aurora (aurora-luz3d.js)
+uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow; uniform vec2 uAurD; // Mod 327/368: luz e qualidade da aurora
 varying vec2 vUv; varying vec3 vWorld;
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
@@ -71,8 +71,15 @@ void main(){
   if (uRadial > .5) { float trunks = .55 + .45 * sin(atan(vWorld.z - uLakeC.y, vWorld.x - uLakeC.x) * 23.0 + n0 * 3.0); sky = mix(sky, vec3(.05, .11, .07) * (1.0 - uNight * .5), smoothstep(.35, .95, across) * (.45 + .4 * trunks)); }
   vec3 col = mix(body, sky, fres * (1.0 - ford * .55)); // raso do vau: menos céu refletido, mais leito (sem leitoso)
   // Mod 327 — reflexo colorido e animado da aurora: depende da direção refletida (visão + ondulação), sem espelho
-  if (uAurK > .001) { float aUp = smoothstep(.04, .5, R.y), curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + fbm(vWorld.xz * .05 + uAurT * .03) * 2.4);
-    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23); col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5); }
+  if (uAurK > .001) {
+    float aUp = smoothstep(.04, .5, R.y), aurWarp;
+    // Perfil baixo: uma oitava de ruído em vez das quatro do FBM completo; o uniforme evita recompilar o shader.
+    if (uAurLow > .5) aurWarp = vn(vWorld.xz * .05 + uAurT * .03) * 2.4;
+    else aurWarp = fbm(vWorld.xz * .05 + uAurT * .03) * 2.4;
+    float curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + aurWarp);
+    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23);
+    col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5);
+  }
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
   col += uSunCol * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
@@ -121,7 +128,7 @@ export function createFlowWaterMaterial(THREE, o = {}) {
     uSkyZen: { value: new THREE.Color(o.skyZen ?? 0x6aa5d3) }, uWhite: { value: o.white ?? 0 }, uSunCol: { value: new THREE.Color(1, .96, .86) },
     uRipples: { value: Array.from({ length: WATER_MAX_RIPPLES }, () => new THREE.Vector4(0, 0, -99, 0)) }
   }]);
-  Object.assign(uniforms, o.aurora || waterAurora || { uAurC: { value: new THREE.Color() }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new THREE.Vector2(1, 0) } }); // Mod 327: uniforms COMPARTILHADOS (não clonados)
+  Object.assign(uniforms, o.aurora || waterAurora || { uAurC: { value: new THREE.Color() }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new THREE.Vector2(1, 0) }, uAurLow: { value: 0 } }); // Mod 327: uniforms COMPARTILHADOS (não clonados)
   const m = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide });
   m.name = o.radial ? 'eldoria-lake-water' : 'eldoria-river-water';
   /** Pool circular: reaproveita o anel mais antigo (sem alocação). */
