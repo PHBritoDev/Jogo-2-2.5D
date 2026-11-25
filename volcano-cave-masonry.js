@@ -1,6 +1,91 @@
 // Static masonry batches share vertices' world-space texture scale. No shadow
 // maps: rock faces retain the warm/cold bounce of the surrounding emitters.
 import {addStructure,addCliff} from "./volcano-cave-layout.js";
+
+export const LAVA_BOUNCE_CONFIG = Object.freeze({
+ distanceFalloff: .002, regionStartZ: 78, regionFullZ: 90, sourceBlendStartZ: 127, sourceBlendEndZ: 143, facingFloor: .20, facingGain: .80,
+ pulseBase: .88, pulseSlow: .08, pulseFast: .04,
+ pulseSlowRate: 2.15, pulseFastRate: 3.7, pulsePhaseRate: .73, bounceStrength: 1.38,
+ color: Object.freeze([.88, .46, .065])
+});
+export function lavaBounceFalloff(distance, facing = 1) {
+ const rawDistance=Number(distance), rawFacing=Number(facing);
+ const d=Number.isFinite(rawDistance)?Math.max(0,rawDistance):Infinity;
+ const f=Number.isFinite(rawFacing)?Math.max(0,Math.min(1,rawFacing)):0;
+ return (1/(1+d*d*LAVA_BOUNCE_CONFIG.distanceFalloff))*
+  (LAVA_BOUNCE_CONFIG.facingFloor+LAVA_BOUNCE_CONFIG.facingGain*f);
+}
+export function lavaBouncePulse(time, phase = 0) {
+ const rawTime=Number(time), rawPhase=Number(phase), c=LAVA_BOUNCE_CONFIG;
+ const t=Number.isFinite(rawTime)?rawTime:0, p=Number.isFinite(rawPhase)?rawPhase:0;
+ return c.pulseBase+c.pulseSlow*Math.sin(t*c.pulseSlowRate+p)+
+  c.pulseFast*Math.sin(t*c.pulseFastRate-p*c.pulsePhaseRate);
+}
+export function lavaBounceRegion(z) {
+ const raw=Number(z), c=LAVA_BOUNCE_CONFIG;
+ if(!Number.isFinite(raw)) return 0;
+ const t=Math.max(0,Math.min(1,(raw-c.regionStartZ)/(c.regionFullZ-c.regionStartZ)));
+ return t*t*(3-2*t);
+}
+export function lavaBounceSourceBlend(z) {
+ const raw=Number(z), c=LAVA_BOUNCE_CONFIG;
+ if(!Number.isFinite(raw)) return 0;
+ const t=Math.max(0,Math.min(1,(raw-c.sourceBlendStartZ)/(c.sourceBlendEndZ-c.sourceBlendStartZ)));
+ return t*t*(3-2*t);
+}
+export function lavaBounceEnabled(groupName, hasClock) {
+ const name=String(groupName||'');
+ return !!hasClock&&(name.includes('Santuário')||name.includes('pisos'));
+}
+const glslNumber = value => Number(value).toFixed(3);
+export function masonryShaderPatches(lavaEnabled) {
+ const cfg=LAVA_BOUNCE_CONFIG;
+ const color=cfg.color.map(glslNumber).join(',');
+ const vertexChunk=[
+  '#include <project_vertex>',
+  lavaEnabled
+   ? 'vec3 spill=mix(vec3(29.,8.,122.),vec3(-31.,12.,149.),smoothstep('+glslNumber(cfg.sourceBlendStartZ)+','+glslNumber(cfg.sourceBlendEndZ)+',position.z));'
+   : 'vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);',
+  'vec3 delta=spill-position;',
+  lavaEnabled
+   ? 'float deltaLen2=dot(delta,delta);\nfloat wet=1./(1.+deltaLen2*'+glslNumber(cfg.distanceFalloff)+');'
+   : 'float wet=1./(1.+dot(delta,delta)*'+glslNumber(cfg.distanceFalloff)+');',
+  'vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));',
+  'wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);',
+  ...(lavaEnabled ? [
+   'float facing=max(dot(normalize(normal),delta)*inversesqrt(max(deltaLen2,0.00000001)),0.);',
+   'float lavaRegion=smoothstep('+glslNumber(cfg.regionStartZ)+','+glslNumber(cfg.regionFullZ)+',position.z);',
+   'vLavaBounce=wet*('+glslNumber(cfg.facingFloor)+'+'+glslNumber(cfg.facingGain)+'*facing)*lavaRegion;'
+  ] : [])
+ ].join('\n')+'\n';
+ const fragmentChunk=[
+  'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17));',
+  'diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8);',
+  ...(lavaEnabled ? ['diffuseColor.rgb+=vec3('+color+')*vLavaBounce*uLavaPulse*'+glslNumber(cfg.bounceStrength)+';'] : []),
+  'diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint'+(lavaEnabled?'*uLavaPulse':'')+'*smoothstep(.045,.32,relief);'
+ ].join('\n')+'\n';
+ return {
+  vertexPrefix: lavaEnabled ? 'varying float wetGlint;\nvarying float vLavaBounce;\n' : 'varying float wetGlint;\n',
+  fragmentPrefix: lavaEnabled ? 'varying float wetGlint;\nvarying float vLavaBounce;\nuniform float uLavaPulse;\n' : 'varying float wetGlint;\n',
+  vertexChunk,
+  fragmentChunk
+ };
+}
+export function masonryShaderCacheKey(lavaEnabled) {
+ const enabled=!!lavaEnabled,c=LAVA_BOUNCE_CONFIG;
+ const patch=masonryShaderPatches(enabled);
+ const injected=JSON.stringify([
+  patch.vertexPrefix,patch.fragmentPrefix,patch.vertexChunk,patch.fragmentChunk
+ ]);
+ const config=JSON.stringify([
+  enabled,c.distanceFalloff,c.regionStartZ,c.regionFullZ,
+  c.sourceBlendStartZ,c.sourceBlendEndZ,c.facingFloor,c.facingGain,
+  c.bounceStrength,c.color
+ ]);
+ // Include the exact injected GLSL, not only the closure flag/config.
+ // A future shader edit therefore cannot silently reuse an older program.
+ return 'volcano-cave-masonry-v3:'+injected+':'+config;
+}
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
  const random=()=>((state=Math.imul(state,1664525)+1013904223|0)>>>0)/4294967296;
@@ -74,25 +159,31 @@ export function masonry(T, group, seed, palette){
    const A=ring(-depth/2),B=ring(depth/2),k=.85+random()*.25;quad(...A,tint,k);quad(...B,tint,k);for(let j=0;j<4;j++)quad(A[j],A[(j+1)%4],B[(j+1)%4],B[j],tint,k);}
  }
  function finish(){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();g.computeBoundingSphere();const material=new T.MeshBasicMaterial({map:palette.stoneMap||tex,vertexColors:true,side:T.DoubleSide});
+ const lavaClock=palette.clock||{value:0};
+ const lavaEnabled=lavaBounceEnabled(group.name,!!palette.clock);
+ let pulsePhase=0;
+ const lavaPulseUniform={value:1};
  if(palette.stoneMap){
   tex.dispose();
-  // The scan gives the baked lighting relief at walking distance. Sample
-  // neutral luminance so that mineral colours still come from local emitters.
+  // O reflexo estático permanece em todos os lotes; o bounce só compila no Santuário.
+  if(lavaEnabled){
+   pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
+  }
   material.onBeforeCompile=shader=>{
-   // Interpolate the reflection of the nearest spillway at vertices. A
-   // single scanned stone texture breaks the highlight into wet facets.
-   shader.vertexShader='varying float wetGlint;\n'+shader.vertexShader.replace('#include <project_vertex>',`
-    #include <project_vertex>
-    vec3 spill=position.z>135.?vec3(-31.,12.,149.):vec3(29.,8.,122.);
-    vec3 delta=spill-position;
-    vec3 halfway=normalize(normalize(mat3(modelViewMatrix)*delta)-normalize(mvPosition.xyz));
-    float wet=1./(1.+dot(delta,delta)*.003);
-    wetGlint=wet*pow(abs(dot(normalize(normalMatrix*normal),halfway)),12.);
-   `);
-   shader.fragmentShader='varying float wetGlint;\n'+shader.fragmentShader.replace('#include <map_fragment>',
-    'float relief=dot(texture2D(map,vMapUv).rgb,vec3(.27,.56,.17)); diffuseColor.rgb*=clamp(.15+3.2*relief,.19,1.8); diffuseColor.rgb+=vec3(.46,.16,.042)*wetGlint*smoothstep(.045,.32,relief);');
+   // Lotes fora do Santuário não recebem varying, uniforme nem branch adicionais.
+   if(lavaEnabled)shader.uniforms.uLavaPulse=lavaPulseUniform;
+   const patch=masonryShaderPatches(lavaEnabled);
+   shader.vertexShader=patch.vertexPrefix+shader.vertexShader.replace('#include <project_vertex>',patch.vertexChunk);
+   shader.fragmentShader=patch.fragmentPrefix+shader.fragmentShader.replace('#include <map_fragment>',patch.fragmentChunk);
   };
+  // The callback source is identical for both closures; include the shader variant in Three.js' program cache key.
+  material.customProgramCacheKey=()=>masonryShaderCacheKey(lavaEnabled);
  }
- const m=new T.Mesh(g,material);m.name=group.name+'-basalto';group.add(m);return m;}
+ const m=new T.Mesh(g,material);
+ m.name=group.name+'-basalto';
+ if(palette.stoneMap&&lavaEnabled)m.onBeforeRender=()=>{
+  lavaPulseUniform.value=lavaBouncePulse(lavaClock.value,pulsePhase);
+ };
+ group.add(m);return m;}
  return {random,face,quad,block,stalk,cliff,arch,finish,palette};
 }
