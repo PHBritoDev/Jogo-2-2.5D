@@ -13,6 +13,8 @@ on:
       - 'tools/visual-lab/photographer.cjs'
       - 'tools/visual-lab/camera-tree-fade.test.cjs'
       - 'mundo-3d-prototype.js'
+      - 'camera-water-clearance3d.js'
+      - 'tests/camera-water-clearance.test.mjs'
 
 permissions:
   contents: read
@@ -34,5 +36,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Sintaxe do mundo e do módulo de câmera
+        run: |
+          node --input-type=module --check < mundo-3d-prototype.js
+          node --input-type=module --check < camera-water-clearance3d.js
       - name: Testes do agente de cenas
-        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs
+        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs tests/camera-water-clearance.test.mjs

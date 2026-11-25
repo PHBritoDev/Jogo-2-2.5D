@@ -59,7 +59,8 @@ const SCENES = Object.freeze({
     { name: "teo", fly: [[-3.0, 2.25, -38.2], [-1.95, 1.25, -41.04]] },
     { name: "lia", fly: [[-15.4, 2.25, -37.9], [-16.2, 1.25, -41.07]] }] },
   "floresta-percurso": { kind: "mundo", hour: 10, shots: [
-    { name: "campo-inicio", at: [-14, -82, 0], pitch: .12, dist: 6 }], walk: { captureQuality: "low", segments: [
+    { name: "campo-inicio", at: [-14, -82, 0], pitch: .12, dist: 6 },
+    { name: "vau-lago-camera", at: [-28.815, -94.586, 0], pitch: 0, dist: 6 }], walk: { captureQuality: "low", segments: [
       { name: "bosque-entrada", target: [-14, -105], key: "KeyW", timeoutMs: 100000, tolerance: 2.5, minTravel: 18 },
       // O mercado centrado em (-13.2,-70.5), raio 3.9 m, bloqueia a linha direta. O desvio oeste usa a passagem verificada em x=-19.
       { name: "contorno-mercado-oeste", target: [-19, -76], key: "KeyW", timeoutMs: 120000, tolerance: 2.5, minTravel: 24 },

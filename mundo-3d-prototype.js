@@ -162,6 +162,7 @@ import { buildCave } from './ascension-cave3d.js';
 import { buildAscent } from './ascension-ascent3d.js';
 import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene } from './act1-flow.js';
 import { SEWER, sewerWalkable, sewerCheckpoint, sewerZone } from './sewer3d.js';
+import { cameraAboveWaterSurfaceY } from './camera-water-clearance3d.js';
 
 const worldAudio=createWorldAudio();
 for(const type of ['pointerdown','keydown','touchstart'])addEventListener(type,()=>worldAudio.unlock(),{passive:true,capture:true});
@@ -2510,6 +2511,15 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
  if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
+ // A1: o braço de câmera não pode ficar no plano da água; o teste de terreno sozinho permite isso.
+ if(!voidMode&&!cineActive&&!riteCinematicView&&dragonViewWeight<.01&&ultCam.want<.01&&ultCam.w<.01&&
+    !inJourney(player.position.x,player.position.z)&&!inJourney(camera.position.x,camera.position.z)&&!sakuraWorld?.root.visible){
+  const cx=camera.position.x,cz=camera.position.z,depth=terrain3D.waterDepth(cx,cz);
+  if(depth>.05&&depth<5){
+   const safeY=cameraAboveWaterSurfaceY(camera.position.y,groundHeightAt(cx,cz),depth,.4);
+   if(safeY>camera.position.y)camera.position.y=safeY;
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }

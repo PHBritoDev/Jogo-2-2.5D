@@ -37,6 +37,9 @@ test("cenas reutilizáveis: vila, floresta, mundo, caverna (só leitura) e NPCs;
 test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar à praça", () => {
   const scene = core.validateRequest(["floresta-percurso"])[0];
   assert.deepEqual(scene.shots[0].at, [-14, -82, 0], "começa no campo exterior");
+  assert.deepEqual(scene.shots.map(s => s.name), ["campo-inicio", "vau-lago-camera"]);
+  assert.deepEqual(scene.shots[1].at, [-28.815, -94.586, 0], "repete a posição de água observada no artifact A4");
+  assert.equal(scene.shots[1].pitch, 0); assert.equal(scene.shots[1].dist, 6);
   assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca"]);
   assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-14.2, -42.8]]);
   assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',28,3]]);
