@@ -56,7 +56,7 @@ export function buildVorgazhekAbyss(T,g,spec,ctx){
    float edge=1.0-smoothstep(uR*.78,uR*1.21,r);
    // Keep the arena abyssal, but make foot contact readable without adding a light or pass.
    // Only the existing localized ripple receives the extra silver reflection.
-   float glancingReflection=fresnel*(.02+ribbons*.1375+silverPatch*.0625+gleam*.20);
+   float glancingReflection=fresnel*(.02+ribbons*.275+silverPatch*.125+gleam*.40);
    float shine=(ribbons*.82+silverPatch*.17+foot*.52+gleam+glancingReflection)*edge;
    // A faint, broad reflection reveals the water plane between sparse silver currents.
    // Keep the center readable while the outer abyss falls off naturally; no extra lights/passes.
