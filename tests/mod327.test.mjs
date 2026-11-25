@@ -198,10 +198,10 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
 import { auroraColor, auroraLightK, auroraLowProfile, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
-test('aurora: luz colorida que acompanha o céu (rosa/violeta/azul), some sem aurora e em lugar fechado; mais leve no celular', () => {
+test('aurora: paleta e intensidade cinematográfica preservadas no perfil baixo; custo cai só no detalhe', () => {
   assert.equal(auroraLightK(0, false, false), 0); assert.equal(auroraLightK(.8, true, false), 0, 'caverna/interior/dimensão: nada');
-  assert.ok(auroraLightK(.8, false, true) < auroraLightK(.8, false, false) && auroraLightK(.8, false, false) === .8);
-  assert.ok(Math.abs(auroraLightK(.8, false, true) - .6) < 1e-9, 'perfil baixo mantém 75% da intensidade, sem alterar a paleta');
+  assert.equal(auroraLightK(.8, false, false), .8);
+  assert.equal(auroraLightK(.8, false, true), .8, 'perfil baixo reduz apenas as oitavas do FBM; não escurece a iluminação');
   assert.equal(auroraLowProfile(true, 'high'), false, 'alto explícito preserva o detalhe mesmo no viewport móvel');
   assert.equal(auroraLowProfile(true, 'medium'), false, 'médio explícito preserva o detalhe completo');
   assert.equal(auroraLowProfile(false, 'low'), true, 'baixo explícito ativa a variante econômica em qualquer viewport');
@@ -221,7 +221,7 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   updateAuroraLight(THREE, { level: .8, time: 30, low: true, dir: { x: 1, z: 0 } });
   const shared = auroraUniforms(THREE), stableKey = mat.customProgramCacheKey();
   assert.equal(shared.uAurLow.value, 1, 'perfil baixo chega ao shader por uniforme');
-  assert.ok(Math.abs(shared.uAurK.value - .6) < 1e-9, 'intensidade baixa aplicada');
+  assert.ok(Math.abs(shared.uAurK.value - .8) < 1e-9, 'perfil baixo preserva a intensidade cinematográfica; só reduz detalhe de FBM');
   updateAuroraLight(THREE, { level: .8, time: 31, low: false, dir: { x: 1, z: 0 } });
   assert.equal(shared.uAurLow.value, 0, 'perfil alto restaura o detalhe completo');
   assert.ok(Math.abs(shared.uAurK.value - .8) < 1e-9 && mat.customProgramCacheKey() === stableKey, 'troca de qualidade sem recompilar');
