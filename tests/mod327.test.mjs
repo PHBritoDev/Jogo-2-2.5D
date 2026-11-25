@@ -232,6 +232,7 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   const mainShader = ew.slice(mainStart);
   assert.ok(mainStart > fragmentStart && !/fbm\(/.test(mainShader) && (mainShader.match(/waterFbm\(/g) || []).length >= 11, 'normais, espuma e aurora passam pelo mesmo caminho adaptativo');
   assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
+  assert.ok(/updateAuroraLight\(THREE,\{level:ak,time:performance\.now\(\)\*\.001,closed:voidMode\|\|!!caveWalk\|\|auroraQAOff,low:graphics3DMode==='auto'\?graphics3DAutoTier<=1:graphics3DMode==='low'\}\)/.test(m), 'aurora acompanha o tier real do Auto e os perfis explícitos');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
 
