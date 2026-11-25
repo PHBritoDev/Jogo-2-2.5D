@@ -91,7 +91,8 @@ test('variantes com e sem bounce usam chaves distintas no cache de programas do 
   assert.ok(enabled.startsWith('volcano-cave-masonry-v3:' + enabledSource + ':'));
   assert.ok(disabled.startsWith('volcano-cave-masonry-v3:' + disabledSource + ':'));
   const masonry = readFileSync(new URL('./volcano-cave-masonry.js', import.meta.url), 'utf8');
-  assert.match(masonry, /material\.customProgramCacheKey=\(\)=>masonryShaderCacheKey\(lavaEnabled\)/);
+  assert.match(masonry, /if\(lavaEnabled\)material\.customProgramCacheKey=\(\)=>masonryShaderCacheKey\(true\)/);
+  assert.doesNotMatch(masonry, /material\.customProgramCacheKey=\(\)=>masonryShaderCacheKey\(lavaEnabled\)/);
 });
 
 test('shader usa o relógio real da caverna e só anima os lotes do Santuário', () => {
