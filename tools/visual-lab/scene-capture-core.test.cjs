@@ -34,6 +34,35 @@ test("cenas reutilizáveis: vila, floresta, mundo, caverna (só leitura) e NPCs;
   assert.throws(() => core.validateShot({ name: "x" }), /at, cave, fly ou npc/);
   assert.throws(() => core.validateRequest(Array(9).fill("vila-praca")), /1 a 8/);
 });
+test("floresta-percurso contorna o mercado pelo corredor oeste antes de chegar à praça", () => {
+  const scene = core.validateRequest(["floresta-percurso"])[0];
+  assert.deepEqual(scene.shots[0].at, [-14, -82, 0], "começa no campo exterior");
+  assert.deepEqual(scene.walk.segments.map(s => s.name), ["bosque-entrada", "contorno-mercado-oeste", "vila-praca"]);
+  assert.deepEqual(scene.walk.segments.map(s => s.target), [[-14, -105], [-19, -76], [-14.2, -42.8]]);
+  assert.deepEqual(scene.walk.segments.map(s => [s.key,s.minTravel,s.tolerance]), [['KeyW',18,2.5],['KeyW',24,2.5],['KeyW',28,3]]);
+  assert.equal(scene.walk.captureQuality, "low", "movimento usa perfil baixo para reduzir o custo do SwiftShader");
+  assert.deepEqual(scene.walk.segments.map(s => s.timeoutMs), [100000,120000,120000], "timeouts cobrem os três trechos dentro do orçamento da captura");
+  const market = {x:-13.2,z:-70.5,radius:3.9};
+  const pointSegmentDistance = (p,a,b) => {
+    const dx=b[0]-a[0], dz=b[1]-a[1], den=dx*dx+dz*dz;
+    const t=Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.z-a[1])*dz)/den));
+    return Math.hypot(p.x-(a[0]+dx*t),p.z-(a[1]+dz*t));
+  };
+  const path=[[-14,-105],[-19,-76],[-14.2,-42.8]];
+  for(let i=1;i<path.length;i++) assert.ok(pointSegmentDistance(market,path[i-1],path[i])>market.radius+.7,
+    "cada trecho do desvio mantém margem além do colisor do mercado");
+  assert.throws(() => core.validateWalk({captureQuality:"ultra",segments:[{name:"perfil-invalido",target:[0,1]}]}), /Perfil de captura inválido/);
+  assert.throws(() => core.validateWalk({segments:[{name:"timeout-excessivo",target:[0,1],timeoutMs:300001}]}), /Timeout inválido/);
+  assert.ok(Math.abs(core.walkYaw({x:-14,z:-82}, {x:-14,z:-105})) < 1e-12, "W segue para sul no primeiro trecho");
+  const westYaw = core.walkYaw({x:-14,z:-105}, {x:-19,z:-76});
+  assert.ok(westYaw > 2.9 && westYaw < Math.PI, "W vira para noroeste e contorna o mercado pelo oeste");
+  const plazaYaw = core.walkYaw({x:-19,z:-76}, {x:-14.2,z:-42.8});
+  assert.ok(Math.abs(Math.abs(plazaYaw) - Math.PI) < .2, "W volta a apontar para a praça sem cruzar o mercado");
+  assert.deepEqual(core.measureWalk({x:0,z:0}, {x:3,z:4}, [3,8]), {distance:5,remaining:4});
+  assert.throws(() => core.validateWalk({segments:[{name:"alvo-invalido",target:[0],timeoutMs:5000}]}), /Alvo inválido/);
+  assert.throws(() => core.validateWalk({segments:[{name:"tecla-invalida",target:[0,1],key:"KeyQ",timeoutMs:5000}]}), /Tecla inválida/);
+  assert.throws(() => core.validateWalk({segments:[{name:"timeout-invalido",target:[0,1],timeoutMs:999999}]}), /Timeout inválido/);
+});
 test("índice e relatório separam observado de inferido e apontam cada arquivo", () => {
   const shots = [{ scene: "vila-praca", name: "a", file: "vila-praca/01-a.png", status: "ok", reason: "r", attempts: 1, pixels: { mean: 90, stdev: 30 }, stateSummary: "jogador 1,2,3" },
     { scene: "caverna-salao", name: "b", file: "caverna-salao/01-b.png", status: "suspeita", reason: "quase todo preto", attempts: 5, pixels: { mean: 2, stdev: 1 } }];
