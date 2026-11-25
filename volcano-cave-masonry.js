@@ -177,7 +177,8 @@ export function masonry(T, group, seed, palette){
    shader.fragmentShader=patch.fragmentPrefix+shader.fragmentShader.replace('#include <map_fragment>',patch.fragmentChunk);
   };
   // The callback source is identical for both closures; include the shader variant in Three.js' program cache key.
-  material.customProgramCacheKey=()=>masonryShaderCacheKey(lavaEnabled);
+  // Keep the default key for unchanged materials; only the injected bounce variant needs a separate program.
+  if(lavaEnabled)material.customProgramCacheKey=()=>masonryShaderCacheKey(true);
  }
  const m=new T.Mesh(g,material);
  m.name=group.name+'-basalto';
