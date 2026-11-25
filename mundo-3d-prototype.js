@@ -1,4 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
+import { chooseStoryTwoShotSide } from './story-camera-layout.js';
 import { computePortraitCameraFit } from './portrait-camera-fit.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {createVillagerBrain,createVillagerDriver,measureWalkSpeed,VILLAGER_PROFILES} from './eldoria-npc-life.js';
@@ -4482,8 +4483,9 @@ function actorYaw(key){if(key==='hero')return playerYaw;const a=storyAnchors[key
 function actorLocal(key,off,out){actorPos(key,out);const yaw=actorYaw(key),s=Math.sin(yaw),c=Math.cos(yaw);out.x+=off[0]*c+off[2]*s;out.y+=off[1];out.z+=-off[0]*s+off[2]*c;return out;}
 function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=target.z-obj.position.z;if(Math.hypot(dx,dz)<.01)return;const yaw=Math.atan2(dx,dz);if(obj===player){playerYaw=yaw;player.rotation.y=yaw;}else obj.rotation.y=yaw;}
 function playStory(id,steps,opts){
- opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4};
+ opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,twoStable:!!opts.twoStable,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
+ if(storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z),distance=Math.max(storyScene.twoDist,span*1.25);const framing=chooseStoryTwoShotSide({a:{x:a.x,z:a.z},b:{x:b.x,z:b.z},preferredSide:storyScene.side,distance,blockedAt});storyScene.side=framing.side;storyScene.twoClearSamples=framing.clearSamples;}
  cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
  if(opts.skippable===false)cineEl('cine-skip').hidden=true;
  cineDirector.play(id,steps,null,{skippable:opts.skippable!==false});
@@ -4511,6 +4513,7 @@ function updateStoryCine(dt,now){
   const S=st.actor||SPEAKER_ACTOR[st.who]||'hero',L=S==='hero'?storyScene&&storyScene.focus:'hero';
   const sp=actorPos(S,_sa),lp=actorPos(L||'hero',_sb);let dx=sp.x-lp.x,dz=sp.z-lp.z;const d=Math.hypot(dx,dz);
   if(!L||L===S||d<.4){const yaw=actorYaw(S);dx=Math.sin(yaw);dz=Math.cos(yaw);storyCam(sp.x+dx*2.4,sp.y+STORY_EYE[S]+.1,sp.z+dz*2.4,sp.x,sp.y+STORY_EYE[S]-.1,sp.z,3,dt);return;}
+  if(storyScene&&storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z);if(span>.01){const ux=(b.x-a.x)/span,uz=(b.z-a.z)/span,rx=uz,rz=-ux,mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,my=(a.y+b.y)/2,dist=Math.max(storyScene.twoDist||3.4,span*1.25),side=storyScene.side||1;storyCam(mx+rx*side*dist+ux*.6,my+1.75,mz+rz*side*dist+uz*.6,mx+ux*.5,my+1.35,mz+uz*.5,3,dt);return;}}
   dx/=d;dz/=d;const rx=dz,rz=-dx,back=Math.min(2.2,1.2+d*.18);
   // O Anjo é alto e tem asas: com ele na cena, plano lateral dos dois (sem câmera atrás das asas).
   if(L==='guide'||S==='guide'||(storyScene&&storyScene.two)){const mx=(sp.x+lp.x)/2,mz=(sp.z+lp.z)/2,my=(sp.y+lp.y)/2,side=storyScene&&storyScene.side||1,dist=Math.max(storyScene&&storyScene.twoDist||3.4,d*1.25);storyCam(mx+rx*side*dist+dx*.6,my+1.75,mz+rz*side*dist+dz*.6,mx+dx*.5,my+1.35,mz+dz*.5,3,dt);return;}
@@ -4520,7 +4523,7 @@ function updateStoryCine(dt,now){
  const a=st.args||{},u=cineU,e=cineSmooth(u),L3=THREE.MathUtils.lerp;
  if(a.cam==='interior'&&road.cart){cartInteriorCam(a.look||'guide',dt,!!a.doze,u);return;}
  if(a.cam==='crane'){const o=actorPos(a.anchor,_sc),f=a.from,to=a.to,lf=a.lookFrom,lt=a.lookTo;cineCam(o.x+L3(f[0],to[0],e),o.y+L3(f[1],to[1],e),o.z+L3(f[2],to[2],e),o.x+L3(lf[0],lt[0],e),o.y+L3(lf[1],lt[1],e),o.z+L3(lf[2],lt[2],e),0,dt);return;}
- if(a.cam==='two'){const p=actorPos(a.a,_sa),q=actorPos(a.b,_sb);let dx=q.x-p.x,dz=q.z-p.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const side=a.side||1,dist=(a.dist||4)+e*.4;const mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,my=(p.y+q.y)/2;storyCam(mx+dz*side*dist,my+1.6,mz-dx*side*dist,mx,my+1.15,mz,0,dt);return;}
+ if(a.cam==='two'){const p=actorPos(a.a,_sa),q=actorPos(a.b,_sb);let dx=q.x-p.x,dz=q.z-p.z;const d=Math.hypot(dx,dz)||1;dx/=d;dz/=d;const side=storyScene&&storyScene.twoStable?storyScene.side:(a.side||1),dist=(a.dist||4)+e*.4;const mx=(p.x+q.x)/2,mz=(p.z+q.z)/2,my=(p.y+q.y)/2;storyCam(mx+dz*side*dist,my+1.6,mz-dx*side*dist,mx,my+1.15,mz,0,dt);return;}
  if(a.cam==='look'||a.cam==='follow'){const p=actorLocal(a.on,a.off,_sa),q=actorLocal(a.on,a.at||[0,1,0],_sb);storyCam(p.x,p.y,p.z,q.x,q.y,q.z,a.cam==='follow'?5:0,dt,a.off[1]>4);return;}
  if(a.cam==='orbit'){const c=actorPos(a.on,_sa),yaw=actorYaw(a.on)+L3(a.from||0,a.to||1,e);storyCam(c.x+Math.sin(yaw)*a.r,c.y+a.h,c.z+Math.cos(yaw)*a.r,c.x,c.y+.6,c.z,0,dt);return;}
  cineCam(cinePos.x,cinePos.y,cinePos.z,cineLook.x,cineLook.y,cineLook.z,0,dt);
@@ -5432,8 +5435,8 @@ function act1TalkLabel(){
 }
 function act1Interact(){
  const label=act1TalkLabel();if(!label)return false;
- if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor',two:true,side:-1,twoDist:4.8});return true;}
-  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',two:true,side:-1,twoDist:4.8,done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
+ if(label==='PERGUNTAR · TÉO'){faceTo(player,villageVendors[1]);if(coins<ACT1.bribe){playStory('vendedor-recusa',vendorRefusalScene(),{focus:'vendor',face:'vendor',two:true,twoStable:true,side:-1,twoDist:4.8});return true;}
+  playStory('vendedor',vendorScene(),{focus:'vendor',face:'vendor',two:true,twoStable:true,side:-1,twoDist:4.8,done:skipped=>{if(skipped&&!act1Night)nightFalls(true);act1Advance(2,0);journeyEnemyIndex=0;save3DProgress();status.textContent='Vá à floresta e investigue o choro das crianças.';}});return true;}
  if(label==='ABRIR GAIOLA'){faceTo(player,CAGE_CENTER);openCage();return true;}
  if(label==='ENTRAR NO ESGOTO'){travelVeil(()=>{if(questStep===4&&act1Sub===1)act1Advance(4,2);enterSewer();});return true;}
  if(label==='SAIR DO ESGOTO'){travelVeil(()=>leaveSewer());return true;}
