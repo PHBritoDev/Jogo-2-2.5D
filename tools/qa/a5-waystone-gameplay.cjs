@@ -621,21 +621,21 @@ async function exposePathfinder() {
     // antes da ação entregar-ouro, para não consumir moedas nem avançar a campanha.
     await talkButton.tap();
     await page.locator('#dialog-panel').waitFor({ state: 'visible', timeout: 15000 });
-    const normalizeDialogue = value => String(value || '').replace(/\\s+/g, ' ').trim();
+    const normalizeDialogue = value => String(value || '').replace(/\s+/g, ' ').trim();
     const heroOpening = normalizeDialogue(await page.locator('#dialog-text').innerText());
     assert.ok(heroOpening.includes('Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
       'o botão PERGUNTAR · TÉO não abriu a primeira fala da cena principal: ' + heroOpening);
     await page.locator('#dialog-continue').tap();
     await page.waitForFunction(() => {
-      const normalize = value => String(value || '').replace(/\\s+/g, ' ').trim();
+      const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
       const who = normalize(document.getElementById('dialog-who')?.innerText || '');
       const text = normalize(document.getElementById('dialog-text')?.innerText || '');
       return who.includes('Téo · Provisões') &&
         text.includes('Rumor não enche barriga, forasteiro.');
     }, null, { timeout: 15000 });
     const teoOpening = await page.evaluate(() => ({
-      who: (document.getElementById('dialog-who')?.innerText || '').replace(/\\s+/g, ' ').trim(),
-      text: (document.getElementById('dialog-text')?.innerText || '').replace(/\\s+/g, ' ').trim()
+      who: (document.getElementById('dialog-who')?.innerText || '').replace(/\s+/g, ' ').trim(),
+      text: (document.getElementById('dialog-text')?.innerText || '').replace(/\s+/g, ' ').trim()
     }));
     assert.ok(teoOpening.who.includes('Téo · Provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
     assert.ok(teoOpening.text.includes('Rumor não enche barriga, forasteiro.'), 'fala de Téo inesperada: ' + teoOpening.text);
