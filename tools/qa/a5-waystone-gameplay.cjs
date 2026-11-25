@@ -678,7 +678,7 @@ async function exposePathfinder() {
     await exposePathfinder();
     await waitForWorldCollisionReady('after-vendor-dialogue-reload');
     await wait(1800);
-    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await page.evaluate(() => window.SevenSinsDebug3D.realtime());
     await wait(700);
     const afterVendorReload = await qa();
     const afterVendorControl = await controlState();
