@@ -5,7 +5,7 @@
  */
 export function chooseStoryTwoShotSide({
   a, b, preferredSide = 1, distance = 4, blockedAt, visibleAt,
-  cameraHeight = 3.5, targetHeight = 1.45, samples = 14
+  cameraHeight = 3.5, targetHeight = 1.45, samples = 14, sideMagnitudes = [1.25, 1.5, 1.75]
 } = {}) {
   if (!a || !b || !Number.isFinite(a.x) || !Number.isFinite(a.z) ||
       !Number.isFinite(b.x) || !Number.isFinite(b.z)) {
@@ -85,13 +85,24 @@ export function chooseStoryTwoShotSide({
     };
   };
   const isClear = candidate => candidate.blockedSample === null && candidate.visibleActors.every(Boolean);
-  const preferred = score(side);
-  if (isClear(preferred)) return preferred;
-  const alternate = score(-side);
-  if (isClear(alternate)) return alternate;
   const rank = candidate => candidate.visibleActors.filter(Boolean).length * (count * 2 + 1) +
     candidate.clearSamples + candidate.visibilityClearSamples;
-  return rank(alternate) > rank(preferred) ? alternate : preferred;
+  // Primeiro tenta os dois lados na distância autoral; se ambos continuarem sob a cobertura,
+  // abre o arco lateral em passos pequenos. O valor assinado é consumido pelo runtime como
+  // multiplicador da distância perpendicular, sem alterar o eixo nem a colisão dos atores.
+  const magnitudes = [...new Set([1, ...(Array.isArray(sideMagnitudes) ? sideMagnitudes : [])])]
+    .filter(value => Number.isFinite(value) && value >= 1 && value <= 2)
+    .sort((left, right) => left - right);
+  const candidates = [side, -side, ...magnitudes.slice(1).flatMap(value => [side * value, -side * value])];
+  let best = null, bestRank = -Infinity;
+  for (const candidateSide of candidates) {
+    const candidate = score(candidateSide);
+    if (isClear(candidate)) return candidate;
+    // Em empate, a ordem preserva o enquadramento mais próximo e a direção preferida.
+    const candidateRank = rank(candidate);
+    if (candidateRank > bestRank) { best = candidate; bestRank = candidateRank; }
+  }
+  return best;
 }
 
 export function chooseStoryTwoShotFrame({
