@@ -43,15 +43,15 @@ function createProgressWatch(initialDistance, { threshold = 0.04, now = Date.now
   assert.equal(advanced.stalledMs, 0);
   assert.equal(watch.sample(0.94, 9750).stalledMs, 8000);
 }
-let shelterGeometry = null, stepUpLimit = null;
+let shelterGeometry = null, stepUpLimit = null, bridgeGeometry = null;
 
 const report = {
   status: 'incomplete',
   scenario: 'Eldoria waystone quest progress + map save/reload',
-  method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order; real talk-button registration; no teleport between shelters',
+  method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order and recognizes the walkable bridge deck; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
-  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals using runtime collision queries; real #talk-button tap; no walkMove/teleport/sprint helper',
-  narrativeScope: 'giver offer/turn-in intentionally excluded; Mara/Nara ↔ active vendor shortName mapping awaits canon review in issue 671',
+  movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals, treating river water as blocked except on the real bridge deck; real #talk-button tap; no walkMove/teleport/sprint helper',
+  narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; V6 questStep/act1Sub are verified after reload without reseeding; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -59,6 +59,7 @@ const report = {
   walks: [],
   registrations: [],
   interactionChecks: [],
+  mainQuestPrompt: null,
   screenshots: [],
   errors: [],
   consoleErrors: [],
@@ -91,6 +92,17 @@ async function controlState() {
     rite: window.SevenSinsDebug3D.riteState(),
     regression: window.SevenSinsDebug3D.regressionState()
   }));
+}
+async function campaignSave() {
+  return page.evaluate(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('sevenSins3DCampaignV6') || 'null');
+      return raw && typeof raw === 'object' ? {
+        version: raw.version, act1Rev: raw.act1Rev, questStep: raw.questStep,
+        act1Sub: raw.act1Sub, updatedAt: raw.updatedAt
+      } : null;
+    } catch (_) { return null; }
+  });
 }
 async function mapSave(mapKey) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), mapKey);
@@ -213,8 +225,8 @@ async function aimJoystick(dx, dz, offset) {
   await page.evaluate(value => window.SevenSinsDebug3D.viewQA(false, value, 0.12), yaw);
   return yaw;
 }
-async function findWalkPath(start, target, stone) {
-  return page.evaluate(({ start, target, stone }) => {
+async function findWalkPath(start, target, stone, maxStoneDistance = 1.30) {
+  return page.evaluate(({ start, target, stone, bridge, maxStoneDistance }) => {
     const api = window.SevenSinsDebug3D;
     const step = 0.65, pad = 8;
     const minX = Math.floor((Math.min(start.x, target.x) - pad) / step) * step;
@@ -226,16 +238,24 @@ async function findWalkPath(start, target, stone) {
     const catalog = api.navCatalog((start.x + target.x) * .5, (start.z + target.z) * .5,
       Math.hypot(target.x - start.x, target.z - start.z) + 18);
     const cache = new Map();
-    let sampled = 0;
+    let sampled = 0, bridgeSamples = 0;
+    const onBridgeDeck = (x, z) => {
+      const dx = x - bridge.x, dz = z - bridge.z;
+      const along = dx * bridge.axisX + dz * bridge.axisZ;
+      const side = dx * bridge.axisZ - dz * bridge.axisX;
+      return Math.abs(along) <= bridge.halfLength && Math.abs(side) <= bridge.halfWidth - .32;
+    };
     const blocked = (x, z) => {
       const key = Math.round(x * 20) + ':' + Math.round(z * 20);
       if (cache.has(key)) return cache.get(key);
       const why = api.whyBlocked(x, z);
+      const bridgeDeck = onBridgeDeck(x, z);
+      if (bridgeDeck) bridgeSamples++;
       const rock = (catalog.rocks || []).some(r => r.h > .55 && Math.hypot(x - r.x, z - r.z) < r.r + .42);
       const market = (catalog.market || []).some(m => m.h > .68 &&
         Math.abs(x - m.x) < m.hx + .42 && Math.abs(z - m.z) < m.hz + .42);
       const value = !!(why.blockedAt || why.player || why.walk || why.tree || why.market || why.npc ||
-        why.water > .08 || rock || market);
+        (why.water > .08 && !bridgeDeck) || rock || market);
       cache.set(key, value);
       sampled++;
       return value;
@@ -247,19 +267,20 @@ async function findWalkPath(start, target, stone) {
     });
     const startCell = cell(start.x, start.z);
     const startIndex = startCell.iz * cols + startCell.ix;
-    const goalRadius = Math.max(.12, 1.30 - Math.hypot(target.x - stone.x, target.z - stone.z));
+    const targetDistance = Math.hypot(target.x - stone.x, target.z - stone.z);
+    const goalRadius = Math.min(.4, Math.max(.12, maxStoneDistance - targetDistance));
     const center = cell(target.x, target.z);
     const goals = [];
     for (let iz = Math.max(0, center.iz - 2); iz <= Math.min(rows - 1, center.iz + 2); iz++) {
       for (let ix = Math.max(0, center.ix - 2); ix <= Math.min(cols - 1, center.ix + 2); ix++) {
         const p = point(ix, iz), d = Math.hypot(p.x - target.x, p.z - target.z);
-        if (d <= goalRadius && Math.hypot(p.x - stone.x, p.z - stone.z) <= 1.30 && !blocked(p.x, p.z)) {
+        if (d <= goalRadius && Math.hypot(p.x - stone.x, p.z - stone.z) <= maxStoneDistance && !blocked(p.x, p.z)) {
           goals.push({ ix, iz, p, d });
         }
       }
     }
     goals.sort((a, b) => a.d - b.d);
-    if (!goals.length) return { ok: false, reason: 'nenhuma célula livre dentro do raio de registro', sampled, goalRadius, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    if (!goals.length) return { ok: false, reason: 'nenhuma célula livre dentro do raio de registro', sampled, bridgeSamples, goalRadius, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
     const goal = goals[0], goalIndex = goal.iz * cols + goal.ix;
     const total = cols * rows;
     const scores = new Float64Array(total); scores.fill(Infinity);
@@ -297,18 +318,18 @@ async function findWalkPath(start, target, stone) {
         open.push({ index: ni, f: tentative + heuristic(nx, nz) });
       }
     }
-    if (!found) return { ok: false, reason: 'A* não encontrou caminho livre', explored, sampled, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
+    if (!found) return { ok: false, reason: 'A* não encontrou caminho livre', explored, sampled, bridgeSamples, catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 } };
     const nodes = [];
     let cursor = goalIndex, guard = 0;
     while (cursor !== startIndex && cursor >= 0 && guard++ < total) {
       nodes.push(point(cursor % cols, Math.floor(cursor / cols)));
       cursor = came[cursor];
     }
-    if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled };
+    if (cursor !== startIndex) return { ok: false, reason: 'cadeia de caminho incompleta', explored, sampled, bridgeSamples };
     nodes.reverse();
     const raw = [{ x: start.x, z: start.z }, ...nodes];
     if (!window.__a5AxisSeparatedPathClear(raw, blocked, .12)) {
-      return { ok: false, reason: 'segmento adjacente do caminho bruto não é caminhável no eixo X→Z', explored, sampled };
+      return { ok: false, reason: 'segmento adjacente do caminho bruto não é caminhável no eixo X→Z', explored, sampled, bridgeSamples };
     }
     // O controlador de produção testa X e depois Z; uma reta só é válida se ambos os passos forem livres.
     const clearLine = (a, b) => window.__a5AxisSeparatedSegmentClear(a, b, blocked, .12);
@@ -321,12 +342,16 @@ async function findWalkPath(start, target, stone) {
       }
       points.push(raw[far]); at = far;
     }
+    if (!points.length && Math.hypot(target.x - start.x, target.z - start.z) > .12 &&
+        clearLine(start, target) && !blocked(target.x, target.z)) {
+      points.push({ x: target.x, z: target.z });
+    }
     return {
-      ok: true, points, rawPoints: raw.length, explored, sampled, step,
+      ok: true, points, rawPoints: raw.length, explored, sampled, bridgeSamples, step,
       goal: goal.p, goalDistance: +goal.d.toFixed(3), goalRadius: +goalRadius.toFixed(3),
       catalog: { rocks: catalog.rocks?.length || 0, market: catalog.market?.length || 0, trees: catalog.trees || 0 }
     };
-  }, { start, target, stone });
+  }, { start, target, stone, bridge: bridgeGeometry, maxStoneDistance });
 }
 async function inspectShelterApproaches(stone) {
   const result = await page.evaluate(({ x, z, radius, stepUp, centerY }) => {
@@ -362,36 +387,64 @@ async function walkTo(stone, label) {
   const originDistance = Math.hypot(stone.x - start.x, stone.z - start.z);
   const sides = await inspectShelterApproaches(stone);
   const candidates = sides.filter(side => side.ok).sort((a, b) => {
-    const targetFor = side => ({ x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 });
+    const targetFor = side => ({ x: stone.x + Math.cos(side.angle) * .55, z: stone.z + Math.sin(side.angle) * .55 });
     const ta = targetFor(a), tb = targetFor(b);
     return a.rise - b.rise || Math.hypot(ta.x - start.x, ta.z - start.z) - Math.hypot(tb.x - start.x, tb.z - start.z);
   });
   const rejected = [];
   let selected = null;
   for (const side of candidates) {
-    const target = { x: stone.x + Math.cos(side.angle) * .9, z: stone.z + Math.sin(side.angle) * .9 };
-    const plan = await findWalkPath(start, target, stone);
-    if (plan.ok) { selected = { target, plan, side }; break; }
-    rejected.push({ side: side.index, target, reason: plan.reason, explored: plan.explored, sampled: plan.sampled });
+    const stages = await page.evaluate(({ x, z, side }) => window.__a5ShelterApproachWaypoints({ x, z }, side, .55), { x: stone.x, z: stone.z, side });
+    if (stages.length !== 3) {
+      rejected.push({ side: side.index, reason: 'sequência radial de aproximação inválida' });
+      continue;
+    }
+    let cursor = start;
+    const plans = [];
+    let failure = null;
+    for (const stage of stages) {
+      const stageDistance = Math.hypot(stage.x - stone.x, stage.z - stone.z);
+      const maxStoneDistance = stage.kind === 'registration' ? 1.30 : stageDistance + .4;
+      const plan = await findWalkPath(cursor, stage, stone, maxStoneDistance);
+      if (!plan.ok) {
+        failure = { stage: stage.kind, reason: plan.reason, explored: plan.explored, sampled: plan.sampled, bridgeSamples: plan.bridgeSamples };
+        break;
+      }
+      plans.push({ stage: stage.kind, plan });
+      cursor = plan.points.at(-1) || stage;
+    }
+    if (failure) {
+      rejected.push({ side: side.index, target: stages.at(-1), ...failure });
+      continue;
+    }
+    selected = { target: stages.at(-1), plans, side };
+    break;
   }
   if (!selected) {
     const summary = sides.map(side => ({ side: side.index, rise: side.rise, ok: side.ok, reason: side.reason }));
     throw new Error(label + ': nenhum dos oito lados oferece subida dentro de STEP_UP=' + stepUpLimit +
       ' ou rota livre; lados=' + JSON.stringify(summary) + '; rotas=' + JSON.stringify(rejected));
   }
+  const routePoints = selected.plans.flatMap(item => item.plan.points);
   report.routes.push({
     label, target: selected.target, approachSide: selected.side.index,
     approachRise: selected.side.rise, approachGroundY: selected.side.groundY,
-    points: selected.plan.points, rawPoints: selected.plan.rawPoints,
-    explored: selected.plan.explored, sampled: selected.plan.sampled,
-    goalDistance: selected.plan.goalDistance, catalog: selected.plan.catalog
+    stages: selected.plans.map(item => ({ stage: item.stage, points: item.plan.points.length, goalDistance: item.plan.goalDistance, goalRadius: item.plan.goalRadius })),
+    points: routePoints, rawPoints: selected.plans.reduce((sum, item) => sum + item.plan.rawPoints, 0),
+    explored: selected.plans.reduce((sum, item) => sum + item.plan.explored, 0),
+    sampled: selected.plans.reduce((sum, item) => sum + item.plan.sampled, 0),
+    bridgeSamples: selected.plans.reduce((sum, item) => sum + item.plan.bridgeSamples, 0),
+    goalDistance: selected.plans.at(-1).plan.goalDistance, catalog: selected.plans.at(-1).plan.catalog
   });
   let travelled = 0, totalSteps = 0, joystickStarted = false;
   try {
     joystickStarted = true;
     await beginJoystick();
-    for (let waypointIndex = 0; waypointIndex < selected.plan.points.length; waypointIndex++) {
-      const waypoint = selected.plan.points[waypointIndex];
+    const waypoints = selected.plans.flatMap((item, stageIndex) => item.plan.points.map((waypoint, pointIndex) => ({
+      waypoint, stage: item.stage, stageIndex, pointIndex
+    })));
+    for (let waypointIndex = 0; waypointIndex < waypoints.length; waypointIndex++) {
+      const { waypoint, stage, stageIndex } = waypoints[waypointIndex];
       const waypointStart = await playerState();
       const initialDistance = Math.hypot(waypoint.x - waypointStart.x, waypoint.z - waypointStart.z);
       const maxSteps = waypointStepBudget(initialDistance);
@@ -412,7 +465,7 @@ async function walkTo(stone, label) {
         travelled += delta; totalSteps++;
         const progress = progressWatch.sample(nextDistance, Date.now());
         report.legs.push({
-          label, waypoint: waypointIndex, step: totalSteps, budget: maxSteps,
+          label, stage, waypoint: stageIndex, step: totalSteps, budget: maxSteps,
           distance: +distance.toFixed(2), nextDistance: +nextDistance.toFixed(2),
           delta: +delta.toFixed(2), x: +after.x.toFixed(2), z: +after.z.toFixed(2),
           progressed: progress.progressed, bestDistance: +progress.bestDistance.toFixed(2),
@@ -468,7 +521,7 @@ async function walkTo(stone, label) {
       approachSide: selected.side.index, approachRise: selected.side.rise,
       originDistance: +originDistance.toFixed(2), finalDistance: +nearStone.toFixed(2), netDistance: +netDistance.toFixed(2),
       travelled: +travelled.toFixed(2), steps: totalSteps,
-      routePoints: selected.plan.points.length, rawPoints: selected.plan.rawPoints, control: 'touch #stick'
+      routePoints: routePoints.length, rawPoints: selected.plans.reduce((sum, item) => sum + item.plan.rawPoints, 0), control: 'touch #stick'
     };
     report.walks.push(result);
     return result;
@@ -533,9 +586,11 @@ async function exposePathfinder() {
     window.__a5AxisSeparatedSegmentClear = pathfinder.isAxisSeparatedSegmentClear;
     window.__a5AxisSeparatedPathClear = pathfinder.isAxisSeparatedPathClear;
     window.__a5RankShelterApproaches = pathfinder.rankShelterApproaches;
+    window.__a5ShelterApproachWaypoints = pathfinder.shelterApproachWaypoints;
     return typeof window.__a5AxisSeparatedSegmentClear === 'function' &&
       typeof window.__a5AxisSeparatedPathClear === 'function' &&
-      typeof window.__a5RankShelterApproaches === 'function';
+      typeof window.__a5RankShelterApproaches === 'function' &&
+      typeof window.__a5ShelterApproachWaypoints === 'function';
   });
   assert.equal(ready, true, 'módulo de colisão eixo a eixo não carregou no Chromium');
 }
@@ -543,6 +598,9 @@ async function exposePathfinder() {
 (async () => {
   try {
     fs.mkdirSync(OUT, { recursive: true });
+    const { ACT1 } = await import('../../act1-flow.js');
+    const { BRIDGE } = await import('../../act1-world-layout.js');
+    bridgeGeometry = BRIDGE;
     const { SIDE_QUESTS, SIDE_QUEST_WAYSTONES } = await import('../../sidequests3d.js');
     const { MAP_STORE_KEY } = await import('../../map3d.js');
     const { SHELTER } = await import('../../eldoria-shelter3d.js');
@@ -601,11 +659,142 @@ async function exposePathfinder() {
     assert.equal(initial.side.abrigos.progress, 0);
     assert.equal(initial.registeredWaystones.length, 0);
     const initialControl = await controlState();
+    const initialCampaign = await campaignSave();
+    assert.equal(initialCampaign?.version, ACT1.version, 'fixture não gravou o save V6 da campanha');
+    assert.equal(initialCampaign?.act1Rev, ACT1.rev, 'fixture gravou revisão narrativa incompatível');
+    assert.equal(initialCampaign?.questStep, 1, 'save V6 não preservou o passo inicial');
+    assert.equal(initialCampaign?.act1Sub, 1, 'save V6 não preservou a chegada à vila');
+    report.initialCampaign = initialCampaign;
     assert.equal(initialControl.story.sub, 1, 'fixture deve começar após a chegada à vila, sem a cinemática de chegada');
     assert.equal(initialControl.story.scene, null, 'cena de história bloqueia a caminhada');
     assert.equal(initialControl.regression.busy, false, 'controle do protagonista ainda está bloqueado pela história');
+    const expectedObjective = 'Pergunte a Téo sobre o Pecado da Ganância';
+    const expectedTalkLabel = 'PERGUNTAR · TÉO';
+    assert.equal(initialControl.state.objective, expectedObjective, 'HUD do Ato I não mostra o objetivo corrigido de Téo');
+    assert.equal(initialControl.story.label, expectedTalkLabel, 'estado narrativo não aponta para a interação principal com Téo');
+    const talkButton = page.locator('#talk-button');
+    assert.equal(await talkButton.isVisible(), true, 'botão principal de interação não está visível');
+    const talkButtonText = (await talkButton.innerText()).replace(/\s+/g, ' ').trim();
+    assert.match(talkButtonText, /PERGUNTAR\s*·\s*TÉO/i, 'texto visível do botão não corresponde ao vendedor da cena principal');
+    report.mainQuestPrompt = { objective: initialControl.state.objective, label: initialControl.story.label, buttonVisible: true, buttonText: talkButtonText, dialogueOpened: initialControl.state.dialogueOpen };
     report.initial = { questStep: initial.questStep, side: initial.side.abrigos, coins: initial.coins, xp: initial.xp, control: initialControl };
     await shot('00-initial-active');
+
+    // Validar a interação narrativa real antes da caminhada: parar na primeira fala de Téo,
+    // antes da ação entregar-ouro, para não consumir moedas nem avançar a campanha.
+    await talkButton.tap();
+    // A interação do vendedor é uma cena dirigida e usa #cine-say, não o painel
+    // de diálogo livre #dialog-panel. O vídeo do run anterior mostrou a fala aberta;
+    // o timeout vinha de aguardar o contêiner errado, não de uma falha do runtime.
+    await page.locator('#cine-say').waitFor({ state: 'visible', timeout: 45000 });
+    const normalizeDialogue = value => String(value || '').replace(/\s+/g, ' ').trim();
+    const heroOpening = normalizeDialogue(await page.locator('#cine-text').innerText());
+    assert.ok(heroOpening.includes('Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?'),
+      'o botão PERGUNTAR · TÉO não abriu a primeira fala da cena principal: ' + heroOpening);
+    await page.locator('#cine-continue').tap();
+    await page.waitForFunction(() => {
+      const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
+      const who = normalize(document.getElementById('cine-who')?.innerText || '');
+      const text = normalize(document.getElementById('cine-text')?.innerText || '');
+      const panel = document.getElementById('cine-say');
+      return !!panel && !panel.hidden && who.toLowerCase().includes('téo · provisões') &&
+        text.includes('Rumor não enche barriga, forasteiro.');
+    }, null, { timeout: 15000 });
+    const teoOpening = await page.evaluate(() => ({
+      who: (document.getElementById('cine-who')?.innerText || '').replace(/\s+/g, ' ').trim(),
+      text: (document.getElementById('cine-text')?.innerText || '').replace(/\s+/g, ' ').trim()
+    }));
+    assert.ok(teoOpening.who.toLowerCase().includes('téo · provisões'), 'a primeira resposta não identifica Téo · Provisões: ' + teoOpening.who);
+    assert.ok(teoOpening.text.includes('Rumor não enche barriga, forasteiro.'), 'fala de Téo inesperada: ' + teoOpening.text);
+    await wait(1000);
+    const vendorFraming = await page.evaluate(() => {
+      const D = window.SevenSinsDebug3D;
+      const hero = D.heroState().p;
+      const vendor = D.sideQuestQA().vendors.find(v => v.shortName === 'PROVISÕES');
+      const camera = D.cam();
+      const dx = vendor.x - hero[0], dz = vendor.z - hero[2], length = Math.hypot(dx, dz) || 1;
+      const mx = (hero[0] + vendor.x) * .5, mz = (hero[2] + vendor.z) * .5;
+      const sideProjection = (camera[0] - mx) * (dz / length) + (camera[2] - mz) * (-dx / length);
+      return { hero: [hero[0], hero[2]], vendor: [vendor.x, vendor.z], camera,
+        horizontalDistance: +Math.hypot(camera[0] - mx, camera[2] - mz).toFixed(3),
+        sideProjection: +sideProjection.toFixed(3), cameraSide: sideProjection < 0 ? -1 : 1 };
+    });
+    report.mainQuestPrompt = {
+      ...report.mainQuestPrompt,
+      dialogueOpened: true,
+      heroOpening,
+      dialogueSpeaker: teoOpening.who,
+      dialogueLine: teoOpening.text,
+      dialogueScope: 'first exchange only; stopped before entregar-ouro',
+      framing: vendorFraming
+    };
+    await shot('00-vendor-dialogue-teo');
+    assert.ok(vendorFraming.horizontalDistance >= 4.0,
+      'two-shot de Téo foi comprimido pela colisão da câmera: ' + JSON.stringify(vendorFraming));
+    assert.ok(Math.abs(vendorFraming.sideProjection) >= 3.4,
+      'two-shot de Téo não encontrou lado livre da barraca: ' + JSON.stringify(vendorFraming));
+
+    // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
+    // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
+    await waitRuntime();
+    await exposePathfinder();
+    await waitForWorldCollisionReady('after-vendor-dialogue-reload');
+    await wait(1800);
+    await page.evaluate(() => window.SevenSinsDebug3D.realtime());
+    await wait(700);
+    const afterVendorReload = await qa();
+    const afterVendorControl = await controlState();
+    const afterVendorCampaign = await campaignSave();
+    assert.equal(afterVendorCampaign?.version, initialCampaign.version, 'reload alterou a versão do save V6');
+    assert.equal(afterVendorCampaign?.act1Rev, initialCampaign.act1Rev, 'reload alterou a revisão do Ato I');
+    assert.equal(afterVendorCampaign?.questStep, initialCampaign.questStep, 'reload não preservou questStep no save V6');
+    assert.equal(afterVendorCampaign?.act1Sub, initialCampaign.act1Sub, 'reload não preservou act1Sub no save V6');
+    assert.equal(afterVendorControl.story.sub, 1, 'reload após diálogo não restaurou a etapa da vila');
+    assert.equal(afterVendorControl.story.scene, null, 'reload após diálogo deixou cena ativa');
+    assert.equal(afterVendorControl.regression.busy, false, 'reload após diálogo deixou o controle bloqueado');
+    assert.equal(afterVendorControl.story.q, 1, 'reload não restaurou o questStep da vila no runtime');
+    assert.equal(afterVendorControl.state.objective, 'Pergunte a Téo sobre o Pecado da Ganância',
+      'reload não restaurou o objetivo principal de Téo');
+    const teoAfterReload = afterVendorReload.vendors.find(v => v.shortName === 'PROVISÕES');
+    assert.ok(teoAfterReload, 'QA não encontrou Téo na lista de vendedores após reload');
+    const distanceToTeoAfterReload = Math.hypot(
+      teoAfterReload.x - afterVendorControl.story.x,
+      teoAfterReload.z - afterVendorControl.story.z
+    );
+    if (distanceToTeoAfterReload <= 2.9) {
+      assert.equal(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+        'o prompt de Téo deveria estar visível dentro do alcance após reload');
+    } else {
+      assert.notEqual(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+        'o prompt de Téo não deve ficar visível quando o jogador recarrega longe dele');
+    }
+    assert.equal(afterVendorReload.side.abrigos.progress, 0, 'diálogo alterou indevidamente o progresso dos abrigos');
+    assert.equal(afterVendorReload.coins, initial.coins, 'diálogo cobrou moedas antes da ação entregar-ouro');
+    assert.equal(afterVendorReload.xp, initial.xp, 'diálogo alterou XP antes da ação entregar-ouro');
+    report.vendorDialogueReload = {
+      version: afterVendorCampaign.version,
+      act1Rev: afterVendorCampaign.act1Rev,
+      questStep: afterVendorCampaign.questStep,
+      act1Sub: afterVendorCampaign.act1Sub,
+      objective: afterVendorControl.state.objective,
+      interaction: afterVendorControl.story.label,
+      interactionDistanceToTeo: +distanceToTeoAfterReload.toFixed(2),
+      coins: afterVendorReload.coins,
+      xp: afterVendorReload.xp,
+      sideWaystonesProgress: afterVendorReload.side.abrigos.progress
+    };
+    await shot('01-vendor-reload-restored');
+
+    // A persistência foi verificada acima. Rearmar o fixture só agora isola a rota dos abrigos
+    // e devolve ao jogador a posição/estado de QA usados pelo pathfinder, sem mascarar o reload.
+    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await wait(700);
+    const rearmedVendorControl = await controlState();
+    assert.equal(rearmedVendorControl.story.label, 'PERGUNTAR · TÉO',
+      'o prompt contextual de Téo não voltou quando o jogador foi reposicionado ao vendedor');
+    report.vendorDialogueReload.interactionAtRearmedVendor = rearmedVendorControl.story.label;
+    await shot('02-vendor-prompt-rearmed');
 
     await page.waitForFunction(ids => {
       const current = window.SevenSinsDebug3D.sideQuestQA().waystones.filter(w => ids.includes(w.id));
@@ -632,7 +821,7 @@ async function exposePathfinder() {
     await exposePathfinder();
     await waitForWorldCollisionReady('after-two-waystones-reload');
     await wait(1800);
-    await page.evaluate(() => { window.SevenSinsDebug3D.realtime(); window.SevenSinsDebug3D.act1(1, 1); });
+    await page.evaluate(() => window.SevenSinsDebug3D.realtime());
     await wait(700);
     const afterReload = await qa();
     const reloadControl = await controlState();
@@ -644,6 +833,31 @@ async function exposePathfinder() {
     assert.equal(afterReload.coins, beforeReload.coins, 'moedas mudaram durante reload');
     assert.equal(afterReload.xp, beforeReload.xp, 'XP mudou durante reload');
     await shot('03-two-waystones-after-reload');
+
+    // O save do mapa preserva névoa e IDs dos abrigos, não as coordenadas do jogador: após reload ele volta ao spawn.
+    // A volta à Vila deve cruzar a ponte real. A água sob o tabuleiro é passável no jogo, então o A* precisa
+    // ignorar waterDepth apenas dentro da faixa caminhável da ponte; fora dela, água continua bloqueando.
+    const afterTwoWaystonesReloadPlayer = await playerState();
+    report.afterTwoWaystonesReload = {
+      x: +afterTwoWaystonesReloadPlayer.x.toFixed(3),
+      y: +afterTwoWaystonesReloadPlayer.y.toFixed(3),
+      z: +afterTwoWaystonesReloadPlayer.z.toFixed(3),
+      positionSource: 'world spawn; map save persists fog and waystone IDs, not player coordinates'
+    };
+    await walkTo(stones[0], 'return-to-abrigo-vila');
+    const afterReturnToVillage = await qa();
+    assert.equal(afterReturnToVillage.side.abrigos.progress, 2,
+      'retorno ao abrigo da Vila alterou indevidamente o progresso');
+    assert.ok(afterReturnToVillage.registeredWaystones.includes('abrigo-vila'),
+      'retorno ao abrigo da Vila perdeu o registro anterior');
+    const returnedToVillagePlayer = await playerState();
+    report.routeRecovery = {
+      method: 'touch #stick; return to the registered Vila shelter before continuing to Caverna',
+      x: +returnedToVillagePlayer.x.toFixed(3),
+      y: +returnedToVillagePlayer.y.toFixed(3),
+      z: +returnedToVillagePlayer.z.toFixed(3),
+      progress: afterReturnToVillage.side.abrigos.progress
+    };
 
     const lastStone = stones[2];
     await walkTo(lastStone, 'walk-to-' + lastStone.id);
@@ -660,6 +874,18 @@ async function exposePathfinder() {
     await waitForWorldCollisionReady('after-final-reload');
     await wait(1800);
     const final = await qa();
+    const finalControl = await controlState();
+    const finalCampaign = await campaignSave();
+    report.finalMainQuest = {
+      storyStep: finalControl.story.q,
+      storySub: finalControl.story.sub,
+      objective: finalControl.state.objective,
+      savedCampaign: finalCampaign
+    };
+    assert.equal(finalCampaign?.questStep, 1, 'save V6 perdeu o passo da vila após o reload final');
+    assert.equal(finalCampaign?.act1Sub, 1, 'save V6 perdeu a chegada à vila após o reload final');
+    assert.equal(finalControl.story.sub, 1, 'HUD narrativo voltou à subetapa de chegada após reload final');
+    assert.equal(finalControl.state.objective, expectedObjective, 'objetivo principal mudou após reload final');
     assert.equal(final.side.abrigos.state, 'ready', 'estado ready não sobreviveu ao reload final');
     assert.equal(final.side.abrigos.progress, 3);
     assert.deepEqual(final.registeredWaystones.filter(id => SIDE_QUEST_WAYSTONES.includes(id)).sort(),
@@ -669,12 +895,13 @@ async function exposePathfinder() {
     report.final = { side: final.side.abrigos, registeredWaystones: final.registeredWaystones, coins: final.coins, xp: final.xp };
     await shot('05-ready-after-final-reload');
 
-    assert.equal(report.screenshots.length, 11, 'capturas de estado incompletas');
-    assert.equal(report.input.joystickPointerTypes.length, 3, 'três percursos precisam usar pointerType touch');
+    assert.equal(report.screenshots.length, 14, 'capturas de estado incompletas');
+    assert.equal(report.walks.length, 4, 'três marcos e o retorno à Vila precisam ser percorridos sem teleport');
+    assert.equal(report.input.joystickPointerTypes.length, 4, 'quatro percursos precisam usar pointerType touch');
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');
-    assert.equal(report.input.joystickPointerMoves.length, 3, 'três percursos precisam mover o knob pelo pointermove touch');
+    assert.equal(report.input.joystickPointerMoves.length, 4, 'quatro percursos precisam mover o knob pelo pointermove touch');
     assert.ok(report.input.joystickPointerMoves.every(move => move.count > 0), 'joystick não recebeu pointermove touch');
-    assert.equal(report.input.joystickLifecycle.length, 3, 'três ciclos de joystick precisam ter diagnóstico de captura');
+    assert.equal(report.input.joystickLifecycle.length, 4, 'quatro ciclos de joystick precisam ter diagnóstico de captura');
     assert.ok(report.input.joystickLifecycle.every(s => s.events.some(e => e.type === 'pointerdown' && e.pointerType === 'touch')), 'um percurso não começou com pointerdown touch');
     assert.ok(report.input.joystickLifecycle.every(s => hasCompletedTouchLifecycle(s.events)), 'cada toque do joystick precisa terminar com pointerup/pointercancel touch do mesmo pointerId após touchEnd');
     assert.equal(report.input.interactionPointerTypes.length, 3, 'três registros precisam usar pointerType touch');

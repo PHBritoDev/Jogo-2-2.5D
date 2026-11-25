@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
+import { chooseStoryTwoShotSide } from './story-camera-layout.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
 const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
@@ -224,7 +225,9 @@ test('HUD não avança etapas por subetapa inválida restaurada de save', () => 
     assert.deepEqual(questPresentation(1, bad), base1);
     assert.deepEqual(questPresentation(3, bad), base3);
   }
-  assert.match(questPresentation(1, 1).objective, /vendedor de frutas/);
+  assert.equal(questPresentation(1, 1).objective, 'Pergunte a Téo sobre o Pecado da Ganância');
+  assert.equal(SPEAKERS.vendor, 'Téo · Provisões');
+  assert.doesNotMatch(questPresentation(1, 1).objective, /vendedor de frutas|· Provisões/i);
   assert.match(questPresentation(3, 2).objective, /luta terminou/);
 });
 
@@ -240,4 +243,53 @@ test('descanso, recibos e progresso da campanha sobrevivem juntos ao reload e à
   const legacy = migrateProgress({version: 5, questStep: 2, coins: 12});
   assert.deepEqual([legacy.sakuraRest, legacy.sideRewardClaims, legacy.coins], [-1, [], 12]);
   assert.deepEqual(migrateProgress({...progress, sakuraRest: 100}).sideRewardClaims, [receipt]);
+});
+
+test('objetivo e primeira troca da cena principal identificam o mesmo vendedor', () => {
+  const scene = A.vendorScene();
+  const refusal = A.vendorRefusalScene();
+  for (const [label, steps] of [['cena principal', scene], ['recusa', refusal]]) {
+    const opening = steps[0];
+    assert.equal(opening?.type, 'shot', label + ': enquadramento de dois atores deve vir antes da primeira fala');
+    assert.equal(opening?.id, 'teo-primeira-troca');
+    assert.equal(opening.dur, 0.65);
+    assert.deepEqual(opening.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
+  }
+  const paymentShot = scene.find(s => s.type === 'shot' && s.id === 'saco-de-ouro');
+  assert.deepEqual(paymentShot?.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
+  const heroLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.hero);
+  const vendorLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.vendor);
+  assert.equal(questPresentation(1, 1).objective, 'Pergunte a Téo sobre o Pecado da Ganância');
+  assert.equal(SPEAKERS.vendor, 'Téo · Provisões');
+  assert.equal(heroLine?.text, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?');
+  assert.equal(vendorLine?.text, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.');
+  assert.ok(scene.indexOf(vendorLine) > scene.indexOf(heroLine), 'Téo deve responder depois da pergunta do protagonista');
+  const actionIds = scene.flatMap(s => [s.id, ...(s.with || []).map(w => w.id)]).filter(Boolean);
+  assert.equal(actionIds.filter(id => id === 'entregar-ouro').length, 1,
+    'a transação original de cinco moedas deve permanecer uma única vez na cena');
+  assert.ok(actionIds.indexOf('entregar-ouro') < actionIds.indexOf('anoitecer'),
+    'a transação deve ocorrer antes da transição para a noite');
+});
+
+
+test('two-shot narrativo mantém o lado preferido livre e troca quando há barraca no eixo', () => {
+  const a = { x: 0, z: 0 }, b = { x: 0, z: 2 };
+  const open = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: () => false });
+  assert.equal(open.side, -1, 'sem obstáculo, preservar a direção autoral');
+  assert.equal(open.clearSamples, 13);
+  const alternate = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 });
+  assert.equal(alternate.side, 1, 'trocar para o lado livre quando a barraca bloqueia o preferido');
+  assert.equal(alternate.blockedSample, null);
+  const best = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 || x > 2.5 });
+  assert.equal(best.side, 1, 'quando ambos os lados bloqueiam, escolher o maior corredor livre');
+  assert.ok(best.clearSamples > 0);
+  const visibleAlternative = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4,
+    // A barraca bloqueia somente a linha entre a câmera preferida e o segundo ator.
+    blockedAt: (x, z) => x < -0.5 && z > 1.6
+  });
+  assert.equal(visibleAlternative.side, 1,
+    'trocar de lado quando a barraca encobre o vendedor, mesmo com o corredor central livre');
+  assert.deepEqual(visibleAlternative.visibleActors, [true, true],
+    'o lado alternativo precisa manter os dois atores visíveis');
 });
