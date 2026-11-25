@@ -22,7 +22,18 @@ const FORBIDDEN=/\.(?:map|mjs|cjs|py|md|pdf|txt|zip|blend|psd|kra|pem|key|env|lo
 const entries=fs.readdirSync(src,{withFileTypes:true}).filter(x=>x.isFile()).map(x=>x.name).sort();
 for(const name of REQUIRED)if(!entries.includes(name))throw Error('Missing mandatory runtime: '+name);
 fs.rmSync(dst,{recursive:true,force:true});fs.mkdirSync(dst,{recursive:true});
-let n=0,bytes=0;
+const distributionFiles=[];
+let bytes=0;
+function record(name){
+  distributionFiles.push(name);
+  bytes+=fs.statSync(path.join(dst,name)).size;
+}
+function copyAsset(name){
+  const output=path.join(dst,name);
+  fs.mkdirSync(path.dirname(output),{recursive:true});
+  fs.copyFileSync(path.join(src,name),output);
+  record(name);
+}
 for(const name of entries){
   if(name==='.nojekyll'){fs.writeFileSync(path.join(dst,name),'');continue;}
   const ext=path.extname(name).toLowerCase();
@@ -43,17 +54,45 @@ for(const name of entries){
     });
     fs.writeFileSync(output,result.code);
   }else fs.copyFileSync(input,output);
-  bytes+=fs.statSync(output).size;n++;
+  record(name);
 }
+// Preserve relative URLs for the playable protagonist and authored media.
+// Only these game modules are needed from the aerial-combat laboratory.
+for(const file of ['world-protagonist.js','controller.js','rig.js','shadows.js']){
+  copyAsset('experiments/aerial-combat/'+file);
+}
+const menu='assets/ui/menu/';
+for(const file of ['cinematic/environment.webp','cinematic/worlds-hero.webp','fonts/cinzel-latin.woff2',
+  'fonts/OFL.txt','hero-menu.glb','storm-effigy.glb','polyhaven/clouds.hdr',
+  'polyhaven/rock_face_02/rock-menu.glb','polyhaven/rock_face_02/textures/rock_face_02_diff_1k.webp']){
+  copyAsset(menu+file);
+}
+const fort=menu+'polyhaven/modular_fort_01/modular_fort_01.gltf';
+copyAsset(fort);
+const model=JSON.parse(fs.readFileSync(path.join(src,fort),'utf8'));
+for(const {uri} of [...model.buffers,...model.images]){
+  if(!/^(?:textures\/)?[\w-]+\.(?:bin|webp)$/.test(uri))throw Error('Unexpected fort resource: '+uri);
+  copyAsset(path.posix.join(path.posix.dirname(fort),uri));
+}
+copyAsset('assets/ganancia/xisto-fossil.webp');
+const audioFile='audio/audio-manifest.json';
+const audio=JSON.parse(fs.readFileSync(path.join(src,audioFile),'utf8'));
+const tracks=audio.assets.map(({arquivo,assetId,categoria,evento,loop,licenca})=>{
+  if(!/^audio\/(?:sfx|amb|musica)\/[\w-]+\.mp3$/.test(arquivo))throw Error('Unexpected audio path: '+arquivo);
+  copyAsset(arquivo);
+  return {arquivo,assetId,categoria,evento,loop,licenca};
+});
+fs.writeFileSync(path.join(dst,audioFile),JSON.stringify({versao:audio.versao,assets:tracks}));
+record(audioFile);
 fs.writeFileSync(path.join(dst,'.nojekyll'),'');
 fs.writeFileSync(path.join(dst,'COPYRIGHT.txt'),
   'A Batalha Contra os 7 Pecados Capitais - Copyright (c) 2026 PHBritoDev. Direitos sobre materiais originais reservados. Conteudos de terceiros sujeitos as respectivas licencas.\n');
 const hashes={};
-for(const name of fs.readdirSync(dst).sort()){
-  if(name==='release-manifest.json'||name==='.nojekyll')continue;
-  const file=path.join(dst,name);if(!fs.statSync(file).isFile())continue;
+record('COPYRIGHT.txt');
+for(const name of distributionFiles.sort()){
+  const file=path.join(dst,name);
   hashes[name]=crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 const manifest={schema:1,sourceCommit:process.env.GITHUB_SHA||'local',buildKind:'browser-distribution',files:hashes};
 fs.writeFileSync(path.join(dst,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
-console.log(JSON.stringify({files:n,bytes,output:dst,sourceCommit:manifest.sourceCommit,manifestEntries:Object.keys(hashes).length}));
+console.log(JSON.stringify({files:distributionFiles.length,bytes,output:dst,sourceCommit:manifest.sourceCommit,manifestEntries:Object.keys(hashes).length}));
