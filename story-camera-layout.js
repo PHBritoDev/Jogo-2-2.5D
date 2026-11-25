@@ -33,15 +33,26 @@ export function chooseStoryTwoShotSide({
     }
     return { clearSamples, blockedSample };
   };
+  const visibilityHeights = [0.45, 0.9, 1.35, 1.7];
+  const measureActorVisibility = (camera, actor) => {
+    if (typeof visibleAt !== 'function') return null;
+    const base = Number.isFinite(actor.y) ? actor.y : baseY;
+    const clearSamples = visibilityHeights.reduce((sum, height) =>
+      sum + (visibleAt(camera, { x: actor.x, y: base + height, z: actor.z }) ? 1 : 0), 0);
+    return { visible: clearSamples >= 3, clearSamples, totalSamples: visibilityHeights.length };
+  };
   const score = candidateSide => {
     const dx = b.x - a.x, dz = b.z - a.z, span = Math.hypot(dx, dz);
     if (span < 0.001) {
       const camera = { x: a.x, y: baseY + lift, z: a.z };
       const target = { x: a.x, y: baseY + look, z: a.z };
-      const actor = { x: a.x, y: (Number.isFinite(a.y) ? a.y : baseY) + look, z: a.z };
-      const visibleActors = typeof visibleAt === 'function' ? [!!visibleAt(camera, actor), true] : [true, true];
+      const actorA = { x: a.x, y: Number.isFinite(a.y) ? a.y : baseY, z: a.z };
+      const actorB = { x: b.x, y: Number.isFinite(b.y) ? b.y : baseY, z: b.z };
+      const measured = [measureActorVisibility(camera, actorA), measureActorVisibility(camera, actorB)];
+      const visibleActors = measured.every(Boolean) ? measured.map(v => v.visible) : [true, true];
       return { side: candidateSide, clearSamples: count - 1, blockedSample: null,
-        visibleActors, visibilityClearSamples: visibleActors.filter(Boolean).length,
+        visibleActors, actorVisibilitySamples: measured.every(Boolean) ? measured.map(v => v.clearSamples) : null,
+        visibilityClearSamples: measured.every(Boolean) ? measured.reduce((sum, v) => sum + v.clearSamples, 0) : visibleActors.filter(Boolean).length,
         camera, target, cameraHeight: lift, targetHeight: look };
     }
     const ux = dx / span, uz = dz / span, rx = uz, rz = -ux;
@@ -55,18 +66,20 @@ export function chooseStoryTwoShotSide({
     // Não testar os últimos 0,65 m: a amostra termina antes do collider do próprio ator.
     const toA = trace({ x: cx, z: cz }, a, .65);
     const toB = trace({ x: cx, z: cz }, b, .65);
-    const actorA = { x: a.x, y: (Number.isFinite(a.y) ? a.y : baseY) + look, z: a.z };
-    const actorB = { x: b.x, y: (Number.isFinite(b.y) ? b.y : baseY) + look, z: b.z };
-    const visibleActors = typeof visibleAt === 'function'
-      ? [!!visibleAt(camera, actorA), !!visibleAt(camera, actorB)]
+    const actorA = { x: a.x, y: Number.isFinite(a.y) ? a.y : baseY, z: a.z };
+    const actorB = { x: b.x, y: Number.isFinite(b.y) ? b.y : baseY, z: b.z };
+    const measured = [measureActorVisibility(camera, actorA), measureActorVisibility(camera, actorB)];
+    const visibleActors = measured.every(Boolean)
+      ? measured.map(v => v.visible)
       : [toA.blockedSample === null, toB.blockedSample === null];
     return {
       side: candidateSide,
       clearSamples: corridor.clearSamples,
       blockedSample: corridor.blockedSample,
       visibleActors,
-      visibilityClearSamples: typeof visibleAt === 'function'
-        ? visibleActors.filter(Boolean).length
+      actorVisibilitySamples: measured.every(Boolean) ? measured.map(v => v.clearSamples) : null,
+      visibilityClearSamples: measured.every(Boolean)
+        ? measured.reduce((sum, v) => sum + v.clearSamples, 0)
         : toA.clearSamples + toB.clearSamples,
       camera, target, cameraHeight: lift, targetHeight: look
     };

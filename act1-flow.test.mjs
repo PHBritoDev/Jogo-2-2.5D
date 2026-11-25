@@ -308,3 +308,23 @@ test('two-shot verifica oclusão 3D da cobertura, não apenas a pegada no chão'
   assert.equal(framing.camera.y, 3.5);
   assert.equal(framing.target.y, 1.45);
 });
+
+ 
+test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da cobertura', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const mostlyHidden = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    // No lado preferido, apenas os dois pontos baixos passam; o lado alternativo libera o corpo inteiro.
+    visibleAt: (camera, actor) => camera.x > 0 || actor.y < 1.0
+  });
+  assert.equal(mostlyHidden.side, 1);
+  assert.deepEqual(mostlyHidden.visibleActors, [true, true]);
+  assert.deepEqual(mostlyHidden.actorVisibilitySamples, [4, 4]);
+
+  const minorOcclusion = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    visibleAt: (_camera, actor) => actor.y < 1.7
+  });
+  assert.equal(minorOcclusion.side, -1, 'uma única amostra alta bloqueada não deve inverter o plano');
+  assert.deepEqual(minorOcclusion.actorVisibilitySamples, [3, 3]);
+});

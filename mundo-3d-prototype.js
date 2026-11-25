@@ -4473,21 +4473,25 @@ const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3();
 const storyMarketRay=new THREE.Raycaster(),storyMarketFrom=new THREE.Vector3(),storyMarketTo=new THREE.Vector3(),storyMarketDirection=new THREE.Vector3();
-function storyMarketVisible(cameraPoint,actorPoint){
- if(!storyMarketOccluders.length)return true;
- storyMarketFrom.set(cameraPoint.x,cameraPoint.y,cameraPoint.z);
- storyMarketTo.set(actorPoint.x,actorPoint.y,actorPoint.z);
+function storyMarketRayBlocked(from,to){
+ storyMarketFrom.set(from.x,from.y,from.z);storyMarketTo.set(to.x,to.y,to.z);
  storyMarketDirection.subVectors(storyMarketTo,storyMarketFrom);
- const length=storyMarketDirection.length();if(length<.2)return true;
+ const length=storyMarketDirection.length();if(length<.2)return false;
  storyMarketDirection.multiplyScalar(1/length);storyMarketRay.set(storyMarketFrom,storyMarketDirection);
  storyMarketRay.near=.05;storyMarketRay.far=Math.max(.05,length-.35);
  for(const oc of storyMarketOccluders){
-  if(oc.bounds?.containsPoint(storyMarketFrom))return false;
+  oc.obj.updateWorldMatrix(true,true);
+  if(oc.bounds?.containsPoint(storyMarketFrom))return true;
   if(Math.hypot(storyMarketFrom.x-oc.x,storyMarketFrom.z-oc.z)>oc.r+length)continue;
+  // GLBs de barraca podem ter faces FrontSide: testar os dois sentidos evita ignorar o verso da cobertura.
   const hit=storyMarketRay.intersectObject(oc.obj,true)[0];
-  if(hit&&hit.distance<length-.35)return false;
+  if(hit&&hit.distance<length-.35)return true;
  }
- return true;
+ return false;
+}
+function storyMarketVisible(cameraPoint,actorPoint){
+ if(!storyMarketOccluders.length)return true;
+ return !storyMarketRayBlocked(cameraPoint,actorPoint)&&!storyMarketRayBlocked(actorPoint,cameraPoint);
 }
 function sewerLocal(p){return{x:p.x+DIMENSIONS.esgoto.center.x,z:p.z+DIMENSIONS.esgoto.center.z};}
 function actorObj(key){if(key==='hero')return player;if(key==='guide')return guide;if(key==='enemy')return enemy.visible?enemy:(pack&&pack.clones.find(c=>c&&c.holder.visible)||{}).holder||enemy;if(key==='vendor')return vendorRoots[1]||null;return null;}
@@ -4502,7 +4506,7 @@ function faceTo(obj,target){if(!obj)return;const dx=target.x-obj.position.x,dz=t
 function playStory(id,steps,opts){
  opts=opts||{};storyScene={id,focus:opts.focus||'guide',done:opts.done||null,two:!!opts.two,twoStable:!!opts.twoStable,side:opts.side||1,twoDist:Number.isFinite(opts.twoDist)?Math.max(3.4,opts.twoDist):3.4,twoCameraHeight:Number.isFinite(opts.twoCameraHeight)?Math.max(2.4,opts.twoCameraHeight):3.5,twoTargetHeight:Number.isFinite(opts.twoTargetHeight)?Math.max(1,opts.twoTargetHeight):1.45};
  if(opts.face){const f=actorPos(opts.face,_sa);faceTo(player,f);const o=actorObj(opts.face);if(o&&o!==player&&o!==enemy)faceTo(o,player.position);}
- if(storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z),distance=Math.max(storyScene.twoDist,span*1.25);const framing=chooseStoryTwoShotSide({a:{x:a.x,y:a.y,z:a.z},b:{x:b.x,y:b.y,z:b.z},preferredSide:storyScene.side,distance,cameraHeight:storyScene.twoCameraHeight,targetHeight:storyScene.twoTargetHeight,blockedAt,visibleAt:storyMarketVisible});storyScene.side=framing.side;storyScene.twoClearSamples=framing.clearSamples;storyScene.twoVisibleActors=framing.visibleActors;}
+ if(storyScene.twoStable){const a=actorPos('hero',_sa),b=actorPos(storyScene.focus,_sb),span=Math.hypot(b.x-a.x,b.z-a.z),distance=Math.max(storyScene.twoDist,span*1.25);const framing=chooseStoryTwoShotSide({a:{x:a.x,y:a.y,z:a.z},b:{x:b.x,y:b.y,z:b.z},preferredSide:storyScene.side,distance,cameraHeight:storyScene.twoCameraHeight,targetHeight:storyScene.twoTargetHeight,blockedAt,visibleAt:storyMarketVisible});storyScene.side=framing.side;storyScene.twoClearSamples=framing.clearSamples;storyScene.twoVisibleActors=framing.visibleActors;storyScene.twoVisibilitySamples=framing.actorVisibilitySamples;storyScene.twoMarketOccluders=storyMarketOccluders.length;}
  cineBegin();cineSceneStartedAt=performance.now();cineSkipArmedUntil=0;
  if(opts.skippable===false)cineEl('cine-skip').hidden=true;
  cineDirector.play(id,steps,null,{skippable:opts.skippable!==false});
@@ -9283,7 +9287,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
   else if(step===14)go(D.plaza.x+26,D.plaza.z);
   return this.storyState();
  },
- storyState(){const st=cineDirector.step;return{bandits:act2Bandits.length,q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
+ storyState(){const st=cineDirector.step;return{bandits:act2Bandits.length,q:questStep,sub:act1Sub,scene:cineActive?cineDirector.scene:null,step:st&&(st.id||st.type),waitingTap:cineDirector.waitingTap,pack:pack?{i:pack.index,n:pack.spots.length,active:pack.active,profile:pack.profile}:null,enemy:enemy.visible?{hp:enemyHP,profile:encounterProfile}:null,inSewer,night:act1Night,x:+player.position.x.toFixed(1),z:+player.position.z.toFixed(1),twoShot:storyScene&&storyScene.twoStable?{side:storyScene.side,visibleActors:storyScene.twoVisibleActors||null,visibilitySamples:storyScene.twoVisibilitySamples||null,marketOccluders:storyScene.twoMarketOccluders||0}:null,label:act1TalkLabel()||act2StoryLabel()||act3Label()||act4Label()||act6Label(),form:act6Form,dimKey:dimBattle?dimBattle.key:null,sandra6:act6Sandra?[+act6Sandra.holder.position.x.toFixed(1),+act6Sandra.holder.position.z.toFixed(1)]:null,inTower,scroll:scrollOwned,round:act5Round?act5Round.n:null,sandra:act5Sandra?[+act5Sandra.holder.position.x.toFixed(1),+act5Sandra.holder.position.z.toFixed(1)]:null,rv:act4Rival?[+act4Rival.holder.position.x.toFixed(1),+act4Rival.holder.position.z.toFixed(1)]:null,inVolcano,act3Void,coat:[coatOwned,coatOn],hp:playerHP,coins,cam:camera.position.toArray().map(v=>+v.toFixed(1)),guide:guide.position.toArray().map(v=>+v.toFixed(1)),gv:guide.visible};},
  playAfterVhazrael(){afterVhazraelStory();},
  tapStory(){return cineDirector.tap();},
  speed(k){debugDtScale=Math.max(.1,Math.min(8,+k||1));return debugDtScale;},
