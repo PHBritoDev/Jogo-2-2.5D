@@ -1,8 +1,8 @@
 // ÚNICO lugar para atualizar identidade/cache da build publicada.
 // NÃO editar HTML, loader ou mundo 3D apenas para trocar número de versão.
-export const MOD = 363;
-export const BUILD = 'mod363-invernalia-floresta';
-export const DESCRIPTION = 'Mod 363: Invernália e Eldória integradas, distribuição florestal de alta qualidade recalibrada';
+export const MOD = 364;
+export const BUILD = 'mod364-invernalia-espada';
+export const DESCRIPTION = 'Mod 364: Invernália, Eldória e efeitos de espada com atualização de partículas ativas';
 export function syncBuildMarker(marker) {
   if (!marker) return;
   marker.textContent = String(MOD);
