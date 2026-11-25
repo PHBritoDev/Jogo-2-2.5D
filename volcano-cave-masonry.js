@@ -112,7 +112,7 @@ export function masonry(T, group, seed, palette){
   const cfg=LAVA_BOUNCE_CONFIG, lavaClock=palette.clock||{value:0};
   const lavaGain={value:lavaBounceEnabled(group.name,!!palette.clock)?1:0};
   const pulsePhase=Number.isFinite(Number(seed))?(Math.abs(Number(seed))%997)*.017:0;
-  const lavaPulseUniform={value:1};
+  // Evaluate the slow pulse once per mesh draw, never once per fragment.\n  const lavaPulseUniform={value:1};
   const color=cfg.color.map(glslNumber).join(',');
   material.onBeforeCompile=shader=>{
    shader.uniforms.uLavaPulse=lavaPulseUniform;
