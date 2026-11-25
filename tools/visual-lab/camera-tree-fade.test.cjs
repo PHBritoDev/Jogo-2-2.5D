@@ -6,17 +6,25 @@ const path = require('node:path');
 
 const source = fs.readFileSync(path.join(__dirname, '../../mundo-3d-prototype.js'), 'utf8');
 const call = material => {
-  const match = source.match(new RegExp('addNearCameraFade\\(lib\\.materials\\.' + material + ',\\s*([0-9.]+)\\)'));
-  assert.ok(match, 'fade de câmera da espécie tropical precisa continuar configurado para ' + material);
-  return Number(match[1]);
+  const token = 'addNearCameraFade(lib.materials.' + material + ',';
+  const index = source.indexOf(token);
+  assert.notEqual(index, -1, 'fade de câmera tropical ausente para ' + material);
+  const start = index + token.length;
+  const end = source.indexOf(')', start);
+  return Number(source.slice(start, end).trim());
 };
 const ditherKeep = (distance, near) => Math.min(1, Math.max(0, (distance - 0.6) / near));
 
 test('tronco da figueira não fica opaco na distância de obstrução observada', () => {
-  const fadeFn = source.match(/function addNearCameraFade\\(material,near=3\\.2\\)\\s*\\{([\\s\\S]*?)\\n\\}/);
-  assert.ok(fadeFn, 'função de fade próxima da câmera precisa existir');
-  assert.match(fadeFn[1], /camFade=clamp\\(\\(length\\(vViewPosition\\)-0\\.6\\)\\//);
-  assert.match(fadeFn[1], /dither>camFade\\)discard/);
+  const start = source.indexOf('function addNearCameraFade(material,near=3.2){');
+  const end = source.indexOf('\n}', start);
+  assert.notEqual(start, -1, 'função de fade próxima da câmera precisa existir');
+  assert.ok(end > start, 'corpo da função de fade precisa estar completo');
+  const fadeFn = source.slice(start, end);
+  assert.ok(fadeFn.includes('camFade=clamp((length(vViewPosition)-0.6)/'),
+    'o fade precisa continuar baseado na distância real até a câmera');
+  assert.ok(fadeFn.includes('if(camFade<0.999&&dither>camFade)discard;'),
+    'o shader precisa abrir fragmentos por dithering, sem alpha blend caro');
 
   const barkNear = call('bark');
   const leavesNear = call('leaves');
