@@ -21,6 +21,10 @@ export function lavaBouncePulse(time, phase = 0) {
  return c.pulseBase+c.pulseSlow*Math.sin(t*c.pulseSlowRate+p)+
   c.pulseFast*Math.sin(t*c.pulseFastRate-p*c.pulsePhaseRate);
 }
+export function lavaBounceEnabled(groupName, hasClock) {
+ const name=String(groupName||'');
+ return !!hasClock&&(name.includes('Santuário')||name.includes('pisos'));
+}
 const glslNumber = value => Number(value).toFixed(3);
 export function masonry(T, group, seed, palette){
  const pos=[],col=[],uv=[];let state=seed;
@@ -100,7 +104,7 @@ export function masonry(T, group, seed, palette){
   // O reflexo estático da calha permanece; no Santuário, a mesma fonte também
   // produz um bounce quente e lento, sem PointLight, sombra ou draw call extra.
   const cfg=LAVA_BOUNCE_CONFIG, lavaClock=palette.clock||{value:0};
-  const lavaGain={value:!!palette.clock&&(group.name.includes('Santuário')||group.name.includes('pisos'))?1:0};
+  const lavaGain={value:lavaBounceEnabled(group.name,!!palette.clock)?1:0};
   const color=cfg.color.map(glslNumber).join(',');
   const pulse='float lavaPulse='+glslNumber(cfg.pulseBase)+'+'+
    glslNumber(cfg.pulseSlow)+'*sin(uLavaTime*'+glslNumber(cfg.pulseSlowRate)+'+vLavaPhase)+'+
