@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { planTropical, TROPICAL_SPECIES_HEIGHTS } from '../eldoria-undergrowth.js';
+import { planTropical, TROPICAL_SPECIES_HEIGHTS, vineGeometry } from '../eldoria-undergrowth.js';
 
 const trees = Array.from({ length: 20 }, (_, i) => ({ x: i * 4, z: 0, h: 12 }));
 const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
@@ -13,6 +13,26 @@ function tropicalGlbHeights() {
   return Object.fromEntries(gltf.nodes
     .filter(node => node.extras?.especie && node.extras.lod === 0)
     .map(node => [node.extras.especie, node.extras.height]));
+}
+
+function vineGeometryYBounds() {
+  class Geometry {
+    constructor() { this.attributes = {}; }
+    setAttribute(name, attribute) { this.attributes[name] = attribute; }
+    computeVertexNormals() {}
+    computeBoundingSphere() {}
+  }
+  class Attribute {
+    constructor(values, itemSize) { this.array = Float32Array.from(values); this.itemSize = itemSize; }
+  }
+  const geometry = vineGeometry({ BufferGeometry: Geometry, Float32BufferAttribute: Attribute });
+  const positions = geometry.attributes.position.array;
+  let min = Infinity, max = -Infinity;
+  for (let i = 1; i < positions.length; i += 3) {
+    min = Math.min(min, positions[i]);
+    max = Math.max(max, positions[i]);
+  }
+  return { min, max };
 }
 
 function vineFootprintFree(isFree, x, z) {
@@ -135,7 +155,7 @@ test('árvores do plano tropical sem h explícito geram cipós finitos e respeit
   assert.ok(explicit.vines[0].len < tall.vines[0].len, 'h explícito do cinturão continua tendo precedência');
 });
  
-test('cipós tropicais mantêm a ponta inferior 20 cm acima do terreno', () => {
+test('a menor coordenada renderizada de cada cipó mantém 20 cm de folga do terreno', () => {
   const species = ['sumauma', 'figueira', 'copaLarga', 'palmeira', 'embauba'];
   const forestTrees = Array.from({ length: 20 }, (_, i) => ({
     sp: species[i % species.length],
@@ -149,10 +169,13 @@ test('cipós tropicais mantêm a ponta inferior 20 cm acima do terreno', () => {
     isFree: () => true,
     seed: 4242
   });
+  const bounds = vineGeometryYBounds();
 
   assert.ok(plan.vines.length > 0, 'o cinturão continua produzindo cipós');
+  assert.ok(Number.isFinite(bounds.min) && Math.abs(bounds.max - 1) < 1e-6,
+    'os limites usados pelo posicionamento correspondem à geometria real');
   assert.ok(
-    plan.vines.every(v => v.top - v.len >= .2 - 1e-9),
-    'nenhuma ponta inferior atravessa o solo ou fica a menos de 20 cm dele'
+    plan.vines.every(v => v.top - v.len + bounds.min * v.len >= .2 - 1e-6),
+    'incluindo folíolos abaixo da origem, nenhuma parte renderizada fica a menos de 20 cm do terreno'
   );
 });
