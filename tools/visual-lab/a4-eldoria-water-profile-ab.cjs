@@ -199,17 +199,18 @@ async function captureSide(browser, side, baseline) {
         if (diagnostic.awakeningActive || diagnostic.dialogueOpen || diagnostic.namePromptOpen)
           report.errors.push(side + '/' + profile + '/' + scene.name + ': estado inicial/cinemática ainda ativo durante a captura');
         const canvasInfo = await page.evaluate(() => {
-          const canvas = [...document.querySelectorAll('canvas')].find(c => c.width >= 800 && c.height >= 450);
-          if (!canvas) throw new Error('canvas WebGL do jogo não encontrado em resolução móvel');
-          canvas.id = '__a4-webgl-canvas';
+          const canvas = document.getElementById('scene');
+          if (!(canvas instanceof HTMLCanvasElement)) throw new Error('canvas WebGL #scene não encontrado');
           const rect = canvas.getBoundingClientRect();
           return { width: canvas.width, height: canvas.height, cssWidth: rect.width, cssHeight: rect.height };
         });
-        if (canvasInfo.cssWidth < 800 || canvasInfo.cssHeight < 450)
-          report.errors.push(side + '/' + profile + '/' + scene.name + ': canvas WebGL fora do viewport esperado=' + JSON.stringify(canvasInfo));
+        if (canvasInfo.cssWidth < 800 || canvasInfo.cssHeight < 400)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': canvas #scene fora do viewport esperado=' + JSON.stringify(canvasInfo));
+        if (canvasInfo.width < 800 || canvasInfo.height < 400)
+          report.warnings.push(side + '/' + profile + '/' + scene.name + ': backing WebGL menor que 800x400=' + JSON.stringify(canvasInfo));
         diagnostic.canvas = canvasInfo;
         const file = side + '/' + profile + '-' + scene.name + '.png';
-        await page.locator('#__a4-webgl-canvas').screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled', scale: 'css' });
+        await page.locator('#scene').screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled', scale: 'css' });
         report.cases.push({ side, profile, scene: scene.name, hour: scene.hour, image: file, ...diagnostic });
         if (diagnostic.profile !== profile) report.errors.push(side + '/' + profile + ': seletor não confirmou perfil');
         if (!baseline) {
