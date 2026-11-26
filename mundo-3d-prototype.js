@@ -2428,7 +2428,7 @@ buildAct1Cages();
 let dragonViewWeight=0,dragonDiveWeight=0;
 function dragonExternalView(){return cameraDistance<1.05&&dragonViewWeight>.08;}
 /* MOD 316 — câmera: estado do braço de mola (caverna) e da 1ª pessoa. */
-let caveArmLen=0,caveSide=0,shelterCameraYawOffset=0;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
+let caveArmLen=0,caveSide=0,shelterCameraYawOffset=0,a1ShelterCameraDiagnostics=null;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
 /** Altura dos olhos do PRÓPRIO modelo: osso da cabeça (+7 cm até os olhos), medido uma vez em pé; sem osso, 0,93 × a
     altura da malha. Antes era 1,52 fixo com FOV 72 (grande-angular): o mundo parecia menor e mais lento. */
 function fpEyeHeight(){if(!fpEyeH&&model){let head=null;model.traverse(o=>{if(!head&&o.isBone&&/^(mixamorig:)?head$/i.test(o.name||''))head=o;});
@@ -2464,14 +2464,38 @@ if(firstPerson){
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
  lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
  const allowShelterShoulder=!voidMode&&!cineActive&&!riteCinematicView&&!camFrame.engaged&&starfallCameraWeight<.01&&dk<.08&&!(ultCam.w>.01);
+ let shelterDecision=null,shelterNearPillar=false,shelterCameraLimit=1;
  if(allowShelterShoulder){
   // O desvio pertence apenas ao braço da câmera. cameraYaw continua sendo a referência
   // estável do joystick, dash, mira e rotação do jogador.
   const baseOrbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;
   const baseOffset=new THREE.Vector3(Math.sin(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch));
-  const nearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
-  const decision=nearPillar?chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt:(x,y,z)=>eldoriaWalk.blocked(x,z,y-.9,groundHeightAt)}):null;
-  const wanted=decision?.angle||0;
+  shelterNearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
+  if(shelterNearPillar){
+   // Avalia o braço inteiro, não só o collider do pilar: um desvio que libera a pedra
+   // mas termina dentro de uma árvore/rocha ainda comprime o enquadramento.
+   const nearbyTrees=treeObstacles.filter(o=>Math.abs(o.x-target.x)<camDistUse+2&&Math.abs(o.z-target.z)<camDistUse+2);
+   const blockedAt=(x,y,z)=>{
+    const wall=eldoriaWalk.blocked(x,z,y-.9,groundHeightAt);
+    if(wall?.name==='abrigo-pilar')return wall;
+    const rayX=x-target.x,rayZ=z-target.z,rayLen2=rayX*rayX+rayZ*rayZ;
+    if(rayLen2>.01)for(const o of nearbyTrees){
+     const rx=o.x-target.x,rz=o.z-target.z,t=(rx*rayX+rz*rayZ)/rayLen2;
+     if(t<=.05||t>1.05)continue;
+     const px=rx-rayX*t,pz=rz-rayZ*t,r=o.radius+.32;
+     if(px*px+pz*pz<r*r)return{name:'tree',x:o.x,z:o.z};
+    }
+    if(groundHeightAt(x,z)+.45>y)return{name:'terrain'};
+    if(wall)return wall;
+    if(rocksBlock(rockObstacles,x,z,y-.25,terrainHeightAt))return{name:'rock'};
+    if(journeyWorld&&journeyWorld.camBlocked(x,y,z))return{name:'journey'};
+    const deck=bridgeDeck(x,z);if(deck&&deck.edge&&y<deck.y+1.25)return{name:'bridge-deck'};
+    if(sakuraWorld&&sakuraWorld.root.visible&&(roadBlocked(x,z)||sakuraWorld.solidAt(x,z,y-.15,0,.3)))return{name:'sakura'};
+    return null;
+   };
+   shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
+  }
+  const wanted=shelterDecision?.angle||0;
   shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
  }else if(shelterCameraYawOffset){
   // Libera o ombro suavemente ao sair do abrigo, sem girar o referencial de movimento.
@@ -2512,7 +2536,9 @@ if(firstPerson){
    limit=caveArmLimit(target,camOffset,limit);}
   else if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
-  if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
+  if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}
+  shelterCameraLimit=limit;
+ }
  if((ascKey||inVolcano)&&voidSpec.camSolid){
   /* MOD 316 — braço de mola na caverna/escadaria: a posição sai direto de alvo + direção × comprimento (o lerp de posição
      cortava a corda do giro por dentro da rocha e o "copia se dentro do sólido" fazia a câmera saltar = tremedeira).
@@ -2526,7 +2552,14 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
   if(voidSpec.ceil){const top=voidSpec.y+voidSpec.ceil(camera.position.x-voidSpec.x,camera.position.z-voidSpec.z)-.35;if(camera.position.y>top){const y0=camera.position.y;camera.position.y=top;/* Caverna C5: a folha antiga do teto fica abaixo da parede 3D junto às paredes; se baixar a câmera a enfia na rocha, vale o volume 3D (que já inclui a abóbada) */if(voidSpec.camSolid(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z)&&!voidSpec.camSolid(camera.position.x-voidSpec.x,y0-voidSpec.y,camera.position.z-voidSpec.z))camera.position.y=y0;}}
  }else{caveArmLen=0;caveSide=0;camera.position.lerp(desired,1-Math.exp(-8*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
+ if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);} if(window.SevenSinsDebug3D){
+  a1ShelterCameraDiagnostics={active:shelterNearPillar,player:player.position.toArray(),target:target.toArray(),camera:camera.position.toArray(),
+   requestedDistance:cameraDistance,effectiveDistance:camDistUse,actualDistance:camera.position.distanceTo(target),cameraYaw,cameraPitch,
+   shoulderYawOffset:shelterCameraYawOffset,finalLimit:shelterCameraLimit,
+   directClearance:shelterDecision?.direct?.clearance??null,chosenClearance:shelterDecision?.chosen?.clearance??null,
+   directBlocker:shelterDecision?.direct?.blocker?.name??null,triggerBlocker:shelterDecision?.direct?.triggerBlocker?.name??null,
+   chosenBlocker:shelterDecision?.chosen?.blocker?.name??null,minClearance:shelterDecision?.requiredClearance??null};
+ }
  if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
  // A1: o braço de câmera não pode ficar no plano da água; o teste de terreno sozinho permite isso.
  if(!voidMode&&!cineActive&&!riteCinematicView&&dragonViewWeight<.01&&ultCam.want<.01&&ultCam.w<.01&&
@@ -9014,6 +9047,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ shelterCameraState(){return a1ShelterCameraDiagnostics;},
  /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
  actorScreen(){
   const focusActor=newHero&&squadOn&&squadFocus?.alive?squadFocus:null;
