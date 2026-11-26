@@ -203,6 +203,8 @@ Esta seção será preenchida pelo criador em outra conversa com requisitos adic
 ## 12. COMPLEMENTOS FINAIS DO CRIADOR — 26/11/2026
 ## AUTORIZAÇÃO DE EXECUÇÃO: BRIEFING COMPLETO
 
+As imagens e o vídeo foram anexados somente à conversa do ChatGPT em 26/11/2026 e não estão armazenados neste repositório. Claude só deve afirmar que os viu se o criador também os anexar diretamente à conversa dele. As descrições textuais desta seção são a referência disponível no GitHub; não presumir acesso aos anexos privados.
+
 O criador concluiu os complementos desta missão e autorizou sua execução. Claude deve começar a auditoria e implementação agora, sem pedir uma nova confirmação sobre estes requisitos. Este complemento é a instrução mais recente do criador e prevalece sobre qualquer orientação anterior deste arquivo que entre em conflito com ele. Os demais requisitos originais continuam válidos quando compatíveis.
 
 ### 12.1 Correção obrigatória da direção facial — olhos são permitidos; sorrisos não
