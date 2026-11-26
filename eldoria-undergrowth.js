@@ -157,7 +157,13 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
       const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2;
       const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
       // Consome os mesmos valores antes do filtro para manter o RNG dos próximos troncos estável.
-      const top = t.h * (.62 + rnd() * .2), len = t.h * (.35 + rnd() * .35), rot = rnd() * 6.28;
+      // planTropicalBelt fornece sp/s, mas não h; o sub-bosque sul precisa derivar
+      // a altura para não criar matrizes NaN. Mantém os mesmos valores do cinturão já explícito.
+      const baseHeight = t.sp === 'sumauma' ? 26 : 11;
+      const treeHeight = Number.isFinite(t.h) && t.h > 0
+        ? t.h
+        : baseHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
+      const top = treeHeight * (.62 + rnd() * .2), len = treeHeight * (.35 + rnd() * .35), rot = rnd() * 6.28;
       if (vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
   }
@@ -178,5 +184,6 @@ export function buildTropical(THREE, o) {
   plan.vines.forEach((v, i) => { const gy = groundHeightAt(v.x, v.z); d.position.set(v.x, gy + v.top - v.len, v.z); d.rotation.set(0, v.rot, 0); d.scale.set(1.4, v.len, 1.4); d.updateMatrix(); vines.setMatrixAt(i, d.matrix); });
   vines.count = plan.vines.length; vines.instanceMatrix.needsUpdate = true; vines.name = 'eldoria-vines'; group.add(vines);
   if (registerCull) { registerCull(leaves, lowSpec ? 40 : 55, 12); registerCull(vines, lowSpec ? 45 : 60, 14); }
-  return { group, stats: { leaves: plan.leaves.length, vines: plan.vines.length } };
+  const finiteVines = plan.vines.filter(v => Number.isFinite(v.top) && Number.isFinite(v.len) && v.top > 0 && v.len > 0).length;
+  return { group, stats: { leaves: plan.leaves.length, vines: plan.vines.length, finiteVines, invalidVines: plan.vines.length - finiteVines } };
 }

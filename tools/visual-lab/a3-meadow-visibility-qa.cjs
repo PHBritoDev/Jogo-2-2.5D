@@ -210,12 +210,19 @@ async function openSession(browser, viewport, variant, baselineModules) {
   await page.waitForTimeout(6500);
   await page.addStyleTag({ content: "body *{visibility:hidden!important}canvas#scene{visibility:visible!important}" });
 
-  return { context, page, errors, moduleHits, video: page.video() };
+  const tropicalStats = await page.evaluate(() => window.SevenSinsTropicalReport || null);
+  return { context, page, errors, moduleHits, tropicalStats, video: page.video() };
 }
 
 async function runSession(browser, viewport, variant, baselineModules) {
   const session = await openSession(browser, viewport, variant, baselineModules);
   const captures = [], walks = [];
+  if (variant === "candidate") {
+    const stats = session.tropicalStats;
+    if (!stats || stats.vines <= 0 || stats.finiteVines !== stats.vines || stats.invalidVines !== 0) {
+      session.errors.page.push(viewport.id + ": cipós tropicais ausentes ou com transformação não finita (" + JSON.stringify(stats) + ")");
+    }
+  }
   try {
     const meadow = SCENES[0];
     const before = await setPose(session.page, meadow);
@@ -262,7 +269,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
       session.errors.page.push(viewport.id + ": vídeo não foi finalizado: " + String(e.message || e));
     }
   }
-  return { viewport: viewport.id, variant, captures, walks, errors: session.errors, moduleHits: session.moduleHits, video: videoFile };
+  return { viewport: viewport.id, variant, captures, walks, errors: session.errors, moduleHits: session.moduleHits, tropicalStats: session.tropicalStats, video: videoFile };
 }
 
 async function main() {

@@ -129,3 +129,10 @@ test('a caminhada aguarda deslocamento real e registra bloqueios quando não ava
   assert.ok(harness.includes('timeout: 15000, polling: 200'), 'o limite é por deslocamento, não por duração fixa');
   assert.ok(harness.includes('D.whyBlocked?.(s.x, s.z)'), 'o relatório inclui diagnóstico de bloqueio no ponto final');
 });
+
+test('o comparador registra e reprova cipós com matrizes não finitas', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('window.SevenSinsTropicalReport || null'), 'o relatório captura as métricas reais do sub-bosque');
+  assert.ok(harness.includes('stats.finiteVines !== stats.vines'), 'a candidata exige todos os cipós com altura/posição finitas');
+  assert.ok(harness.includes('tropicalStats: session.tropicalStats'), 'o artifact preserva as métricas para inspeção');
+});
