@@ -180,26 +180,38 @@ test('a menor coordenada renderizada de cada cipó mantém 20 cm de folga do ter
   );
 });
 
-test('sub-bosque faz fade pontilhado até 3,2 m sem alpha blending nem perda de instâncias', () => {
+test('fade Bayer 4x4 alcança folhas, samambaias e arbustos até 5,6 m sem alpha blending', () => {
   const calls = [];
+  let windVersion = 1;
   const material = {
     userData: {},
     onBeforeCompile(shader) { calls.push('wind'); shader.fragmentShader += '\n// vento preservado'; },
-    customProgramCacheKey() { return 'mod291-fern-wind'; }
+    customProgramCacheKey() { return 'mod291-fern-wind-' + windVersion; }
   };
   applyUndergrowthCameraFade(material);
   const shader = { fragmentShader: '#include <clipping_planes_fragment>\nvoid main() {}' };
   material.onBeforeCompile(shader, {});
-  assert.equal(UNDERGROWTH_CAMERA_FADE_METERS, 3.2);
+  assert.equal(UNDERGROWTH_CAMERA_FADE_METERS, 5.6);
   assert.deepEqual(calls, ['wind'], 'o shader de vento anterior continua encadeado');
-  assert.match(shader.fragmentShader, /a3UnderFade=clamp\(\(length\(vViewPosition\)-0\.6\)\/3\.20/);
-  assert.match(shader.fragmentShader, /if\(a3UnderFade<0\.999&&a3UnderDither>a3UnderFade\)discard/);
+  assert.match(shader.fragmentShader, /a3UnderFade=clamp\(\(length\(vViewPosition\)-0\.6\)\/5\.60/);
+  assert.match(shader.fragmentShader, /a3UnderBayer=4\.0\*mod\(2\.0\*a3UnderX0\+3\.0\*a3UnderY0,4\.0\)\+mod\(2\.0\*a3UnderX1\+3\.0\*a3UnderY1,4\.0\)/);
+  assert.match(shader.fragmentShader, /if\(a3UnderDither>a3UnderFade\)discard/);
   assert.match(shader.fragmentShader, /vento preservado/);
-  assert.match(material.customProgramCacheKey(), /mod291-fern-wind\|a3-undergrowth-near-fade-3\.20/);
+  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-1|a3-undergrowth-near-fade-5.60');
+  windVersion = 2;
+  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-2|a3-undergrowth-near-fade-5.60',
+    'o cache key continua acompanhando versões do shader de vento');
   const key = material.customProgramCacheKey();
   applyUndergrowthCameraFade(material);
   assert.equal(material.customProgramCacheKey(), key, 'aplicar duas vezes não duplica o shader');
   assert.equal(material.needsUpdate, true);
+
+  const bayer = Array.from({ length: 4 }, (_, y) => Array.from({ length: 4 }, (_, x) => {
+    const x0 = x % 2, y0 = y % 2, x1 = Math.floor(x / 2), y1 = Math.floor(y / 2);
+    return 4 * ((2 * x0 + 3 * y0) % 4) + ((2 * x1 + 3 * y1) % 4);
+  }));
+  assert.deepEqual(bayer, [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]);
+  assert.equal(new Set(bayer.flat()).size, 16, 'os 16 limiares do padrão são únicos');
 });
 
 test('fernMat e bushMat recebem o fade ambiental e o A/B inclui a pose inicial da mata', () => {
@@ -207,6 +219,8 @@ test('fernMat e bushMat recebem o fade ambiental e o A/B inclui a pose inicial d
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.match(source, /applyUndergrowthCameraFade\(fernMat\)/);
   assert.match(source, /applyUndergrowthCameraFade\(bushMat\)/);
+  assert.match(source, /applyUndergrowthCameraFade\(leafMat\)/,
+    'folhas tropicais largas também precisam desaparecer quando encobrem o herói');
   assert.match(harness, /id: "mata-entrada-inicial", x: -14, z: -82, yaw: 0, pitch: \.12, distance: 6/);
   assert.match(source, /const ferns = new THREE\.InstancedMesh/);
   assert.match(source, /const bushes = new THREE\.InstancedMesh/);

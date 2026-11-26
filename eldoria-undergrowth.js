@@ -78,27 +78,31 @@ export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, se
   return { ferns, bushes };
 }
 
-/** 
- * Fade pontilhado do sub-bosque perto da câmera. O controlador compartilhado mantém seu fade-base de 2,2 m;
- * esta camada ambiental estende a transição para 3,2 m sem alpha blending, sem remover instâncias e sem abrir clareiras.
+/**
+ * Fade pontilhado das plantas que ficam entre a câmera e o protagonista. O controlador compartilhado mantém
+ * seu fade-base de 2,2 m; esta camada leva a transição a 5,6 m para alcançar folhas/folíolos que ainda cobriam
+ * as pernas na pose de entrada (-14,-82). Bayer 4x4 distribui 16 limiares uniformes sem alpha blending,
+ * remoção de instâncias ou abertura de clareiras.
  */
-export const UNDERGROWTH_CAMERA_FADE_METERS = 3.2;
-export function applyUndergrowthCameraFade(material, near = UNDERGROWTH_CAMERA_FADE_METERS) {
+export const UNDERGROWTH_CAMERA_FADE_METERS = 5.6;
+export function applyUndergrowthCameraFade(material, fadeSpanMeters = UNDERGROWTH_CAMERA_FADE_METERS) {
   if (!material || typeof material !== 'object') return material;
-  const distance = Number.isFinite(near) ? Math.max(.61, near) : UNDERGROWTH_CAMERA_FADE_METERS;
-  const marker = 'a3-undergrowth-near-fade-' + distance.toFixed(2);
+  const fadeSpan = Number.isFinite(fadeSpanMeters) ? Math.max(.61, fadeSpanMeters) : UNDERGROWTH_CAMERA_FADE_METERS;
+  const marker = 'a3-undergrowth-near-fade-' + fadeSpan.toFixed(2);
   material.userData ||= {};
   if (material.userData[marker]) return material;
   const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
-  material.onBeforeCompile = (shader, renderer) => {
-    if (previous) previous(shader, renderer);
+  material.onBeforeCompile = function(shader, renderer) {
+    if (previous) previous.call(this, shader, renderer);
     const chunk = '#include <clipping_planes_fragment>';
     if (!shader.fragmentShader.includes(chunk)) throw new Error('Shader do sub-bosque sem clipping_planes_fragment');
-    const fade = '\n{float a3UnderFade=clamp((length(vViewPosition)-0.6)/' + distance.toFixed(2) + ',0.0,1.0);float a3UnderDither=fract(dot(floor(gl_FragCoord.xy),vec2(0.5,0.25))+fract(floor(gl_FragCoord.y)*0.5)*0.5);if(a3UnderFade<0.999&&a3UnderDither>a3UnderFade)discard;}';
+    const fade = '\n{float a3UnderFade=clamp((length(vViewPosition)-0.6)/' + fadeSpan.toFixed(2) + ',0.0,1.0);vec2 a3UnderCell=mod(floor(gl_FragCoord.xy),4.0);float a3UnderX0=mod(a3UnderCell.x,2.0);float a3UnderY0=mod(a3UnderCell.y,2.0);float a3UnderX1=floor(a3UnderCell.x*0.5);float a3UnderY1=floor(a3UnderCell.y*0.5);float a3UnderBayer=4.0*mod(2.0*a3UnderX0+3.0*a3UnderY0,4.0)+mod(2.0*a3UnderX1+3.0*a3UnderY1,4.0);float a3UnderDither=(a3UnderBayer+0.5)/16.0;if(a3UnderDither>a3UnderFade)discard;}';
     shader.fragmentShader = shader.fragmentShader.replace(chunk, chunk + fade);
   };
-  const key = previousKey ? previousKey.call(material) : '';
-  material.customProgramCacheKey = () => key + '|' + marker;
+  material.customProgramCacheKey = function() {
+    const key = previousKey ? previousKey.call(this) : '';
+    return key + '|' + marker;
+  };
   material.needsUpdate = true;
   material.userData[marker] = true;
   return material;
@@ -223,6 +227,7 @@ export function buildTropical(THREE, o) {
   group.name = 'eldoria-tropical-mod291'; scene.add(group);
   const leafMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, side: THREE.DoubleSide });
   if (addWind) addWind(leafMat, .05, 'clamp(position.y*1.6,0.0,1.0)', .8, 'mod291-broadleaf');
+  applyUndergrowthCameraFade(leafMat);
   const leaves = new THREE.InstancedMesh(broadLeafGeometry(THREE), leafMat, Math.max(1, plan.leaves.length));
   plan.leaves.forEach((l, i) => { d.position.set(l.x, groundHeightAt(l.x, l.z) - .02, l.z); d.rotation.set(0, l.rot, 0); d.scale.setScalar(l.s); d.updateMatrix(); leaves.setMatrixAt(i, d.matrix); });
   leaves.count = plan.leaves.length; leaves.instanceMatrix.needsUpdate = true; leaves.receiveShadow = true; leaves.name = 'eldoria-broadleaf'; group.add(leaves);
