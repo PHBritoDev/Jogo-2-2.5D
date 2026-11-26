@@ -220,7 +220,7 @@ export class SwordRites {
    if(!target?.alive||Math.abs(target.y-(target.height||1.75)*.52-from.y)>1.4)return{ok:false,reason:'Aproxime-se de um alvo no mesmo piso.'};
    path=passagePath(from,target,this.api.blocked);if(!path)return{ok:false,reason:'Sem passagem segura atrás do alvo.'};
   }
-  const def=SWORD_RITES[sword];this.cooldowns[sword]=def.cooldown;this.active={kind:sword,sword,clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,markedTarget:target?copy(target):null,path,pathIndex:0,lastMovePoint:copy(from),events:0,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return{ok:true,cost:def.mana};
+  const def=SWORD_RITES[sword];this.cooldowns[sword]=def.cooldown;this.active={kind:sword,sword,clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,markedTarget:target?copy(target):null,path,pathIndex:0,lastMovePoint:path?copy(path[0]):null,events:0,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return{ok:true,cost:def.mana};
  }
  cancel(reason='cancel'){
   if(this.active||this.waves.length||this.energies.length)this.api.event('cancel',{reason});this.active=null;this.waves.length=0;this.prevBlade=null;this.queued=false;this.next=0;this.lastEnd=-100;
