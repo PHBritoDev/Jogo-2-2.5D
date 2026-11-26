@@ -1682,14 +1682,40 @@ portalGroup.visible=questStep>=8; // MOD 204: no Ato I o portal de VHAZRAEL fica
 /* MOD 202 — os shaders do mundo compilam enquanto a tela das galáxias está aberta (compilação paralela), não no primeiro
    quadro depois do ENTRAR: era isso que travava o jogo por alguns segundos ao entrar. */
 var worldCompiled=false,worldCompileStarted=false;
+/* MOD 375 — trava em 90–100% / logo após entrar (medido: ~6 s em texSubImage2D e ~2,3 s em onFirstUse dentro do
+   PRIMEIRO render, na mesma tarefa): as texturas dos GLBs subiam para a GPU de uma vez no primeiro quadro e a cena inteira
+   era compilada duas vezes (compile síncrono + compileAsync). Agora: shaders preparados uma vez (assíncrono quando a GPU
+   permite) e cada textura enviada à GPU em fatias, uma tarefa curta por vez, com o progresso REAL na barra (90→100%).
+   Só então o mundo se declara pronto (#loading.hidden + fluxo). Nada é desligado: é o mesmo trabalho, fora do quadro crítico. */
+function worldTextures(){const set=new Set();scene.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms){for(const k in m){const v=m[k];if(v&&v.isTexture&&!v.isRenderTargetTexture&&v.image)set.add(v);}if(m.uniforms)for(const u of Object.values(m.uniforms)){const v=u&&u.value;if(v&&v.isTexture&&!v.isRenderTargetTexture&&v.image)set.add(v);}}});return[...set];}
+let worldPrepStarted=false;
+function finishWorldPrep(){
+ if(worldPrepStarted)return;worldPrepStarted=true;const flow=window.__sinsFlow,t0=performance.now();
+ const prog=(p,l)=>{if(flow&&flow.setProgress)flow.setProgress(p,l||'MONTANDO O MUNDO');};
+ const list=renderer.initTexture?worldTextures():[],total=list.length;let i=0;const P=window.__worldPrep={textures:total,uploaded:0,t0,uploadMs:0,compileMs:0,warmMs:0,doneAt:0};
+ /* cede a vez entre fatias (tarefas curtas): sem depender de ociosidade, que quase não existe com outras telas animando */
+ const yieldNext=f=>{if(window.scheduler&&scheduler.postTask)scheduler.postTask(f,{priority:'user-visible'});else setTimeout(f,0);};
+ const finish=()=>{P.doneAt=performance.now();loading.classList.add('hidden');if(flow&&flow.worldReady)flow.worldReady();};
+ const afterCompile=()=>{P.compileMs=Math.round(performance.now()-t0-P.uploadMs);prog(96);const w0=performance.now();window.__warmProgress=k=>prog(96+Math.floor(3*k));
+  Promise.resolve(warmJourneyPrograms()).then(()=>{P.warmMs=Math.round(performance.now()-w0);finish();},finish);};
+ const compile=()=>{P.uploadMs=Math.round(performance.now()-t0);prog(95);precompileWorld();const wait=()=>{if(worldCompiled)afterCompile();else setTimeout(wait,50);};wait();};
+ /* GLBs que terminam de chegar durante o envio trazem texturas novas: ao fim de cada passagem a cena é varrida de novo e
+    só o que ainda não está na GPU (versão diferente da enviada) entra na fila — até 6 passagens */
+ const pending=t=>{try{return renderer.properties.get(t).__version!==t.version;}catch(_){return false;}};let pass=1;
+ const step=()=>{const s=performance.now();while(i<list.length&&performance.now()-s<8){try{renderer.initTexture(list[i]);}catch(_){}i++;}
+  if(i>=list.length&&pass<6){const more=worldTextures().filter(t=>t.version>0&&pending(t));if(more.length){pass++;list.push(...more);}}
+  P.uploaded=i;P.textures=list.length;P.passes=pass;prog(90+Math.floor(5*i/Math.max(1,list.length)));if(i<list.length)yieldNext(step);else compile();};
+ if(total)yieldNext(step);else compile();
+}
 function precompileWorld(){
  if(worldCompileStarted)return;worldCompileStarted=true;
  if(!starfallVFX)starfallVFX=createStarfallVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});
  if(!phoenixVFX){phoenixVFX=createPhoenixVFX(THREE,scene,{ground:(x,z)=>fxGy(x,z)});phoenixVFX.root.visible=true;renderer.compile(phoenixVFX.root,camera);phoenixVFX.clear();}
  ensureExtraVFX(true);
- if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:terrainHeightAt});loadUltimateWings();whiteVFX.root.visible=true;renderer.compile(scene,camera);whiteVFX.clear();}
+ let whiteWarm=false;if(!whiteVFX){whiteVFX=createWhiteHoleVFX(THREE,scene,{ground:terrainHeightAt});loadUltimateWings();whiteVFX.root.visible=true;whiteWarm=true;}
  const done=()=>{if(!worldCompiled){worldCompiled=true;setTimeout(warmJourneyPrograms,600);}};setTimeout(done,9000);
  try{if(renderer.compileAsync)renderer.compileAsync(scene,camera).then(done,done);else{renderer.compile(scene,camera);done();}}catch(e){done();}
+ if(whiteWarm)whiteVFX.clear(); /* os programas do buraco branco já entraram na compilação acima (coletados no ato da chamada) */
 }
 /* MOD 326 — travadas de 1–5 FPS: o primeiro uso de cada shader da jornada (vale, ponte, Cinzária, vulcão) compilava/
    ligava o programa NO MEIO do percurso (medido: 1–9 s por programa em SwiftShader; centenas de ms em GPU móvel). As
@@ -1698,15 +1724,25 @@ function precompileWorld(){
    para "usar" cada programa (sombras incluídas) → visibilidade restaurada. Acontece uma vez, logo depois de entrar. */
 let journeyWarmed=false;
 function warmJourneyPrograms(){
- if(journeyWarmed||!journeyWorld)return;journeyWarmed=true;
+ if(journeyWarmed||!journeyWorld)return null;journeyWarmed=true;
  const root=scene;/* o mundo aberto inteiro (jornada, Eldória, Cinzária, vulcão por fora): peças ocultas por distância também */
  const saved=[];root.traverse(o=>{if(o.isLight)return;saved.push([o,o.visible,o.frustumCulled]);});
- const force=()=>{for(const [o] of saved){o.visible=true;o.frustumCulled=false;}},restore=()=>{for(const [o,v,f] of saved){o.visible=v;o.frustumCulled=f;}};
- /* tudo visível SÓ dentro de chamadas síncronas: o compileAsync recolhe os materiais na hora da chamada e o desenho de 1 px
-    acontece num único passo — nenhum quadro do jogo roda com objetos ocultos expostos (inimigo, encontros, TP) */
- const draw=()=>{force();try{/* na tela (tone mapping/espaço de cor iguais ao jogo; um alvo off-screen gera OUTRA variante de shader), recortado a 1 pixel */const sc=renderer.getScissorTest();renderer.setScissorTest(true);renderer.setScissor(0,0,1,1);renderer.render(scene,camera);renderer.setScissorTest(sc);renderer.setScissor(0,0,renderer.domElement.width,renderer.domElement.height);window.__journeyWarmMs=performance.now();}catch(e){console.warn("Aquecimento da jornada:",e);}restore();};
+ const drawable=o=>o.isMesh||o.isPoints||o.isLine||o.isSprite;
+ const force=only=>{for(const [o] of saved){o.visible=!only||!drawable(o)||only.has(o);o.frustumCulled=false;}},restore=()=>{for(const [o,v,f] of saved){o.visible=v;o.frustumCulled=f;}};
+ /* tudo visível SÓ dentro de chamadas síncronas: o compileAsync recolhe os materiais na hora da chamada e cada desenho de 1 px
+    acontece num único passo — nenhum quadro do jogo roda com objetos ocultos expostos (inimigo, encontros, TP).
+    MOD 375: o desenho é FATIADO por grupos de objetos (o programa de cada material não depende do que mais está na cena —
+    luzes, névoa e ambiente seguem iguais), cedendo a vez entre fatias: a abertura continua animando enquanto o mundo
+    aquece e o progresso real avança (window.__warmProgress). Um desenho completo final confirma tudo já aquecido. */
+ const draw1=only=>{force(only);try{/* na tela (tone mapping/espaço de cor iguais ao jogo; um alvo off-screen gera OUTRA variante de shader), recortado a 1 pixel */const sc=renderer.getScissorTest();renderer.setScissorTest(true);renderer.setScissor(0,0,1,1);renderer.render(scene,camera);renderer.setScissorTest(sc);renderer.setScissor(0,0,renderer.domElement.width,renderer.domElement.height);}catch(e){console.warn("Aquecimento da jornada:",e);}restore();};
+ const list=saved.map(r=>r[0]).filter(drawable),CH=Math.max(24,Math.ceil(list.length/48)),chunks=[];for(let i=0;i<list.length;i+=CH)chunks.push(new Set(list.slice(i,i+CH)));
+ if(window.__worldPrep)Object.assign(window.__worldPrep,{warmObjects:saved.length,warmDrawables:list.length,warmChunks:chunks.length});
+ const yieldNext=f=>{if(window.scheduler&&scheduler.postTask)scheduler.postTask(f,{priority:'user-visible'});else setTimeout(f,0);};
  let p=null;force();try{p=renderer.compileAsync?renderer.compileAsync(scene,camera):null;}catch(e){p=null;}restore();
- if(p)p.then(draw,draw);else draw();
+ return new Promise(res=>{let k=0;const next=()=>{const s=performance.now();while(k<chunks.length&&performance.now()-s<10)draw1(chunks[k++]);
+   if(typeof window.__warmProgress==='function')window.__warmProgress(k/Math.max(1,chunks.length));
+   if(k<chunks.length)yieldNext(next);else{draw1(null);window.__journeyWarmMs=performance.now();res();}};
+  if(p)p.then(next,next);else next();}); /* MOD 375: devolve a promessa — a prontidão espera este aquecimento */
 }
 function save3DProgress(){const progress={version:ACT1.version,act1Rev:ACT1.rev,sakuraRest,act1Sub:typeof act1Sub==='number'?act1Sub:0,questStep,coins,journeyEnemyIndex,mountainIndex,playerName,captorsTaunted,childrenFreed,awakeningSeen,actCardSeen,wardenTaunted,wardenDefeated,portalOpened,portalRewardClaimed,bishopsDefeated,vhazraelRewardClaimed,xp:playerXp,owned:[...ownedItems],sword:equippedSword,stats:progressStats,loadout:typeof skillLoadout!=='undefined'?skillLoadout:undefined,achievementsClaimed:[...achievementsClaimed],bestiary:[...bestiaryKnown],bestiaryRewarded:[...bestiaryRewarded],shopVisited,playSeconds:Math.floor(playSeconds),ledgersFound,vorgazhekRewardClaimed,lateFound:typeof lateFound!=='undefined'?lateFound:[],lateFoundStep:typeof lateFoundStep!=='undefined'?lateFoundStep:0,lateFightIndex:typeof lateFightIndex!=='undefined'?lateFightIndex:0,lateBossClaimed:typeof lateBossClaimed!=='undefined'?lateBossClaimed:{},gauntletIndex:typeof gauntletIndex!=='undefined'?gauntletIndex:0,finaleClaimed:typeof finaleClaimed!=='undefined'?!!finaleClaimed:false,coatOwned:typeof coatOwned!=='undefined'?!!coatOwned:false,coatOn:typeof coatOn!=='undefined'?!!coatOn:false,zarkhaelClaimed:typeof zarkhaelClaimed!=='undefined'?!!zarkhaelClaimed:false,scrollOwned:typeof scrollOwned!=='undefined'?!!scrollOwned:false,veraxionClaimed:typeof veraxionClaimed!=='undefined'?!!veraxionClaimed:false,updatedAt:Date.now(),sideRewardClaims:[...sideRewardClaims]};let persisted=false;try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));persisted=true;}catch(_){}window.SevenSins3DProgress=progress;try{if(!testAllSkills&&window.parent!==window)window.parent.postMessage({type:'SEVEN_SINS_3D_PROGRESS',progress},window.location.origin);}catch(_){}return persisted;}
 /* MOD 186 — HUD das habilidades: botões só aparecem quando liberados (com revelação), recarga em anel
@@ -1918,7 +1954,7 @@ new GLTFLoader().load(heroURL,gltf=>{
  window.ProtagonistAnimationReport=clips.map(c=>c.name);console.info('Protagonista.glb animações:',window.ProtagonistAnimationReport);
  }
  fitGuideModel();addVillageVendors();
- player.userData.ready=true;loading.classList.add('hidden');precompileWorld();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||act3Presentation(questStep,act1Sub)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
+ player.userData.ready=true;finishWorldPrep();spawnAct1Children();status.textContent=questStep===0?'Ato I · o Anjo-Guia espera no começo da trilha':(finalePresentationFor(questStep)||act3Presentation(questStep,act1Sub)||latePresentation(questStep)||act2Presentation(questStep)||questPresentation(questStep,act1Sub)).objective;
 },undefined,err=>{console.error(err);loading.textContent='Não foi possível carregar '+(newHero?'Prota_otimizado_2K.glb':'Protagonista.glb')+'. ';const fallback=document.createElement('a');fallback.href=heroFallbackURL;fallback.textContent='Usar protagonista antigo';loading.append(fallback);status.textContent='Falha ao carregar modelo';});
 import { acceptsGameKey, bindMovementKeys } from './desktop-movement.js';
 const keys = bindMovementKeys(window, document);
@@ -3680,7 +3716,7 @@ const GALAXY_STORE='seven-sins-galaxies';
 function openGalaxyScreen(){
  let save={};try{save=JSON.parse(localStorage.getItem(GALAXY_STORE)||'{}');}catch(_){}
  menuGate=true;closeWorldMap();closeShop();setPaused(false);
- showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled,onEnter:()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startAwakeningCine();}}});
+ showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(window.__sinsFlow&&window.__sinsFlow.active&&window.__sinsFlow.step==='planets')||((!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled),onEnter:()=>{const go=()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startAwakeningCine();}};const flow=window.__sinsFlow;if(flow&&flow.enter)flow.enter(go);else go();}});
 }
 /* MOD 203 — Marco 1 (roteiro em docs/roteiro/M1-PROLOGO.md): Reino Celestial → tela das galáxias → despertar no
    Mundo da Ganância. As cenas são dados (prologue-flow.js); aqui ficam câmera, animações, efeitos e telas.
@@ -3967,11 +4003,13 @@ function updateCine(dt,now){
 function openStartGate(){
  const gate=cineEl('start-gate'),go=cineEl('start-gate-go');if(!gate||!go){pendingAwakening=true;openGalaxyScreen();return;}
  menuGate=true;gate.hidden=false;go.disabled=true;go.textContent='CARREGANDO…';
+ const flow=window.__sinsFlow,staged=!!(flow&&flow.active&&flow.step==='planets');
  let ready=false;const enable=()=>{if(ready)return;ready=true;go.disabled=false;go.textContent='TOQUE PARA COMEÇAR';};
- prepareHeaven().then(enable,err=>{console.error(err);enable();});
- bindInstantTap(go,()=>{if(!ready||gate.hidden)return;gate.hidden=true;worldAudio.unlock();menuGate=false;clock.getDelta();startHeavenCine();});
+ const heaven=prepareHeaven().then(enable,err=>{console.error(err);enable();});if(staged)enable(); // MOD 375: a abertura segura a entrada até o céu e o mundo ficarem prontos
+ const begin=()=>{gate.hidden=true;worldAudio.unlock();menuGate=false;clock.getDelta();startHeavenCine();};
+ bindInstantTap(go,()=>{if(!ready||gate.hidden)return;if(flow&&flow.enter&&flow.step==='planets')flow.enter(begin,heaven);else begin();});
 }
-if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;openStartGate();}else openGalaxyScreen();}
+if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');if(window.__sinsFlow&&window.__sinsFlow.planets)window.__sinsFlow.planets(); /* MOD 375: etapa 'planets' antes de montar a tela (o portão já nasce liberado; a abertura segura a entrada) */if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;openStartGate();}else openGalaxyScreen();}
 /* MOD 190 — corações e perfil. Corações vivem num registro próprio (regeneram com o jogo fechado). */
 const HEART_STORE='seven-sins-hearts';
 let heartState=(()=>{

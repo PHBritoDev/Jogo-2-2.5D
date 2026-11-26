@@ -169,26 +169,29 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
   background:radial-gradient(ellipse 120% 70% at 50% 92%,#4a0c06 0%,#1c0605 34%,#070303 70%,#020101 100%);
   isolation:isolate;opacity:1;transition:opacity .75s ease,visibility 0s linear 0s;
 }
-/* O mundo marca .hidden quando está PRONTO; a tela só sai depois do toque/clique do jogador (.lc-entered). */
-#loading.hidden{display:block!important}
-#loading.hidden.lc-entered{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .75s ease,visibility 0s linear .75s}
-#loading[data-state="ready"]{cursor:pointer}
+/* MOD 375: #loading é só o BOOT (grafo de módulos). Some quando a tela dos planetas é montada (.boot-done, fluxo ativo)
+   ou quando o mundo fica pronto (.hidden, automação/depuração). A abertura cinematográfica vive em #cine (game-flow.js). */
+#loading.boot-done,#loading.hidden{display:block!important;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .6s ease,visibility 0s linear .6s}
+#cine{position:fixed;inset:0;z-index:60;overflow:hidden;background:#030102;color:#efe3cf;text-align:center;opacity:1;transition:opacity .8s ease,visibility 0s linear 0s}
+#cine[hidden]{display:none}
+#cine.cine-leaving{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .8s ease,visibility 0s linear .8s}
+#cine[data-state="ready"]{cursor:pointer}
+#cine .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.1s ease}
+#cine.lc-ready .lc-canvas{opacity:1}
 #loading[hidden]{display:none}
-#loading .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.1s ease}
-#loading.lc-ready .lc-canvas{opacity:1}
-#loading .pl-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 55%,#000a 100%),linear-gradient(0deg,#000c 0%,transparent 18%,transparent 86%,#0007 100%)}
-#loading .pl-hud{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 72px));pointer-events:none}
-#loading .pl-lane{height:clamp(30px,5.2vh,44px);margin:0 0 2px}
-#loading .pl-track{position:relative;height:4px;margin:0 auto 7px;overflow:hidden;border-radius:3px;background:linear-gradient(#0c0405,#1a0809);box-shadow:inset 0 0 0 1px #5a1a1c66,0 0 14px #00000099}
-#loading .pl-fill{width:0;height:100%;background:linear-gradient(90deg,#4d070c,#b81a28 70%,#ffb7a0);box-shadow:0 0 10px #ff304299;transition:width .35s ease}
-#loading .pl-meta{display:flex;justify-content:space-between;gap:12px;color:#c9b59a99;font:600 8.5px/1.3 system-ui,sans-serif;letter-spacing:.16em}
-#loading .pl-percent{color:#f0d8b8c0;font-variant-numeric:tabular-nums}
-#loading .pl-state{min-height:12px;margin-top:4px;color:#d8c39ca8;font:700 8.5px/1.4 system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 6px #000}
-#loading .pl-enter{display:block;width:auto;min-width:min(260px,80vw);height:auto;white-space:nowrap;margin:8px auto 0;padding:9px 20px;border:1px solid #ff5a5a55;border-radius:3px;background:radial-gradient(ellipse at center,#3a080c,#16050699);color:#fff1e6;font:700 11px/1 system-ui,sans-serif;letter-spacing:.28em;text-shadow:0 0 12px #ff3a4a;pointer-events:auto;cursor:pointer;animation:plInvite 2.2s ease-in-out infinite}
-#loading .pl-enter[hidden]{display:none}
+#loading .pl-vignette,#cine .pl-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 55%,#000a 100%),linear-gradient(0deg,#000c 0%,transparent 18%,transparent 86%,#0007 100%)}
+#loading .pl-hud,#cine .pl-hud{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 72px));pointer-events:none}
+#loading .pl-lane,#cine .pl-lane{height:clamp(30px,5.2vh,44px);margin:0 0 2px}
+#loading .pl-track,#cine .pl-track{position:relative;height:4px;margin:0 auto 7px;overflow:hidden;border-radius:3px;background:linear-gradient(#0c0405,#1a0809);box-shadow:inset 0 0 0 1px #5a1a1c66,0 0 14px #00000099}
+#loading .pl-fill,#cine .pl-fill{width:0;height:100%;background:linear-gradient(90deg,#4d070c,#b81a28 70%,#ffb7a0);box-shadow:0 0 10px #ff304299;transition:width .35s ease}
+#loading .pl-meta,#cine .pl-meta{display:flex;justify-content:space-between;gap:12px;color:#c9b59a99;font:600 8.5px/1.3 system-ui,sans-serif;letter-spacing:.16em}
+#loading .pl-percent,#cine .pl-percent{color:#f0d8b8c0;font-variant-numeric:tabular-nums}
+#loading .pl-state,#cine .pl-state{min-height:12px;margin-top:4px;color:#d8c39ca8;font:700 8.5px/1.4 system-ui,sans-serif;letter-spacing:.24em;text-transform:uppercase;text-shadow:0 1px 6px #000}
+#loading .pl-enter,#cine .pl-enter{display:block;width:auto;min-width:min(260px,80vw);height:auto;white-space:nowrap;margin:8px auto 0;padding:9px 20px;border:1px solid #ff5a5a55;border-radius:3px;background:radial-gradient(ellipse at center,#3a080c,#16050699);color:#fff1e6;font:700 11px/1 system-ui,sans-serif;letter-spacing:.28em;text-shadow:0 0 12px #ff3a4a;pointer-events:auto;cursor:pointer;animation:plInvite 2.2s ease-in-out infinite}
+#loading .pl-enter[hidden],#cine .pl-enter[hidden]{display:none}
 @keyframes plInvite{0%,100%{opacity:.72;box-shadow:0 0 0 #ff2a3a00}50%{opacity:1;box-shadow:0 0 22px #ff2a3a55}}
-@media(prefers-reduced-motion:reduce){#loading .pl-enter{animation:none}}
-#loading .pl-version{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));color:#e7dccb;opacity:.32;font:700 9px/1 system-ui,sans-serif;letter-spacing:.18em;pointer-events:none}
+@media(prefers-reduced-motion:reduce){#loading .pl-enter,#cine .pl-enter{animation:none}}
+#loading .pl-version,#cine .pl-version{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));color:#e7dccb;opacity:.32;font:700 9px/1 system-ui,sans-serif;letter-spacing:.18em;pointer-events:none}
 #loading .pl-card{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));padding:20px 18px;border:1px solid #9c514c88;border-radius:10px;background:#120607ee;box-shadow:0 20px 60px #000c;text-align:left}
 #loading[data-state="error"] .pl-card{display:block}
 #loading .pl-subtitle{margin:0 0 8px;color:#f0dcd2;font:500 13px/1.45 system-ui,sans-serif}
@@ -198,7 +201,7 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
 #loading[data-state="error"] .pl-retry{display:block}
 #loading[data-state="error"] .pl-state{color:#ffb4a8}
 #loading[data-state="error"] .lc-canvas{filter:brightness(.45) saturate(.6)}
-@media(max-width:560px){#loading .pl-hud{width:calc(100% - 84px);margin-left:-12px}}
+@media(max-width:560px){#loading .pl-hud,#cine .pl-hud{width:calc(100% - 84px);margin-left:-12px}}
 
 </style>
 <link rel="stylesheet" href="./hud3d.css?v=a1-vorgazhek-portrait-vs-fit-r2">
@@ -325,11 +328,9 @@ body.lunar-ult-cine #lunar-skip{display:block}
 <div id="loading" role="status" aria-live="polite" aria-label="Carregamento do planeta" data-state="loading">
   <div class="pl-vignette" aria-hidden="true"></div>
   <div class="pl-hud">
-    <div class="pl-lane" id="loading-runner-lane" aria-hidden="true"></div>
     <div class="pl-track" role="progressbar" aria-label="Carregamento do mundo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="loading-progress"><div class="pl-fill" id="loading-progress-fill"></div></div>
     <div class="pl-meta"><span id="loading-progress-label">AGUARDE</span><span class="pl-percent" id="loading-percent">0%</span></div>
     <div class="pl-state" id="loading-state">PREPARANDO O MUNDO</div>
-    <button class="pl-enter" id="loading-enter" type="button" hidden>TOQUE NA TELA PARA ENTRAR</button>
   </div>
   <div class="pl-version" id="loading-version" aria-hidden="true"></div>
   <div class="pl-card">
@@ -337,6 +338,17 @@ body.lunar-ult-cine #lunar-skip{display:block}
     <pre class="pl-error" id="loading-error"></pre>
     <button class="pl-retry" id="load-retry" type="button">TENTAR NOVAMENTE</button>
   </div>
+</div>
+<div id="cine" hidden role="status" aria-live="polite" aria-label="Abertura: a marcha dos pecados" data-state="idle">
+  <div class="pl-vignette" aria-hidden="true"></div>
+  <div class="pl-hud">
+    <div class="pl-lane" id="cine-runner-lane" aria-hidden="true"></div>
+    <div class="pl-track" role="progressbar" aria-label="Preparação do mundo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cine-progress"><div class="pl-fill" id="cine-progress-fill"></div></div>
+    <div class="pl-meta"><span id="cine-progress-label">AGUARDE</span><span class="pl-percent" id="cine-percent">0%</span></div>
+    <div class="pl-state" id="cine-state">MONTANDO O MUNDO</div>
+    <button class="pl-enter" id="cine-enter" type="button" hidden>TOQUE NA TELA PARA ENTRAR</button>
+  </div>
+  <div class="pl-version" id="cine-version" aria-hidden="true"></div>
 </div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
@@ -349,20 +361,13 @@ const marker=document.getElementById('marker');
 meta.syncBuildMarker(marker);
 const loading=document.getElementById('loading');
 const ver=document.getElementById('loading-version');if(ver)ver.textContent='MOD '+meta.MOD;
-// Entrada por toque (Mod 374): o mundo marca #loading.hidden quando está REALMENTE pronto; aqui isso vira o estado READY
-// (barra 100% + convite). Só um toque/clique/Enter do jogador inicia a saída, uma única vez. Em erro não há convite.
-if(loading){const enterBtn=document.getElementById('loading-enter'),gate={ready:false,entered:false};window.__loadingGate=gate;
- const ready=()=>{if(gate.ready||loading.dataset.state==='error')return;gate.ready=true;loading.dataset.state='ready';
-  const f=document.getElementById('loading-progress-fill'),pc=document.getElementById('loading-percent'),pb=document.getElementById('loading-progress'),st=document.getElementById('loading-state'),lb=document.getElementById('loading-progress-label');
-  if(f)f.style.width='100%';if(pc)pc.textContent='100%';if(pb)pb.setAttribute('aria-valuenow','100');if(st)st.textContent='O MUNDO ESTÁ PRONTO';if(lb)lb.textContent='PRONTO';if(enterBtn){enterBtn.hidden=false;enterBtn.focus({preventScroll:true});}};
- const enter=e=>{if(!gate.ready||gate.entered)return;if(e&&e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ')return;gate.entered=true;if(e&&e.preventDefault)e.preventDefault();loading.dataset.state='entering';if(enterBtn)enterBtn.hidden=true;loading.classList.add('lc-entered');};
- new MutationObserver(()=>{if(loading.classList.contains('hidden'))ready();}).observe(loading,{attributes:true,attributeFilter:['class']});
- loading.addEventListener('pointerup',enter);addEventListener('keydown',enter);
- // automação (Playwright/CI) não é jogador: entra sozinha ao ficar pronto, salvo quando o próprio portão é testado (?loadinggate=1)
- if(navigator.webdriver&&!new URLSearchParams(location.search).has('loadinggate'))new MutationObserver(()=>{if(gate.ready&&!gate.entered)enter();}).observe(loading,{attributes:true,attributeFilter:['data-state']});}
-// Abertura cinematográfica: corre em paralelo ao loader e nunca o atrasa (sem await); some sozinha quando #loading some.
-const lq=new URLSearchParams(location.search);
-if(loading&&!lq.has('noloadingcine')&&(!navigator.webdriver||lq.has('loadingcine')))import('./loading-cinematic3d.js?v='+encodeURIComponent(meta.BUILD)).then(m=>m.startLoadingCinematic({host:loading,build:meta.BUILD})).catch(e=>console.warn('[loading] abertura 3D indisponível:',e&&e.message));
+// MOD 375 — fluxo em etapas (game-flow.js): boot → planetas → abertura cinematográfica → mundo. Sem o módulo do fluxo
+// (falha de rede), o mundo mantém o comportamento clássico.
+const cineVer=document.getElementById('cine-version');if(cineVer)cineVer.textContent='MOD '+meta.MOD;
+try{const gf=await import('./game-flow.js?v='+encodeURIComponent(meta.BUILD));
+ const flow=gf.createGameFlow({build:meta.BUILD,loadCinematic:()=>import('./loading-cinematic3d.js?v='+encodeURIComponent(meta.BUILD))});window.__sinsFlow=flow;
+ const cine=document.getElementById('cine');if(cine){cine.addEventListener('pointerdown',e=>flow.arm(e));cine.addEventListener('pointerup',e=>flow.go(e));addEventListener('keydown',e=>flow.go(e));}
+}catch(e){console.warn('[fluxo] etapas indisponíveis; mantendo o carregamento clássico:',e&&e.message);}
 await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
 </script>
 <script>

@@ -97,6 +97,7 @@ function setLoadingProgress(done, total, stateLabel) {
     ? count + ' DE ' + maximum + ' MÓDULOS'
     : 'PREPARANDO RECURSOS';
   if (loadingState && stateLabel) loadingState.textContent = stateLabel;
+  if (window.__sinsFlow) window.__sinsFlow.setProgress(percent, stateLabel); // espelha na barra da abertura (Mod 375)
 }
 const baseHref = new URL('./', import.meta.url).href;
 let warm = null;
