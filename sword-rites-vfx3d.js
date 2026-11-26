@@ -34,8 +34,8 @@ export function swordJudgmentCue(e){
  const height=Number.isFinite(t.height)&&t.height>0?t.height:1.7,n=Math.max(0,Math.min(15,Math.floor(Number.isFinite(e?.n)?e.n:0)));
  const row=Math.floor(n/4),col=n%4;
  // Four columns wrap around the front 106° of the capsule; four rows span almost the full body.
- const surfaceYaw=heading+(col-1.5)*.62,nx=Math.sin(surfaceYaw),nz=Math.cos(surfaceYaw);
- const vertical=((row+.5)/4-.5)*height*.76+Math.sin(n*2.399)*.018;
+ const surfaceYaw=heading+(col-1.5)*.72,nx=Math.sin(surfaceYaw),nz=Math.cos(surfaceYaw);
+ const vertical=((row+.5)/4-.5)*height*.92+Math.sin(n*2.399)*.018;
  const roll=(row%2?1:-1)*(.46+(col-1.5)*.08)+Math.sin(n*2.399)*.045;
  // Stay 3.5 cm outside the collision capsule and render as a shallow surface cut over the enemy mesh.
  return{p:{x:t.x-nx*surfaceRadius,y:t.y+vertical,z:t.z-nz*surfaceRadius},yaw:surfaceYaw,roll,row,col};
@@ -44,7 +44,7 @@ export function swordJudgmentCue(e){
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
  */
 /** Compact profile for the 16 individual Passagem blade marks. */
-export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.38,endWidth:.0025,maxWidth:.024,curve:.028,tilt:.018,bow:.012});
+export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.44,endWidth:.006,maxWidth:.054,curve:.035,tilt:.022,bow:.018});
 /** Per-rite blade trails: Passagem gets a shorter, softer, 30Hz ribbon. */
 export const SWORD_TRAIL_PROFILES=Object.freeze({
  standard:Object.freeze({base:.15,tip:1,life:.24,opacity:1,interval:0}),
@@ -95,7 +95,7 @@ export function createSwordRitesVFX(T,scene){
  judgmentSlash.setAttribute('position',new T.Float32BufferAttribute(jpos,3));judgmentSlash.setAttribute('uv',new T.Float32BufferAttribute(juv,2));judgmentSlash.setAttribute('birth',new T.Float32BufferAttribute(jbirth,1));judgmentSlash.setIndex(jidx);judgmentSlash.computeVertexNormals();
  // birth is shared as zero for cuts; clock is their local age.
  const cuts=Array.from({length:16},()=>{const g=new T.Group(),mat=makeMaterial(),glow=makeMaterial('prota',1),m=new T.Mesh(crescent,mat),h=new T.Mesh(crescent,glow);h.scale.set(1.02,1.12,1.1);g.add(m,h);root.add(g);g.visible=false;return{g,mat,glow,age:10,life:.5,wave:null};});
- function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4,geometry=crescent){const c=cuts[cutCursor++%cuts.length],overlay=geometry===judgmentSlash;c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>{m.geometry=geometry;m.rotation.z=roll;m.material.depthTest=!overlay;m.material.depthWrite=false;m.renderOrder=overlay?8:0;});c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}return c;}
+ function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4,geometry=crescent){const c=cuts[cutCursor++%cuts.length],overlay=geometry===judgmentSlash;c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>{m.geometry=geometry;m.rotation.z=roll;m.material.depthTest=!overlay;m.material.depthWrite=false;m.renderOrder=overlay?8:0;});const glowMesh=c.g.children[1];if(overlay){glowMesh.scale.set(1.14,1.3,1.12);}else{glowMesh.scale.set(1.02,1.12,1.1);}c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}c.glow.uniforms.opacity.value=overlay?1.25:1;return c;}
  const shardGeo=new T.TetrahedronGeometry(1,0),shardMat=new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,toneMapped:false}),shards=new T.InstancedMesh(shardGeo,shardMat,192);shards.frustumCulled=false;shards.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(shards);const dummy=new T.Object3D(),color=new T.Color();
  const particles=Array.from({length:192},()=>({life:0,age:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:0}));
  const activeIndices=new Uint16Array(particles.length),activePositions=new Int16Array(particles.length),changedMatrixIndices=new Uint16Array(particles.length),changedColorIndices=new Uint16Array(particles.length),rangeFlags=new Uint8Array(particles.length);
@@ -171,8 +171,8 @@ export function createSwordRitesVFX(T,scene){
    const n=e.n,cue=swordJudgmentCue(e);if(!cue)return;
    const {p,yaw,roll}=cue;
    // One short, separated surface stroke per damage event; no crossed final slab.
-   cut(p,'prota',e.final?1.14:1,roll,yaw,e.final?.28:.22,judgmentSlash);
-   burst(p,'prota',e.final?4:1);
+   cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?.28:.20,judgmentSlash);
+   burst(p,'prota',e.final?5:2);
   }
   else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw+Math.PI/2,cue.secondLife);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
