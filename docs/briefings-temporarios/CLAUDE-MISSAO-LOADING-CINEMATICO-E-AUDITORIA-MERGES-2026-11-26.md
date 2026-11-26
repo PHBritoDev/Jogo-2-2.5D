@@ -63,6 +63,41 @@ Não deixar aparecer a paleta original da pele, roupas ou armaduras. Nada de per
 - Manter as gotas de sangue da boca já existentes no sistema se forem adequadas; reutilizar a implementação real antes de criar outra.
 - Não mostrar asas/cores de fases posteriores nem revelar spoilers da forma III.
 
+## 2A. CORREÇÃO DE QUALIDADE VISUAL — OLHOS E SORRISOS (PRIORIDADE MÁXIMA)
+
+A primeira implementação/preview dos efeitos faciais está com aparência grossa, genérica e semelhante a fumaça. Isso NÃO atende à direção de arte. Não tente justificar nem apenas reduzir a opacidade: refaça os efeitos faciais com acabamento fino, preciso, brilhante e de alta qualidade cinematográfica.
+
+### Olhos — geometria fina, brilho refinado e animação orgânica
+
+- Os desenhos de X e cruz devem ser traços luminosos MUITO FINOS, precisos e elegantes, com extremidades limpas e proporção delicada. Não usar barras grossas, placas, manchas, raios largos, olhos de fumaça, borrões ou sprites genéricos.
+- O X/cruz precisa parecer luz concentrada dentro dos olhos, com núcleo luminoso nítido, halo externo pequeno e controlado e bloom sutil. Preservar contraste suficiente para ler à distância sem transformar o rosto numa mancha vermelha.
+- Criar animação refinada e contínua: pulsação de intensidade em camadas, microvariação de brilho, pequenos deslocamentos/oscilações de energia e transições suaves. Não fazer pisca-pisca abrupto, tremor aleatório ou rotação exagerada.
+- O Bispo 1 deve ter um X vermelho fino em cada olho (ou no posicionamento ocular que a malha permitir); o Bispo 2 deve ter cruzes finas; o Bispo 3 mantém assimetria X/cruz. O Bispo 4 deve ter um orbe vermelho pontiagudo elegante, com núcleo brilhante, filamentos/agulhas luminosas discretas e movimento interno próprio — não uma bola sólida ou borrão.
+- O vórtice ocular de Ganância deve ter espirais/filamentos finos e bem definidos girando em profundidade, com núcleo e halo controlados. A rotação deve parecer hipnótica e sobrenatural, não um redemoinho de fumaça.
+- Prender rigorosamente cada efeito ao osso/transformação correta do rosto. Conferir de frente, perfil e durante a caminhada. Sem flutuação, desalinhamento, clipping ou olhos atravessando a cabeça.
+- Usar materiais/shaders emissivos e geometria mínima quando possível. O brilho deve vir de núcleo + halo/bloom controlado, não de volume opaco. Testar no mobile para evitar bloom caro ou perda de nitidez.
+
+### Sorriso — assustador, detalhado e menos genérico
+
+- O sorriso atual está genérico demais. Refazer a expressão de cada personagem para parecer um sorriso macabro próprio, com desenho anatômico coerente com o rosto e a mandíbula do modelo. Não aplicar a mesma boca/sorriso nos cinco.
+- O sorriso deve ser estreito, longo quando a anatomia permitir, assimétrico e ameaçador, com dentes individuais visíveis. Evitar boca enorme, linha vermelha grossa, dentes em bloco, máscara/cartoon ou simples faixa luminosa.
+- Dentes individualizados, pequenos e irregulares de forma controlada, com esmalte claro e brilho especular concentrado. A luz deve revelar a fileira de dentes no escuro sem iluminar o rosto inteiro.
+- A borda dos lábios/gengiva recebe carmesim fino e brilhante, sem virar um borrão. O sorriso deve acompanhar a mandíbula e a expressão durante a animação.
+- Sangue deve nascer visualmente entre os dentes e nos cantos da boca, escorrer pelos dentes/lábios e pelo queixo, formando fios finos e gotas com gravidade. Algumas gotas devem se desprender, cair de forma natural e atingir o chão com pequenos impactos/pingos e manchas discretas. Não deixar o sangue simplesmente flutuar, aparecer no ar, virar fumaça ou cobrir o rosto.
+- Criar variação de fluxo e timing por personagem; evitar uma textura vermelha estática repetida. Usar poucos fios e gotas bem desenhados, partículas reutilizadas e pools fixos. Sangue estilizado, sem gore anatômico.
+- Se o modelo não tiver boca/dentes legíveis, construir apenas os elementos necessários, integrados ao rig/mandíbula e à escala do rosto. Não substituir o rosto por uma máscara genérica.
+
+### Processo obrigatório de iteração visual
+
+1. Inspecionar screenshots/frames atuais e identificar explicitamente por que os efeitos estão grossos/genéricos.
+2. Refazer primeiro um personagem-piloto e avaliar close-up, plano médio e plano geral.
+3. Ajustar espessura, núcleo, halo, brilho, animação, posição e legibilidade até ficar delicado e premium.
+4. Replicar a linguagem visual com identidade individual nos demais personagens, não copiar/colar o mesmo efeito.
+5. Capturar comparação antes/depois em pelo menos frente e perfil, em movimento e em tela mobile.
+6. Se ainda parecer fumaça, borrão, barra grossa ou máscara genérica, reprovar e iterar novamente. Não seguir para acabamento final nem declarar concluído só porque o efeito está tecnicamente visível.
+
+Meta estética: traços luminosos finíssimos, brilhantes e nítidos; animação sobrenatural fluida e sofisticada; sorrisos individualizados e perturbadores; sangue escorrendo da boca pelos dentes/queixo e pingando no chão. O resultado deve parecer VFX de personagem de RPG cinematográfico, nunca um efeito genérico de partículas.
+
 ## 3. Cenários ao fundo — destruição em movimento
 
 Enquanto os cinco caminham normalmente em primeiro plano, o mundo atrás deles é destruído. O fundo deve mudar de cidade/ambiente ao longo da sequência para transmitir que a passagem deles deixa ruína.
