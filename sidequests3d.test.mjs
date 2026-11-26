@@ -253,7 +253,7 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
   assert.equal(s.pingente.state, 'available');
   collectSide(s, 'flor');
   assert.equal(s.ervas.state, 'ready');
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 4/4 itens reunidos']);
 });
 
 
@@ -449,7 +449,7 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 4/4 itens reunidos']);
 });
 
 
