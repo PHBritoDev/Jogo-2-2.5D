@@ -74,6 +74,7 @@ import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
 import {createWalkables} from './eldoria-walkable.js';
+import {chooseShelterCameraShoulder} from './follow-camera-clearance3d.js';
 import {clampBakedMips} from './eldoria-baked-texture.js';
 import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createRegionProbe} from './eldoria-nostalgic-light.js';
 import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
@@ -2427,7 +2428,7 @@ buildAct1Cages();
 let dragonViewWeight=0,dragonDiveWeight=0;
 function dragonExternalView(){return cameraDistance<1.05&&dragonViewWeight>.08;}
 /* MOD 316 — câmera: estado do braço de mola (caverna) e da 1ª pessoa. */
-let caveArmLen=0,caveSide=0;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
+let caveArmLen=0,caveSide=0,shelterCameraYawOffset=0;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
 /** Altura dos olhos do PRÓPRIO modelo: osso da cabeça (+7 cm até os olhos), medido uma vez em pé; sem osso, 0,93 × a
     altura da malha. Antes era 1,52 fixo com FOV 72 (grande-angular): o mundo parecia menor e mais lento. */
 function fpEyeHeight(){if(!fpEyeH&&model){let head=null;model.traverse(o=>{if(!head&&o.isBone&&/^(mixamorig:)?head$/i.test(o.name||''))head=o;});
@@ -2442,7 +2443,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(firstPerson&&shelterCameraYawOffset){cameraYaw-=shelterCameraYawOffset;shelterCameraYawOffset=0;}if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -2462,6 +2463,20 @@ if(firstPerson){
  const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=dragonViewWeight,dh=judgmentDragon.head;target.y+=dk*Math.max(2,Math.min(12,(dh.y-player.position.y)*.48));
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
  lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
+ const allowShelterShoulder=!voidMode&&!cineActive&&!riteCinematicView&&!camFrame.engaged&&starfallCameraWeight<.01&&dk<.08&&!(ultCam.w>.01);
+ if(allowShelterShoulder){
+  const baseYaw=cameraYaw-shelterCameraYawOffset;
+  const baseTarget={x:target.x-(Math.cos(cameraYaw)-Math.cos(baseYaw))*.42,y:target.y,z:target.z-(-Math.sin(cameraYaw)+Math.sin(baseYaw))*.42};
+  const baseOrbitYaw=baseYaw+(riteCinematicView?.45:0)+dk*1.05;
+  const baseOffset=new THREE.Vector3(Math.sin(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch));
+  const nearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(baseTarget.x-w.cx,baseTarget.z-w.cz)<camDistUse+.75&&baseTarget.y>=w.yb-.5&&baseTarget.y<=w.yt+1);
+  const decision=nearPillar?chooseShelterCameraShoulder({target:baseTarget,offset:baseOffset,previous:shelterCameraYawOffset,blockedAt:(x,y,z)=>eldoriaWalk.blocked(x,z,y-.9,groundHeightAt)}):null;
+  const oldYaw=cameraYaw,wanted=decision?.angle||0;
+  shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
+  cameraYaw=baseYaw+shelterCameraYawOffset;
+  const delta=cameraYaw-oldYaw;
+  if(Math.abs(delta)>1e-6){target.x+=(Math.cos(cameraYaw)-Math.cos(oldYaw))*.42;target.z+=(-Math.sin(cameraYaw)+Math.sin(oldYaw))*.42;}
+ }else if(shelterCameraYawOffset){cameraYaw-=shelterCameraYawOffset;shelterCameraYawOffset=0;}
  const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
  if(inVolcano&&voidSpec.camSolid?.(target.x-voidSpec.x,target.y-voidSpec.y,target.z-voidSpec.z)){
   target.set(player.position.x,player.position.y+.8,player.position.z);
