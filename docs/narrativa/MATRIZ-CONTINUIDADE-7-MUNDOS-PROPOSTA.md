@@ -2,7 +2,7 @@
 
 > **STATUS: CANDIDATO 0.2 — NÃO É CÂNONE APROVADO.** Matriz de auditoria e migração. Não aplicar flags novas nem alterar saves até o criador revisar o Cânone Mestre.
 
-**Main auditada:** 1b280bc0d9a912380fd6c2f9bda165b19b3f5009 (25/11/2026, Mod 361).  
+**Main auditada:** 1b280bc0d9a912380fd6c2f9bda165b19b3f5009 (25/11/2026, Mod 361).\
 **Documento narrativo relacionado:** CANONE-MESTRE-7-MUNDOS-PROPOSTA.md.
 
 ## 1. Fontes e grau de autoridade

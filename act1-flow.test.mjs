@@ -309,7 +309,7 @@ test('two-shot verifica oclusão 3D da cobertura, não apenas a pegada no chão'
   assert.equal(framing.target.y, 1.45);
 });
 
- 
+
 test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da cobertura', () => {
   const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
   const mostlyHidden = chooseStoryTwoShotSide({
@@ -331,7 +331,7 @@ test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da 
     '3/4 pontos não bastam: toldo ainda pode esconder cabeça ou ombros');
 });
 
- 
+
 test('two-shot rejeita 3/4 pontos sob toldo e sobe a câmera até 4/4', () => {
   const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
   const framing = chooseStoryTwoShotFrame({

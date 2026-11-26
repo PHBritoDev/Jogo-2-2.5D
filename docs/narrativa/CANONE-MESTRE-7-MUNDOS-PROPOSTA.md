@@ -2,8 +2,8 @@
 
 > **STATUS: CANDIDATO 0.2 — NÃO É CÂNONE APROVADO.** Documento novo para revisão do criador. Nenhuma fala, nome, missão, planeta, chefe ou flag aqui descrito deve entrar no jogo antes da revisão. Não substitui nem apaga o PDF original, M1–M14 ou propostas anteriores.
 
-**Data:** 25/11/2026  
-**Escopo:** prólogo, Galáxia 1 completa, seis mundos seguintes, personagens, mistérios, consequências e encerramento.  
+**Data:** 25/11/2026\
+**Escopo:** prólogo, Galáxia 1 completa, seis mundos seguintes, personagens, mistérios, consequências e encerramento.\
 **Princípio:** preservar os acontecimentos expressamente presentes no roteiro original; onde ele não define conteúdo, apresentar uma proposta marcada como tal.
 
 ## 0. Legenda de evidência
@@ -368,16 +368,16 @@ As falas abaixo definem intenção e voz. Não são texto aprovado nem devem ser
 - Holl & Melzer (2022): análise quantitativa de conteúdo/estatísticas de Detroit: Become Human; 73,21% das decisões catalogadas foram moralmente relevantes. Isso descreve a arquitetura de escolhas do jogo, não mede diretamente empatia ou comportamento de todos os jogadores.
 - Zaini et al. (2026): piloto com N=15; achado exploratório, não evidência definitiva.
 
-**Referências:**  
-https://doi.org/10.1037/0033-2909.116.1.75  
-https://doi.org/10.3389/fpsyg.2015.00079  
-https://doi.org/10.1037/0022-3514.79.5.701  
-https://doi.org/10.1111/jcom.12093  
-https://doi.org/10.1007/s11031-006-9051-8  
-https://doi.org/10.1177/1754073908100432  
-https://doi.org/10.1207/S15327825MCS0403_01  
-https://doi.org/10.1177/15554120251380423  
-https://doi.org/10.1027/1864-1105/a000323  
+**Referências:**\
+https://doi.org/10.1037/0033-2909.116.1.75\
+https://doi.org/10.3389/fpsyg.2015.00079\
+https://doi.org/10.1037/0022-3514.79.5.701\
+https://doi.org/10.1111/jcom.12093\
+https://doi.org/10.1007/s11031-006-9051-8\
+https://doi.org/10.1177/1754073908100432\
+https://doi.org/10.1207/S15327825MCS0403_01\
+https://doi.org/10.1177/15554120251380423\
+https://doi.org/10.1027/1864-1105/a000323\
 https://doi.org/10.1145/3772363.3799339
 https://doi.org/10.1145/3491102.3502019
 

@@ -11,7 +11,7 @@ O jogador deve sair da conversa com três coisas claras:
 2. VHAZRAEL é um subordinado da Ganância, não o próprio Pecado;
 3. a mesma marca aparece em registros e objetos de captura — sinal de um sistema organizado, não de um incidente isolado.
 
-**Pergunta curta:** por que um nome foi substituído por um número?  
+**Pergunta curta:** por que um nome foi substituído por um número?\
 **Pergunta longa:** quem transforma pessoas em registros de propriedade, e para que finalidade?
 
 ## Percurso jogável
