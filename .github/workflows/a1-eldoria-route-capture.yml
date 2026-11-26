@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'agentes/a1/eldoria-exterior-route-qa-mod361'
+      - 'qa/a1/eldoria-route-mod371-ef5d328'
     paths:
       - '.github/workflows/a1-eldoria-route-capture.yml'
       - 'mundo-3d-prototype.js'
@@ -38,7 +39,7 @@ jobs:
       AGENT: A1
       SCENARIO: floresta-percurso
       VIDEO: 'true'
-      PR: '692'
+      PR: '707'
       VISUAL_OUTPUT: visual-lab-results
       VISUAL_BASE_URL: http://127.0.0.1:4173
       ARTIFACT_NAME: qa-A1-${{ github.run_id }}
