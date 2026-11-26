@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { BROKEN_WHEEL, FALL_SPOT, PROLOGUE_MEADOW, TEREN_ROAD, TEREN_STOP } from '../act1-world-layout.js';
 import { planMeadow } from '../eldoria-prologue-meadow.js';
 
@@ -93,6 +94,25 @@ test('cameraClear considera discard do fade apenas para folhas quase transparent
   assert.match(harness, /fade >= UNDERGROWTH_FADE_CLEAR_THRESHOLD/);
   assert.match(harness, /!view\.blocked \|\| isVisuallyFadedUndergrowthBlocker\(view\)/);
   assert.match(harness, /if \(!hit \|\| !FADED_UNDERGROWTH_BLOCKERS\.has\(hit\.name\)\) return false/);
+});
+
+test('cameraClear distingue folha quase descartada de tronco e vegetação ainda opaca', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const start = harness.indexOf('const FADED_UNDERGROWTH_BLOCKERS');
+  const end = harness.indexOf('async function readState', start);
+  assert.ok(start >= 0 && end > start, 'helpers de oclusão precisam estar isolados antes da leitura de estado');
+  const source = harness.slice(start, end);
+  const api = runInNewContext(source + ';({ cameraClear, isVisuallyFadedUndergrowthBlocker });');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: null } }), true);
+  assert.equal(api.cameraClear({ camView: { onScreen: false, blocked: null } }), false);
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 5.9 } } }), true,
+    'folhas com mais de 92% do padrão descartado não devem reprovar a visibilidade');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 4.0 } } }), false,
+    'folhas ainda parcialmente opacas continuam sendo obstrução');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-tree-trunk', dist: 5.9 } } }), false,
+    'troncos nunca são ignorados pelo QA');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-bushes', dist: NaN } } }), false,
+    'distância inválida falha fechado');
 });
 
 test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
