@@ -111,3 +111,12 @@ A segunda alternativa exige esclarecer por que Lia recebeu o objeto e talvez ren
 - O relatório declara `narrativeScope: giver offer/turn-in intentionally excluded`; o harness não executa a conversa principal de Téo nem oferta/entrega de missão lateral. Portanto, a evidência confirma o HUD e o contexto inicial, **não** a conversa completa do vendedor.
 - Plataforma: Chromium/SwiftShader, 852×393, touch simulado. Não é certificação Android físico nem medição de FPS móvel. O WebM apresenta letterbox em trechos.
 - A captura dirigida `vila-vendedores` continua necessária para validar aproximação, toque e fala principal; não foi disparada por esta sessão.
+
+
+## 7. Revalidação do QA principal — Mod 372 (26/11/2026)
+
+A seção 6 registra o limite do run histórico #45550234051; ela não descreve a evidência mais recente. No código de produção validado pela PR #691, SHA `5e3a9db28ca216ac12cc85eada2fdfe08af0349d`, o [run A5 #45752769283](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283) terminou SUCCESS com 117/117 testes e zero falhas. O [artifact #15086989492](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283/artifacts/15086989492) contém 16 PNGs, relatório e WebM de 27m45s; foram inspecionadas a conversa de Téo, a ação de pagamento, o handoff para a floresta, o reload, os abrigos e quadros do vídeo.
+
+O novo QA valida a cena principal completa de Téo, a cobrança exata de 5 moedas (8→3), a transição para `questStep=2/act1Sub=0` e a restauração do objetivo e da noite após reload V6. Depois de verificar o save real sem reseed, o harness rearma o fixture para percorrer os três abrigos; por isso as capturas finais de waystones não representam perda do save pós-Téo.
+
+**O que essa evidência não valida:** oferta/entrega das missões Flores de Vigília, Pingente de Lia ou Pedras que Lembram; associação de givers; nem o destino de Mara/Nara. Esses pontos continuam pendentes da revisão do criador na #671. O ambiente é Chromium/SwiftShader com touch simulado, não Android físico nem medição de FPS.

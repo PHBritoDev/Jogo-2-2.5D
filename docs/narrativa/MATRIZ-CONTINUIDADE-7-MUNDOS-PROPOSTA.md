@@ -179,22 +179,20 @@ Pontuar cada item 0–2: 0 = falha; 1 = parcial; 2 = claro. Cena não passa com 
 
 Não usar a pontuação como “nota científica”. É uma ferramenta de revisão interna; comparar observações e falas dos jogadores, não apenas somar números.
 
-## 9. Coordenação e áreas protegidas — revalidação 25/11/2026
+## 9. Coordenação e áreas protegidas — revalidação 26/11/2026
 
-A reserva de arquivos é dinâmica; a lista abaixo foi conferida no GitHub contra a main `1b280bc0d9a912380fd6c2f9bda165b19b3f5009`. Não tratar PR fechada como trabalho ativo.
+A lista abaixo foi conferida no GitHub contra a main `ba2cb22e4135703dc2fb8a19927da8ccd3b06f32` (Mod 372). Estados e áreas são dinâmicos; não usar o histórico Mod 361 como lista de reservas atual.
 
-- **A5 — #691:** branch `agentes/a5/canon-proposal-mod361-20261125`, HEAD `248e644e840ab837c17ccc3a1fd5e6bc2ffec335`, aberta/Draft/mergeable. Paths próprios: `act1-flow.js`, `act1-flow.test.mjs`, `tools/qa/a5-waystone-gameplay.cjs` e quatro documentos de proposta. Não toca build-info, loader, cache, caverna ou módulos de mundo/combate alheios.
-- **Codex — #665:** branch `codex/ato3-jornada-sakura-castelo`, HEAD `99ccbfede7a6e76396758c7eecdd14a7cfc0f906`, aberta/Draft/não mergeable. Altera `act1-flow.js`, `act2-flow.js`, `act3-flow.js`, build-info e módulos Sakura/Neve. O hunk compartilhado em `act1-flow.js` foi comparado: #665 altera `sakuraRest` em `baseProgress/migrateProgress`; #691 altera somente as constantes do vendedor, `questPresentation()` e `SPEAKERS`. Não editar a branch Codex.
-- **A3 — #685:** branch `agentes/a3/eldoria-ancestral-root-roles-mod363`, HEAD `3260a8b3dfb5374902d971745613131d2f95c325`, aberta/pronta para revisão/mergeable; cinco paths de vila e testes. Não compartilha paths com #691.
-- **Integração Codex — #686:** branch `codex/integracao-replay-eldoria`, HEAD `65488a33d90c90b9454668f1e1bd047062b47156`, aberta/pronta para revisão/mergeable; inclui a alteração A3 e build-info. Não editar.
-- **Codex — #688:** branch `codex/integracao-densidade-floresta`, HEAD `b5f2dfb0b35d4848b46fa8aeae5be7959383faee`, aberta/pronta para revisão/mergeable, empilhada sobre #686; altera build-info, `world3d-terrain.js` e testes. Não editar.
-- **A4 — #689:** branch `agentes/a4/volcano-lava-bounce`, HEAD `5f3a4d0ce7d37f1c01a21be303af155cf0439c63`, aberta/Draft/mergeable; seis paths de iluminação/caverna. A caverna continua protegida.
-- **A2 — #690:** branch `agentes/a2/sword-vfx-active-particle-pool`, HEAD `4da3366ed246d5cba8039e2fccd03488202de1b5`, aberta/Draft/mergeable; dois paths de VFX/combate. Não editar.
-- **A1 — #692:** branch `agentes/a1/eldoria-exterior-route-qa-mod361`, HEAD `b26849abcafe4796695b59f236d80d008c79ed1b`, aberta/Draft/mergeable; seis paths de ferramentas de captura/QA. Não editar.
-- **Claude — #515:** branch `claude/eldoria-renascimento-fase3-caverna-plano`, HEAD `a916d3315f94d320c6952c9f4a2706708b2284db`, aberta/Draft/mergeable; plano documental da caverna. Não editar nem reinterpretar o escopo protegido.
-- **Integrações concluídas:** #673, #670 e #682 estão fechadas com merge. #682 levou o conjunto Mod 361 à main `1b280bc0`; isso não transforma propostas narrativas em cânone.
+- **A5 — #691:** branch `agentes/a5/canon-proposal-mod361-20261125`; SHA de código validado `5e3a9db28ca216ac12cc85eada2fdfe08af0349d`; aberta, pronta para revisão, mergeable, 69 à frente/0 atrás e 14 paths. Produção A5: câmera narrativa de Téo, fluxo/transação principal, testes e QA. `build-info.js` é idêntico à main (Mod 372); sem alteração de loader/cache ou caverna. Os quatro documentos desta pasta continuam candidatos não canônicos.
+- **A3 — #709:** aberta, pronta para revisão, HEAD `8cb0d21f0fa0b2ed0aceb287953d495a5a512f2b`; cipós/folhagem e testes. Não compartilha paths com #691.
+- **A1 — #710:** aberta, pronta para revisão, HEAD `e64204ffcfe871ef4202b025a25390f5d4aa09ee`; workflow de captura contínua e teste da ferramenta visual. Não compartilha paths com #691.
+- **A4 — #711:** aberta/Draft, HEAD `c38da27c59cf6f46cdb966b42682a912352430ba`; aurora de baixo custo, teste e A/B. Não compartilha paths com #691.
+- **A2 — #712:** aberta, pronta para revisão, HEAD `1e55eacf0effdb4a260e75f6ccaee02c38284b83`; Passagem do Julgamento, teste de combate e QA. Não compartilha paths com #691.
+- **Codex — #665:** aberta/Draft, não mergeable, base antiga `3a60b58ea1cb4dd8a34e71c5322b64d2ef74acd2`, HEAD `99ccbfede7a6e76396758c7eecdd14a7cfc0f906`. Compartilha `act1-flow.js` e `mundo-3d-prototype.js` com #691, mas os hunks foram comparados e são separados (Sakura/`sakuraRest` vs. câmera/Téo/noite). Não editar a branch Codex.
+- **Claude — #515:** aberta/Draft, plano documental da caverna; área protegida. Não editar nem reinterpretar o escopo.
+- **Integrações confirmadas:** #670, #673, #682 e #685–#690 estão fechadas com merge. Elas são histórico integrado, não reservas ativas.
 
-As PRs #672, #674, #675 e #656 estão **fechadas**; aparecem apenas no histórico e não são reservas ativas. Revalidar os estados e paths antes de cada nova alteração. A PR #691 não altera arquivos de #665 além do hunk independente já descrito, nem os paths de #685–#690/#692 ou da #515.
+Nenhuma das PRs #709–#712 compartilha arquivos alterados com #691. #665 compartilha dois caminhos, mas os hunks permanecem distintos; preservar ambos se houver integração futura. Revalidar SHA, base e paths imediatamente antes de qualquer atualização.
 
 ## 10. Sequência de implementação após aprovação
 
@@ -318,3 +316,12 @@ Introduzir identidade de missão separada da categoria de estoque: `questGiverId
 8. O percurso touch permite chegar aos NPCs sem atravessar balcões ou bloquear o jogador.
 
 Esta matriz e a proposta de givers continuam **NÃO CANÔNICAS** até revisão do criador.
+
+
+## 16. Revalidação do baseline e do QA — Mod 372 (26/11/2026)
+
+A main atual é `ba2cb22e4135703dc2fb8a19927da8ccd3b06f32`; a PR #691 tem SHA de código validado `5e3a9db28ca216ac12cc85eada2fdfe08af0349d`, compare 69/0 e 14 paths. O blob de `build-info.js` é o mesmo na main e na branch A5 (`f8e6c8b9b9fba777cb8ed2e8c65c63a3e51613d7`), Mod 372.
+
+O [QA direcionado A5 #45752769283](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283) terminou SUCCESS: 117/117 testes, sintaxe e Chromium/Three aprovados, gameplay PASS. O [artifact #15086989492](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283/artifacts/15086989492) foi baixado e inspecionado: 16 PNGs, report e WebM de 27m45s. A cena principal de Téo cobrou 5 moedas (8→3), avançou para a floresta e persistiu `questStep=2`, `act1Sub=0`, objetivo e noite no save V6 após reload. Em seguida, o harness rearmou o fixture para validar Vila/Mata/Caverna 3/3 após reload e quatro caminhadas touch grounded, sem teleporte. Zero erros JS, console ou HTTP.
+
+A evidência não aprova Android físico/FPS, nem oferta/entrega de sidequests ou givers Mara/Nara. A #671 continua aberta, sem aprovação do candidato 0.2. O finding de câmera comprimida no abrigo da Mata está separado na #713, PROPOSTO para A1.

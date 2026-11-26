@@ -2,7 +2,9 @@
 
 > **STATUS: AMOSTRA DE TOM E GAMEPLAY — NÃO CANÔNICA / NÃO IMPLEMENTADA.** Demonstra uma cena completa para revisão do criador. Não altera o PDF, o roteiro aprovado, flags, saves ou falas de runtime.
 
-**Âncora técnica auditada:** main `1b280bc0d9a912380fd6c2f9bda165b19b3f5009`; `act1-flow.js` define a chegada à vila em `questStep=1`, o diálogo do vendedor e a transição para a floresta em `questStep=2`. O roteiro M2 mantém a compra de 5 moedas como condição para o vendedor revelar o que sabe. A sequência abaixo preserva esse acontecimento e acrescenta uma investigação opcional, ainda sujeita à aprovação.
+**Âncora técnica revalidada:** main `ba2cb22e4135703dc2fb8a19927da8ccd3b06f32` (Mod 372, 26/11/2026); `act1-flow.js` mantém a chegada à vila em `questStep=1`, a conversa do vendedor e a transição para a floresta em `questStep=2`. O roteiro M2 mantém a compra de 5 moedas como condição para o vendedor revelar o que sabe. A sequência abaixo preserva esse acontecimento e acrescenta uma investigação opcional, ainda sujeita à aprovação.
+
+**Limite da evidência atual:** o [QA A5 #45752769283](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283) valida a cena principal implementada de Téo, o pagamento de 5 moedas e o handoff para a floresta com save/reload. Não implementa nem valida o recibo opcional descrito nesta amostra; suas flags continuam apenas candidatas.
 
 ## Intenção
 

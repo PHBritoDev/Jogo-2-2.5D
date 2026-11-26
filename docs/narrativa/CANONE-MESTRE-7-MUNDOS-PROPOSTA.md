@@ -418,3 +418,14 @@ Este documento é apenas candidato. Depois da revisão, cada ato deve virar uma 
 - O plano da caverna em #515 continua documentação protegida; esta proposta não altera nem reinterpreta sua implementação.
 
 **Regra:** esta atualização descreve o estado integrado e melhora a precisão da auditoria. Não transforma nenhuma proposta dos mundos 2–7, nome de personagem, arco de Sandra ou destino das missões opcionais em cânone aprovado.
+
+
+## 19. Revalidação técnica Mod 372 — 26/11/2026
+
+**Baseline atual:** main `ba2cb22e4135703dc2fb8a19927da8ccd3b06f32` (Mod 372). A PR #691 continua aberta e pronta para revisão; o SHA de código validado é `5e3a9db28ca216ac12cc85eada2fdfe08af0349d`, com 69 commits à frente, zero atrás e 14 paths. O blob de `build-info.js` é idêntico ao da main (`f8e6c8b9b9fba777cb8ed2e8c65c63a3e51613d7`); A5 não alterou o marcador Mod 372.
+
+**QA de gameplay do SHA de código:** [run #45752769283](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283) SUCCESS, 117/117 testes, zero falhas. [Artifact #15086989492](https://github.com/PHBritoDev/Jogo-2-2.5D/actions/runs/45752769283/artifacts/15086989492): 16 PNGs, relatório JSON e WebM de 27m45s. O relatório confirma a cena completa de Téo, pagamento de 5 moedas (8→3), transição para a floresta e restauração de `questStep=2`, `act1Sub=0`, objetivo e noite após reload V6. Depois dessa verificação sem reseed, o harness rearma explicitamente o fixture para validar os abrigos: 3/3 registrados após reload, quatro caminhadas touch grounded e sem teleporte, zero erros JS/console/HTTP.
+
+**Limites:** Chromium/SwiftShader e touch simulado; não é certificação Android físico nem benchmark de FPS. O QA não executa oferta/entrega das sidequests nem aprova Mara/Nara. A issue #671 continua aberta sem aprovação do cânone candidato. O pedido A5-001 sobre a câmera do abrigo da Mata foi encaminhado à [issue #713](https://github.com/PHBritoDev/Jogo-2-2.5D/issues/713), ainda PROPOSTO para A1; A5 não alterou o controlador de câmera dessa área.
+
+Esta revalidação atualiza o estado técnico, sem promover qualquer proposta narrativa a cânone.
