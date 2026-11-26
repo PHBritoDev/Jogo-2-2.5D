@@ -23,7 +23,7 @@ const SCENES = [
   // Vista lateral do mesmo ponto, mantendo o herói voltado para a estrada: expõe o ombro do prado no mobile.
   { id: "prado-ombro-lateral", x: 54, z: 160, yaw: Math.PI / 2, heroYaw: Math.PI, pitch: .12, distance: 8 }
 ];
-const WALK_SCENES = new Set(["prado-prologo", "trilha-samambaias"]);
+const WALK_SCENES = new Set(["prado-prologo", "trilha-samambaias", "mata-entrada-inicial"]);
 
 function readBaseModules() {
   if (!/^[a-f0-9]{40}$/.test(BASE_SHA)) throw new Error("BASE_SHA ausente ou inválido");
@@ -254,8 +254,10 @@ async function runSession(browser, viewport, variant, baselineModules) {
         walks.push({ viewport: viewport.id, scene: scene.id, ...walk, file: walkFile });
         const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";
         const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";
-        if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);
-        if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");
+        const walkArticle = scene.id === "mata-entrada-inicial" ? "na" : routeArticle;
+        const walkLabel = scene.id === "mata-entrada-inicial" ? "entrada da mata" : routeLabel;
+        if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + walkArticle + " " + walkLabel);
+        if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + walkArticle + " " + walkLabel + " avançou menos de 2 m");
         if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhada " + routeArticle + " " + routeLabel);
       }
     }
@@ -267,7 +269,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
   if (variant === "candidate" && session.video) {
     try {
       const source = await session.video.path();
-      videoFile = viewport.id + "-candidate-prado-walk.webm";
+      videoFile = viewport.id + "-candidate-undergrowth-walk.webm";
       fs.copyFileSync(source, path.join(OUT, videoFile));
     } catch (e) {
       session.errors.page.push(viewport.id + ": vídeo não foi finalizado: " + String(e.message || e));
@@ -350,7 +352,7 @@ async function main() {
     "",
     ...pairs.map(p => "- " + p.viewport + " / " + p.scene + ": herói Δ " + p.heroDelta.toFixed(3) + " m; câmera Δ " + p.cameraDelta.toFixed(3) + " m; " + p.baseline + " × " + p.candidate),
     "",
-    ...sessions.flatMap(s => s.walks.map(w => "- Caminhada " + w.viewport + ": " + w.distance.toFixed(2) + " m; vídeo " + (s.video || "não disponível"))),
+    ...sessions.flatMap(s => s.walks.map(w => "- Caminhada " + w.viewport + " / " + w.scene + ": " + w.distance.toFixed(2) + " m; movimento=" + w.movementReached + "; câmera=" + w.settled + "; visível=" + w.onScreen + "; vídeo " + (s.video || "não disponível"))),
     "",
     ...fatal.map(e => "- ERRO: " + e),
     "",
