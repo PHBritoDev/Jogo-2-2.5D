@@ -850,9 +850,10 @@ test('impact cut follows the connected blade or energy heading, not the global c
 });
 
 test('Passagem places each cut on the attacker-facing capsule surface',()=>{
- const target={x:0,y:1,z:5,radius:.5,height:1.8};
+ const target={x:0,y:0,z:5,radius:.5,height:1.8}; // Enemy1Squad actors store y at ground level.
  const front=swordJudgmentCue({target,from:{x:0,y:0,z:0},n:5});
  assert.ok(front);
+ assert.ok(front.p.y>0&&front.p.y<target.height,'surface mark is placed above the ground-origin actor pivot');
  const frontRadius=Math.hypot(front.p.x-target.x,front.p.z-target.z);
  assert.ok(frontRadius>target.radius&&frontRadius<target.radius+.06);
  assert.ok(front.p.z<target.z&&front.p.x>0,'the cue must occupy the front-right surface seen by the attacker');
@@ -863,11 +864,13 @@ test('Passagem places each cut on the attacker-facing capsule surface',()=>{
 });
 
 test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async()=>{
- const target={x:0,y:1,z:5,radius:.5,height:1.8},from={x:0,y:0,z:0};
+ const target={x:0,y:0,z:5,radius:.5,height:1.8},from={x:0,y:0,z:0};
  const cues=Array.from({length:16},(_,n)=>swordJudgmentCue({target,from,n}));
  const positions=new Set(cues.map(c=>[c.p.x,c.p.y,c.p.z].map(v=>v.toFixed(3)).join(',')));
  assert.equal(positions.size,16,'all 16 cuts must occupy distinct points');
  const heights=cues.map(c=>c.p.y),yaws=cues.map(c=>c.yaw),rolls=cues.map(c=>c.roll);
+ assert.ok(Math.min(...heights)>.1,'no cut is placed below the enemy ground plane');
+ assert.ok(Math.max(...heights)<target.height,'all cuts remain within the enemy body height');
  assert.ok(Math.max(...heights)-Math.min(...heights)>1.2,'cuts span most of the enemy body');
  assert.ok(Math.max(...yaws)-Math.min(...yaws)>2.0,'four columns wrap around the visible front hemisphere');
  assert.ok(new Set(rolls.map(v=>v.toFixed(3))).size>=12,'cuts use varied slash angles rather than one parallel slab');
