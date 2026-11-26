@@ -5,7 +5,6 @@ on:
     branches:
       - 'agentes/a1/eldoria-exterior-route-qa-mod361'
     paths:
-      - '.github/workflows/a1-eldoria-route-capture.yml'
       - 'mundo-3d-prototype.js'
       - 'camera-water-clearance3d.js'
       - 'tools/visual-lab/agent-qa.cjs'
@@ -94,7 +93,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-A1-${{ github.run_number }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: visual-lab-results/
           retention-days: 14
           if-no-files-found: warn
