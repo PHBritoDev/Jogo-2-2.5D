@@ -59,7 +59,13 @@ const SCENES = Object.freeze({
     { name: "teo", fly: [[-3.0, 2.25, -38.2], [-1.95, 1.25, -41.04]] },
     { name: "lia", fly: [[-15.4, 2.25, -37.9], [-16.2, 1.25, -41.07]] }] },
   "floresta-percurso": { kind: "mundo", hour: 10, shots: [
-    { name: "antes-do-percurso", at: [-14, -105, -Math.PI / 2], pitch: .12, dist: 5.5 }], walk: { key: "KeyW", ms: 45000, distance: 2.5 } },
+    { name: "campo-inicio", at: [-14, -82, 0], pitch: .12, dist: 6 },
+    { name: "vau-lago-camera", at: [-28.815, -94.586, 0], pitch: 0, dist: 6 }], walk: { start: [-14, -82, 0], captureQuality: "low", segments: [
+      { name: "bosque-entrada", target: [-14, -105], key: "KeyW", timeoutMs: 100000, tolerance: 2.5, minTravel: 18 },
+      // A árvore colossal está em (-13.2,-70.5), raio de colisão 3.9 m. O desvio oeste preserva 0.7 m de folga.
+      { name: "contorno-arvore-oeste", target: [-20.5, -76], key: "KeyW", timeoutMs: 120000, tolerance: 1, minTravel: 24 },
+      { name: "vila-praca-entrada", target: [-13, -49.5], key: "KeyW", timeoutMs: 180000, tolerance: 3, minTravel: 23 }
+    ] } },
   "floresta-trilha": { kind: "mundo", hour: 10, shots: [
     { name: "trilha-samambaias", at: [-14, -105, -Math.PI / 2], pitch: .1, dist: 6.5 },
     { name: "clareira-musgo", at: [-30, -120, -2.36], pitch: .14, dist: 7 }], walk: { key: "KeyW", ms: 3500 } },
@@ -76,6 +82,50 @@ const SCENES = Object.freeze({
     { name: "cristal", cave: [-46, -106, -Math.PI / 2], pitch: .08, dist: 6 }] },
   "npc-cabelos": { kind: "npc", shots: [{ name: "vendorMan", npc: "vendorMan" }, { name: "vendorWoman", npc: "vendorWoman" }, { name: "elder", npc: "elder" }] },
 });
+const WALK_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD"]);
+function validateWalk(walk) {
+  if (!walk) return walk;
+  if (Array.isArray(walk.segments)) {
+    if (!walk.segments.length || walk.segments.length > 8) throw Error("Percurso deve ter de 1 a 8 segmentos");
+    const start = walk.start == null ? null : walk.start;
+    if (start !== null && (!Array.isArray(start) || start.length !== 3 || !start.every(Number.isFinite))) throw Error("Origem inválida no percurso");
+    const captureQuality = walk.captureQuality == null ? null : String(walk.captureQuality);
+    if (captureQuality !== null && !["auto", "low", "medium", "high", "max"].includes(captureQuality)) throw Error("Perfil de captura inválido");
+    const segments = walk.segments.map((segment, i) => {
+      const name = String(segment && segment.name || "segmento-" + (i + 1)).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 60);
+      const target = segment && segment.target;
+      if (!Array.isArray(target) || target.length !== 2 || !target.every(Number.isFinite)) throw Error("Alvo inválido no segmento " + name);
+      const key = segment.key || "KeyW";
+      if (!WALK_KEYS.has(key)) throw Error("Tecla inválida no segmento " + name);
+      const timeoutMs = Number(segment.timeoutMs ?? 45000), tolerance = Number(segment.tolerance ?? 2.5), minTravel = Number(segment.minTravel ?? 0);
+      if (!Number.isFinite(timeoutMs) || timeoutMs < 1000 || timeoutMs > 300000) throw Error("Timeout inválido no segmento " + name);
+      if (!Number.isFinite(tolerance) || tolerance < .5 || tolerance > 6) throw Error("Tolerância inválida no segmento " + name);
+      if (!Number.isFinite(minTravel) || minTravel < 0 || minTravel > 120) throw Error("Distância mínima inválida no segmento " + name);
+      return { ...segment, name, target: [target[0], target[1]], key, timeoutMs, tolerance, minTravel };
+    });
+    return { ...walk, ...(start ? { start: [...start] } : {}), ...(captureQuality ? { captureQuality } : {}), segments };
+  }
+  const key = walk.key, ms = Number(walk.ms), distance = Number(walk.distance ?? 0);
+  if (!WALK_KEYS.has(key) || !Number.isFinite(ms) || ms < 1 || ms > 120000 || !Number.isFinite(distance) || distance < 0 || distance > 120) {
+    throw Error("Percurso legado inválido: tecla, duração ou distância");
+  }
+  return { ...walk, key, ms, distance };
+}
+/** Yaw do analógico/tecla W: frente = (-sen(yaw), -cos(yaw)). */
+function walkYaw(from, to) {
+  const fx = Array.isArray(from) ? from[0] : from.x, fz = Array.isArray(from) ? from[1] : from.z;
+  const tx = Array.isArray(to) ? to[0] : to.x, tz = Array.isArray(to) ? to[1] : to.z;
+  const dx = tx - fx, dz = tz - fz;
+  if (![fx, fz, tx, tz].every(Number.isFinite) || Math.hypot(dx, dz) < 1e-6) throw Error("Pontos inválidos ou sem deslocamento para calcular yaw");
+  return Math.atan2(-dx, -dz);
+}
+function measureWalk(start, end, target) {
+  const tx = Array.isArray(target) ? target[0] : target.x, tz = Array.isArray(target) ? target[1] : target.z;
+  return {
+    distance: Math.hypot(end.x - start.x, end.z - start.z),
+    remaining: Math.hypot(end.x - tx, end.z - tz)
+  };
+}
 function validateRequest(raw) {
   const list = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : ["vila-praca", "caverna-salao", "npc-cabelos"];
   if (!Array.isArray(list) || !list.length || list.length > 8) throw Error("Peça de 1 a 8 cenas");
@@ -96,20 +146,30 @@ function validateShot(s, i = 0) {
   throw Error("Tomada inválida " + i + ": use at, cave, fly ou npc");
 }
 function validateRequestShots(list) {
-  return list.map(scene => ({ ...scene, shots: scene.shots.map(validateShot) }));
+  return list.map(scene => ({ ...scene, walk: validateWalk(scene.walk), shots: scene.shots.map(validateShot) }));
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 /** Índice para humanos (HTML) e para agentes (Markdown): o que abrir, em que ordem, e o que foi observado. */
 function buildIndex(report) {
   const rows = report.shots.map(s => `<figure class="${s.status}"><a href="${esc(s.file)}"><img src="${esc(s.file)}" loading="lazy" alt="${esc(s.scene + "/" + s.name)}"></a><figcaption><b>${esc(s.scene)}/${esc(s.name)}</b> — <span>${esc(s.status)}</span><br>${esc(s.reason)}<br><small>tentativas ${s.attempts} · média ${s.pixels.mean} · desvio ${s.pixels.stdev}</small></figcaption></figure>`).join("\n");
   const vids = (report.videos || []).map(v => `<li><a href="${esc(v.file)}">${esc(v.scene)}</a> (${esc(v.format)}, ${v.bytes} bytes)</li>`).join("");
+  const routeRows = (report.routes || []).map(r => {
+    const details = (r.segments || []).map(s => `${s.name}: ${Number(s.distance || 0).toFixed(1)} m, ${Number(s.remaining || 0).toFixed(1)} m restantes, ${s.reached ? "alvo alcançado" : "alvo não alcançado"}`).join("; ");
+    return `<li><b>${esc(r.scene)}</b> — ${r.completed ? "concluído" : "incompleto"} · ${Number(r.totalDistance || 0).toFixed(1)} m · ${esc(details)}</li>`;
+  }).join("");
+  const routeHtml = routeRows ? `<h2>Percurso contínuo</h2><ul>${routeRows}</ul>` : "";
+  const routeLines = (report.routes || []).flatMap(r => [
+    `- percurso ${r.scene}: ${r.completed ? "concluído" : "incompleto"} · ${Number(r.totalDistance || 0).toFixed(1)} m`,
+    ...(r.segments || []).map(s => `  - ${s.name}: ${Number(s.distance || 0).toFixed(1)} m; alvo ${s.reached ? "alcançado" : "não alcançado"}; erro ${Number(s.remaining || 0).toFixed(1)} m`)
+  ]);
   const html = `<!doctype html><meta charset="utf-8"><title>Agente de cenas — ${esc(report.commit || "")}</title><style>body{font:14px system-ui;background:#111;color:#eee;margin:16px}figure{display:inline-block;width:300px;margin:6px;vertical-align:top}img{width:300px}figure.suspeita{outline:3px solid #e8a33d}small{color:#aaa}</style>
 <h1>Agente de cenas do jogo real</h1><p>commit <code>${esc(report.commit)}</code> · build <code>${esc(report.build)}</code> · viewport ${report.viewport.width}×${report.viewport.height} · ${esc(report.renderer)} · ${esc(report.startedAt)}</p>
 <p><b>Observado</b>: PNGs, vídeos, números de pixels e estado do debug. <b>Inferido</b>: nada — a classificação é estrutural (pixels), não reconhece objetos. Imagens "suspeita" precisam de olho humano/multimodal.</p>
-<p>Erros de página: ${report.pageErrors.length} · requisições falhas: ${report.failedRequests.length}</p><ul>${vids}</ul>${rows}`;
+<p>Erros de página: ${report.pageErrors.length} · requisições falhas: ${report.failedRequests.length}</p><ul>${vids}</ul>${routeHtml}${rows}`;
   const md = [`# Agente de cenas — ${report.commit}`, "", `- build: \`${report.build}\` · viewport ${report.viewport.width}×${report.viewport.height} · ${report.renderer}`, `- status: **${report.status}** (ok ${report.counts.ok}, suspeita ${report.counts.suspeita}, falha ${report.counts.falha})`,
     "- Observado = arquivos + métricas de pixels + estado do debug. Inferido = nenhum (sem visão semântica automática).", "", "| cena | foto | status | motivo | estado |", "|---|---|---|---|---|",
     ...report.shots.map(s => `| ${s.scene} | [${s.name}](${s.file}) | ${s.status} | ${s.reason} | ${s.stateSummary || ""} |`), "",
+    ...routeLines, "",
     ...(report.videos || []).map(v => `- vídeo ${v.scene}: [${v.file}](${v.file}) (${v.format})`), "", `Erros de página: ${report.pageErrors.length}; requisições falhas: ${report.failedRequests.length}.`].join("\n");
   return { html, md };
 }
@@ -117,4 +177,4 @@ function summarize(shots, fatal) {
   const counts = { ok: 0, suspeita: 0, falha: 0 }; for (const s of shots) counts[s.status] = (counts[s.status] || 0) + 1;
   return { counts, status: fatal ? "falha" : counts.falha ? "falha" : counts.suspeita ? "suspeita" : "ok", exitCode: fatal || counts.falha ? 1 : 0 };
 }
-module.exports = { SCHEMA, pixelStats, classifyFrame, shouldRetry, signature, signatureDistance, SCENES, validateRequest, validateShot, buildIndex, summarize };
+module.exports = { SCHEMA, pixelStats, classifyFrame, shouldRetry, signature, signatureDistance, SCENES, validateRequest, validateShot, validateWalk, walkYaw, measureWalk, buildIndex, summarize };
