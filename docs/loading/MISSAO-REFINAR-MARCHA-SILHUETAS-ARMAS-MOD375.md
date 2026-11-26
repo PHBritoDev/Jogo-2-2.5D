@@ -652,3 +652,23 @@ Antes de alterar código, Claude deve escrever para si mesmo uma matriz curta de
 Se um requisito não existir no código ou não puder ser testado, não inventar que existe: registrar a lacuna na PR e propor a alternativa mais próxima sem quebrar sistemas estáveis.
 
 **Estado:** revisão de contradições concluída; seção 14 prevalece em caso de conflito e o briefing permanece autorizado para execução.
+
+
+
+## 15. LIBERDADE TÉCNICA E CRIATIVA — NÃO LIMITAR A SOLUÇÃO (26/11/2026)
+
+O criador esclareceu que Claude tem liberdade para explorar e combinar quaisquer técnicas, ferramentas, abordagens de implementação e soluções criativas razoáveis para alcançar a maior qualidade possível. As técnicas citadas nas seções anteriores são sugestões e pontos de partida, **não uma lista fechada nem um teto técnico**.
+
+- Não se limitar às técnicas, bibliotecas, efeitos, shaders, sistemas de câmera, iluminação, composição, animação, áudio, otimização ou pipelines mencionados neste documento. Pesquisar alternativas e escolher a melhor combinação para o projeto real.
+- Pode propor e implementar soluções próprias em código, proceduralmente ou com recursos existentes; criar novos sistemas de VFX, animação, iluminação, câmera, áudio, partículas, materiais, shaders e composição quando isso elevar comprovadamente a qualidade.
+- Pode pesquisar referências técnicas e artísticas, documentação oficial, estudos de caso e exemplos de produção. Validar compatibilidade com a stack e as versões instaladas antes de adotar qualquer técnica.
+- Pode usar assets externos somente quando a licença permitir claramente o uso no projeto e a redistribuição/empacotamento necessários. Registrar origem e licença. Não introduzir assets duvidosos, protegidos sem autorização, enormes ou sem otimização.
+- Não escolher a solução mais simples apenas por conveniência. Se a primeira implementação parecer genérica, artificial, barata ou visualmente fraca, explorar outra abordagem e refazer até atingir o padrão de qualidade pretendido.
+- Não interpretar “liberdade” como autorização para adicionar complexidade sem propósito: cada recurso deve melhorar leitura, impacto, personalidade, fluidez ou atmosfera. Evitar efeitos gratuitos, excesso de bloom, partículas, tremor, flashes, câmera lenta e pós-processamento.
+- Não sacrificar estabilidade, carregamento, desempenho em dispositivos móveis, controles, legibilidade, compatibilidade ou sistemas existentes para obter um resultado visual. Medir e otimizar a solução escolhida; se uma técnica de alto custo não couber no orçamento, procurar uma alternativa visualmente convincente e mais eficiente, sem simplesmente remover a ideia.
+- Preservar os VFX e a identidade originais de cada Bispo e de Ganância. A liberdade técnica serve para elevar a apresentação desses poderes, não para substituí-los por efeitos genéricos ou iguais entre personagens.
+- Claude tem autonomia para reorganizar internamente a implementação, criar auxiliares e testes, substituir abordagens inferiores e fazer refatorações necessárias dentro do escopo da missão. Mudanças amplas fora do escopo ou que afetem sistemas críticos compartilhados devem ser isoladas, justificadas na PR e protegidas por testes.
+- Não parar após uma implementação “funcionar”. Revisar visualmente, verificar timing e transições, testar no dispositivo/perfil móvel disponível e iterar sobre os pontos fracos. Se não houver acesso ao runtime/dispositivo real, declarar essa limitação e não afirmar que houve teste real.
+- O objetivo é o melhor resultado que a arquitetura e o orçamento real do projeto possam sustentar: cinematográfico, distinto, polido, coerente e sem aparência genérica. As exigências de qualidade são altas; os meios técnicos para alcançá-las permanecem abertos.
+
+**Regra final:** este briefing define o resultado desejado e as restrições reais do projeto, não engessa o caminho para chegar lá. Use iniciativa técnica e criatividade, pesquise, experimente, compare alternativas e escolha a solução superior, mantendo testes, segurança, desempenho e integridade do jogo.
