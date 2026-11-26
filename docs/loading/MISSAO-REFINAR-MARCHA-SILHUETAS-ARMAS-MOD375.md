@@ -375,6 +375,8 @@ Relatório final obrigatório: resultado visual, causa comprovada dos travamento
 
 O criador enviou uma nova referência de cenário e dois vídeos curtos. Esta seção complementa a seção 12 e passa a fazer parte do escopo autorizado. Não começar do zero: primeiro auditar os sistemas, modelos, animações, VFX, habilidades e assets existentes; preservar e reutilizar o que estiver bom.
 
+Observação de anexos: a imagem e os dois vídeos foram enviados nesta conversa, mas não estão armazenados automaticamente nesta branch do GitHub. Claude só terá acesso aos arquivos originais se o criador também os anexar à conversa dele. Até lá, usar as descrições deste documento como briefing textual e não afirmar que inspecionou os anexos.
+
 ### 13.1 Campo da Última Guerra — cenário e composição
 
 A imagem vertical enviada em 26/11/2026 define a direção de atmosfera do palco da batalha:
@@ -562,6 +564,8 @@ Não adicionar dependência, atualizar engine ou reescrever o sistema de renderi
 - não declarar teste em Android físico se ele não tiver sido executado em aparelho Android real.
 
 O relatório final deve incluir duração real, número máximo de NPCs ativos, métricas antes/depois, recursos reutilizados, mudanças nas ultimates, testes executados, limitações e evidências visuais.
+
+Na conversa com o criador, não enviar atualizações, resumos parciais nem explicações longas. Ao concluir de verdade e deixar a evidência técnica registrada na PR/artefato de entrega, responder somente: `Concluído.` Não usar essa resposta antes de todos os critérios e validações terem sido cumpridos.
 
 ---
 
