@@ -231,13 +231,21 @@ async function runSession(browser, viewport, variant, baselineModules) {
     }
   }
   try {
+    // Primeira passada: todos os pares estáticos A/B usam o mesmo estado inicial.
+    // Caminhar antes da última cena pode alterar LOD/culling e contaminar a comparação.
     for (const scene of SCENES) {
       const state = await setPose(session.page, scene);
       captures.push(await capture(session.page, viewport, variant, scene, state));
       if (!state.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera não assentou em " + scene.id);
       if (!cameraClear(state)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto em " + scene.id);
+    }
 
-      if (variant === "candidate" && WALK_SCENES.has(scene.id)) {
+    // Segunda passada: somente depois das fotos equivalentes, executa as caminhadas reais.
+    if (variant === "candidate") {
+      for (const scene of SCENES.filter(scene => WALK_SCENES.has(scene.id))) {
+        const pose = await setPose(session.page, scene);
+        if (!pose.settled) session.errors.page.push(viewport.id + ": câmera não assentou antes da caminhada em " + scene.id);
+        if (!cameraClear(pose)) session.errors.page.push(viewport.id + ": protagonista fora do quadro antes da caminhada em " + scene.id);
         const walk = await walkForward(session.page, scene);
         const walkFile = viewport.id + "-candidate-" + scene.id + "-apos-caminhada.png";
         await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
