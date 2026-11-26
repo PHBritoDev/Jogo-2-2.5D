@@ -295,6 +295,7 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /camera: \{ from: \[0, 2, -29\], to: \[0, 22, -15\] \}/.test(qa) && /skyRoi:/.test(qa) && /d\.fly\(s\.camera\.from, s\.camera\.to\)/.test(qa), 'mede a cortina com câmera livre fixa e repetível');
   assert.ok(/page\.locator\('#__a4-webgl-canvas'\)\.screenshot/.test(qa) && /scale: 'css'/.test(qa), 'compara somente o canvas WebGL, sem HUD/toast');
   assert.ok(/cameraTargetView/.test(qa), 'verifica que o alvo da câmera no céu não está obstruído');
+  assert.ok(/const cameraA =/.test(qa) && /const cameraB =/.test(qa), 'compara posição e alvo da câmera entre baseline e candidata');
   assert.ok(/'ceu-atmosfera3d\.js'/.test(qa) && /baselineRouteHits\.sky/.test(qa), 'baseline intercepta o shader real do céu');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
   assert.ok(/state\.dim\?\.hour/.test(qa) && /state\.night/.test(qa) && /u\.uAurK\?\.value/.test(qa), 'registra relógio, fase dia/noite e intensidade real da aurora');
