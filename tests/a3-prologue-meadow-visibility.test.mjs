@@ -114,3 +114,18 @@ test('as câmeras dirigidas começam alinhadas aos eixos reais da estrada e da t
   assert.ok(harness.includes('x: 54, z: 160, yaw: Math.PI'), 'o prado olha para a estrada ao norte do spawn');
   assert.ok(harness.includes('x: -14, z: -105, yaw: -Math.PI / 2'), 'a trilha começa voltada para oeste, no eixo de samambaias');
 });
+
+test('o preset posiciona o jogador antes de reativar a câmera de acompanhamento', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const pose = harness.slice(harness.indexOf('async function setPose'), harness.indexOf('async function capture'));
+  assert.ok(pose.indexOf('D.teleport(s.x, s.z, s.yaw);') < pose.indexOf('D.fly(null);'), 'teleporte deve preceder o follow-camera');
+  assert.ok(pose.indexOf('D.fly(null);') < pose.indexOf('D.view(s.yaw, s.pitch, s.distance);'), 'a vista deve ser aplicada após reativar a câmera');
+});
+
+test('a caminhada aguarda deslocamento real e registra bloqueios quando não avança', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('async function walkForward(page, scene)'), 'as duas cenas compartilham o mesmo executor');
+  assert.ok(harness.includes('Math.hypot(s.x - x, s.z - z) >= 2'), 'o teclado permanece pressionado até o jogador avançar 2 m');
+  assert.ok(harness.includes('timeout: 15000, polling: 200'), 'o limite é por deslocamento, não por duração fixa');
+  assert.ok(harness.includes('D.whyBlocked?.(s.x, s.z)'), 'o relatório inclui diagnóstico de bloqueio no ponto final');
+});

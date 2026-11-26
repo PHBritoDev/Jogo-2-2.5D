@@ -85,8 +85,10 @@ async function waitCameraStable(page, expectedDistance, timeoutMs = 22000) {
 async function setPose(page, scene) {
   await page.evaluate(s => {
     const D = window.SevenSinsDebug3D;
-    D.fly(null);
+    // Reposiciona o jogador antes de reativar o follow-camera; esta é a ordem usada
+    // pelos outros laboratórios do projeto e evita conservar a câmera do spawn.
     D.teleport(s.x, s.z, s.yaw);
+    D.fly(null);
     D.view(s.yaw, s.pitch, s.distance);
   }, scene);
   await page.waitForTimeout(800);
@@ -98,6 +100,45 @@ async function capture(page, viewport, variant, scene, state) {
   const full = path.join(OUT, file);
   await page.locator("#scene").screenshot({ path: full, timeout: 90000 });
   return { viewport: viewport.id, variant, scene: scene.id, file, state };
+}
+
+async function walkForward(page, scene) {
+  const start = await readState(page);
+  const startedAt = Date.now();
+  let movementReached = false, movementError = null;
+  await page.evaluate(() => window.focus());
+  try {
+    await page.keyboard.down("KeyW");
+    // Aguarda deslocamento físico do controlador, não uma janela fixa que pode
+    // terminar antes de haver frames suficientes no renderer SwiftShader.
+    await page.waitForFunction(({ x, z }) => {
+      const D = window.SevenSinsDebug3D, s = D && D.state();
+      return !!s && Math.hypot(s.x - x, s.z - z) >= 2;
+    }, { x: start.hero.x, z: start.hero.z }, { timeout: 15000, polling: 200 });
+    movementReached = true;
+  } catch (error) {
+    movementError = String(error.message || error).slice(0, 250);
+  } finally {
+    await page.keyboard.up("KeyW").catch(() => {});
+  }
+  await page.waitForTimeout(500);
+  const settled = await waitCameraStable(page, scene.distance, 9000);
+  const end = await readState(page);
+  const distance = heroDelta(start, end);
+  const blockers = await page.evaluate(() => {
+    const D = window.SevenSinsDebug3D, s = D.state();
+    const offsets = [[0, 0], [.5, 0], [-.5, 0], [0, .5], [0, -.5], [1, 0], [-1, 0], [0, 1], [0, -1]];
+    return {
+      current: D.whyBlocked?.(s.x, s.z) ?? null,
+      probes: offsets.map(([dx, dz]) => ({ dx, dz, reason: D.whyBlocked?.(s.x + dx, s.z + dz) ?? null }))
+    };
+  });
+  return {
+    seconds: +((Date.now() - startedAt) / 1000).toFixed(2),
+    start, end, distance, settled: settled.settled,
+    movementReached, movementError, blockers,
+    onScreen: end.camView ? end.camView.onScreen : null
+  };
 }
 
 async function openSession(browser, viewport, variant, baselineModules) {
@@ -183,30 +224,13 @@ async function runSession(browser, viewport, variant, baselineModules) {
     if (!cameraClear(before)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto no prado");
 
     if (variant === "candidate") {
-      await session.page.evaluate(() => window.focus());
-      const start = await readState(session.page);
-      await session.page.keyboard.down("KeyW");
-      await session.page.waitForTimeout(3400);
-      await session.page.keyboard.up("KeyW");
-      await session.page.waitForTimeout(1000);
-      const walkSettled = await waitCameraStable(session.page, meadow.distance, 9000);
-      const end = await readState(session.page);
-      const distance = heroDelta(start, end);
-      if (!walkSettled.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada no prado");
+      const walk = await walkForward(session.page, meadow);
       const walkFile = viewport.id + "-candidate-prado-apos-caminhada.png";
       await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
-      walks.push({
-        viewport: viewport.id,
-        scene: "prado-prologo",
-        seconds: 3.4,
-        start,
-        end,
-        distance,
-        file: walkFile,
-        onScreen: end.camView ? end.camView.onScreen : null
-      });
-      if (distance < 2) session.errors.page.push(viewport.id + ": caminhada no prado avançou menos de 2 m");
-      if (!cameraClear(end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar");
+      walks.push({ viewport: viewport.id, scene: "prado-prologo", ...walk, file: walkFile });
+      if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada no prado");
+      if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada no prado avançou menos de 2 m");
+      if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar no prado");
     }
 
     const forest = SCENES[1];
@@ -216,31 +240,13 @@ async function runSession(browser, viewport, variant, baselineModules) {
     if (!cameraClear(forestState)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto na trilha");
 
     if (variant === "candidate") {
-      await session.page.evaluate(() => window.focus());
-      const start = await readState(session.page);
-      await session.page.keyboard.down("KeyW");
-      await session.page.waitForTimeout(3400);
-      await session.page.keyboard.up("KeyW");
-      await session.page.waitForTimeout(1000);
-      const walkSettled = await waitCameraStable(session.page, forest.distance, 9000);
-      const end = await readState(session.page);
-      const distance = heroDelta(start, end);
+      const walk = await walkForward(session.page, forest);
       const walkFile = viewport.id + "-candidate-trilha-apos-caminhada.png";
       await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
-      walks.push({
-        viewport: viewport.id,
-        scene: forest.id,
-        seconds: 3.4,
-        start,
-        end,
-        distance,
-        file: walkFile,
-        settled: walkSettled.settled,
-        onScreen: end.camView ? end.camView.onScreen : null
-      });
-      if (!walkSettled.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada na trilha");
-      if (distance < 2) session.errors.page.push(viewport.id + ": caminhada na trilha avançou menos de 2 m");
-      if (!cameraClear(end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar na trilha");
+      walks.push({ viewport: viewport.id, scene: forest.id, ...walk, file: walkFile });
+      if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada na trilha");
+      if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada na trilha avançou menos de 2 m");
+      if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar na trilha");
     }
   } finally {
     await session.context.close().catch(() => {});
