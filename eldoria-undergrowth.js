@@ -172,8 +172,12 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
       const treeHeight = Number.isFinite(t.h) && t.h > 0
         ? t.h
         : speciesHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
-      const top = treeHeight * (.62 + rnd() * .2), len = treeHeight * (.35 + rnd() * .35), rot = rnd() * 6.28;
-      if (vineFits(x, z)) vines.push({ x, z, top, len, rot });
+      const top = treeHeight * (.62 + rnd() * .2);
+      const rawLength = treeHeight * (.35 + rnd() * .35);
+      // A ponta inferior precisa permanecer 20 cm acima do terreno, sem alterar o consumo do RNG.
+      const len = Math.min(rawLength, Math.max(0, top - .2));
+      const rot = rnd() * 6.28;
+      if (len > 0 && vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
   }
   if (zone) for (let i = 0; i < (lowSpec ? 280 : 560) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }

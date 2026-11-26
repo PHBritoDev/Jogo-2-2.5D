@@ -134,3 +134,25 @@ test('árvores do plano tropical sem h explícito geram cipós finitos e respeit
   }
   assert.ok(explicit.vines[0].len < tall.vines[0].len, 'h explícito do cinturão continua tendo precedência');
 });
+ 
+test('cipós tropicais mantêm a ponta inferior 20 cm acima do terreno', () => {
+  const species = ['sumauma', 'figueira', 'copaLarga', 'palmeira', 'embauba'];
+  const forestTrees = Array.from({ length: 20 }, (_, i) => ({
+    sp: species[i % species.length],
+    x: i * 12,
+    z: 0,
+    s: .75 + (i % 9) * .05
+  }));
+  const plan = planTropical({
+    trees: forestTrees,
+    zone: null,
+    isFree: () => true,
+    seed: 4242
+  });
+
+  assert.ok(plan.vines.length > 0, 'o cinturão continua produzindo cipós');
+  assert.ok(
+    plan.vines.every(v => v.top - v.len >= .2 - 1e-9),
+    'nenhuma ponta inferior atravessa o solo ou fica a menos de 20 cm dele'
+  );
+});
