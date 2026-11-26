@@ -78,15 +78,43 @@ export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, se
   return { ferns, bushes };
 }
 
+/** 
+ * Fade pontilhado do sub-bosque perto da câmera. O controlador compartilhado mantém seu fade-base de 2,2 m;
+ * esta camada ambiental estende a transição para 3,2 m sem alpha blending, sem remover instâncias e sem abrir clareiras.
+ */
+export const UNDERGROWTH_CAMERA_FADE_METERS = 3.2;
+export function applyUndergrowthCameraFade(material, near = UNDERGROWTH_CAMERA_FADE_METERS) {
+  if (!material || typeof material !== 'object') return material;
+  const distance = Number.isFinite(near) ? Math.max(.61, near) : UNDERGROWTH_CAMERA_FADE_METERS;
+  const marker = 'a3-undergrowth-near-fade-' + distance.toFixed(2);
+  material.userData ||= {};
+  if (material.userData[marker]) return material;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    if (previous) previous(shader, renderer);
+    const chunk = '#include <clipping_planes_fragment>';
+    if (!shader.fragmentShader.includes(chunk)) throw new Error('Shader do sub-bosque sem clipping_planes_fragment');
+    const fade = '\n{float a3UnderFade=clamp((length(vViewPosition)-0.6)/' + distance.toFixed(2) + ',0.0,1.0);float a3UnderDither=fract(dot(floor(gl_FragCoord.xy),vec2(0.5,0.25))+fract(floor(gl_FragCoord.y)*0.5)*0.5);if(a3UnderFade<0.999&&a3UnderDither>a3UnderFade)discard;}';
+    shader.fragmentShader = shader.fragmentShader.replace(chunk, chunk + fade);
+  };
+  const key = previousKey ? previousKey.call(material) : '';
+  material.customProgramCacheKey = () => key + '|' + marker;
+  material.needsUpdate = true;
+  material.userData[marker] = true;
+  return material;
+}
+
 export function buildUndergrowth(THREE, o) {
   const { scene, groundHeightAt, addWind, registerCull, lowSpec } = o, plan = planUndergrowth(o), d = new THREE.Object3D(), group = new THREE.Group();
   group.name = 'eldoria-undergrowth-mod291'; scene.add(group);
   const fernMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide });
   if (addWind) addWind(fernMat, .05, 'clamp(position.y*2.2,0.0,1.0)', .9, 'mod291-fern');
+  applyUndergrowthCameraFade(fernMat);
   const ferns = new THREE.InstancedMesh(fernGeometry(THREE), fernMat, Math.max(1, plan.ferns.length));
   plan.ferns.forEach((f, i) => { d.position.set(f.x, groundHeightAt(f.x, f.z) - .03, f.z); d.rotation.set(0, f.rot, 0); d.scale.setScalar(f.s); d.updateMatrix(); ferns.setMatrixAt(i, d.matrix); });
   ferns.count = plan.ferns.length; ferns.instanceMatrix.needsUpdate = true; ferns.receiveShadow = true; ferns.name = 'eldoria-ferns'; group.add(ferns);
   const bushMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, flatShading: false, side: THREE.DoubleSide });
+  applyUndergrowthCameraFade(bushMat);
   const bushes = new THREE.InstancedMesh(bushGeometry(THREE), bushMat, Math.max(1, plan.bushes.length));
   plan.bushes.forEach((b, i) => { d.position.set(b.x, groundHeightAt(b.x, b.z) + b.s * .25, b.z); d.rotation.set(0, b.rot, 0); d.scale.set(b.s * 1.4, b.s, b.s * 1.2); d.updateMatrix(); bushes.setMatrixAt(i, d.matrix); });
   bushes.count = plan.bushes.length; bushes.instanceMatrix.needsUpdate = true; bushes.receiveShadow = true; bushes.castShadow = !lowSpec; bushes.name = 'eldoria-bushes'; group.add(bushes);

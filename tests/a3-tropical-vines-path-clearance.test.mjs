@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { planTropical, TROPICAL_SPECIES_HEIGHTS, vineGeometry } from '../eldoria-undergrowth.js';
+import { applyUndergrowthCameraFade, planTropical, TROPICAL_SPECIES_HEIGHTS, UNDERGROWTH_CAMERA_FADE_METERS, vineGeometry } from '../eldoria-undergrowth.js';
 
 const trees = Array.from({ length: 20 }, (_, i) => ({ x: i * 4, z: 0, h: 12 }));
 const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
@@ -178,4 +178,36 @@ test('a menor coordenada renderizada de cada cipó mantém 20 cm de folga do ter
     plan.vines.every(v => v.top - v.len + bounds.min * v.len >= .2 - 1e-6),
     'incluindo folíolos abaixo da origem, nenhuma parte renderizada fica a menos de 20 cm do terreno'
   );
+});
+
+test('sub-bosque faz fade pontilhado até 3,2 m sem alpha blending nem perda de instâncias', () => {
+  const calls = [];
+  const material = {
+    userData: {},
+    onBeforeCompile(shader) { calls.push('wind'); shader.fragmentShader += '\n// vento preservado'; },
+    customProgramCacheKey() { return 'mod291-fern-wind'; }
+  };
+  applyUndergrowthCameraFade(material);
+  const shader = { fragmentShader: '#include <clipping_planes_fragment>\nvoid main() {}' };
+  material.onBeforeCompile(shader, {});
+  assert.equal(UNDERGROWTH_CAMERA_FADE_METERS, 3.2);
+  assert.deepEqual(calls, ['wind'], 'o shader de vento anterior continua encadeado');
+  assert.match(shader.fragmentShader, /a3UnderFade=clamp\(\(length\(vViewPosition\)-0\.6\)\/3\.20/);
+  assert.match(shader.fragmentShader, /if\(a3UnderFade<0\.999&&a3UnderDither>a3UnderFade\)discard/);
+  assert.match(shader.fragmentShader, /vento preservado/);
+  assert.match(material.customProgramCacheKey(), /mod291-fern-wind\|a3-undergrowth-near-fade-3\.20/);
+  const key = material.customProgramCacheKey();
+  applyUndergrowthCameraFade(material);
+  assert.equal(material.customProgramCacheKey(), key, 'aplicar duas vezes não duplica o shader');
+  assert.equal(material.needsUpdate, true);
+});
+
+test('fernMat e bushMat recebem o fade ambiental e o A/B inclui a pose inicial da mata', () => {
+  const source = readFileSync(new URL('../eldoria-undergrowth.js', import.meta.url), 'utf8');
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.match(source, /applyUndergrowthCameraFade\(fernMat\)/);
+  assert.match(source, /applyUndergrowthCameraFade\(bushMat\)/);
+  assert.match(harness, /id: "mata-entrada-inicial", x: -14, z: -82, yaw: 0, pitch: \.12, distance: 6/);
+  assert.match(source, /const ferns = new THREE\.InstancedMesh/);
+  assert.match(source, /const bushes = new THREE\.InstancedMesh/);
 });

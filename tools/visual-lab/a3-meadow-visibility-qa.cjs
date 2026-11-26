@@ -18,6 +18,8 @@ const VIEWPORTS = [
 const SCENES = [
   { id: "prado-prologo", x: 54, z: 160, yaw: Math.PI, pitch: .12, distance: 6 },
   { id: "trilha-samambaias", x: -14, z: -105, yaw: -Math.PI / 2, pitch: .12, distance: 6 },
+  // Pose exata do A1 (-14,-82): valida se o sub-bosque em primeiro plano encobre as pernas no spawn.
+  { id: "mata-entrada-inicial", x: -14, z: -82, yaw: 0, pitch: .12, distance: 6 },
   // Vista lateral do mesmo ponto, mantendo o herói voltado para a estrada: expõe o ombro do prado no mobile.
   { id: "prado-ombro-lateral", x: 54, z: 160, yaw: Math.PI / 2, heroYaw: Math.PI, pitch: .12, distance: 8 }
 ];
