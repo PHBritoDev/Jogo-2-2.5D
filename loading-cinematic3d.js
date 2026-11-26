@@ -438,8 +438,9 @@ export function startLoadingCinematic({ host, base = new URL('./', import.meta.u
       if (k >= 1) { state.wipe = -1; lens.visible = false; lensU.uDim.value = 0; } }
     if (state.seg === 'march') {
       const mt = state.segT % MARCH;
-      if (state.segT >= MARCH - .5 && state.wipe < 0 && battle && battle.ready) startWipe('battle');
-      else if (state.segT >= MARCH - .5 && !battle) prepareBattle();
+      // a troca para o campo só acontece no fim de uma volta da marcha (nunca no meio da ameaça implícita)
+      if (mt >= MARCH - .5 && state.wipe < 0 && battle && battle.ready) startWipe('battle');
+      else if (mt >= MARCH - .5 && !battle) prepareBattle();
       updateMarch(mt, dt);
     } else if (battle) { const r = battle.update(state.segT, gdt, dt) || {}; state.slow = r.slow || 1; if (r.done && state.wipe < 0) startWipe('march'); }
     explosions.update(gdt, camera, state.seg === 'march' ? state.V * gdt : 0); smears.update(gdt, state.seg === 'march' ? state.V * gdt : 0); scrape.update(gdt, state.seg === 'march' ? state.V * gdt : 0);
