@@ -1,0 +1,36 @@
+name: A4 — regressões da água e aurora de Eldória
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'aurora-luz3d.js'
+      - 'eldoria-water.js'
+      - 'mundo-3d-prototype.js'
+      - 'tests/mod327.test.mjs'
+      - 'eldoria-water-glsl.test.mjs'
+      - '.github/workflows/a4-water-aurora-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  water-aurora-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar Three.js na versão do jogo
+        run: npm install --prefix "${{ runner.temp }}/a4-three" --no-save --no-audit --no-fund three@0.160.0
+      - name: Executar regressões de água, aurora e shader
+        env:
+          FLUID_THREE_DIR: ${{ runner.temp }}/a4-three/node_modules/three
+        run: node --test tests/mod327.test.mjs eldoria-water-glsl.test.mjs
+      - name: Verificar sintaxe dos módulos alterados
+        run: node --check aurora-luz3d.js && node --check eldoria-water.js && node --check mundo-3d-prototype.js

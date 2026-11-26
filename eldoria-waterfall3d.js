@@ -10,7 +10,7 @@
  * rio, 1 camada de som posicional (Web Audio, atenuada por distância). Sem luzes, sem render target, sem partículas por
  * CPU: tudo animado por uniform de tempo.
  */
-import { buildRiverMesh } from './eldoria-water.js';
+const { buildRiverMesh } = await import('./eldoria-water.js' + new URL(import.meta.url).search);
 
 export const WATERFALL = Object.freeze({
   points: [[101, -9.2], [97.5, -9.1], [94, -9.05], [91.6, -9], [90.2, -8.95], [87.5, -8.9], [84, -8.8], [80.5, -8.7], [77.2, -8.6]],
