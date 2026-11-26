@@ -45,6 +45,8 @@ export function swordJudgmentCue(e){
  */
 /** Compact profile for the 16 individual Passagem blade marks. */
 export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.44,endWidth:.006,maxWidth:.054,curve:.035,tilt:.022,bow:.018});
+/** Keep early marks visible until the final cut, then fade the whole pattern together. */
+export const JUDGMENT_SLASH_TIMING=Object.freeze({life:1.85,finalLife:2.05});
 /** Per-rite blade trails: Passagem gets a shorter, softer, 30Hz ribbon. */
 export const SWORD_TRAIL_PROFILES=Object.freeze({
  standard:Object.freeze({base:.15,tip:1,life:.24,opacity:1,interval:0}),
@@ -171,7 +173,7 @@ export function createSwordRitesVFX(T,scene){
    const n=e.n,cue=swordJudgmentCue(e);if(!cue)return;
    const {p,yaw,roll}=cue;
    // One short, separated surface stroke per damage event; no crossed final slab.
-   cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?.28:.20,judgmentSlash);
+   cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?JUDGMENT_SLASH_TIMING.finalLife:JUDGMENT_SLASH_TIMING.life,judgmentSlash);
    burst(p,'prota',e.final?5:2);
   }
   else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw+Math.PI/2,cue.secondLife);}
