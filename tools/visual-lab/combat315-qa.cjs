@@ -46,21 +46,29 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   report.perf=await E(()=>SevenSinsDebug3D.perfProbe(4));
   report.after=await E(()=>SevenSinsDebug3D.combat315());
   // A2: exercise the real Passagem do Julgamento route in the isolated game scene.
-  report.steps.passage=await E(async()=>{
+  const passageMid=await E(async()=>{
    const D=SevenSinsDebug3D;await D.riteQA(true);D.riteEquip('prota');
-   D.motionQA({x:-5,z:16,enemyDistance:4,sword:'prota'});D.viewQA(false);
+   D.motionQA({x:-5,z:16,enemyDistance:4,sword:'prota'});
+   // Clear any residual combat hit-stop before timing the 0.30–0.47 s movement window.
+   D.motionStep(.15,{x:0,z:0,fps:30});D.viewQA(false);
    const before=D.riteState();D.riteCast();
    // Step the same per-frame world loop used by gameplay, not riteSim's single final render.
    const mid=D.motionStep(.36,{x:0,z:0,fps:30});
-   const midDistance=Math.hypot(mid.hero[0]-before.hero[0],mid.hero[2]-before.hero[2]);
-   await riteShot('05-passagem-julgamento-meio');
-   const after=D.motionStep(1.74,{x:0,z:0,fps:30});
-   return{before:before.hero,target:before.target,mid:mid.hero,midTime:mid.active?.time??null,midDistance,
-    totalDistance:Math.hypot(after.hero[0]-before.hero[0],after.hero[2]-before.hero[2]),
-    after:after.hero,hpBefore:before.hp,hpAfter:after.hp,damage:before.hp-after.hp,mana:after.mana,
+   return{before:{hero:before.hero,target:before.target,hp:before.hp},mid:{hero:mid.hero,time:mid.active?.time??null}};
+  });
+  await riteShot('05-passagem-julgamento-meio');
+  const passageEnd=await E(()=>{
+   const D=SevenSinsDebug3D,after=D.motionStep(1.74,{x:0,z:0,fps:30});
+   return{after:after.hero,hpAfter:after.hp,mana:after.mana,
     cuts:(after.events||[]).filter(e=>e.type==='judgment').length,
     safe:!D.collisionAt(after.hero[0],after.hero[2]),activeAfter:!!after.active};
   });
+  const midDistance=Math.hypot(passageMid.mid.hero[0]-passageMid.before.hero[0],passageMid.mid.hero[2]-passageMid.before.hero[2]);
+  const totalDistance=Math.hypot(passageEnd.after[0]-passageMid.before.hero[0],passageEnd.after[2]-passageMid.before.hero[2]);
+  report.steps.passage={before:passageMid.before.hero,target:passageMid.before.target,mid:passageMid.mid.hero,
+   midTime:passageMid.mid.time,midDistance,totalDistance,after:passageEnd.after,
+   hpBefore:passageMid.before.hp,hpAfter:passageEnd.hpAfter,damage:passageMid.before.hp-passageEnd.hpAfter,
+   mana:passageEnd.mana,cuts:passageEnd.cuts,safe:passageEnd.safe,activeAfter:passageEnd.activeAfter};
   assert.ok(report.steps.passage.midDistance>.5,'Passagem deve mover o herói durante a janela filmada');
   assert.ok(report.steps.passage.midDistance<report.steps.passage.totalDistance,'a captura intermediária deve ocorrer antes da chegada');
   assert.ok(report.steps.passage.midTime>=.30&&report.steps.passage.midTime<=.47,'captura intermediária deve cair durante o dash');
