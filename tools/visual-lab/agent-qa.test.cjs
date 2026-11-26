@@ -263,9 +263,9 @@ test('rejeição antes da gravação permite corrigir o mesmo SHA',async()=>{
 
 test('A1: workflow pós-merge mantém dispatch direto, artifact rastreável e gatilhos de risco de câmera',()=>{
   const a1=fs.readFileSync(path.join(__dirname,'../../.github/workflows/a1-eldoria-route-capture.yml'),'utf8');
-  const pushStart=a1.indexOf('\\n  push:');
-  const pathsStart=a1.indexOf('\\n    paths:\\n',pushStart);
-  const dispatchStart=a1.indexOf('\\n  workflow_dispatch:',pathsStart);
+  const pushStart=a1.indexOf('\n  push:');
+  const pathsStart=a1.indexOf('\n    paths:\n',pushStart);
+  const dispatchStart=a1.indexOf('\n  workflow_dispatch:',pathsStart);
   assert.ok(pushStart>=0&&pathsStart>pushStart&&dispatchStart>pathsStart,'push e workflow_dispatch precisam ser blocos distintos');
   const pushPaths=a1.slice(pathsStart,dispatchStart);
   for(const file of ['desktop-movement.js','world3d-terrain.js','eldoria-prologue-meadow.js','eldoria-undergrowth.js',
