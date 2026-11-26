@@ -63,7 +63,7 @@ const SHOTS = [
 ];
 
 const CLEARING_SHOTS = [
-  { id: 'vigia', x: 29, z: 96.5, yaw: Math.PI / 2, pitch: .55, dist: 20 },
+  { id: 'vigia', x: 29, z: 96.5, yaw: Math.PI / 2 - .55, pitch: .55, dist: 20 },
   { id: 'respiro-leste', x: 96, z: 70, yaw: Math.PI / 2, pitch: .55, dist: 20 },
   { id: 'respiro-oeste', x: 20, z: 128, yaw: Math.PI / 2, pitch: .55, dist: 18 },
   { id: 'garganta', x: 70, z: 200, yaw: 0, pitch: .55, dist: 16 },
@@ -129,6 +129,8 @@ async function captureClearingsAB(browser, profileName, viewport, mobile) {
     await page.addStyleTag({ content: 'body *{visibility:hidden!important}canvas#scene{visibility:visible!important}' });
     await page.evaluate(() => { const D = window.SevenSinsDebug3D; D.setHour(15); D.weather('limpo'); });
     await page.waitForFunction(() => window.SevenSinsValleyReport?.groundCover?.tufts > 0, null, { timeout: 120000 });
+    // Os troncos e as copas chegam em um GLB separado da cobertura de chão.
+    await page.waitForFunction(() => !!window.SevenSinsTropicalBeltReport?.glb, null, { timeout: 120000 });
     const groundCover = await page.evaluate(() => window.SevenSinsValleyReport.groundCover);
     result[variant].groundCover = groundCover;
     if (groundCover.tufts < 800 || groundCover.flowers < 230) {

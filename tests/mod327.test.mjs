@@ -197,10 +197,16 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
 });
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
-import { auroraColor, auroraLightK, patchAuroraGround, auroraUniforms, AURORA_WATER } from '../aurora-luz3d.js';
-test('aurora: luz colorida que acompanha o céu (rosa/violeta/azul), some sem aurora e em lugar fechado; mais leve no celular', () => {
+import { auroraColor, auroraLightK, auroraLowProfile, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
+test('aurora: paleta e intensidade cinematográfica preservadas no perfil baixo; custo cai só no detalhe', () => {
   assert.equal(auroraLightK(0, false, false), 0); assert.equal(auroraLightK(.8, true, false), 0, 'caverna/interior/dimensão: nada');
-  assert.ok(auroraLightK(.8, false, true) < auroraLightK(.8, false, false) && auroraLightK(.8, false, false) === .8);
+  assert.equal(auroraLightK(.8, false, false), .8);
+  assert.equal(auroraLightK(.8, false, true), .8, 'perfil baixo reduz apenas as oitavas do FBM; não escurece a iluminação');
+  assert.equal(auroraLowProfile(true, 'high'), false, 'alto explícito preserva o detalhe mesmo no viewport móvel');
+  assert.equal(auroraLowProfile(true, 'medium'), false, 'médio explícito preserva o detalhe completo');
+  assert.equal(auroraLowProfile(false, 'low'), true, 'baixo explícito ativa a variante econômica em qualquer viewport');
+  assert.equal(auroraLowProfile(true, 'auto'), true, 'auto usa duas oitavas quando o controlador informa tier baixo');
+  assert.equal(auroraLowProfile(false, 'auto'), false, 'auto restaura quatro oitavas quando o tier permite');
   const cs = [0, 30, 60, 90, 120, 200].map(auroraColor); for (const c of cs) { assert.ok(c[2] >= .8 && c.every(v => v >= 0 && v <= 1.01), 'paleta da aurora (azul/violeta dominante)'); }
   assert.ok(Math.abs(cs[0][0] - cs[2][0]) + Math.abs(cs[0][1] - cs[2][1]) > .05, 'a cor anda com o tempo');
 });
@@ -212,9 +218,57 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/smoothstep\(\.35,\.95,n\.y\)/.test(sh.fragmentShader) && /band\*band/.test(sh.fragmentShader) && /\*\(diffuseColor\.rgb\*/.test(sh.fragmentShader), 'faixas, oclusão por inclinação, luz × albedo (não tinta)');
   assert.ok(/if\(uAurK>\.001\)/.test(sh.fragmentShader), 'não trabalha sem aurora'); assert.ok(mat.customProgramCacheKey().endsWith('|aurora327') && mat.customProgramCacheKey() === mat.customProgramCacheKey() && typeof prev === 'string', 'chave fixa (não recompila quando a aurora acende)');
   assert.ok(/reflect\(-avd,wN\)/.test(AURORA_WATER) && /wFres/.test(AURORA_WATER), 'água: reflexo pela visão + ondulação + fresnel');
-  const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8'); assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
+  updateAuroraLight(THREE, { level: .8, time: 30, low: true, dir: { x: 1, z: 0 } });
+  const shared = auroraUniforms(THREE), stableKey = mat.customProgramCacheKey();
+  assert.equal(shared.uAurLow.value, 1, 'perfil baixo chega ao shader por uniforme');
+  assert.ok(Math.abs(shared.uAurK.value - .8) < 1e-9, 'perfil baixo preserva a intensidade cinematográfica; só reduz detalhe de FBM');
+  updateAuroraLight(THREE, { level: .8, time: 31, low: false, dir: { x: 1, z: 0 } });
+  assert.equal(shared.uAurLow.value, 0, 'perfil alto restaura o detalhe completo');
+  assert.ok(Math.abs(shared.uAurK.value - .8) < 1e-9 && mat.customProgramCacheKey() === stableKey, 'troca de qualidade sem recompilar');
+  const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  let storedMode = 'high', storageReads = 0;
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem(key) { assert.equal(key, 'seven-sins-3d-graphics'); storageReads++; return storedMode; } } });
+  try {
+    updateAuroraLight(THREE, { level: .8, time: 500, low: true });
+    assert.equal(shared.uAurLow.value, 0, 'high explícito vence hint baixo');
+    storedMode = 'low';
+    updateAuroraLight(THREE, { level: .8, time: 500.25, low: false });
+    assert.equal(shared.uAurLow.value, 0, 'preferência fica cacheada dentro de 0,5 s');
+    assert.equal(storageReads, 1, 'localStorage não é consultado por frame');
+    updateAuroraLight(THREE, { level: .8, time: 500.5, low: false });
+    assert.equal(shared.uAurLow.value, 1, 'low é aplicado após expirar o cache');
+    assert.equal(storageReads, 2);
+    storedMode = 'max';
+    updateAuroraLight(THREE, { level: .8, time: 501, low: true });
+    assert.equal(shared.uAurLow.value, 0, 'max explícito restaura quatro oitavas');
+    assert.equal(storageReads, 3);
+  } finally {
+    if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage);
+    else delete globalThis.localStorage;
+  }
+  const ew = fs.readFileSync(new URL('../eldoria-water.js', import.meta.url), 'utf8');
+  assert.ok(/uAurC \* uAurK \* aUp/.test(ew) && /Object\.assign\(uniforms, o\.aurora \|\| waterAurora/.test(ew), 'rio/lago de Eldória também');
+  assert.ok(/uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow;/.test(ew), 'uniform de qualidade compartilhado');
+  assert.ok(/float fbmLow\(vec2 p\)/.test(ew) && /float waterFbm\(vec2 p\)\{ if \(uAurLow > \.5\) return fbmLow\(p\); return fbm\(p\); \}/.test(ew), 'seletor uniforme: duas oitavas no baixo, quatro no alto');
+  const fragmentStart = ew.indexOf('const FRAG'), mainStart = ew.indexOf('void main(){', fragmentStart);
+  const mainShader = ew.slice(mainStart);
+  assert.ok(mainStart > fragmentStart && !/fbm\(/.test(mainShader) && (mainShader.match(/waterFbm\(/g) || []).length >= 11, 'normais, espuma e aurora passam pelo mesmo caminho adaptativo');
   assert.ok(/patchAuroraGround\(T, terrainMat\)/.test(w) && /patchAuroraGround\(T, m, \.6\)/.test(w) && /aurora: auroraUniforms\(T\)/.test(w), 'relevo, cone e água da jornada');
+  assert.ok(/updateAuroraLight\(THREE,\{level:ak,time:performance\.now\(\)\*\.001,closed:voidMode\|\|!!caveWalk\|\|auroraQAOff,low:graphics3DMode==='auto'\?graphics3DAutoTier<=1:graphics3DMode==='low'\}\)/.test(m), 'aurora acompanha o tier real do Auto e os perfis explícitos');
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
+});
+
+test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métricas informativas', () => {
+  const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
+  assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
+  assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
+  assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
+  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
+  assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
+  assert.ok(/skyRoi: \{ left: 180, top: 60, width: 520, height: 100 \}/.test(qa) && /waterRoi:/.test(qa), 'separa a inspeção de aurora e água');
+  assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
+  assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
+  assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
 });
 
 /* ---------- P2: morte → desintegração em pó ---------- */
