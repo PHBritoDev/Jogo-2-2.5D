@@ -40,6 +40,14 @@ export function swordJudgmentCue(e){
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
  */
+/** Compact profile for the 16 individual Passagem blade marks. */
+export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.82,endWidth:.014,maxWidth:.078,curve:.085,tilt:.035,bow:.018});
+export function swordJudgmentSlashPoint(u,edge){
+ const t=Math.max(0,Math.min(1,Number.isFinite(u)?u:0)),side=edge?1:-1,p=JUDGMENT_SLASH_PROFILE;
+ const width=p.endWidth+(p.maxWidth-p.endWidth)*Math.pow(Math.sin(Math.PI*t),.8);
+ const center=p.curve*Math.sin((t-.5)*Math.PI)+p.tilt*(t-.5);
+ return{x:(t-.5)*p.length,y:center+side*width*.5,z:p.bow*Math.sin(Math.PI*t)};
+}
 export function createSwordRitesVFX(T,scene){
  const root=new T.Group();root.name='SwordRites231';scene.add(root);
  const palettes={prota:[0xf4efe6,0xffffff,0x4a4038,0xff3a48],aurora:[0xff163a,0xffe9ec,0x100618,0xa52dff],vigilia:[0x299bff,0xe4fcff,0x081c43,0x7acfff],quantum:[0x8f35ff,0xffdf7a,0x160925,0xff58cb],celeste:[0xffd271,0xffffff,0x705329,0xfff1b0]};
@@ -63,14 +71,7 @@ export function createSwordRitesVFX(T,scene){
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;
  for(let i=0;i<=N;i++){const u=i/N,angle=-1.46+u*2.92,taper=Math.pow(Math.sin(Math.PI*u),.65);for(let j=0;j<5;j++){const v=j/4,r=1-(1-v)*(.33+.08*Math.sin(u*31))*taper;pos.push(Math.sin(angle)*r,Math.cos(angle)*r-.42,Math.sin(u*Math.PI*2)*.13+(1-v)*.2*taper);uv.push(u,v);birth.push(0);if(i<N&&j<4){const k=i*5+j;indices.push(k,k+1,k+5,k+1,k+6,k+5);}}}
  crescent.setAttribute('position',new T.Float32BufferAttribute(pos,3));crescent.setAttribute('uv',new T.Float32BufferAttribute(uv,2));crescent.setAttribute('birth',new T.Float32BufferAttribute(birth,1));crescent.setIndex(indices);crescent.computeVertexNormals();
- // Compact, curved blade ribbon for Passagem; ordinary impacts keep the broader crescent.
- export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.82,endWidth:.014,maxWidth:.078,curve:.085,tilt:.035,bow:.018});
- export function swordJudgmentSlashPoint(u,edge){
-  const t=Math.max(0,Math.min(1,Number.isFinite(u)?u:0)),side=edge?1:-1,p=JUDGMENT_SLASH_PROFILE;
-  const width=p.endWidth+(p.maxWidth-p.endWidth)*Math.pow(Math.sin(Math.PI*t),.8);
-  const center=p.curve*Math.sin((t-.5)*Math.PI)+p.tilt*(t-.5);
-  return{x:(t-.5)*p.length,y:center+side*width*.5,z:p.bow*Math.sin(Math.PI*t)};
- }
+ // Compact curved blade ribbon; ordinary impacts keep the broader crescent.
  const judgmentSlash=new T.BufferGeometry(),jpos=[],juv=[],jbirth=[],jidx=[],JN=28;
  for(let i=0;i<=JN;i++){
   const u=i/JN;
