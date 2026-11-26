@@ -137,7 +137,7 @@ try {
     loadingPanel.dataset.state = 'error';
     if (loadingState) loadingState.textContent = 'NÃO FOI POSSÍVEL PREPARAR O PLANETA';
     if (loadingCopy) loadingCopy.textContent = 'O carregamento foi interrompido. Confira o diagnóstico abaixo e tente novamente.';
-    if (loadingError) loadingError.textContent = 'Falha ao montar o mundo 3D (Mod 186).\\n' + msg;
+    if (loadingError) loadingError.textContent = 'Falha ao montar o mundo 3D (Mod 186).\n' + msg;
     if (loadingRetry) loadingRetry.addEventListener('click', () => location.reload(), { once: true });
   }
 }
