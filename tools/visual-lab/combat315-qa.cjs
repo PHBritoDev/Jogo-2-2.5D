@@ -59,6 +59,8 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   await riteShot('05-passagem-julgamento-meio');
   const passageCuts=await E(()=>{const D=SevenSinsDebug3D,state=D.motionStep(.75,{x:0,z:0,fps:30});return{hero:state.hero,time:state.active?.time??null};});
   await riteShot('05-passagem-julgamento-cortes');
+  const passageLate=await E(()=>{const D=SevenSinsDebug3D,state=D.motionStep(.50,{x:0,z:0,fps:30});return{hero:state.hero,time:state.active?.time??null,cuts:(state.events||[]).filter(e=>e.type==='judgment').length};});
+  await riteShot('05-passagem-julgamento-cortes-finais');
   const passageEnd=await E(()=>{
    const D=SevenSinsDebug3D,after=D.motionStep(1.74,{x:0,z:0,fps:30});
    return{after:after.hero,hpAfter:after.hp,mana:after.mana,
@@ -68,13 +70,15 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   const midDistance=Math.hypot(passageMid.mid.hero[0]-passageMid.before.hero[0],passageMid.mid.hero[2]-passageMid.before.hero[2]);
   const totalDistance=Math.hypot(passageEnd.after[0]-passageMid.before.hero[0],passageEnd.after[2]-passageMid.before.hero[2]);
   report.steps.passage={before:passageMid.before.hero,target:passageMid.before.target,mid:passageMid.mid.hero,
-   midTime:passageMid.mid.time,midDistance,totalDistance,cutsFrame:passageCuts,after:passageEnd.after,
+   midTime:passageMid.mid.time,midDistance,totalDistance,cutsFrame:passageCuts,cutsLateFrame:passageLate,after:passageEnd.after,
    hpBefore:passageMid.before.hp,hpAfter:passageEnd.hpAfter,damage:passageMid.before.hp-passageEnd.hpAfter,
    mana:passageEnd.mana,cuts:passageEnd.cuts,safe:passageEnd.safe,activeAfter:passageEnd.activeAfter};
   assert.ok(report.steps.passage.midDistance>.5,'Passagem deve mover o herói durante a janela filmada');
   assert.ok(report.steps.passage.midDistance<report.steps.passage.totalDistance,'a captura intermediária deve ocorrer antes da chegada');
   assert.ok(report.steps.passage.midTime>=.30&&report.steps.passage.midTime<=.47,'captura intermediária deve cair durante o dash');
-  assert.ok(report.steps.passage.cutsFrame.time>=.65&&report.steps.passage.cutsFrame.time<=1.2,'captura adicional deve cair durante a sequência de cortes');
+  assert.ok(report.steps.passage.cutsFrame.time>=.65&&report.steps.passage.cutsFrame.time<=1.2,'captura intermediária deve cair durante a sequência de cortes');
+  assert.ok(report.steps.passage.cutsLateFrame.time>=1.55&&report.steps.passage.cutsLateFrame.time<=1.75,'captura final deve mostrar o último corte antes da dissipação');
+  assert.equal(report.steps.passage.cutsLateFrame.cuts,16,'os 16 eventos já foram emitidos na captura final');
   assert.ok(report.steps.passage.after[2]<report.steps.passage.target[2],'Passagem termina atrás do alvo');
   assert.equal(report.steps.passage.damage,76,'16 cortes mantêm o orçamento de dano 76');
   assert.equal(report.steps.passage.cuts,16,'todos os 16 cortes visuais/lógicos são emitidos');

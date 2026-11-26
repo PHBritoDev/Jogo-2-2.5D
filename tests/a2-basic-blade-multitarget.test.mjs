@@ -849,38 +849,48 @@ test('impact cut follows the connected blade or energy heading, not the global c
  near(swordImpactYaw({energy:{direction:{x:NaN,z:0},yaw:Infinity}}),0);
 });
 
-test('Passagem places judgment cuts on the capsule surface facing the hero',()=>{
- const front=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:0,y:0,z:0},n:0});
+test('Passagem places each cut on the attacker-facing capsule surface',()=>{
+ const target={x:0,y:1,z:5,radius:.5,height:1.8};
+ const front=swordJudgmentCue({target,from:{x:0,y:0,z:0},n:5});
  assert.ok(front);
- assert.ok(Math.abs(front.p.z-4.465)<1e-9,'cut must sit 3.5 cm outside the near capsule surface so the enemy mesh cannot occlude it');
- assert.equal(front.p.x,0);
- assert.equal(front.yaw,0,'cut plane must face the attacker');
- const right=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:5,y:0,z:5},n:0});
- assert.ok(right.p.x>.52&&right.p.x<.54,'side approach must sit just outside the right-facing capsule surface');
- assert.ok(Math.abs(right.yaw+Math.PI/2)<1e-9,'side approach must rotate the cut broadside to the hero');
+ const frontRadius=Math.hypot(front.p.x-target.x,front.p.z-target.z);
+ assert.ok(frontRadius>target.radius&&frontRadius<target.radius+.06);
+ assert.ok(front.p.z<target.z&&front.p.x>0,'the cue must occupy the front-right surface seen by the attacker');
+ assert.ok(Math.abs(front.yaw+.31)<1e-9,'the stroke plane follows the local capsule surface');
+ const right=swordJudgmentCue({target,from:{x:5,y:0,z:5},n:6});
+ assert.ok(right.p.x>.50&&right.p.x<.56,'side approach remains just outside the right-facing capsule surface');
+ assert.ok(Math.abs(right.yaw-(-Math.PI/2+.31))<1e-9,'side approach rotates the local cut plane with the surface');
 });
 
-test('Passagem distributes 16 body-sized cuts over the visible capsule instead of stacking one slab',async()=>{
+test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async()=>{
  const target={x:0,y:1,z:5,radius:.5,height:1.8},from={x:0,y:0,z:0};
  const cues=Array.from({length:16},(_,n)=>swordJudgmentCue({target,from,n}));
  const positions=new Set(cues.map(c=>[c.p.x,c.p.y,c.p.z].map(v=>v.toFixed(3)).join(',')));
- assert.ok(positions.size>=14,'the 16 cues must occupy distinct points across the target');
- const heights=cues.map(c=>c.p.y);
- assert.ok(Math.max(...heights)-Math.min(...heights)>.75,'cuts must span the target vertically');
+ assert.equal(positions.size,16,'all 16 cuts must occupy distinct points');
+ const heights=cues.map(c=>c.p.y),yaws=cues.map(c=>c.yaw),rolls=cues.map(c=>c.roll);
+ assert.ok(Math.max(...heights)-Math.min(...heights)>.95,'cuts span almost the full enemy body');
+ assert.ok(Math.max(...yaws)-Math.min(...yaws)>1.7,'four columns wrap around the visible front hemisphere');
+ assert.ok(new Set(rolls.map(v=>v.toFixed(3))).size>=12,'cuts use varied slash angles rather than one parallel slab');
  for(const cue of cues){
   const radius=Math.hypot(cue.p.x-target.x,cue.p.z-target.z);
   assert.ok(radius>target.radius&&radius<target.radius+.06,'each cut stays just outside the capsule without visibly floating');
-  assert.equal(cue.yaw,0,'the cut plane keeps facing the attacker');
  }
+ let minSpacing=Infinity;
+ for(let i=0;i<cues.length;i++)for(let j=i+1;j<cues.length;j++){
+  const a=cues[i].p,b=cues[j].p;
+  minSpacing=Math.min(minSpacing,Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z));
+ }
+ assert.ok(minSpacing>.25,'short marks keep visible gaps instead of merging into a single sheet');
  const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
- assert.ok(source.includes("cut(p,'prota',e.final?1.12:.92,roll,yaw,e.final?.20:.12,judgmentSlash)"));
- assert.ok(source.includes("if(e.final)cut(p,'prota',.82,roll+Math.PI/2,yaw,.16,judgmentSlash)"));
+ assert.ok(source.includes('m.material.depthTest=!overlay'),'surface cuts render above the enemy mesh without moving far off the capsule');
+ assert.ok(source.includes("cut(p,'prota',e.final?1.14:1,roll,yaw,e.final?.28:.22,judgmentSlash)"));
+ assert.ok(!source.includes("if(e.final)cut(p,'prota',.82"),'finalizer must not add a crossed second slab');
 });
 
-test('Passagem uses a narrow curved ribbon instead of the shared broad crescent',async()=>{
+test('Passagem uses a compact tapered ribbon instead of the shared broad crescent',async()=>{
  const profile=JUDGMENT_SLASH_PROFILE;
- assert.ok(profile.length<.9,'individual cuts stay shorter than the target body width');
- assert.ok(profile.maxWidth<.08,'individual cuts stay thin enough to read as blade strokes');
+ assert.ok(profile.length<.42,'individual cuts stay short enough to remain separated');
+ assert.ok(profile.maxWidth<.03,'individual cuts stay thin enough to read as blade strokes');
  const endWidth=Math.abs(swordJudgmentSlashPoint(0,1).y-swordJudgmentSlashPoint(0,0).y);
  const middleWidth=Math.abs(swordJudgmentSlashPoint(.5,1).y-swordJudgmentSlashPoint(.5,0).y);
  assert.ok(middleWidth>endWidth*4,'the ribbon tapers sharply at both ends');
@@ -888,6 +898,7 @@ test('Passagem uses a narrow curved ribbon instead of the shared broad crescent'
  const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
  assert.ok(vfx.includes("geometry=crescent"),'ordinary impacts retain the original crescent geometry by default');
  assert.ok(vfx.includes("m.geometry=geometry"),'the pooled cut meshes accept a dedicated judgment geometry');
+ assert.ok(vfx.includes("m.material.depthTest=!overlay"),'judgment strokes are visible over the enemy surface');
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
 });
 
