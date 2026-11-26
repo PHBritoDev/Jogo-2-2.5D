@@ -2,10 +2,17 @@ import { impactFragments } from './skill-impact3d.js';
 import { softParticles, groundDecals, groundNormal, groundShatter, hash } from './celestial-fxkit3d.js?v=mod241-gemini-vfx-fixed';
 import { energyBody, ENERGY_PALETTES } from './vfx-flow3d.js?v=mod241-gemini-vfx-fixed';
 
-/** Ground-contact tolerance in world units. Air impacts must not emit terrain decals or dust. */
-export function impactTouchesGround(pointY, groundY) {
-  return Number.isFinite(pointY) && Number.isFinite(groundY)
-    && pointY - groundY >= -1 && pointY - groundY < 5;
+/** Default vertical reach for a normal hit point above the terrain (world units). */
+export const IMPACT_GROUND_REACH_DEFAULT = 1.6;
+const IMPACT_GROUND_REACH_MAX = 3;
+const IMPACT_GROUND_PENETRATION = -.35;
+
+/** Ground effects are only valid close to the surface; callers may account for their skill's launch height. */
+export function impactTouchesGround(pointY, groundY, maxHeight = IMPACT_GROUND_REACH_DEFAULT) {
+  if (!Number.isFinite(pointY) || !Number.isFinite(groundY)
+    || !Number.isFinite(maxHeight) || maxHeight < 0 || maxHeight > IMPACT_GROUND_REACH_MAX) return false;
+  const offset = pointY - groundY;
+  return offset >= IMPACT_GROUND_PENETRATION && offset <= maxHeight;
 }
 
 /** Avoid sampling terrain at invalid world coordinates from malformed impact records. */
@@ -13,6 +20,15 @@ export function impactGroundHeight(ground, point) {
   return Number.isFinite(point?.x) && Number.isFinite(point?.z)
     ? ground(point.x, point.z)
     : NaN;
+}
+
+/** Snapshot the static ground contact once per emitted impact, including its normal for pooled updates. */
+export function impactGroundSnapshot(ground, point, maxHeight = IMPACT_GROUND_REACH_DEFAULT, normal = [0, 1, 0]) {
+  const height = impactGroundHeight(ground, point);
+  const touches = impactTouchesGround(point?.y, height, maxHeight);
+  normal[0] = 0; normal[1] = 1; normal[2] = 0;
+  if (touches) groundNormal(ground, point.x, point.z, normal);
+  return { height, touches, normal };
 }
 
 /** Reject malformed collision events before they enter pooled meshes and particle buffers. */
@@ -52,15 +68,16 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
   root.add(dust.mesh, embers.mesh, light.mesh);
   const slots = Array.from({ length: capacity }, (_, i) => ({
     id: null, time: -99, point: { x: 0, y: 0, z: 0 }, size: 1,
+    groundY: NaN, groundContact: false, groundNormal: [0, 1, 0],
     preset: 'cinder', kind: 'ball', dir: { x: 0, y: 1, z: 0 },
     body: energyBody(T, root, 'cinder', { rings: 30, sides: 20, tail: 1.3, seed: i })
   }));
   for (const s of slots) s.body.mesh.visible = false;
   let head = 0;
-  const seen = new Set(), normal = [0, 1, 0];
+  const seen = new Set();
   return {
     root,
-    emit({ id, time, point, size = 2, preset = 'cinder', kind = 'ball', dir = { x: 0, y: 1, z: 0 } }) {
+    emit({ id, time, point, size = 2, preset = 'cinder', kind = 'ball', dir = { x: 0, y: 1, z: 0 }, groundReach = IMPACT_GROUND_REACH_DEFAULT }) {
       if (!impactRecordValid({ time, point, size })) return false;
       // Missing IDs previously collapsed every anonymous collision into a single event.
       if (impactHasStableId(id)) {
@@ -69,7 +86,8 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
         if (seen.size > 64) seen.delete(seen.values().next().value);
       }
       const s = slots[head++ % capacity];
-      Object.assign(s, { id, time, size, preset, kind, seed: head });
+      const groundSnapshot = impactGroundSnapshot(ground, point, groundReach, s.groundNormal);
+      Object.assign(s, { id, time, size, preset, kind, seed: head, groundY: groundSnapshot.height, groundContact: groundSnapshot.touches });
       Object.assign(s.point, point);
       // A malformed direction must never poison pooled shader transforms.
       Object.assign(s.dir, impactDirectionValid(dir) ? dir : { x: 0, y: 1, z: 0 });
@@ -100,10 +118,9 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
         }
         const mode = s.kind === 'x' ? 'x' : 'radial';
         debris.add(p, age, s.size, C, s.seed + s.time, mode, low);
-        const gy = impactGroundHeight(ground, p);
-        const nearGround = impactTouchesGround(p.y, gy);
-        if (nearGround) {
-          const nrm = groundNormal(ground, p.x, p.z, normal);
+        const gy = s.groundY;
+        if (s.groundContact) {
+          const nrm = s.groundNormal;
           shatter.addCrater(p.x, gy, p.z, age, 1.45, s.size * .72, C[0], C[1], C[2], s.seed, mode, low);
           light.add(p.x, gy, p.z, s.size * .95, C[0], C[1], C[2], Math.max(0, 1 - age / 1.65) * .95, 1, age * .6, s.seed, nrm, s.seed);
           if (age < .55) {
@@ -127,7 +144,12 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
     },
     clear() {
       seen.clear();
-      for (const s of slots) { s.time = -99; s.body.mesh.visible = false; }
+      for (const s of slots) {
+        s.time = -99; s.body.mesh.visible = false;
+        s.groundY = NaN; s.groundContact = false;
+        s.groundNormal[0] = 0; s.groundNormal[1] = 1; s.groundNormal[2] = 0;
+      }
+      head = 0;
       debris.begin(); debris.end();
       shatter.begin(); shatter.end();
       dust.begin(); dust.end();
