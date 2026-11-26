@@ -199,7 +199,7 @@ test('fade focal usa cone da câmera e Bayer 8x8 ancorado no mundo sem clareira 
   assert.ok(shader.vertexShader.includes('varying vec3 vA3UndergrowthWorldPosition;'));
   assert.ok(shader.vertexShader.includes('vec4 a3UndergrowthWorldPosition = vec4(transformed, 1.0);'),
     'a posição parte do vértice já deformado pelo vento');
-  assert.ok(shader.vertexShader.includes('#ifdef USE_INSTANCING\\na3UndergrowthWorldPosition = instanceMatrix * a3UndergrowthWorldPosition;\\n#endif'),
+  assert.ok(shader.vertexShader.includes('#ifdef USE_INSTANCING\na3UndergrowthWorldPosition = instanceMatrix * a3UndergrowthWorldPosition;\n#endif'),
     'a posição mundial inclui a matriz de cada instância');
   assert.ok(shader.vertexShader.includes('a3UndergrowthWorldPosition = modelMatrix * a3UndergrowthWorldPosition;'),
     'a posição mundial inclui a transformação do objeto');
