@@ -4,7 +4,9 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 ap=argparse.ArgumentParser();ap.add_argument('--url',default='http://127.0.0.1:8786');ap.add_argument('--out',default='work/vfx236-preview');args=ap.parse_args();out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as pw:
- b=pw.chromium.launch(executable_path=shutil.which('chromium'),headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']);p=b.new_page(viewport={'width':1000,'height':650});errors=[];p.route('**/favicon.ico',lambda r:r.fulfill(status=204));p.on('pageerror',lambda e:errors.append(str(e)));p.on('console',lambda m:errors.append(m.text) if m.type=='error' else None);report={}
+ launch={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']};system_chromium=shutil.which('chromium');
+ if system_chromium: launch['executable_path']=system_chromium
+ b=pw.chromium.launch(**launch);p=b.new_page(viewport={'width':1000,'height':650});errors=[];p.route('**/favicon.ico',lambda r:r.fulfill(status=204));p.on('pageerror',lambda e:errors.append(str(e)));p.on('console',lambda m:errors.append(m.text) if m.type=='error' else None);report={}
  for kind,times in [('portals',[.3,1.4,2.5,3.6,4.3]),('dragon',[3.8,4.8,5.3,8,9.3]),('x',[.6,1,1.5])]:
   p.goto(args.url+'/skills-mod233-preview.html?skill='+kind,wait_until='domcontentloaded',timeout=120000);p.wait_for_function('window.preview',timeout=120000);p.evaluate('()=>{preview.freeze();preview.start();}');last=0;report[kind]={'frames':[]}
   for t in times:
