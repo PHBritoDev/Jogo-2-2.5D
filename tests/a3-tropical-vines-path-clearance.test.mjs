@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { planTropical } from '../eldoria-undergrowth.js';
+import { planTropical, TROPICAL_SPECIES_HEIGHTS } from '../eldoria-undergrowth.js';
 
 const trees = Array.from({ length: 20 }, (_, i) => ({ x: i * 4, z: 0, h: 12 }));
 const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+
+function tropicalGlbHeights() {
+  const bytes = readFileSync(new URL('../EldoriaArvoresTropicais.glb', import.meta.url));
+  const jsonLength = bytes.readUInt32LE(12);
+  const gltf = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8'));
+  return Object.fromEntries(gltf.nodes
+    .filter(node => node.extras?.especie && node.extras.lod === 0)
+    .map(node => [node.extras.especie, node.extras.height]));
+}
 
 function vineFootprintFree(isFree, x, z) {
   const radius = .4, gridSteps = 4;
@@ -102,6 +111,26 @@ test('árvores do plano tropical sem h explícito geram cipós finitos e respeit
   const tall = planTropical({ trees: [{ sp: 'sumauma', x: 0, z: 0, s: 1 }], zone: null, isFree: () => true, seed: 2926 });
   const regular = planTropical({ trees: [{ sp: 'figueira', x: 0, z: 0, s: 1 }], zone: null, isFree: () => true, seed: 2926 });
   const explicit = planTropical({ trees: [{ sp: 'sumauma', x: 0, z: 0, s: 1, h: 10 }], zone: null, isFree: () => true, seed: 2926 });
-  assert.ok(tall.vines[0].len > regular.vines[0].len * 2.3, 'sumaúma usa a altura de 26 m e as demais a base conservadora de 11 m');
+  assert.deepEqual(
+    TROPICAL_SPECIES_HEIGHTS,
+    tropicalGlbHeights(),
+    'as alturas fallback precisam acompanhar extras.height do GLB real'
+  );
+  for (const [sp, baseHeight] of Object.entries(TROPICAL_SPECIES_HEIGHTS)) {
+    const scale = 1.1;
+    const sample = planTropical({
+      trees: [{ sp, x: 0, z: 0, s: scale }],
+      zone: null,
+      isFree: () => true,
+      seed: 2926
+    });
+    assert.ok(sample.vines.length > 0, sp + ' precisa manter cipós');
+    for (const vine of sample.vines) {
+      assert.ok(vine.top >= baseHeight * scale * .62 - 1e-9 && vine.top <= baseHeight * scale * .82 + 1e-9,
+        sp + ' top usa extras.height × escala');
+      assert.ok(vine.len >= baseHeight * scale * .35 - 1e-9 && vine.len <= baseHeight * scale * .70 + 1e-9,
+        sp + ' len usa extras.height × escala');
+    }
+  }
   assert.ok(explicit.vines[0].len < tall.vines[0].len, 'h explícito do cinturão continua tendo precedência');
 });

@@ -5,6 +5,15 @@
  */
 import { makeRng } from './eldoria-prologue-meadow.js';
 
+/** Alturas-base do extras.height do GLB tropical (tools/eldoria/trees/tree-species.mjs). */
+export const TROPICAL_SPECIES_HEIGHTS = Object.freeze({
+  sumauma: 30.4,
+  copaLarga: 14.6,
+  figueira: 14.4,
+  palmeira: 14.5,
+  embauba: 15.6
+});
+
 export function fernGeometry(THREE) {
   const pos = [], col = [], base = [.12, .22, .09], tip = [.36, .52, .2];
   for (let f = 0; f < 7; f++) {
@@ -157,12 +166,12 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
       const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2;
       const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
       // Consome os mesmos valores antes do filtro para manter o RNG dos próximos troncos estável.
-      // planTropicalBelt fornece sp/s, mas não h; o sub-bosque sul precisa derivar
-      // a altura para não criar matrizes NaN. Mantém os mesmos valores do cinturão já explícito.
-      const baseHeight = t.sp === 'sumauma' ? 26 : 11;
+      // planTropicalBelt fornece sp/s, mas não h; usa a altura-base real do GLB por espécie.
+      // h explícito continua prioritário; a escala s acompanha a mesma instância do tronco.
+      const speciesHeight = TROPICAL_SPECIES_HEIGHTS[t.sp] || 12;
       const treeHeight = Number.isFinite(t.h) && t.h > 0
         ? t.h
-        : baseHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
+        : speciesHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
       const top = treeHeight * (.62 + rnd() * .2), len = treeHeight * (.35 + rnd() * .35), rot = rnd() * 6.28;
       if (vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
