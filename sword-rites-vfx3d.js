@@ -63,9 +63,24 @@ export function createSwordRitesVFX(T,scene){
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;
  for(let i=0;i<=N;i++){const u=i/N,angle=-1.46+u*2.92,taper=Math.pow(Math.sin(Math.PI*u),.65);for(let j=0;j<5;j++){const v=j/4,r=1-(1-v)*(.33+.08*Math.sin(u*31))*taper;pos.push(Math.sin(angle)*r,Math.cos(angle)*r-.42,Math.sin(u*Math.PI*2)*.13+(1-v)*.2*taper);uv.push(u,v);birth.push(0);if(i<N&&j<4){const k=i*5+j;indices.push(k,k+1,k+5,k+1,k+6,k+5);}}}
  crescent.setAttribute('position',new T.Float32BufferAttribute(pos,3));crescent.setAttribute('uv',new T.Float32BufferAttribute(uv,2));crescent.setAttribute('birth',new T.Float32BufferAttribute(birth,1));crescent.setIndex(indices);crescent.computeVertexNormals();
+ // Compact, curved blade ribbon for Passagem; ordinary impacts keep the broader crescent.
+ export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.82,endWidth:.014,maxWidth:.078,curve:.085,tilt:.035,bow:.018});
+ export function swordJudgmentSlashPoint(u,edge){
+  const t=Math.max(0,Math.min(1,Number.isFinite(u)?u:0)),side=edge?1:-1,p=JUDGMENT_SLASH_PROFILE;
+  const width=p.endWidth+(p.maxWidth-p.endWidth)*Math.pow(Math.sin(Math.PI*t),.8);
+  const center=p.curve*Math.sin((t-.5)*Math.PI)+p.tilt*(t-.5);
+  return{x:(t-.5)*p.length,y:center+side*width*.5,z:p.bow*Math.sin(Math.PI*t)};
+ }
+ const judgmentSlash=new T.BufferGeometry(),jpos=[],juv=[],jbirth=[],jidx=[],JN=28;
+ for(let i=0;i<=JN;i++){
+  const u=i/JN;
+  for(let j=0;j<2;j++){const p=swordJudgmentSlashPoint(u,j);jpos.push(p.x,p.y,p.z);juv.push(u,j);jbirth.push(0);}
+  if(i<JN){const k=i*2;jidx.push(k,k+1,k+2,k+1,k+3,k+2);}
+ }
+ judgmentSlash.setAttribute('position',new T.Float32BufferAttribute(jpos,3));judgmentSlash.setAttribute('uv',new T.Float32BufferAttribute(juv,2));judgmentSlash.setAttribute('birth',new T.Float32BufferAttribute(jbirth,1));judgmentSlash.setIndex(jidx);judgmentSlash.computeVertexNormals();
  // birth is shared as zero for cuts; clock is their local age.
  const cuts=Array.from({length:16},()=>{const g=new T.Group(),mat=makeMaterial(),glow=makeMaterial('prota',1),m=new T.Mesh(crescent,mat),h=new T.Mesh(crescent,glow);h.scale.set(1.02,1.12,1.1);g.add(m,h);root.add(g);g.visible=false;return{g,mat,glow,age:10,life:.5,wave:null};});
- function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4){const c=cuts[cutCursor++%cuts.length];c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>m.rotation.z=roll);c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}return c;}
+ function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4,geometry=crescent){const c=cuts[cutCursor++%cuts.length];c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>{m.geometry=geometry;m.rotation.z=roll;});c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}return c;}
  const shardGeo=new T.TetrahedronGeometry(1,0),shardMat=new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,toneMapped:false}),shards=new T.InstancedMesh(shardGeo,shardMat,192);shards.frustumCulled=false;shards.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(shards);const dummy=new T.Object3D(),color=new T.Color();
  const particles=Array.from({length:192},()=>({life:0,age:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:0}));
  const activeIndices=new Uint16Array(particles.length),activePositions=new Int16Array(particles.length),changedMatrixIndices=new Uint16Array(particles.length),changedColorIndices=new Uint16Array(particles.length),rangeFlags=new Uint8Array(particles.length);
@@ -140,10 +155,10 @@ export function createSwordRitesVFX(T,scene){
   else if(type==='judgment'){
    const n=e.n,cue=swordJudgmentCue(e);if(!cue)return;
    const {p,yaw,roll}=cue;
-   // Short, body-sized strokes stay distinct instead of stacking into one oversized white slab.
-   cut(p,'prota',e.final?1.08:.72+(n%3)*.06,roll,yaw,e.final?.30:.12);
-   if(e.final)cut(p,'prota',1.08,roll+Math.PI/2,yaw,.30);
-   burst(p,'prota',e.final?18:5);
+   // Thin curved ribbons read as individual blade marks instead of a broad white crescent stack.
+   cut(p,'prota',e.final?1.12:.92,roll,yaw,e.final?.20:.12,judgmentSlash);
+   if(e.final)cut(p,'prota',.82,roll+Math.PI/2,yaw,.16,judgmentSlash);
+   burst(p,'prota',e.final?8:3);
   }
   else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw+Math.PI/2,cue.secondLife);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
@@ -155,6 +170,6 @@ export function createSwordRitesVFX(T,scene){
   for(const h of ghosts){h.age+=dt;h.g.visible=!firstPerson&&h.age<.2;h.mat.opacity=.16*Math.max(0,1-h.age/.2);}
  }
  function clear(){markAge=1;mark.visible=false;trails.forEach(t=>{t.n=0;t.mesh.visible=false;});cuts.forEach(c=>{c.wave=null;c.age=10;c.g.visible=false;});const changedMatrixCount=activeCount;for(let n=0;n<changedMatrixCount;n++){const i=activeIndices[n];particles[i].life=0;writeParticleMatrix(i,particles[i],0);changedMatrixIndices[n]=i;activePositions[i]=-1;}activeCount=0;if(changedMatrixCount){const components=publishAttributeRanges(shards.instanceMatrix,changedMatrixIndices,changedMatrixCount,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}ghosts.forEach(h=>{h.age=1;h.g.visible=false;});shards.visible=false;}
- function dispose(){clear();scene.remove(root);shards.dispose();trails.forEach(t=>{t.geometry.dispose();t.material.dispose();});cuts.forEach(c=>{c.mat.dispose();c.glow.dispose();});crescent.dispose();markGeometry.dispose();markMaterial.dispose();shardGeo.dispose();shardMat.dispose();ghosts.forEach(h=>{scene.remove(h.g);h.mat.dispose();});}
+ function dispose(){clear();scene.remove(root);shards.dispose();trails.forEach(t=>{t.geometry.dispose();t.material.dispose();});cuts.forEach(c=>{c.mat.dispose();c.glow.dispose();});crescent.dispose();judgmentSlash.dispose();markGeometry.dispose();markMaterial.dispose();shardGeo.dispose();shardMat.dispose();ghosts.forEach(h=>{scene.remove(h.g);h.mat.dispose();});}
  return{event,update,clear,dispose,setHero,stats:()=>({cuts:cuts.filter(c=>c.g.visible).length,trails:trails.filter(t=>t.mesh.visible).length,particles:activeCount,ghosts:ghosts.filter(h=>h.g.visible).length,particleMatrixWrites,particleMatrixUploads,particleMatrixUploadComponents,particleMatrixUploadBytes,particleColorUpdates,particleColorUpdateComponents,particleColorUpdateBytes,capacity:{cuts:16,trails:3,particles:192,ghosts:3}})};
 }

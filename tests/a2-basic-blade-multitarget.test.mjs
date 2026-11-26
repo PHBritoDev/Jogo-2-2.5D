@@ -6,7 +6,7 @@ import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '..
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw, swordJudgmentCue } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -873,8 +873,22 @@ test('Passagem distributes 16 body-sized cuts over the visible capsule instead o
   assert.equal(cue.yaw,0,'the cut plane keeps facing the attacker');
  }
  const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
- assert.ok(source.includes("cut(p,'prota',e.final?1.08:.72+(n%3)*.06,roll,yaw,e.final?.30:.12)"));
- assert.ok(source.includes("if(e.final)cut(p,'prota',1.08,roll+Math.PI/2,yaw,.30)"));
+ assert.ok(source.includes("cut(p,'prota',e.final?1.12:.92,roll,yaw,e.final?.20:.12,judgmentSlash)"));
+ assert.ok(source.includes("if(e.final)cut(p,'prota',.82,roll+Math.PI/2,yaw,.16,judgmentSlash)"));
+});
+
+test('Passagem uses a narrow curved ribbon instead of the shared broad crescent',async()=>{
+ const profile=JUDGMENT_SLASH_PROFILE;
+ assert.ok(profile.length<.9,'individual cuts stay shorter than the target body width');
+ assert.ok(profile.maxWidth<.08,'individual cuts stay thin enough to read as blade strokes');
+ const endWidth=Math.abs(swordJudgmentSlashPoint(0,1).y-swordJudgmentSlashPoint(0,0).y);
+ const middleWidth=Math.abs(swordJudgmentSlashPoint(.5,1).y-swordJudgmentSlashPoint(.5,0).y);
+ assert.ok(middleWidth>endWidth*4,'the ribbon tapers sharply at both ends');
+ assert.ok(Math.abs(swordJudgmentSlashPoint(.5,0).z)>0,'the stroke has a slight 3D bow');
+ const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(vfx.includes("geometry=crescent"),'ordinary impacts retain the original crescent geometry by default');
+ assert.ok(vfx.includes("m.geometry=geometry"),'the pooled cut meshes accept a dedicated judgment geometry');
+ assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
 });
 
 test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{
