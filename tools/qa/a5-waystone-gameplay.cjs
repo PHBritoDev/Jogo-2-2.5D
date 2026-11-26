@@ -886,6 +886,8 @@ async function exposePathfinder() {
       xp: afterVendorReload.xp,
       sideWaystonesProgress: afterVendorReload.side.abrigos.progress
     };
+    assert.equal(report.vendorDialogueReload.night, true,
+      'a floresta deve continuar à noite após reload da transição de Téo');
     await shot('vendor-reload-persisted');
 
     // A persistência foi verificada acima. Rearmar o fixture só agora isola a rota dos abrigos
@@ -1000,7 +1002,24 @@ async function exposePathfinder() {
     report.final = { side: final.side.abrigos, registeredWaystones: final.registeredWaystones, coins: final.coins, xp: final.xp };
     await shot('05-ready-after-final-reload');
 
-    assert.equal(report.screenshots.length, 14, 'capturas de estado incompletas');
+    assert.deepEqual(report.screenshots, [
+      '00-initial-active.png',
+      '00-vendor-dialogue-teo.png',
+      'vendor-payment-action.png',
+      'vendor-transaction-forest-handoff.png',
+      'vendor-reload-persisted.png',
+      '02-vendor-prompt-rearmed.png',
+      'abrigo-vila-approach.png',
+      'abrigo-vila-registered.png',
+      'abrigo-mata-approach.png',
+      'abrigo-mata-registered.png',
+      '02-two-waystones-before-reload.png',
+      '03-two-waystones-after-reload.png',
+      'abrigo-caverna-approach.png',
+      'abrigo-caverna-registered.png',
+      '04-three-waystones-ready.png',
+      '05-ready-after-final-reload.png'
+    ], 'capturas de estado incompletas ou fora de ordem');
     assert.equal(report.walks.length, 4, 'três marcos e o retorno à Vila precisam ser percorridos sem teleport');
     assert.equal(report.input.joystickPointerTypes.length, 4, 'quatro percursos precisam usar pointerType touch');
     assert.ok(report.input.joystickPointerTypes.every(type => type === 'touch'), 'joystick não recebeu toque real');

@@ -499,7 +499,7 @@ function applyDayNightVisual(t){
  }
 }
 /* MOD 202 — relógio contínuo do jogo: 24 h de jogo = 16 min reais (12 h de dia + 12 h de noite).
-   Nada na campanha força mais a noite; o botão só pula para o próximo amanhecer/anoitecer. */
+   A floresta do Ato I permanece à noite nos passos 2–3; transições explícitas são gravadas para sobreviver a reload. */
 const GAME_DAY_SECONDS=960;
 const gameClock={hour:9};
 function nightFactorForHour(h){
@@ -507,7 +507,7 @@ function nightFactorForHour(h){
  if(h<4.5)return 1;if(h<6.5)return 1-sm(4.5,6.5,h);if(h<17.5)return 0;if(h<19.5)return sm(17.5,19.5,h);return 1;
 }
 function isNightHour(h){return nightFactorForHour(h)>.5;}
-function setGameHour(h){gameClock.hour=((h%24)+24)%24;dayNightState.target=nightFactorForHour(gameClock.hour);dayNightState.t=dayNightState.target;dayNightState.mode=dayNightState.target>.5?'night':'day';syncDayNightButton();applyDayNightVisual(dayNightState.t);}
+function setGameHour(h){gameClock.hour=((h%24)+24)%24;try{localStorage.setItem('seven-sins-3d-clock',gameClock.hour.toFixed(3));}catch(e){}dayNightState.target=nightFactorForHour(gameClock.hour);dayNightState.t=dayNightState.target;dayNightState.mode=dayNightState.target>.5?'night':'day';syncDayNightButton();applyDayNightVisual(dayNightState.t);}
 function syncDayNightButton(){
  const btn=document.getElementById('daynight-toggle-3d');
  if(btn){const hh=Math.floor(gameClock.hour),mm=Math.floor((gameClock.hour%1)*60);btn.textContent=(dayNightState.target>.5?'NOITE · ':'DIA · ')+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');btn.setAttribute('aria-pressed',String(dayNightState.target>.5));}
@@ -4469,7 +4469,9 @@ function useRig(name){
    mesmo diretor do prólogo, com câmera guiada pelos atores. Lutas em grupo usam o inimigo normal um por vez, com os
    outros visíveis esperando a vez (o motor de combate é de um adversário). O esgoto é uma área abaixo do mundo
    (tema "sewer", layout em sewer3d.js), como as dimensões. */
-var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=false,act1Lock=false,hordeClones=[],guideFighting=false;
+var packFinishing=false,act1Sub=saved3DProgress.act1Sub||0,storyScene=null,pack=null,inSewer=false,sewerArena=null,storyMove=null,storyFx=[],act1Props=null,act1Night=questStep===2||questStep===3,act1Lock=false,hordeClones=[],guideFighting=false;
+// O checkpoint da floresta implica noite mesmo em saves anteriores que não guardavam act1Night.
+if(act1Night)setGameHour(21.5);
 // O primeiro updateQuestHud roda antes de act1Sub receber o save. Recalcula apos a inicializacao do modulo.
 queueMicrotask(updateQuestHud);
 const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feeding:.9,cell:1.2,hole:0,massacre:1,village:2};
