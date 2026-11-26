@@ -109,6 +109,31 @@ Os NPCs devem ser adultos, com modelos/rigs reais do projeto. Não reaproveitar 
 - O progresso do carregamento continua real e funcional, mas discreto: uma linha fina/indicador integrado à composição, sem porcentagem falsa. Se mostrar números, devem vir exclusivamente do progresso real do loader. Não usar frases como “esta versão adiciona...”.
 - Em erro real, manter diagnóstico legível e retry; não esconder falha sob o filme.
 
+## 5A. BARRA DE CARREGAMENTO INFERIOR + PROTAGONISTA EM MINIATURA + ENTRADA POR CLIQUE
+
+Adicionar uma segunda camada de interface na parte inferior da tela cinematográfica, integrada à direção de arte e legível em celular e PC:
+
+- Na região inferior, exibir uma barra horizontal de progresso elegante, fina e claramente visível, com acabamento dark fantasy (trilho escuro, preenchimento luminoso discreto e animação suave). Ela deve acompanhar EXCLUSIVAMENTE o progresso real do carregamento do jogo, sem timers, porcentagens inventadas ou avanço artificial.
+- Logo abaixo ou integrada visualmente à barra, colocar uma representação BEM PEQUENA do protagonista correndo continuamente, como se estivesse percorrendo o caminho junto com o carregamento. Usar o modelo/visual canônico do protagonista já existente no projeto, em escala de miniatura, sem criar um personagem genérico. Preferir animação real de corrida/caminhada rápida do GLB; se não houver clipe apropriado, construir um ciclo leve e convincente com os recursos existentes.
+- O personagem deve correr em uma pequena faixa/caminho junto à barra, avançando visualmente conforme o progresso real aumenta. A posição visual deve ser derivada do mesmo estado real de progresso, com interpolação suave; não pode ultrapassar o progresso, completar antes do loader nem sugerir que está pronto quando não está.
+- Enquanto o carregamento estiver em andamento, a miniatura continua correndo e a barra avança conforme os dados reais. Em progresso sem atualização, o personagem pode manter uma corrida no lugar ou um movimento cíclico sutil, sem fingir avanço.
+- Quando o loader confirmar que o mundo está REALMENTE pronto e o progresso atingir 100%, a barra completa e surge um convite claro e bonito para entrar, por exemplo: “TOQUE NA TELA PARA ENTRAR” (em desktop, também aceitar clique). O convite deve ter pulsação/brilho sutil e affordance evidente, sem parecer botão genérico.
+- A partir desse momento, NÃO entrar automaticamente. O jogo só deve iniciar a transição de entrada depois de um toque/clique explícito do jogador. Se a pessoa não tocar, a tela permanece aberta, o protagonista continua correndo em loop e a cena cinematográfica de fundo continua animando suavemente, sem congelar, sem reiniciar o carregamento e sem perder o estado de pronto.
+- Ao receber o toque/clique, executar um crossfade/transição curta e elegante para o jogo, desmontando corretamente a cena de loading e liberando seus recursos. Impedir duplo clique/toque de disparar duas entradas.
+- Se o jogo ainda não estiver pronto, toque/clique não pode ignorar o carregamento nem entrar antecipadamente. Mostrar o progresso real e manter a interação de entrada desabilitada até a prontidão confirmada.
+- Se ocorrer erro real, substituir o convite de entrada por diagnóstico e retry; nunca apresentar 100% ou permitir entrar num mundo que falhou ao inicializar.
+- A barra, miniatura e convite não podem cobrir as vinhetas, as silhuetas ou o HUD essencial da cena. Reservar safe areas para notch/gestos mobile, ajustar escala/posição em retrato e paisagem e manter leitura em 360×800, 390×844, 844×390 e desktop 1365×768.
+- Implementar com baixo custo: preferir sprite/clone leve ou renderização isolada simples da miniatura, limitar resolução e frequência quando necessário, reutilizar o GLB já carregado/cacheado e evitar um segundo renderer pesado. A animação da miniatura deve ser pausada/desmontada corretamente ao sair da tela.
+
+### Estados obrigatórios e testes específicos
+
+1. LOADING: barra e posição do protagonista seguem os callbacks/progresso real; o personagem corre; entrada indisponível.
+2. READY / AGUARDANDO CLIQUE: loader confirmou prontidão; barra em 100%; convite visível; protagonista e filme continuam animando; nenhum auto-entry.
+3. ENTERING: primeiro toque/clique válido inicia uma única transição; bloquear novos toques até concluir.
+4. ERROR: sem convite de entrada; diagnóstico/retry funcional; não mascarar falha.
+
+Adicionar testes automatizados ou verificações adequadas para provar: progresso nunca falso/regressivo, estado READY só após prontidão real, nenhuma entrada automática, toque antes de READY não entra, toque depois de READY entra uma única vez, animação continua enquanto aguarda, e layout responsivo nas quatro resoluções definidas. Capturar evidência visual do estado READY aguardando clique e do estado após o clique, em mobile e desktop.
+
 ## 6. Integração técnica e proteção do carregador
 
 O estado atual conhecido da main:
