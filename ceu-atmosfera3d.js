@@ -1,3 +1,4 @@
+import { auroraUniforms } from './aurora-luz3d.js';
 /**
  * Mod 323 — atmosfera do céu para o mundo aberto (Eldória, jornada, Cinzária e o vulcão por fora):
  *  • brilho do sol baixo: halo quente em volta do sol e faixa laranja/rosa no horizonte do lado do sol no amanhecer e
@@ -10,7 +11,7 @@
  * nuvens do clima, a lua e as estrelas continuam nos seus módulos; isto só soma por cima deles.
  */
 const VERT = `varying vec3 vDir; void main(){ vDir = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.); gl_Position = vec4(p.xy, p.w * .99995, p.w); }`;
-const FRAG = `uniform vec3 uSun, uAurDir; uniform float uGold, uNight, uAur, uT, uClear;
+const FRAG = `uniform vec3 uSun, uAurDir; uniform float uGold, uNight, uAur, uT, uClear, uAurLow;
 varying vec3 vDir;
 float h1(float p){ return fract(sin(p * 127.1) * 43758.5453); }
 float n1(float x){ float i = floor(x), f = fract(x); f = f * f * (3. - 2. * f); return mix(h1(i), h1(i + 1.), f); }
@@ -42,7 +43,9 @@ void main(){
       float base = .3 + .16 * cos(az - ph) + .05 * sin(az * 2.3 + uT * .03 + fi) + .04 * n1(az * 3. + fi * 7. + uT * .02);
       float win = .3 + .7 * smoothstep(-.2, .8, cos(az - cen));                              // mais forte de um lado, nunca some de todo
       float fold = sin(az * (4.1 + fi) + 1.7 * sin(az * 1.3 + uT * .05 + fi) + uT * (.035 + fi * .01));
-      float rays = n1(az * (44. + fi * 9.) + fold * 4. + uT * .06) * .6 + n1(az * 97. - uT * .09 + fi * 3.) * .4;
+      float rays;
+      if (uAurLow > .5) rays = n1(az * (44. + fi * 9.) + fold * 4. + uT * .06);
+      else rays = n1(az * (44. + fi * 9.) + fold * 4. + uT * .06) * .6 + n1(az * 97. - uT * .09 + fi * 3.) * .4;
       rays = .3 + .7 * pow(rays, 1.5);
       float lowEdge = smoothstep(base - .02, base + .04, el);
       float tall = .9 + .6 * n1(az * 2. + fi * 5. + uT * .01);                                   // cortinas de alturas diferentes
@@ -62,7 +65,10 @@ void main(){
         float line = cx + .32 * sin(r.x * 1.15 + uT * .045 + fj * 1.7) + .12 * sin(r.x * 3.3 - uT * .07 + fj) + .05 * n1(r.x * 6. + uT * .05 + fj * 9.);
         float dd = r.y - line;                                   // > 0: "acima" da base da cortina
         float body = smoothstep(-.035, .02, dd) * exp(-max(dd, 0.) * (4.5 + 2. * fj));
-        float rays = n1(r.x * (26. + fj * 7.) + dd * 2. + uT * .07) * .6 + n1(r.x * 61. - uT * .11 + fj * 4.) * .4; rays = .35 + .65 * pow(rays, 1.4);
+        float rays;
+        if (uAurLow > .5) rays = n1(r.x * (26. + fj * 7.) + dd * 2. + uT * .07);
+        else rays = n1(r.x * (26. + fj * 7.) + dd * 2. + uT * .07) * .6 + n1(r.x * 61. - uT * .11 + fj * 4.) * .4;
+        rays = .35 + .65 * pow(rays, 1.4);
         float breath = .75 + .25 * sin(uT * .17 + r.x * .9 + fj * 2.3);
         float kz = body * rays * breath * uAur * smoothstep(.22, .5, d.y) * (fj > .5 ? .7 : 1.);
         vec3 cz = mix(vec3(.98, .4, .85), vec3(.55, .36, 1.), smoothstep(0., .25, dd)); cz = mix(cz, vec3(.32, .55, 1.), smoothstep(.25, .6, dd) * .6);
@@ -79,7 +85,7 @@ export function goldenFactor(elev) { return elev < 16 && elev > -9 ? Math.min(1,
 export function auroraLevel(night, clear) { const n = Math.max(0, Math.min(1, (night - .55) / .35)); return n * n * (3 - 2 * n) * Math.max(0, Math.min(1, clear)); }
 
 export function createSkyAtmosphere(THREE, scene, { lowSpec = false } = {}) {
-  const uniforms = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uAurDir: { value: new THREE.Vector3(-.82, 0, .57).normalize() }, uGold: { value: 0 }, uNight: { value: 0 }, uAur: { value: 0 }, uT: { value: 0 }, uClear: { value: 1 } };
+  const uniforms = { uAurLow: auroraUniforms(THREE).uAurLow, uSun: { value: new THREE.Vector3(0, 1, 0) }, uAurDir: { value: new THREE.Vector3(-.82, 0, .57).normalize() }, uGold: { value: 0 }, uNight: { value: 0 }, uAur: { value: 0 }, uT: { value: 0 }, uClear: { value: 1 } };
   const mat = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, depthTest: true, side: THREE.BackSide, fog: false, toneMapped: false,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, lowSpec ? 32 : 48, lowSpec ? 16 : 24), mat);
