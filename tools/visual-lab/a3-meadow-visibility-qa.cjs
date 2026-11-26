@@ -59,7 +59,7 @@ const FADED_UNDERGROWTH_BLOCKERS = new Set([
 ]);
 const UNDERGROWTH_FADE_START_METERS = 0.6;
 const UNDERGROWTH_FADE_SPAN_METERS = 5.6;
-const UNDERGROWTH_FADE_CLEAR_THRESHOLD = 0.92;
+const UNDERGROWTH_FADE_DISCARD_THRESHOLD = 0.92;
 
 function isVisuallyFadedUndergrowthBlocker(view) {
   const hit = view && view.blocked;
@@ -72,7 +72,7 @@ function isVisuallyFadedUndergrowthBlocker(view) {
   const fade = Math.max(0, Math.min(1,
     (hit.dist - UNDERGROWTH_FADE_START_METERS) / UNDERGROWTH_FADE_SPAN_METERS
   ));
-  return fade >= UNDERGROWTH_FADE_CLEAR_THRESHOLD;
+  return (1 - fade) >= UNDERGROWTH_FADE_DISCARD_THRESHOLD;
 }
 
 function cameraClear(state) {
