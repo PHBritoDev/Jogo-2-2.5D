@@ -22,13 +22,13 @@ const profiles = ['low', 'medium', 'high', 'max'];
 const scenes = [
   {
     name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5,
-    // Faixa superior central: correnteza visível, fora do HUD, toast e jogador.
-    waterRoi: { left: 320, top: 75, width: 140, height: 60 }
+    // Miolo da lâmina, afastado da margem e do jogador; validado por waterCoverage.
+    waterRoi: { left: 320, top: 105, width: 140, height: 60 }
   },
   {
     name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10,
-    // Faixa estreita dentro da lâmina azul-turquesa; exclui margem e personagem.
-    waterRoi: { left: 270, top: 174, width: 150, height: 18 }
+    // Lâmina + reflexo turquesa à esquerda do jogador; validado por waterCoverage.
+    waterRoi: { left: 270, top: 250, width: 120, height: 18 }
   },
   {
     name: 'aurora-ceu', hour: 22, x: 0, z: -29,
@@ -245,6 +245,18 @@ async function captureSide(browser, side, baseline) {
   }
 }
 
+async function waterCoverage(file, region) {
+  const { data, info } = await sharp(file).extract(region).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  let water = 0, pixels = 0;
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    if (g > r * 1.2 && b > r * 1.3 && b > g * .9 && max - min > 18) water++;
+    pixels++;
+  }
+  return pixels ? +(water / pixels).toFixed(4) : 0;
+}
+
 async function imageDiff(a, b, region = null) {
   const input = file => { const img = sharp(file); return region ? img.extract(region) : img; };
   const [A, B] = await Promise.all([
@@ -305,12 +317,20 @@ async function imageDiff(a, b, region = null) {
       if (!renderBudgetComparable)
         report.warnings.push(profile + '/' + scene.name + ': orçamento de render variou entre boots; comparar como informativo (LOD/culling assíncrono)');
       const baselineImage = path.join(out, a.image), candidateImage = path.join(out, b.image);
+      let waterCoverageBaseline = null, waterCoverageCandidate = null;
+      if (scene.waterRoi) {
+        waterCoverageBaseline = await waterCoverage(baselineImage, scene.waterRoi);
+        waterCoverageCandidate = await waterCoverage(candidateImage, scene.waterRoi);
+        if (waterCoverageBaseline < .6 || waterCoverageCandidate < .6)
+          report.errors.push(profile + '/' + scene.name + ': ROI não contém água suficiente (baseline=' + waterCoverageBaseline + ', candidate=' + waterCoverageCandidate + ')');
+      }
       report.comparisons.push({
         profile, scene: scene.name, cameraDelta, playerDelta, hourDelta, nightDelta, auroraDelta, lowUniformDelta, lightingStateComparable, renderBudgetComparable,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
         pixels: await imageDiff(baselineImage, candidateImage),
         waterPixels: scene.waterRoi ? await imageDiff(baselineImage, candidateImage, scene.waterRoi) : null,
+        waterCoverage: scene.waterRoi ? { baseline: waterCoverageBaseline, candidate: waterCoverageCandidate } : null,
         skyPixels: scene.skyRoi ? await imageDiff(baselineImage, candidateImage, scene.skyRoi) : null
       });
     }

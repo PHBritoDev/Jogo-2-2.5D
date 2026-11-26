@@ -291,7 +291,8 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
   assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa) && /d\.setHour\(s\.hour\)/.test(qa), 'hora é reaplicada após congelar o relógio de animação');
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
-  assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 270, top: 174, width: 150, height: 18 \}/.test(qa), 'mede a lâmina d’água diurna e noturna, não o chão');
+  assert.ok(/waterRoi: \{ left: 320, top: 105, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 270, top: 250, width: 120, height: 18 \}/.test(qa), 'mede o miolo da lâmina diurna e a água/reflexo noturno, fora do jogador');
+  assert.ok(/async function waterCoverage/.test(qa) && /waterCoverageBaseline < \.6/.test(qa) && /waterCoverageCandidate < \.6/.test(qa), 'rejeita ROI que não contém água suficiente antes de comparar pixels');
   assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /camera: \{ from: \[0, 2, -29\], to: \[0, 22, -15\] \}/.test(qa) && /skyRoi: \{ left: 220, top: 75, width: 450, height: 190 \}/.test(qa) && /d\.fly\(s\.camera\.from, s\.camera\.to\)/.test(qa), 'mede a cortina em ROI central e câmera livre fixa');
   assert.ok(/getElementById\('scene'\)/.test(qa) && /page\.locator\('#scene'\)\.screenshot/.test(qa) && /scale: 'css'/.test(qa), 'captura o canvas WebGL #scene');
   assert.ok(/document\.body\.children/.test(qa) && /node\.style\.setProperty\('visibility', 'hidden', 'important'\)/.test(qa) && /diagnostic\.capture/.test(qa), 'remove overlays DOM sobrepostos antes de medir pixels');
