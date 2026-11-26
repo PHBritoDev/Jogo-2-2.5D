@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
-import { chooseStoryTwoShotSide, chooseStoryTwoShotFrame } from './story-camera-layout.js';
+import { chooseStoryTwoShotSide, chooseStoryTwoShotFrame, segmentMayIntersectAabb } from './story-camera-layout.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
 const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
@@ -271,6 +271,24 @@ test('objetivo e primeira troca da cena principal identificam o mesmo vendedor',
     'a transação deve ocorrer antes da transição para a noite');
 });
 
+
+test('broadphase AABB só descarta raios que comprovadamente não cruzam a barraca', () => {
+  const bounds = { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: 2, z: 1 } };
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, bounds), true,
+    'segmento atravessando a cobertura deve seguir para o raycast exato');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, bounds), false,
+    'segmento paralelo acima da cobertura pode ser descartado');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: -1.1, y: 1, z: 0 }, bounds), false,
+    'segmento que termina antes da barraca não deve fazer raycast');
+  assert.equal(segmentMayIntersectAabb({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, bounds), true,
+    'segmento iniciado dentro da caixa precisa continuar para o raycast exato');
+  assert.equal(segmentMayIntersectAabb({ x: 2, y: 1, z: 0 }, { x: -2, y: 1, z: 0 }, bounds), true,
+    'a broadphase deve funcionar nos dois sentidos do raio');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 1 }, { x: 2, y: 1, z: 1 }, bounds), true,
+    'contato com a face da caixa é candidato, não falso negativo');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, null), true,
+    'bounds ausente deve cair no raycast exato, nunca ocultar um possível bloqueador');
+});
 
 test('two-shot narrativo mantém o lado preferido livre e troca quando há barraca no eixo', () => {
   const a = { x: 0, z: 0 }, b = { x: 0, z: 2 };

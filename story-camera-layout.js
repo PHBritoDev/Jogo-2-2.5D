@@ -1,4 +1,29 @@
 /**
+ * Broadphase conservadora para raios de câmera contra AABBs estáticos.
+ * Retorna true quando há interseção possível; bounds inválidos também passam
+ * para o raycast exato, evitando falsos negativos visuais.
+ */
+export function segmentMayIntersectAabb(from, to, bounds) {
+  if (!from || !to || !bounds?.min || !bounds?.max) return true;
+  let enter = 0, leave = 1;
+  for (const axis of ['x', 'y', 'z']) {
+    const origin = from[axis], delta = to[axis] - origin;
+    const min = bounds.min[axis], max = bounds.max[axis];
+    if (![origin, delta, min, max].every(Number.isFinite) || min > max) return true;
+    if (Math.abs(delta) < 1e-9) {
+      if (origin < min || origin > max) return false;
+      continue;
+    }
+    let near = (min - origin) / delta, far = (max - origin) / delta;
+    if (near > far) [near, far] = [far, near];
+    enter = Math.max(enter, near);
+    leave = Math.min(leave, far);
+    if (enter > leave) return false;
+  }
+  return leave >= 0 && enter <= 1;
+}
+
+/**
  * Escolhe o lado mais livre para um plano de dois atores.
  * Combina corredor de câmera, colisão horizontal e visibilidade 3D dos atores
  * (a última detecta coberturas de barracas que avançam além da pegada no chão).

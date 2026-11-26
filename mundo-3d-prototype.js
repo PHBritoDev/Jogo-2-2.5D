@@ -1,5 +1,5 @@
 import { syncBuildMarker } from './build-info.js';
-import { chooseStoryTwoShotFrame } from './story-camera-layout.js';
+import { chooseStoryTwoShotFrame, segmentMayIntersectAabb } from './story-camera-layout.js';
 import { computePortraitCameraFit } from './portrait-camera-fit.js';
 import {createMeshyNpcFactory,ELDORIA_NPC_MODELS} from './eldoria-meshy-npcs.js';
 import {createVillagerBrain,createVillagerDriver,measureWalkSpeed,VILLAGER_PROFILES} from './eldoria-npc-life.js';
@@ -4490,14 +4490,17 @@ const STORY_EYE={hero:1.5,guide:2.1,enemy:1.35,vendor:1.5,cage:.7,victim:.9,feed
 const SPEAKER_ACTOR={[SPEAKERS.hero]:'hero',[SPEAKERS.guide]:'guide',[GUIDE_NAME]:'guide',[GUIDE_PUBLIC_NAME]:'guide',[SPEAKERS.vendor]:'vendor',[SPEAKERS.follower]:'enemy',[SPEAKERS.demon]:'enemy',[SPEAKERS.child]:'cage',[SPEAKERS.warden]:'enemy',[SPEAKERS.vhazrael]:'enemy',[SPEAKERS.victim]:'victim'};
 const storyAnchors={};
 const _sa=new THREE.Vector3(),_sb=new THREE.Vector3(),_sc=new THREE.Vector3(),storyScreenPoint=new THREE.Vector3();
-const storyMarketRay=new THREE.Raycaster(),storyMarketFrom=new THREE.Vector3(),storyMarketTo=new THREE.Vector3(),storyMarketDirection=new THREE.Vector3();
+const storyMarketRay=new THREE.Raycaster(),storyMarketFrom=new THREE.Vector3(),storyMarketTo=new THREE.Vector3(),storyMarketDirection=new THREE.Vector3(),storyMarketSegmentEnd=new THREE.Vector3();
 function storyMarketRayBlocked(from,to){
  storyMarketFrom.set(from.x,from.y,from.z);storyMarketTo.set(to.x,to.y,to.z);
  storyMarketDirection.subVectors(storyMarketTo,storyMarketFrom);
  const length=storyMarketDirection.length();if(length<.2)return false;
  storyMarketDirection.multiplyScalar(1/length);storyMarketRay.set(storyMarketFrom,storyMarketDirection);
  storyMarketRay.near=.05;storyMarketRay.far=Math.max(.05,length-.35);
+ storyMarketSegmentEnd.copy(storyMarketFrom).addScaledVector(storyMarketDirection,storyMarketRay.far);
  for(const oc of storyMarketOccluders){
+  // AABB estático da barraca: se o segmento não o cruza, evita percorrer todas as meshes do GLB.
+  if(oc.bounds&&!segmentMayIntersectAabb(storyMarketFrom,storyMarketSegmentEnd,oc.bounds))continue;
   oc.obj.updateWorldMatrix(true,true);
   // Não rejeitar um raio só porque o ponto inicial está dentro do AABB da banca:
   // o vendedor pode estar sob a cobertura. A geometria real decide a oclusão.
