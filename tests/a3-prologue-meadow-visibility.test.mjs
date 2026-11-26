@@ -104,8 +104,9 @@ test('o timeout da câmera não é confundido com a distância esperada após ca
 
   assert.ok(harness.includes('async function waitCameraStable(page, expectedDistance, timeoutMs = 22000)'), 'a função separa distância e timeout');
   assert.ok(harness.includes('while (Date.now() - started < timeoutMs)'), 'o laço respeita o timeout configurável');
-  assert.ok(harness.includes('waitCameraStable(session.page, meadow.distance, 9000)'), 'prado usa 6 m como distância e 9 s como timeout');
-  assert.ok(harness.includes('waitCameraStable(session.page, forest.distance, 9000)'), 'trilha usa 6 m como distância e 9 s como timeout');
+  assert.ok(harness.includes('waitCameraStable(page, scene.distance, 9000)'), 'o executor compartilhado usa a distância da cena e 9 s de timeout após caminhar');
+  assert.ok(harness.includes('return waitCameraStable(page, scene.distance)'), 'o preset inicial usa a distância da cena');
+  assert.ok(harness.includes('walkForward(session.page, meadow)') && harness.includes('walkForward(session.page, forest)'), 'prado e trilha usam o mesmo executor de caminhada');
   assert.ok(!harness.includes('waitCameraStable(session.page, 9000,'), 'timeout não pode ocupar o argumento da distância');
 });
 
