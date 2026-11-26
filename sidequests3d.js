@@ -199,12 +199,25 @@ export function questForGiver(state, giver) {
   return SIDE_QUESTS.find(q => q.giver === giver && ['available', 'active', 'ready'].includes(state[q.id].state)) || null;
 }
 
-export function activeSideLines(state) {
+// Categorias expostas pelos vendedores que já têm interação ativa na vila.
+// Isso não associa missões a personagens: apenas evita mandar o jogador falar com
+// um giver que ainda não existe no runtime. Novos givers devem ser passados pelo call-site.
+const ACTIVE_VILLAGE_VENDOR_CATEGORIES = Object.freeze(['ALIMENTOS', 'PROVISÕES', 'FRUTAS']);
+
+export function activeSideLines(state, availableGivers = ACTIVE_VILLAGE_VENDOR_CATEGORIES) {
+  const activeGivers = availableGivers instanceof Set
+    ? availableGivers
+    : new Set(Array.isArray(availableGivers) ? availableGivers.filter(value => typeof value === 'string') : []);
   return SIDE_QUESTS.filter(q => ['active', 'ready'].includes(state[q.id].state)).map(q => {
     const s = state[q.id];
     const progress = safeSideProgress(s.progress, q.goal.count);
-    return s.state === 'ready' && progress >= q.goal.count
-      ? q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0]
-      : q.title + ' · ' + progress + '/' + q.goal.count;
+    if (s.state === 'ready' && progress >= q.goal.count) {
+      if (activeGivers.has(q.giver)) return q.title + ' · volte a ' + q.offer[0].who.split(' · ')[0];
+      const status = q.goal.type === 'waystones'
+        ? progress + '/' + q.goal.count + ' abrigos registrados'
+        : progress + '/' + q.goal.count + ' itens reunidos';
+      return q.title + ' · ' + status;
+    }
+    return q.title + ' · ' + progress + '/' + q.goal.count;
   });
 }
