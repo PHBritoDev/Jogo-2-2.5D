@@ -35,7 +35,8 @@ export function swordJudgmentCue(e){
  const row=Math.floor(n/4),col=n%4;
  // Four columns wrap around the front 106° of the capsule; four rows span almost the full body.
  const surfaceYaw=heading+(col-1.5)*.72,nx=Math.sin(surfaceYaw),nz=Math.cos(surfaceYaw);
- const vertical=((row+.5)/4-.5)*height*.92+Math.sin(n*2.399)*.018;
+ // Enemy squad actor.y is its ground/base height, not the capsule center.
+ const vertical=((row+.5)/4)*height+Math.sin(n*2.399)*.018;
  const roll=(row%2?1:-1)*(.46+(col-1.5)*.08)+Math.sin(n*2.399)*.045;
  // Stay 3.5 cm outside the collision capsule and render as a shallow surface cut over the enemy mesh.
  return{p:{x:t.x-nx*surfaceRadius,y:t.y+vertical,z:t.z-nz*surfaceRadius},yaw:surfaceYaw,roll,row,col};
