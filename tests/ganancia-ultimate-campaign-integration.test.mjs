@@ -12,8 +12,9 @@ test('ultimate Codex e combate Claude integrados apenas na Ganância III',()=>{
  assert.match(world,/function greedAtomicTick\(dt,paused=false\)/);
  assert.match(world,/dimBattle\?\.active\|\|dimBattle\.key!=='greed'/);
  assert.match(world,/a\.gk\?\.phase!==3/);
- assert.match(world,/squadRT\.update\(dt,\{targets,foreign,camera,quality:.*greedAtomic\?\.active/);
- assert.match(world,/greedAtomicTick\(dt,paused\|\|squadQAPause\)/);
+ assert.match(world,/const enemyDt=admFreezeNearby\?0:dt;/);
+ assert.match(world,/squadRT\.update\(enemyDt,\{targets,foreign,camera,quality:.*greedAtomic\?\.active/);
+ assert.match(world,/greedAtomicTick\(enemyDt,paused\|\|squadQAPause\|\|admFreezeNearby\)/);
  assert.match(world,/function greedAtomicEnd\(\)\{if\(greedAtomic\)\{greedAtomic\.dispose\(\);greedAtomic=null;\}\}/);
  assert.match(bridge,/createGreedAtomicEncounter\(ultimate\)/);
  assert.match(bridge,/b\.gk\.roots\.D/);

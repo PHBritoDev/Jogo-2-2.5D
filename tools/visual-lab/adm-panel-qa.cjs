@@ -24,6 +24,9 @@ async function main(){
    }
    await page.getByRole('button',{name:'⚔ Ganância',exact:true}).click();
    assert.ok(await page.getByRole('button',{name:/ATIVAR ULTIMATE/}).isVisible());
+   const pause=page.getByRole('button',{name:'⏸ PAUSAR INIMIGOS',exact:true});assert.ok(await pause.isVisible(),item.name+' pausa visível');
+   await pause.click();assert.ok(await page.getByRole('button',{name:'▶ RETOMAR INIMIGOS',exact:true}).isVisible(),item.name+' pausa ativada');
+   await page.getByRole('button',{name:'▶ RETOMAR INIMIGOS',exact:true}).click();assert.ok(await page.getByRole('button',{name:'⏸ PAUSAR INIMIGOS',exact:true}).isVisible(),item.name+' pausa desativada');
    const bounds=await panel.boundingBox();
    const scroll=await page.locator('.adm-scroll').evaluate(el=>({clientHeight:el.clientHeight,scrollHeight:el.scrollHeight,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth}));
    assert.ok(bounds && bounds.x>=-1 && bounds.x+bounds.width<=item.w+1,'painel contido na largura');
