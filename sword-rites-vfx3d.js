@@ -23,6 +23,18 @@ export function swordImpactYaw(e){
  const yaw=Number.isFinite(e?.yaw)?e.yaw:Number.isFinite(energy?.yaw)?energy.yaw:Number.isFinite(e?.wave?.yaw)?e.wave.yaw:0;
  return Math.atan2(Math.sin(yaw),Math.cos(yaw));
 }
+/** Place each Passagem cut on the capsule surface facing the hero, with a broadside view. */
+export function swordJudgmentCue(e){
+ const t=e?.target,from=e?.from;
+ if(!t||![t.x,t.y,t.z].every(Number.isFinite))return null;
+ const hasFrom=from&&Number.isFinite(from.x)&&Number.isFinite(from.z);
+ const dx=hasFrom?t.x-from.x:0,dz=hasFrom?t.z-from.z:1,len=Math.hypot(dx,dz);
+ const yaw=len>1e-5?Math.atan2(dx,dz):Number.isFinite(e?.yaw)?e.yaw:0;
+ const nx=Math.sin(yaw),nz=Math.cos(yaw),radius=Number.isFinite(t.radius)&&t.radius>0?t.radius:.48;
+ const height=Number.isFinite(t.height)&&t.height>0?t.height:1.7,n=Number.isFinite(e?.n)?e.n:0,phase=n*2.399;
+ const lateral=Math.sin(phase)*Math.min(.12,radius*.24),vertical=Math.sin(n*1.7)*Math.min(.28,height*.16);
+ return{p:{x:t.x-nx*radius*.92-nz*lateral,y:t.y+vertical,z:t.z-nz*radius*.92+nx*lateral},yaw,roll:phase%Math.PI-Math.PI/2};
+}
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
  */
@@ -124,11 +136,11 @@ export function createSwordRitesVFX(T,scene){
   else if(type==='wave'){const c=cut(e.p,'aurora',e.radius,e.roll,e.yaw,1.5);c.wave=e;if(e.n===3){const second=cut(e.p,'aurora',e.radius,-e.roll,e.yaw,1.5);second.wave=e;}burst(e.p,'aurora',12);}
   else if(type==='waveEnd'){for(const c of cuts)if(c.wave===e){c.wave=null;c.age=.24;c.life=.45;for(const m of [c.mat,c.glow])m.uniforms.life.value=c.life;}}
   else if(type==='judgment'){
-   const t=e.target,n=e.n,roll=(n*2.399)%Math.PI-Math.PI/2;
-   const p={x:t.x+Math.sin(n*2.399)*.18,y:t.y+Math.sin(n*1.7)*.28,z:t.z+Math.cos(n*2.399)*.18};
-   cut(p,'prota',e.final?2:1.25+(n%3)*.10,roll,n*.91,e.final?.38:.17);
-   if(e.final)cut(p,'prota',2,roll+Math.PI/2,n*.91,.38);
-   burst(p,'prota',e.final?24:4);
+   const n=e.n,cue=swordJudgmentCue(e);if(!cue)return;
+   const {p,yaw,roll}=cue;
+   cut(p,'prota',e.final?2.2:1.42+(n%3)*.10,roll,yaw,e.final?.42:.22);
+   if(e.final)cut(p,'prota',2.2,roll+Math.PI/2,yaw,.42);
+   burst(p,'prota',e.final?24:6);
   }
   else if(type==='impact'){const p=swordImpactPoint(e);if(!p)return;const cue=swordImpactCue(e),yaw=swordImpactYaw(e);burst(p,e.sword,cue.burst);cut(p,e.sword,cue.scale,Math.PI*.5,yaw,cue.life);if(cue.secondScale)cut(p,e.sword,cue.secondScale,-Math.PI*.5,yaw+Math.PI/2,cue.secondLife);}
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}

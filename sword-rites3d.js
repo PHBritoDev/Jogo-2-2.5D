@@ -376,7 +376,7 @@ export class SwordRites {
    }
    if(a.kind==='prota'){
     const moments=JUDGMENT_TIMES;while(a.events<moments.length&&a.t>=moments[a.events]){
-     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){const applied=this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment',{target,kind:'spell',by:'judgment'});if(applied!==false&&applied!==0)this.api.event('judgment',{target,n,sword:a.sword,final:n===15});}
+     const n=a.events++;if(target?.alive&&target.id===a.targetId&&dist(ctx.from,target)<4.5&&!segmentBlocked(ctx.from,target,this.api.blocked)){const applied=this.api.hit(judgmentDamage(a.damage,n),target.id,'judgment',{target,kind:'spell',by:'judgment'});if(applied!==false&&applied!==0)this.api.event('judgment',{target,from:copy(ctx.from),n,sword:a.sword,final:n===15});}
     }
    }else if(a.kind==='aurora'){
     const moments=[.40,.82,1.24,1.70];while(a.events<moments.length&&a.t>=moments[a.events]){

@@ -6,7 +6,7 @@ import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '..
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -847,6 +847,31 @@ test('impact cut follows the connected blade or energy heading, not the global c
  near(swordImpactYaw({wave:{direction:{x:-1,z:0}}}),-Math.PI/2);
  near(swordImpactYaw({energy:{kind:'sector',x:2,z:3,yaw:.4},target:{x:2,z:3}}),.4);
  near(swordImpactYaw({energy:{direction:{x:NaN,z:0},yaw:Infinity}}),0);
+});
+
+test('Passagem places judgment cuts on the capsule surface facing the hero',()=>{
+ const front=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:0,y:0,z:0},n:0});
+ assert.ok(front);
+ assert.ok(Math.abs(front.p.z-4.54)<1e-9,'cut must sit on the near capsule surface, not inside its center');
+ assert.equal(front.p.x,0);
+ assert.equal(front.yaw,0,'cut plane must face the attacker');
+ const right=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:5,y:0,z:5},n:0});
+ assert.ok(right.p.x>.45&&right.p.x<.47,'side approach must place the cut on the right-facing surface');
+ assert.ok(Math.abs(right.yaw+Math.PI/2)<1e-9,'side approach must rotate the cut broadside to the hero');
+});
+
+test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('judgment-origin-focus',0,5),events=[];
+ const rites=new SwordRites({
+  blocked:()=>false,move:p=>Object.assign(from,p),hit:()=>true,
+  event:(type,data)=>{if(type==='judgment')events.push({origin:data.from,at:{...from}});}
+ });
+ assert.deepEqual(rites.cast('prota',{mana:100,from,target:focus}),{ok:true,cost:28});
+ const ctx={from,target:focus,sword:'prota',grounded:true};
+ for(const dt of [.25,.25,.2])rites.update(dt,ctx);
+ assert.ok(events.length>0,'at least one judgment cut must be emitted');
+ assert.deepEqual(events[0].origin,events[0].at,'event must snapshot the hero position at the hit');
+ assert.notEqual(events[0].origin,from,'event origin must not alias the live movement object');
 });
 
 test('production blade impacts forward their yaw and both impact cuts use the resolved heading',async()=>{
