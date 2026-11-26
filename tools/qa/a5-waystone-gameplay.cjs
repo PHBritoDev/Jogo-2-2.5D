@@ -3,7 +3,8 @@
  * A missão é pré-semeada como ativa para isolar a correção técnica sem canonizar givers provisórios.
  * Caminhada usa CDP touch no #stick de produção; viewQA alinha yaw e fixa pitch/distância de observação sem mover o jogador.
  * Registro usa #talk-button real; sem walkMove, teleport ou sprint helper entre abrigos.
- * Não valida oferta/entrega do NPC nem certifica Android físico.
+ * Valida a cena principal de Téo, a entrega de cinco moedas e o handoff para a floresta.
+ * Não valida oferta/entrega de sidequests nem certifica Android físico.
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -51,7 +52,7 @@ const report = {
   method: 'real CDP touch on the shipped #stick; frame-synchronized movement; A* smoothing mirrors the production X-then-Z collision order and recognizes the walkable bridge deck; real talk-button registration; no teleport between shelters',
   platform: 'Chromium SwiftShader · 852×393 · simulated touch on the production joystick, not Android hardware certification',
   movementControl: 'CDP touchStart/touchMove on #stick; two rendered RAF frames per sample; A* checks X then Z at 0.12m intervals, treating river water as blocked except on the real bridge deck; real #talk-button tap; no walkMove/teleport/sprint helper',
-  narrativeScope: 'main quest HUD/prompt and the first two lines of Téo’s real dialogue validated through #talk-button; V6 questStep/act1Sub are verified after reload without reseeding; the scene stops before the 5-coin action; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
+  narrativeScope: 'main quest HUD/prompt and the complete Téo scene are validated through #talk-button, including the 5-coin payment and forest handoff; V6 questStep/act1Sub/coins are verified after reload without reseeding; sidequest offer/turn-in and Mara/Nara giver mapping remain excluded pending canon review in issue 671',
   commit: process.env.A5_QA_COMMIT || process.env.GITHUB_SHA || 'local',
   workflowCommit: process.env.GITHUB_SHA || 'local',
   startedAt: new Date().toISOString(),
@@ -99,10 +100,30 @@ async function campaignSave() {
       const raw = JSON.parse(localStorage.getItem('sevenSins3DCampaignV6') || 'null');
       return raw && typeof raw === 'object' ? {
         version: raw.version, act1Rev: raw.act1Rev, questStep: raw.questStep,
-        act1Sub: raw.act1Sub, updatedAt: raw.updatedAt
+        act1Sub: raw.act1Sub, coins: raw.coins, updatedAt: raw.updatedAt
       } : null;
     } catch (_) { return null; }
   });
+}
+async function finishStoryDialogue(timeoutMs = 90000) {
+  const deadline = Date.now() + timeoutMs;
+  let taps = 0;
+  while (Date.now() < deadline) {
+    const state = await page.evaluate(() => {
+      const story = window.SevenSinsDebug3D.storyState();
+      const panel = document.getElementById('cine-say');
+      return { scene: story.scene, waitingTap: story.waitingTap, panelVisible: !!panel && !panel.hidden, step: story.step };
+    });
+    if (!state.scene) return { taps };
+    if (state.waitingTap && state.panelVisible) {
+      await page.locator('#cine-continue').tap();
+      taps++;
+    } else {
+      await wait(120);
+    }
+  }
+  const last = await page.evaluate(() => window.SevenSinsDebug3D.storyState());
+  throw new Error('A cena de Téo não terminou em ' + timeoutMs + 'ms: ' + JSON.stringify(last));
 }
 async function mapSave(mapKey) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}'), mapKey);
@@ -664,6 +685,8 @@ async function exposePathfinder() {
     assert.equal(initialCampaign?.act1Rev, ACT1.rev, 'fixture gravou revisão narrativa incompatível');
     assert.equal(initialCampaign?.questStep, 1, 'save V6 não preservou o passo inicial');
     assert.equal(initialCampaign?.act1Sub, 1, 'save V6 não preservou a chegada à vila');
+    assert.equal(initialCampaign?.coins, initial.coins, 'save V6 e runtime começaram com saldos diferentes');
+    assert.ok(initial.coins >= ACT1.bribe, 'fixture não tem saldo suficiente para a transação real de Téo');
     report.initialCampaign = initialCampaign;
     assert.equal(initialControl.story.sub, 1, 'fixture deve começar após a chegada à vila, sem a cinemática de chegada');
     assert.equal(initialControl.story.scene, null, 'cena de história bloqueia a caminhada');
@@ -747,7 +770,7 @@ async function exposePathfinder() {
       heroOpening,
       dialogueSpeaker: teoOpening.who,
       dialogueLine: teoOpening.text,
-      dialogueScope: 'first exchange only; stopped before entregar-ouro',
+      dialogueScope: 'complete Téo scene; payment and forest handoff verified below',
       framing: vendorFraming
     };
     await shot('00-vendor-dialogue-teo');
@@ -770,8 +793,58 @@ async function exposePathfinder() {
         actor + ' ficou fora da área segura ou atrás do painel #cine-say: ' + JSON.stringify({ panel: dialogueLayout.panel, points }));
     }
 
-    // A conversa foi interrompida antes de qualquer transação. Recarregar deve restaurar o save V6
-    // real. Não chamar act1() aqui: isso resemeava o fixture e mascarava perda de persistência.
+    // Avançar a cena real até o saco de ouro: o passo 'with' deve cobrar exatamente ACT1.bribe.
+    await page.locator('#cine-continue').tap();
+    await page.waitForFunction(() => window.SevenSinsDebug3D.storyState().step === 'saco-de-ouro', null, { timeout: 15000 });
+    await page.waitForFunction(expected => window.SevenSinsDebug3D.sideQuestQA().coins === expected,
+      initial.coins - ACT1.bribe, { timeout: 15000 });
+    const paymentStepState = await page.evaluate(() => window.SevenSinsDebug3D.storyState());
+    assert.deepEqual(paymentStepState.twoShot?.visibleActors, [true, true],
+      'o plano do pagamento perdeu um dos atores');
+    await shot('vendor-payment-action');
+
+    // Completar todas as falas, o anoitecer e o callback de progressão/save da cena.
+    const vendorDialogueProgress = await finishStoryDialogue();
+    const afterVendorTransaction = await qa();
+    const afterVendorTransactionControl = await controlState();
+    const afterVendorTransactionCampaign = await campaignSave();
+    assert.equal(afterVendorTransaction.coins, initial.coins - ACT1.bribe,
+      'a transação de Téo não cobrou exatamente cinco moedas');
+    assert.equal(afterVendorTransactionCampaign?.coins, initialCampaign.coins - ACT1.bribe,
+      'o saldo cobrado não foi persistido no save V6');
+    assert.equal(afterVendorTransaction.questStep, 2, 'a cena de Téo não avançou a campanha para a floresta');
+    assert.equal(afterVendorTransactionCampaign?.questStep, 2, 'questStep 2 não foi salvo após a conversa');
+    assert.equal(afterVendorTransactionCampaign?.act1Sub, 0, 'act1Sub não foi zerado no handoff para a floresta');
+    assert.equal(afterVendorTransactionControl.story.q, 2, 'runtime não avançou para o passo da floresta');
+    assert.equal(afterVendorTransactionControl.story.sub, 0, 'runtime manteve subetapa da vila após o handoff');
+    assert.equal(afterVendorTransactionControl.state.objective, 'Investigue o choro de crianças na floresta',
+      'HUD não apresentou o objetivo seguinte após a conversa');
+    assert.equal(afterVendorTransactionControl.story.scene, null, 'cena do vendedor permaneceu ativa após o handoff');
+    assert.equal(afterVendorTransactionControl.story.night, true, 'a ação de anoitecer não foi aplicada');
+    report.mainQuestPrompt = {
+      ...report.mainQuestPrompt,
+      dialogueScope: 'complete Téo scene; 5-coin payment and forest handoff passed',
+      paymentCoinsBefore: initial.coins,
+      paymentCoinsAfter: afterVendorTransaction.coins,
+      questStepAfterDialogue: afterVendorTransaction.questStep,
+      dialogueTapCount: vendorDialogueProgress.taps
+    };
+    report.vendorTransaction = {
+      paymentStep: paymentStepState.step,
+      bribe: ACT1.bribe,
+      coinsBefore: initial.coins,
+      coinsAfter: afterVendorTransaction.coins,
+      persistedCoins: afterVendorTransactionCampaign.coins,
+      questStep: afterVendorTransaction.questStep,
+      act1Sub: afterVendorTransactionControl.story.sub,
+      objective: afterVendorTransactionControl.state.objective,
+      night: afterVendorTransactionControl.story.night,
+      dialogueTapCount: vendorDialogueProgress.taps
+    };
+    await shot('vendor-transaction-forest-handoff');
+
+    // A conversa completa cobrou cinco moedas e avançou para a floresta. Recarregar deve restaurar
+    // esse estado real; não chamar act1() antes de conferir o save.
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 90000 });
     await waitRuntime();
     await exposePathfinder();
@@ -784,29 +857,21 @@ async function exposePathfinder() {
     const afterVendorCampaign = await campaignSave();
     assert.equal(afterVendorCampaign?.version, initialCampaign.version, 'reload alterou a versão do save V6');
     assert.equal(afterVendorCampaign?.act1Rev, initialCampaign.act1Rev, 'reload alterou a revisão do Ato I');
-    assert.equal(afterVendorCampaign?.questStep, initialCampaign.questStep, 'reload não preservou questStep no save V6');
-    assert.equal(afterVendorCampaign?.act1Sub, initialCampaign.act1Sub, 'reload não preservou act1Sub no save V6');
-    assert.equal(afterVendorControl.story.sub, 1, 'reload após diálogo não restaurou a etapa da vila');
+    assert.equal(afterVendorCampaign?.questStep, 2, 'reload não preservou o avanço para a floresta no save V6');
+    assert.equal(afterVendorCampaign?.act1Sub, 0, 'reload não preservou act1Sub 0 no handoff para a floresta');
+    assert.equal(afterVendorCampaign?.coins, initialCampaign.coins - ACT1.bribe, 'reload não preservou o saldo após a entrega de ouro');
+    assert.equal(afterVendorControl.story.sub, 0, 'reload não restaurou a subetapa da floresta');
     assert.equal(afterVendorControl.story.scene, null, 'reload após diálogo deixou cena ativa');
     assert.equal(afterVendorControl.regression.busy, false, 'reload após diálogo deixou o controle bloqueado');
-    assert.equal(afterVendorControl.story.q, 1, 'reload não restaurou o questStep da vila no runtime');
-    assert.equal(afterVendorControl.state.objective, 'Pergunte a Téo sobre o Pecado da Ganância',
-      'reload não restaurou o objetivo principal de Téo');
+    assert.equal(afterVendorControl.story.q, 2, 'reload não restaurou o questStep da floresta no runtime');
+    assert.equal(afterVendorControl.state.objective, 'Investigue o choro de crianças na floresta',
+      'reload não restaurou o objetivo seguinte à conversa de Téo');
     const teoAfterReload = afterVendorReload.vendors.find(v => v.shortName === 'PROVISÕES');
     assert.ok(teoAfterReload, 'QA não encontrou Téo na lista de vendedores após reload');
-    const distanceToTeoAfterReload = Math.hypot(
-      teoAfterReload.x - afterVendorControl.story.x,
-      teoAfterReload.z - afterVendorControl.story.z
-    );
-    if (distanceToTeoAfterReload <= 2.9) {
-      assert.equal(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
-        'o prompt de Téo deveria estar visível dentro do alcance após reload');
-    } else {
-      assert.notEqual(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
-        'o prompt de Téo não deve ficar visível quando o jogador recarrega longe dele');
-    }
+    assert.notEqual(afterVendorControl.story.label, 'PERGUNTAR · TÉO',
+      'o prompt de Téo deve desaparecer depois que a conversa avança para a floresta');
     assert.equal(afterVendorReload.side.abrigos.progress, 0, 'diálogo alterou indevidamente o progresso dos abrigos');
-    assert.equal(afterVendorReload.coins, initial.coins, 'diálogo cobrou moedas antes da ação entregar-ouro');
+    assert.equal(afterVendorReload.coins, initial.coins - ACT1.bribe, 'reload perdeu a cobrança de cinco moedas');
     assert.equal(afterVendorReload.xp, initial.xp, 'diálogo alterou XP antes da ação entregar-ouro');
     report.vendorDialogueReload = {
       version: afterVendorCampaign.version,
@@ -815,12 +880,13 @@ async function exposePathfinder() {
       act1Sub: afterVendorCampaign.act1Sub,
       objective: afterVendorControl.state.objective,
       interaction: afterVendorControl.story.label,
-      interactionDistanceToTeo: +distanceToTeoAfterReload.toFixed(2),
+      night: afterVendorControl.story.night,
       coins: afterVendorReload.coins,
+      bribe: ACT1.bribe,
       xp: afterVendorReload.xp,
       sideWaystonesProgress: afterVendorReload.side.abrigos.progress
     };
-    await shot('01-vendor-reload-restored');
+    await shot('vendor-reload-persisted');
 
     // A persistência foi verificada acima. Rearmar o fixture só agora isola a rota dos abrigos
     // e devolve ao jogador a posição/estado de QA usados pelo pathfinder, sem mascarar o reload.
