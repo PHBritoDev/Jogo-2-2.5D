@@ -76,7 +76,12 @@ Se não valer a pena integrar, preserve a branch/PR e não destrua o trabalho or
 - Não toque em segredos, tokens, configurações privadas ou permissões da conta.
 - Não faça force-push em branches dos agentes. Não apague branches nem feche PRs antigas sem certeza de que foram supersedidas e sem preservar seu conteúdo útil.
 
-### 6. Entrega
+### 6. Limpeza obrigatória ao concluir
+- Depois de terminar a auditoria, integrações, testes e criação/merge da entrega final, EXCLUA este próprio arquivo `docs/CLAUDE-MERGE-AGENTS-SILENT-2026-11-26.md` da branch de integração e da `main`, conforme aplicável.
+- Faça a exclusão somente no fim, depois de cumprir a missão e preservar qualquer PR/branch necessária. Não apague este arquivo antes de concluir o trabalho.
+- A exclusão deve ser registrada em commit normal, sem force-push.
+
+## 7. Entrega
 - Deixe as melhorias aprovadas integradas na branch de integração e prepare PR para `main`, ou mescle diretamente apenas quando todos os critérios e proteções do repositório permitirem.
 - Se não for seguro mesclar alguma parte, mantenha-a isolada e siga com as demais.
 - Garanta que a main não receba uma combinação parcialmente testada.
