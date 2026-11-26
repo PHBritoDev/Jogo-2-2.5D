@@ -860,6 +860,23 @@ test('Passagem places judgment cuts on the capsule surface facing the hero',()=>
  assert.ok(Math.abs(right.yaw+Math.PI/2)<1e-9,'side approach must rotate the cut broadside to the hero');
 });
 
+test('Passagem distributes 16 body-sized cuts over the visible capsule instead of stacking one slab',async()=>{
+ const target={x:0,y:1,z:5,radius:.5,height:1.8},from={x:0,y:0,z:0};
+ const cues=Array.from({length:16},(_,n)=>swordJudgmentCue({target,from,n}));
+ const positions=new Set(cues.map(c=>[c.p.x,c.p.y,c.p.z].map(v=>v.toFixed(3)).join(',')));
+ assert.ok(positions.size>=14,'the 16 cues must occupy distinct points across the target');
+ const heights=cues.map(c=>c.p.y);
+ assert.ok(Math.max(...heights)-Math.min(...heights)>.75,'cuts must span the target vertically');
+ for(const cue of cues){
+  const radius=Math.hypot(cue.p.x-target.x,cue.p.z-target.z);
+  assert.ok(radius>target.radius*.90&&radius<target.radius,'each cut stays on the capsule surface');
+  assert.equal(cue.yaw,0,'the cut plane keeps facing the attacker');
+ }
+ const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.match(source,/cut\\(p,'prota',e\\.final\\?1\\.08:\\.72\\+\\(n%3\\)\\*\\.06,roll,yaw,e\\.final\\?\\.30:\\.12\\)/);
+ assert.match(source,/if\\(e\\.final\\)cut\\(p,'prota',1\\.08,roll\\+Math\\.PI\\/2,yaw,\\.30\\)/);
+});
+
 test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{
  const from={x:0,y:0,z:0},focus=enemy('judgment-origin-focus',0,5),events=[];
  const rites=new SwordRites({
