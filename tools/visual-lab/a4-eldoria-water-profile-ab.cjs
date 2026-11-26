@@ -124,17 +124,28 @@ async function captureSide(browser, side, baseline) {
 
         // Perfil já foi carregado no localStorage antes do boot. Congelar o tempo agora
         // mantém água/aurora no mesmo instante sem impedir a troca de perfil entre páginas.
-        const frozenTime = await page.evaluate(() => {
+        const frozenTime = await page.evaluate(s => {
           try {
             const fixed = 60000;
             Object.defineProperty(performance, 'now', { configurable: true, value: () => fixed });
             window.__a4FrozenTimeMs = fixed;
+            // Reaplica a hora após congelar o relógio de animação: o frame anterior pode ter avançado gameClock.
+            window.SevenSinsDebug3D.setHour(s.hour);
             return fixed;
           } catch (error) {
             return String(error?.message || error);
           }
-        });
+        }, scene);
         if (frozenTime !== 60000) report.errors.push(side + '/' + profile + '/' + scene.name + ': não foi possível congelar o relógio A/B: ' + frozenTime);
+        const expectedNightFactor = scene.hour >= 18 || scene.hour < 6 ? 1 : 0;
+        await page.waitForFunction(s => {
+          const d = window.SevenSinsDebug3D, state = d?.state?.() || {};
+          const hour = state.dim?.hour, night = state.night, aurora = window.__aurora327U?.uAurK?.value;
+          const expectedNight = s.hour >= 18 || s.hour < 6 ? 1 : 0;
+          return Number.isFinite(hour) && Math.abs(hour - s.hour) <= .05
+            && Number.isFinite(night) && Math.abs(night - expectedNight) <= .01
+            && Number.isFinite(aurora) && (expectedNight ? aurora >= .5 : aurora <= .05);
+        }, scene, { timeout: 8000, polling: 100 });
         await wait(120);
         const diagnostic = await page.evaluate(async () => {
           const d = window.SevenSinsDebug3D;
@@ -153,12 +164,26 @@ async function captureSide(browser, side, baseline) {
             calls: state.calls ?? state.drawCalls ?? null,
             triangles: state.triangles ?? null,
             programCount: d.programList?.()?.length ?? null,
+            hour: state.dim?.hour ?? null,
+            night: state.night ?? null,
+            auroraK: u.uAurK?.value ?? null,
+            awakeningActive: state.awakeningActive ?? null,
+            dialogueOpen: state.dialogueOpen ?? null,
+            namePromptOpen: state.namePromptOpen ?? null,
             lowUniform: u.uAurLow?.value ?? null
           };
         });
         if (!diagnostic.player.every(Number.isFinite)
           || Math.hypot(diagnostic.player[0] - scene.x, diagnostic.player[2] - scene.z) >= .25)
           report.errors.push(side + '/' + profile + '/' + scene.name + ': teleporte não estabilizou; player=' + JSON.stringify(diagnostic.player));
+        if (!Number.isFinite(diagnostic.hour) || Math.abs(diagnostic.hour - scene.hour) > .05)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': gameClock.hour divergente; esperado=' + scene.hour + ' real=' + diagnostic.hour);
+        if (!Number.isFinite(diagnostic.night) || Math.abs(diagnostic.night - expectedNightFactor) > .01)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': fase dia/noite divergente; esperado=' + expectedNightFactor + ' real=' + diagnostic.night);
+        if (!Number.isFinite(diagnostic.auroraK) || (expectedNightFactor ? diagnostic.auroraK < .5 : diagnostic.auroraK > .05))
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': intensidade/uniforme da aurora incompatível com a hora; uAurK=' + diagnostic.auroraK);
+        if (diagnostic.awakeningActive || diagnostic.dialogueOpen || diagnostic.namePromptOpen)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': estado inicial/cinemática ainda ativo durante a captura');
         const file = side + '/' + profile + '-' + scene.name + '.png';
         await page.screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled' });
         report.cases.push({ side, profile, scene: scene.name, hour: scene.hour, image: file, ...diagnostic });
@@ -216,16 +241,23 @@ async function imageDiff(a, b, region = null) {
         ? +Math.max(...a.camera.map((v, i) => Math.abs(v - b.camera[i]))).toFixed(4) : null;
       const playerDelta = a.player && b.player && a.player.length === b.player.length
         ? +Math.max(...a.player.map((v, i) => Math.abs(v - b.player[i]))).toFixed(4) : null;
+      const hourDelta = Number.isFinite(a.hour) && Number.isFinite(b.hour) ? +Math.abs(a.hour - b.hour).toFixed(3) : null;
+      const nightDelta = Number.isFinite(a.night) && Number.isFinite(b.night) ? +Math.abs(a.night - b.night).toFixed(3) : null;
+      const auroraDelta = Number.isFinite(a.auroraK) && Number.isFinite(b.auroraK) ? +Math.abs(a.auroraK - b.auroraK).toFixed(3) : null;
+      const lightingStateComparable = hourDelta !== null && hourDelta <= .05
+        && nightDelta !== null && nightDelta <= .01 && auroraDelta !== null && auroraDelta <= .05;
       if (cameraDelta !== null && cameraDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': câmera A/B divergiu ' + cameraDelta);
       if (playerDelta !== null && playerDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': jogador A/B divergiu ' + playerDelta);
+      if (!lightingStateComparable)
+        report.errors.push(profile + '/' + scene.name + ': estado de iluminação A/B divergiu (hour=' + hourDelta + ', night=' + nightDelta + ', aurora=' + auroraDelta + ')');
       const renderBudgetComparable = a.calls === b.calls && a.triangles === b.triangles;
       if (!renderBudgetComparable)
         report.warnings.push(profile + '/' + scene.name + ': orçamento de render variou entre boots; comparar como informativo (LOD/culling assíncrono)');
       const baselineImage = path.join(out, a.image), candidateImage = path.join(out, b.image);
       report.comparisons.push({
-        profile, scene: scene.name, cameraDelta, playerDelta, renderBudgetComparable,
+        profile, scene: scene.name, cameraDelta, playerDelta, hourDelta, nightDelta, auroraDelta, lightingStateComparable, renderBudgetComparable,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
         pixels: await imageDiff(baselineImage, candidateImage),

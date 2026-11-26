@@ -263,10 +263,12 @@ test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métric
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
-  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
+  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa) && /d\.setHour\(s\.hour\)/.test(qa), 'hora é reaplicada após congelar o relógio de animação');
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
   assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa) && !/skyRoi:/.test(qa), 'mede água limpa nos dois horários e não pontua céu obstruído pela copa');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
+  assert.ok(/state\.dim\?\.hour/.test(qa) && /state\.night/.test(qa) && /u\.uAurK\?\.value/.test(qa), 'registra relógio, fase dia/noite e intensidade real da aurora');
+  assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa), 'compara o estado de iluminação antes de aceitar pixels');
   assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
 });
