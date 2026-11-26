@@ -82,6 +82,19 @@ test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real',
   assert.match(world, /const prologueMeadow=buildPrologueMeadow\(THREE,\{[\s\S]{0,500}?road:TEREN_ROAD/);
 });
 
+test('cameraClear considera discard do fade apenas para folhas quase transparentes', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.match(harness, /const FADED_UNDERGROWTH_BLOCKERS = new Set\(\[/);
+  assert.match(harness, /"eldoria-ferns"[\s\S]*"eldoria-bushes"[\s\S]*"eldoria-broadleaf"/);
+  assert.match(harness, /UNDERGROWTH_FADE_START_METERS = 0\.6/);
+  assert.match(harness, /UNDERGROWTH_FADE_SPAN_METERS = 5\.6/);
+  assert.match(harness, /UNDERGROWTH_FADE_CLEAR_THRESHOLD = 0\.92/);
+  assert.match(harness, /Number\.isFinite\(hit\.dist\)/);
+  assert.match(harness, /fade >= UNDERGROWTH_FADE_CLEAR_THRESHOLD/);
+  assert.match(harness, /!view\.blocked \|\| isVisuallyFadedUndergrowthBlocker\(view\)/);
+  assert.match(harness, /if \(!hit \|\| !FADED_UNDERGROWTH_BLOCKERS\.has\(hit\.name\)\) return false/);
+});
+
 test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('candidate.moduleHits[file]'), 'a candidata precisa carregar os dois módulos alterados');
