@@ -276,9 +276,9 @@ test('A1: workflow pós-merge mantém dispatch direto, artifact rastreável e ga
     'tools/visual-lab/scene-capture-core.test.cjs','tools/visual-lab/photographer.test.cjs','tools/visual-lab/camera-tree-fade.test.cjs']) {
     assert.ok(!pushPaths.includes("- '"+file+"'"),'mudança apenas em '+file+' não deve iniciar uma gravação longa');
   }
-  assert.match(a1,/workflow_dispatch:[\\s\\S]*?pr:[\\s\\S]*?required: false[\\s\\S]*?default: '0'[\\s\\S]*?type: string/);
-  assert.match(a1,/PR:\\s+\\$\\{\\{ github\\.event_name == 'workflow_dispatch' && inputs\\.pr \\|\\| 0 \\}\\}/);
-  assert.match(a1,/ARTIFACT_NAME:\\s+qa-A1-\\$\\{\\{ github\\.run_id \\}\\}/);
-  assert.match(a1,/name:\\s+\\$\\{\\{ env\\.ARTIFACT_NAME \\}\\}/);
-  assert.match(a1,/ref:\\s+\\$\\{\\{ github\\.sha \\}\\}/,'checkout precisa validar o SHA exato selecionado');
+  assert.ok(a1.includes('workflow_dispatch:')&&a1.includes("required: false")&&a1.includes("default: '0'")&&a1.includes('type: string'));
+  assert.ok(a1.includes("PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || 0 }}"));
+  assert.ok(a1.includes("ARTIFACT_NAME: qa-A1-${{ github.run_id }}"));
+  assert.ok(a1.includes("name: ${{ env.ARTIFACT_NAME }}"));
+  assert.ok(a1.includes("ref: ${{ github.sha }}"),'checkout precisa validar o SHA exato selecionado');
 });
