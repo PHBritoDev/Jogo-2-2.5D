@@ -852,11 +852,11 @@ test('impact cut follows the connected blade or energy heading, not the global c
 test('Passagem places judgment cuts on the capsule surface facing the hero',()=>{
  const front=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:0,y:0,z:0},n:0});
  assert.ok(front);
- assert.ok(Math.abs(front.p.z-4.54)<1e-9,'cut must sit on the near capsule surface, not inside its center');
+ assert.ok(Math.abs(front.p.z-4.465)<1e-9,'cut must sit 3.5 cm outside the near capsule surface so the enemy mesh cannot occlude it');
  assert.equal(front.p.x,0);
  assert.equal(front.yaw,0,'cut plane must face the attacker');
  const right=swordJudgmentCue({target:{x:0,y:1,z:5,radius:.5,height:1.8},from:{x:5,y:0,z:5},n:0});
- assert.ok(right.p.x>.45&&right.p.x<.47,'side approach must place the cut on the right-facing surface');
+ assert.ok(right.p.x>.52&&right.p.x<.54,'side approach must sit just outside the right-facing capsule surface');
  assert.ok(Math.abs(right.yaw+Math.PI/2)<1e-9,'side approach must rotate the cut broadside to the hero');
 });
 
@@ -869,7 +869,7 @@ test('Passagem distributes 16 body-sized cuts over the visible capsule instead o
  assert.ok(Math.max(...heights)-Math.min(...heights)>.75,'cuts must span the target vertically');
  for(const cue of cues){
   const radius=Math.hypot(cue.p.x-target.x,cue.p.z-target.z);
-  assert.ok(radius>target.radius*.90&&radius<target.radius,'each cut stays on the capsule surface');
+  assert.ok(radius>target.radius&&radius<target.radius+.06,'each cut stays just outside the capsule without visibly floating');
   assert.equal(cue.yaw,0,'the cut plane keeps facing the attacker');
  }
  const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
