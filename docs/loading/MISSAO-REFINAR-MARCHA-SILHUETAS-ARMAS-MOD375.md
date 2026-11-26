@@ -369,4 +369,202 @@ Relatório final obrigatório: resultado visual, causa comprovada dos travamento
 
 ---
 
+
+## 13. SEGUNDO COMPLEMENTO DO CRIADOR — CAMPO DA ÚLTIMA GUERRA E SEQUÊNCIA DE COMBATE CINEMATOGRÁFICA
+## Atualização de 26/11/2026 — prevalece em caso de conflito
+
+O criador enviou uma nova referência de cenário e dois vídeos curtos. Esta seção complementa a seção 12 e passa a fazer parte do escopo autorizado. Não começar do zero: primeiro auditar os sistemas, modelos, animações, VFX, habilidades e assets existentes; preservar e reutilizar o que estiver bom.
+
+### 13.1 Campo da Última Guerra — cenário e composição
+
+A imagem vertical enviada em 26/11/2026 define a direção de atmosfera do palco da batalha:
+- céu vermelho profundo com nuvens espessas e camadas de profundidade;
+- lua grande, pálida/amarelada, parcialmente encoberta pelas nuvens;
+- névoa vermelha baixa e distante, sem cobrir os personagens;
+- campo escuro, chão irregular, destroços e sinais de batalha antiga;
+- bandeiras rasgadas e árvores secas/silhuetas no horizonte;
+- espadas cenográficas, escudos quebrados, fragmentos de armadura e ossos/caveiras ambientais discretos, sem cadáveres ou detalhes gráficos;
+- uma espada monumental cravada verticalmente no centro ou no eixo de composição, como marco visual distante, desde que não concorra com o elenco.
+
+Construir uma composição cinematográfica com primeiro plano escuro, plano médio legível para a luta e fundo atmosférico. A lua deve ser uma fonte visual de escala e presságio, não uma textura chapada. Nuvens podem atravessar parcialmente sua silhueta; o brilho deve recortar a névoa e as bandeiras. Usar parallax/planos em profundidade apenas se barato e estável.
+
+Não reproduzir a imagem pixel a pixel. Não tornar tudo vermelho uniforme: manter pretos profundos, sombras frias/neutras, recortes carmesim e a lua amarelo-pálida. Evitar excesso de partículas, ruínas em toda a tela, objetos espalhados aleatoriamente, névoa opaca e uma espada gigante colada na câmera.
+
+O local deve continuar reconhecível durante todas as vinhetas. Reaproveitar a lua já existente no jogo conforme seção 12.4; não criar um segundo sistema de céu/lua se o atual puder ser estendido.
+
+### 13.2 Estrutura geral da batalha — duração mínima e ritmo
+
+Depois da marcha e das vinhetas iniciais, fazer uma transição cinematográfica clara — corte motivado por movimento, passagem por fumaça, bandeira atravessando a lente ou breve escurecimento com continuidade sonora — e revelar o Campo da Última Guerra.
+
+A sequência completa dos quatro confrontos individuais e do encerramento deve durar **no mínimo 35 segundos**. Alvo recomendado: aproximadamente 45–55 segundos, ajustável após playtest. Não alongar com câmera parada ou repetição; cada trecho precisa mostrar identidade, progressão, habilidade e consequência visual. Se o ritmo ficar apressado, aumentar a duração de beats relevantes em vez de acelerar as animações.
+
+Ordem narrativa obrigatória:
+1. Bispo 1 — cercado por um grupo de inimigos; demonstra superioridade e termina o confronto com uma ação/efeito próprio.
+2. Bispo 2 — novo enquadramento e confronto; a pressão aumenta até o uso de sua ultimate original.
+3. Bispo 3 — luta com sua identidade de combate e movimentação própria; os inimigos o cercam e a ultimate original encerra o confronto.
+4. Ganância — confronto final, mais agressivo e dominante; culmina em sua ultimate revisada.
+5. Plano final — os quatro Bispos juntos e Ganância acima deles, em sua forma/estado de voo já existente se houver; título surge integrado ao mundo.
+
+Não fazer montagem de golpes aleatórios. Cada personagem precisa ter leitura distinta de silhueta, ritmo, cor, VFX e assinatura de habilidade. Os Bispos e Ganância devem usar os VFX originais de cada um; não substituir por efeitos genéricos compartilhados. Novos efeitos devem complementar, não apagar, a identidade original.
+
+### 13.3 Coreografia visual dos confrontos — ação fictícia não gráfica
+
+Os vídeos anexados servem como referências de ritmo, contraste, silhueta, aceleração/desaceleração, enquadramento e leitura dos VFX. Não copiar personagens, desenhos, movimentos quadro a quadro ou efeitos sangrentos. A batalha deve ser intensa, mas não gráfica.
+
+Para os quatro confrontos:
+- criar leitura de movimento por antecipação, pausa curta, deslocamento, impacto visual e recuperação;
+- combinar deslocamentos rápidos, saltos, esquivas, bloqueios visuais e mudanças de plano de câmera, sempre como animação fictícia de fantasia;
+- usar animações já existentes quando compatíveis com o rig; criar transições/poses novas somente no sistema de animação do projeto se realmente faltar um clipe;
+- evitar personagens deslizando, teletransportes visíveis, rotações sem peso, membros rígidos, poses que se cruzam ou efeitos que escondem completamente a ação;
+- mostrar o contraste entre muitos inimigos e a calma/controle dos protagonistas sem precisar de ferimentos explícitos;
+- derrotas devem ser representadas por dissolução em partículas/brasas/sombra, desmaterialização, queda fora do enquadramento ou silhuetas intactas; não mostrar sangue, cortes corporais, desmembramento, decapitação ou detalhes de ferimentos;
+- impactos e explosões podem ser fortes visualmente, mas sem corpos/partes corporais sendo arremessados ou desintegrados de forma anatômica.
+
+A coreografia deve ser construída como espetáculo de fantasia e não como instrução realista de combate. Não incluir orientações de uso real de armas. Espadas, foices, machados e outros objetos são apenas props fictícios dos personagens e dos NPCs.
+
+### 13.4 Bispo 1 — primeiro confronto
+
+Revelar Bispo 1 já cercado por um grupo claramente maior que cinco inimigos. Ele deve parecer em desvantagem numérica apenas por um instante; logo a composição deixa claro que controla o ritmo da cena.
+
+Mostrar um confronto com começo, progressão e conclusão: aproximação dos inimigos, resposta do Bispo, deslocamentos e impactos visuais legíveis, seguida por uma pausa curta que deixe o resultado ser percebido. Usar a arma fictícia e a habilidade que já pertencem ao Bispo 1, além de seus VFX originais. Não inventar uma nova ultimate se ele já possui uma funcional.
+
+Variar planos: plano geral para mostrar o cerco, plano médio para a silhueta e um plano de impacto breve. Não usar câmera tremendo continuamente.
+
+### 13.5 Bispo 2 — cerco e ultimate da espada colossal
+
+Cortar para Bispo 2 com linguagem de câmera diferente do primeiro. Começar com um grupo de inimigos e ampliar a pressão até que vários o cerquem.
+
+A ultimate deve ser a habilidade original de Bispo 2, se existir no jogo. A espada colossal deve surgir com preparação visual legível, presença de escala e uma queda/impacto de fantasia. Ao atingir o ponto central, liberar uma onda de energia e uma explosão em camadas que envolva os inimigos. Eles desaparecem como silhuetas/partículas luminosas, sem ferimentos gráficos.
+
+A explosão deve ter:
+- preparação curta e claramente perceptível;
+- contraste entre o núcleo brilhante e o ambiente escuro;
+- onda de choque expansiva com borda definida;
+- poeira/névoa empurrada para fora e detritos ambientais leves;
+- dissipação progressiva, sem deixar o palco coberto por fumaça por tempo excessivo.
+
+Não transformar a ultimate em uma esfera branca sem detalhe. Preservar a paleta e assinatura do VFX original de Bispo 2.
+
+### 13.6 Bispo 3 — confronto cercado e círculos mágicos
+
+Bispo 3 deve ter o confronto mais fluido em termos de leitura de movimento, usando a arma fictícia e a animação que já lhe pertencem. O ritmo pode ser mais circular e contínuo, com alternância entre planos gerais e médios para deixar a silhueta sempre legível.
+
+Em seguida, a quantidade de inimigos aumenta visualmente e eles fecham o cerco. O momento de virada deve ser uma pausa intencional: o ambiente perde parte do som, os círculos mágicos originais começam a aparecer no chão em camadas e a energia se acumula.
+
+Ativar a ultimate original de Bispo 3. Os círculos devem ter hierarquia, símbolos legíveis e variação de escala; não espalhar dezenas de decals idênticos. A sequência de energia percorre os círculos, culmina em explosões controladas e limpa o espaço de forma cinematográfica. No plano final, Bispo 3 permanece intacto e sereno no centro, com seus VFX originais. Não mostrar dano gráfico aos NPCs.
+
+### 13.7 Ganância — confronto final, forma aérea e ultimate revisada
+
+Ganância deve ter a maior presença dramática do conjunto, mas sem virar uma sequência longa sem propósito. Usar seus VFX originais e as animações/estado de fase 2 já existentes. A luta deve comunicar agressividade e domínio através de ritmo, deslocamento, poses e efeitos; não através de gore.
+
+Na fase final, Ganância sobe para uma posição aérea moderada e claramente legível. Os inimigos restantes saltam em direção à personagem e a câmera entra em câmera lenta por um breve instante, criando a sensação de ameaça iminente. Manter distância visual segura: não mostrar lâminas quase atingindo o corpo nem contato físico gráfico. A ultimate interrompe esse instante e toma o controle da cena.
+
+A ultimate atual foi considerada genérica em alguns trechos e longa sem necessidade. Revisar o fluxo inteiro:
+- identificar cada etapa que existe hoje e medir sua duração;
+- cortar repetições, esperas sem informação e efeitos que não acrescentam progressão;
+- preservar a ideia central e a identidade de Ganância, mas reconstruir os beats para que cada um tenha propósito;
+- criar uma preparação curta e intencional, um ponto de concentração de energia, uma liberação com assinatura visual própria e um aftermath legível;
+- fazer a transição de câmera lenta para o impacto com timing preciso, sem congelamento prolongado;
+- não deixar a personagem suspensa sem motivo, nem repetir a mesma explosão em camadas redundantes;
+- a explosão final deve ser a mais memorável da sequência, mas não a maior massa de partículas possível. Priorizar forma, contraste, timing, som e composição.
+
+O criador citou a ultimate conhecida como “I AM ATOMIC” como referência de impacto dramático. Usar somente princípios abstratos de direção — preparação deliberada, concentração de poder, contraste entre silêncio e liberação, escala e consequência — para criar uma solução original de Ganância. Não copiar enquadramento, falas, música, sequência exata, coreografia, efeitos ou identidade visual dessa obra.
+
+Ao final da ultimate, mostrar Ganância intacta, em pose dominante e coerente com o estado/forma existente. O cenário deve continuar visível.
+
+### 13.8 NPCs — variedade visual com população controlada
+
+O criador sugeriu o modelo NPC.jbl. Verificar primeiro se o arquivo existe, qual loader/rig usa, se já está carregado em cache e se suas animações são compatíveis. Não presumir extensão ou formato além do que o repositório confirmar.
+
+Meta visual: cerca de 10 inimigos simultaneamente visíveis no combate como ponto de partida, podendo ajustar após medições. A sensação de multidão deve vir de entradas escalonadas, profundidade, silhuetas parcialmente encobertas, som ambiente, bandeiras, poeira e composição — não de centenas de rigs ativos.
+
+- Usar um conjunto pequeno de variações visuais reutilizáveis do NPC base: paletas, peças de armadura, capas, capacetes, proporções discretamente distintas e acessórios cenográficos.
+- Criar no máximo três famílias de aura para NPCs comuns, com intensidade baixa e diferenças fáceis de reconhecer. Não dar a todos um VFX chamativo.
+- Reservar aura mais marcante e silhueta maior para poucos líderes/mini-chefes. Eles devem ser maiores e mais robustos por escala/armadura/pose, não por excesso de partículas.
+- Variar props fictícios de cenário dos NPCs sem mudar o modelo-base de forma cara; garantir que não atravessem corpo/mãos e que a silhueta continue legível.
+- Os quatro Bispos e Ganância mantêm exclusivamente suas assinaturas de VFX originais. Não aplicar aura genérica de NPC a eles.
+
+### 13.9 Reforços sem pop-in e sem centenas de NPCs ativos
+
+O criador quer ver grupos chegando em ondas, sem perceber que novos inimigos aparecem do nada. Implementar a sensação de reforços sem criar uma multidão simultânea:
+- limitar o número de rigs ativos e animados simultaneamente com um orçamento medido; começar com aproximadamente 10 inimigos ativos e ajustar conforme o perfil mobile;
+- preparar o próximo grupo fora do enquadramento, atrás de névoa, destroços, bandeiras ou limites naturais do cenário;
+- fazer entradas em momentos de corte, movimento de câmera ou oclusão natural, com passos/som e leitura espacial coerentes;
+- ao sair de cena, os inimigos derrotados podem se dissolver em partículas econômicas e seus recursos serem reciclados por pool;
+- reutilizar rigs, materiais, geometrias e animações compatíveis, sem duplicar downloads ou shaders;
+- nunca teletransportar NPC visivelmente para o meio da tela, nunca fazer spawn sobreposto ao protagonista e nunca deixar o jogador perceber um pop-in;
+- se o enquadramento revelar a área de entrada, usar uma transição ambiental ou uma mudança de câmera que faça sentido na narrativa, não um truque abrupto;
+- ter limite máximo explícito e telemetria de NPCs ativos, draw calls, triângulos, partículas e tempo de frame.
+
+A meta é sugerir uma força inimiga numerosa enquanto somente um grupo pequeno é simulado de verdade. Não sacrificar estabilidade para aumentar a contagem.
+
+### 13.10 VFX e áudio — variação com identidade e orçamento
+
+Os VFX dos protagonistas devem ser os originais já implementados. Para NPCs, usar poucas variações discretas (por exemplo, branco frio, âmbar e vermelho escuro), reservando a variação mais forte aos líderes. Evitar colocar aura em todos os NPCs ao mesmo tempo.
+
+Para cada ultimate:
+- distinguir claramente preparação, emissão, impacto e dissipação;
+- controlar overdraw, transparências em camadas, bloom, partículas e render targets;
+- reutilizar materiais/shaders quando compatível;
+- evitar centenas de partículas individuais com atualização por frame;
+- preferir sistemas agrupados/instanciados ou spritesheets quando isso reduzir custo sem piorar a aparência;
+- limitar luzes dinâmicas e sombras em tempo real; usar iluminação falsa/efeitos de material quando visualmente adequado;
+- garantir que VFX não cubram a leitura dos personagens nem causem flashes excessivos;
+- sincronizar som, impacto e câmera; não usar tremor contínuo ou volume máximo constante.
+
+### 13.11 Encerramento e título
+
+Depois da ultimate de Ganância, criar uma transição de câmera que revele o palco e reúna os quatro Bispos em uma composição final. Ganância aparece acima deles, voando, somente se a animação/forma aérea já existente estiver estável.
+
+A câmera deve fazer um movimento deliberado e suave, com profundidade e escala. O título “A Batalha Contra os 7 Pecados Capitais” não pode simplesmente aparecer do nada:
+- primeiro, criar uma breve pausa e uma área de contraste no céu/névoa;
+- revelar o título através de partículas, traços de luz, poeira ou energia que se alinhem e formem as letras;
+- usar tipografia já existente no projeto se adequada; não introduzir uma fonte pesada sem necessidade;
+- manter o título legível em telas pequenas e em retrato;
+- deixar a composição respirar por alguns segundos antes de encerrar.
+
+Não adicionar legendas, frases ou logotipos extras sem autorização.
+
+### 13.12 Pesquisa técnica e implementação Three.js — respeitar a versão do projeto
+
+O projeto foi identificado anteriormente como usando Three.js 0.160. Antes de usar qualquer API, confirmar a versão exata no package/lockfile e consultar a documentação correspondente. Não copiar exemplos da documentação atual se dependerem de APIs posteriores.
+
+Fontes oficiais úteis:
+- WebGLRenderer, compileAsync e renderer.info: https://threejs.org/docs/pages/WebGLRenderer
+- AnimationMixer: https://threejs.org/docs/pages/AnimationMixer
+- Sistema de animação e blending: https://threejs.org/manual/pages/animation-system.html
+- Liberação de geometrias, materiais e texturas: https://threejs.org/manual/pages/how-to-dispose-of-objects.html
+- Cleanup e gerenciamento de recursos: https://threejs.org/manual/pages/cleanup.html
+
+Usar essas referências para orientar:
+- medir draw calls, triângulos, geometrias, texturas e programas com renderer.info;
+- pré-compilar shaders com compileAsync somente se a API estiver presente na versão instalada e a medição indicar stutter de compilação;
+- fazer cross-fade entre clipes compatíveis usando AnimationMixer/AnimationAction, com duração e sincronização verificadas;
+- parar actions e liberar mixers/recursos no momento correto;
+- usar pools e instancing quando houver muitos elementos repetidos e isso for compatível com o material/rig;
+- liberar geometria/material/textura somente quando não houver outros objetos compartilhando esses recursos;
+- não confundir renderer.info com medição de FPS/tempo de frame; usar também métricas de frame time e perfis reais.
+
+Não adicionar dependência, atualizar engine ou reescrever o sistema de renderização nesta missão. Cada otimização precisa estar ligada a um gargalo observado e ter comparação antes/depois.
+
+### 13.13 Plano de validação obrigatório desta sequência
+
+- medir a duração total e garantir no mínimo 35 segundos, com alvo inicial de 45–55 segundos;
+- revisar os quatro confrontos separadamente e a montagem completa, verificando se a identidade de cada personagem está clara;
+- testar no formato retrato e paisagem, incluindo o tamanho de tela mobile;
+- confirmar que a câmera nunca perde os protagonistas atrás de NPCs, partículas ou fumaça;
+- verificar se o campo, lua e espada monumental permanecem legíveis;
+- testar o orçamento de aproximadamente 10 inimigos ativos e ajustar com métricas, não por palpite;
+- repetir a sequência várias vezes para detectar vazamentos de memória, crescimento de geometrias/texturas, listeners duplicados e degradação de FPS;
+- verificar que reforços entram sem pop-in visível e sem duplicar rigs/recursos;
+- testar as ultimates originais dos Bispos e a ultimate revisada de Ganância em conjunto com o loading e o retorno ao gameplay;
+- fazer revisão visual humana de cada beat; qualquer pose, transição, efeito ou movimento que pareça genérico, estranho, artificial ou excessivo deve ser retrabalhado;
+- não declarar teste em Android físico se ele não tiver sido executado em aparelho Android real.
+
+O relatório final deve incluir duração real, número máximo de NPCs ativos, métricas antes/depois, recursos reutilizados, mudanças nas ultimates, testes executados, limitações e evidências visuais.
+
+---
+
+Estado do briefing: COMPLETO — SEGUNDO COMPLEMENTO AUTORIZADO PELO CRIADOR EM 26/11/2026.
+
 Estado do briefing: COMPLETO — AUTORIZADO PARA EXECUÇÃO PELO CRIADOR EM 26/11/2026.
