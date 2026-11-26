@@ -1,0 +1,61 @@
+name: QA A1 — câmera do abrigo (A/B)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qa-a1-shelter-camera.yml'
+      - 'mundo-3d-prototype.js'
+      - 'follow-camera-clearance3d.js'
+      - 'tests/follow-camera-clearance3d.test.mjs'
+      - 'tools/qa/a1-shelter-camera-qa.cjs'
+      - 'eldoria-walkable.js'
+      - 'eldoria-shelter3d.js'
+      - 'build-info.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: a1-shelter-camera-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  camera-ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preparar main como baseline e fixar SHA
+        run: |
+          git fetch origin main --depth=1
+          mkdir -p /tmp/a1-baseline
+          git archive origin/main | tar -x -C /tmp/a1-baseline
+          echo "A1_BASE_SHA=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
+      - name: Instalar Chromium e Three.js
+        run: |
+          npm install --prefix work/qa --no-package-lock --ignore-scripts playwright@1.56.1 three@0.160.0
+          work/qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Comparar o mesmo pose em main e PR
+        env:
+          NODE_PATH: ${{ github.workspace }}/work/qa/node_modules
+          A1_BASE_URL: 'http://127.0.0.1:4173'
+          A1_CANDIDATE_URL: 'http://127.0.0.1:4174'
+          A1_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          VISUAL_OUTPUT: ${{ github.workspace }}/work/a1-shelter-camera
+        run: |
+          python3 -m http.server 4173 --directory /tmp/a1-baseline > /tmp/a1-baseline.log 2>&1 &
+          python3 -m http.server 4174 --directory "$GITHUB_WORKSPACE" > /tmp/a1-candidate.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$A1_BASE_URL/mundo-3d-prototype.html" >/dev/null && curl -fsS "$A1_CANDIDATE_URL/mundo-3d-prototype.html" >/dev/null; then break; fi
+            sleep 1
+          done
+          node --check tools/qa/a1-shelter-camera-qa.cjs
+          node tools/qa/a1-shelter-camera-qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a1-shelter-camera-ab-${{ github.event.pull_request.head.sha || github.sha }}
+          path: work/a1-shelter-camera/
+          retention-days: 14
