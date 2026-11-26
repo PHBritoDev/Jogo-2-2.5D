@@ -34,6 +34,7 @@ function snapshotSquadActors(snapshots,others,focus,epoch){
  return snapshots;
 }
 const ENERGY_OCCLUSION_STEP=.008;
+const PASSAGE_COLLISION_STEP=ENERGY_OCCLUSION_STEP;
 /** Resolve the source and damage class for a secondary squad contact.
  * Waves push along their travel direction; sectors push radially from their origin.
  * Physical blade contacts keep the hero as their source.
@@ -174,11 +175,18 @@ export function judgmentDamage(base,n){const total=Math.round(base*3.04),finish=
 /** Fast corridor past one flank: straight approach, straight crossing, short exit.
  * Every segment is sampled and checked against both scenery and the target capsule. */
 export function passagePath(from,target,blocked){
- const distance=dist(from,target),r=Math.max(1.15,(target.radius||.5)+.65);if(distance>7||distance<r-.2||segmentBlocked(from,target,blocked))return null;
+ const distance=dist(from,target),r=Math.max(1.15,(target.radius||.5)+.65);if(distance>7||distance<r-.2||segmentBlocked(from,target,blocked,PASSAGE_COLLISION_STEP))return null;
  const dx=(target.x-from.x)/distance,dz=(target.z-from.z)/distance;
  for(const side of [1,-1]){
   const points=[copy(from)];let ok=true;
-  const append=p=>{const a=points[points.length-1],steps=Math.max(1,Math.ceil(dist(a,p)/.06));for(let i=1;i<=steps;i++){const t=i/steps,q={x:a.x+(p.x-a.x)*t,y:from.y,z:a.z+(p.z-a.z)*t};if(blocked(q)||dist(q,target)<r-.08){ok=false;return;}points.push(q);}};
+  const append=p=>{
+   const a=points[points.length-1];
+   // Keep the authored 6 cm movement waypoints, but validate the complete segment at 8 mm.
+   // A thin wall between waypoints must reject the route before the cinematic dash begins.
+   if(segmentBlocked(a,p,blocked,PASSAGE_COLLISION_STEP)){ok=false;return;}
+   const steps=Math.max(1,Math.ceil(dist(a,p)/.06));
+   for(let i=1;i<=steps;i++){const t=i/steps,q={x:a.x+(p.x-a.x)*t,y:from.y,z:a.z+(p.z-a.z)*t};if(dist(q,target)<r-.08){ok=false;return;}points.push(q);}
+  };
   const at=(ahead,lateral)=>({x:target.x+dx*ahead+dz*lateral*side,y:from.y,z:target.z+dz*ahead-dx*lateral*side});
   append(at(-r,r));if(ok)append(at(r,r));if(ok)append(at(r,0));if(ok)return points;
  }return null;
@@ -212,7 +220,7 @@ export class SwordRites {
    if(!target?.alive||Math.abs(target.y-(target.height||1.75)*.52-from.y)>1.4)return{ok:false,reason:'Aproxime-se de um alvo no mesmo piso.'};
    path=passagePath(from,target,this.api.blocked);if(!path)return{ok:false,reason:'Sem passagem segura atrás do alvo.'};
   }
-  const def=SWORD_RITES[sword];this.cooldowns[sword]=def.cooldown;this.active={kind:sword,sword,clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,markedTarget:target?copy(target):null,path,pathIndex:0,events:0,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return{ok:true,cost:def.mana};
+  const def=SWORD_RITES[sword];this.cooldowns[sword]=def.cooldown;this.active={kind:sword,sword,clip:def.clip,duration:def.duration,t:0,damage,yaw,targetId:target?.id,markedTarget:target?copy(target):null,path,pathIndex:0,lastMovePoint:copy(from),events:0,serial:++this.serial};this.prevBlade=null;this.queued=false;this.api.event('start',this.active);return{ok:true,cost:def.mana};
  }
  cancel(reason='cancel'){
   if(this.active||this.waves.length||this.energies.length)this.api.event('cancel',{reason});this.active=null;this.waves.length=0;this.prevBlade=null;this.queued=false;this.next=0;this.lastEnd=-100;
@@ -276,7 +284,12 @@ export class SwordRites {
    if(a.kind==='basic'&&!a.def.drive&&Number.isFinite(ctx.yaw)&&(!this.api.choreography||a.t<a.def.open*.65)&&a.mode!=='dash')a.yaw=ctx.yaw;
    if(a.kind==='prota'&&a.t>=.30&&a.t<=.47){
     const until=Math.min(a.path.length-1,Math.floor(clamp((a.t-.30)/.16,0,1)*(a.path.length-1)));
-    while(a.pathIndex<until){const p=a.path[++a.pathIndex];if(this.api.blocked(p)||dist(p,target)<(target.radius||.5)+.45){this.cancel('obstacle');return;}this.api.move(p,a);}
+    while(a.pathIndex<until){
+     const p=a.path[++a.pathIndex],previous=a.lastMovePoint||a.path[a.pathIndex-1]||ctx.from;
+     // Revalidate every segment immediately before moving: a wall can appear after path planning.
+     if(segmentBlocked(previous,p,this.api.blocked,PASSAGE_COLLISION_STEP)||dist(p,target)<(target.radius||.5)+.45){this.cancel('obstacle');return;}
+     this.api.move(p,a);a.lastMovePoint=copy(p);
+    }
    }
    // Pose callback returns actual base/tip transformed from the authored rig.
    const blade=this.api.pose(a,dt);
