@@ -156,3 +156,17 @@ test('viewport desktop usa perfil baixo e dimensão estável no renderer de soft
   assert.ok(harness.includes('{ id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }'),
     'o desktop de QA usa a mesma carga baixa do soak de movimento de PC, sem alterar o perfil publicado');
 });
+
+
+test('todas as capturas estáticas A/B precedem as caminhadas para evitar contaminação de LOD/culling', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const session = harness.slice(harness.indexOf('async function runSession'), harness.indexOf('async function main'));
+  const staticLoop = session.indexOf('for (const scene of SCENES) {');
+  const walkLoop = session.indexOf('for (const scene of SCENES.filter(scene => WALK_SCENES.has(scene.id)))');
+  const firstWalk = session.indexOf('walkForward(session.page, scene)');
+  assert.ok(staticLoop >= 0 && walkLoop > staticLoop, 'as poses A/B estáticas são capturadas primeiro');
+  assert.ok(session.slice(staticLoop, walkLoop).includes('captures.push'), 'a primeira passada grava os pares');
+  assert.ok(!session.slice(staticLoop, walkLoop).includes('walkForward'), 'nenhuma caminhada contamina a primeira passada');
+  assert.ok(firstWalk > walkLoop, 'o movimento só começa na segunda passada');
+  assert.ok(session.slice(walkLoop, firstWalk).includes('setPose(session.page, scene)'), 'cada caminhada reposiciona e estabiliza a cena');
+});
