@@ -971,8 +971,8 @@ const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowS
  isFree:(x,z)=>beltFree(x,z,-1.2)});
 const beltTropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2927,zone:null,
  trees:tropicalPlan.filter(t=>t.sp==='copaLarga'||t.sp==='figueira'||t.sp==='sumauma').map(t=>({x:t.x,z:t.z,h:(t.sp==='sumauma'?26:11)*t.s})),isFree:(x,z)=>beltFree(x,z,-1.5)});
-// A copa/tronco das árvores do cinturão precisa abrir a 8 m: a figueira ocultou o herói a 4,64 m.
-// O sub-bosque e os cipós mantêm 2,2 m para não abrir a vegetação baixa à distância.
+// A folhagem tropical e os cipós suspensos acompanham o fade de 8 m das árvores do cinturão.
+// O sub-bosque baixo mantém o alcance de 2,2 m.
 {const seen=new Set();for(const [group,near] of [[beltTropical.group,8.0],[beltUnder.group,2.2]])group&&group.traverse(o=>{if(!o.isMesh)return;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials)if(material&&!seen.has(material)){seen.add(material);addNearCameraFade(material,near);}});}
 function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='medium'?'auto':graphics3DMode==='auto'?(graphics3DAutoTier<=1?'low':graphics3DAutoTier===2?'auto':'high'):'high';}
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do

@@ -35,13 +35,11 @@ test('limita margem configurada e usa margem segura quando a configuração não
   assert.ok(Math.abs(cameraAboveWaterSurfaceY(-0.5, -1, 0.5, NaN) - (-0.1)) < 1e-12);
 });
 
-const mainSource = new URL('../../mundo-3d-prototype.js', import.meta.url);
-if (fs.existsSync(mainSource)) {
-  test('o follow-camera integrado consulta a lâmina e exclui regiões com semântica diferente', () => {
-    const source = fs.readFileSync(mainSource, 'utf8');
-    assert.match(source, /cameraAboveWaterSurfaceY/);
-    assert.match(source, /terrain3D\.waterDepth\(cx,cz\)/);
-    assert.match(source, /!inJourney\(camera\.position\.x,camera\.position\.z\)/);
-    assert.match(source, /!sakuraWorld\?\.root\.visible/);
-  });
-}
+const mainSource = new URL('../mundo-3d-prototype.js', import.meta.url);
+test('o follow-camera integrado consulta a lâmina e exclui regiões com semântica diferente', () => {
+  const source = fs.readFileSync(mainSource, 'utf8');
+  assert.match(source, /cameraAboveWaterSurfaceY/);
+  assert.match(source, /terrain3D\.waterDepth\(cx,cz\)/);
+  assert.match(source, /!inJourney\(camera\.position\.x,camera\.position\.z\)/);
+  assert.match(source, /!sakuraWorld\?\.root\.visible/);
+});
