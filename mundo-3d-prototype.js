@@ -4646,6 +4646,9 @@ function admCastNearbyBossUltimate(){
   started=startZarkUlt();
  }else if(isVorgazhekProfile(encounterProfile)){
   started=startCosmicUlt();
+ }else if(ultimate.kind==='nova'){
+  startSupernova();
+  started=!!bossUlt.kind;
  }else{
   startKitUlt(ultimate.kind);
   started=!!bossUlt.kind;
