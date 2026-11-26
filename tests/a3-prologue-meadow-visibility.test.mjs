@@ -109,6 +109,8 @@ test('cameraClear distingue folha quase descartada de tronco e vegetação ainda
     'folhas com mais de 92% do padrão descartado não devem reprovar a visibilidade');
   assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 4.0 } } }), false,
     'folhas ainda parcialmente opacas continuam sendo obstrução');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 5.9 } } }), false,
+    'folhas distantes permanecem opacas e não podem ser ignoradas');
   assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-tree-trunk', dist: 5.9 } } }), false,
     'troncos nunca são ignorados pelo QA');
   assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-bushes', dist: NaN } } }), false,
