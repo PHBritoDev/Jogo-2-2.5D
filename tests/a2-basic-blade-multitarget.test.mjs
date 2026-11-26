@@ -850,7 +850,9 @@ test('impact cut follows the connected blade or energy heading, not the global c
 });
 
 test('Passagem places each cut on the attacker-facing capsule surface',()=>{
- const target={x:0,y:0,z:5,radius:.5,height:1.8}; // Enemy1Squad actors store y at ground level.
+ const squad=new Enemy1Squad({ground:()=>0}),actor=squad.spawn([{x:0,z:5}])[0];
+ const target={...actor,radius:actor.T.radius,height:actor.T.height}; // Real production actor: y is its ground/base height.
+ assert.equal(target.y,0);
  const front=swordJudgmentCue({target,from:{x:0,y:0,z:0},n:5});
  assert.ok(front);
  assert.ok(front.p.y>0&&front.p.y<target.height,'surface mark is placed above the ground-origin actor pivot');
