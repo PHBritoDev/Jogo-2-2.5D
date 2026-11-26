@@ -15,6 +15,7 @@ on:
       - 'tools/visual-lab/scene-capture-core.test.cjs'
       - 'tools/visual-lab/photographer.cjs'
       - 'tools/visual-lab/photographer.test.cjs'
+      - 'tools/visual-lab/camera-tree-fade.test.cjs'
       - 'tools/visual-lab/package.json'
       - 'act1-world-layout.js'
       - 'eldoria-city-layout.js'
@@ -55,7 +56,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --input-type=module -e 'import {BUILD, MOD} from "./build-info.js"; console.log("EXPECTED_BUILD="+BUILD+" (Mod "+MOD+")")' >> "$GITHUB_ENV"
-          node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs
+          node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs
           npm install --prefix tools/visual-lab --no-audit --no-fund
           ./tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/a1-route-http.log 2>&1 &

@@ -38,25 +38,17 @@ test('tronco da figueira não fica opaco na distância de obstrução observada'
     'a distância observada precisa descartar aproximadamente metade dos fragmentos do tronco');
 });
 
-test('árvore ancestral GLB também abre o tronco quando a câmera entra no volume', () => {
-  const live = fs.readFileSync(path.join(__dirname, '../../eldoria-live-village3d.js'), 'utf8');
-  const start = live.indexOf('function addNearCameraFade(material, near = 8.0) {');
-  const end = live.indexOf('\n}', start);
-  assert.ok(start >= 0 && end > start, 'o módulo da vila precisa possuir o mesmo fade por distância');
-  const fadeFn = live.slice(start, end);
-  assert.ok(fadeFn.includes('nearCameraFadeMaterials = new WeakSet()'),
-    'materiais compartilhados pelos dois GLBs não podem receber o hook duas vezes');
-  assert.ok(fadeFn.includes('length(vViewPosition)-0.6') && fadeFn.includes('dither>camFade'),
-    'o GLB usa o mesmo dither espacial do cinturão tropical');
-  assert.ok(fadeFn.includes("chunk + '\\n{float camFade"),
-    'o shader precisa inserir uma quebra de linha real antes do bloco GLSL');
-  assert.ok(fadeFn.includes("shader.fragmentShader.includes('vViewPosition')"),
-    'materiais sem vViewPosition não podem receber código GLSL incompatível');
-  assert.ok(fadeFn.includes('customProgramCacheKey') && fadeFn.includes('material.needsUpdate = true'),
-    'o shader precisa invalidar o programa compilado');
-  const treeBlock = live.slice(live.indexOf("if (spec.kind === 'tree')"), live.indexOf('root.add(obj)', live.indexOf("if (spec.kind === 'tree')")));
-  assert.ok(treeBlock.includes('Array.isArray(child.material)'),
-    'malhas GLB com mais de um material também precisam ser cobertas');
-  assert.ok(treeBlock.includes('addNearCameraFade(material, 8.0)'),
-    'o tronco e a copa da árvore ancestral precisam compartilhar a janela de 8 m');
+test('figueiras do cinturão usam fade de 8 m; sub-bosque preserva 2,2 m', () => {
+  const start = source.indexOf('// A copa/tronco das árvores do cinturão precisa abrir a 8 m:');
+  const end = source.indexOf('function tropicalProfile()', start);
+  assert.ok(start >= 0 && end > start, 'fade das árvores do percurso precisa estar configurado');
+  const block = source.slice(start, end);
+  assert.ok(block.includes('beltTropical.group,8.0') && block.includes('beltUnder.group,2.2'),
+    'árvores altas e sub-bosque precisam de alcances distintos');
+  assert.ok(block.includes('Array.isArray(o.material)') && block.includes('addNearCameraFade(material,near)'),
+    'todas as malhas e materiais da copa/tronco recebem o fade');
+  assert.ok(ditherKeep(4.64, 8.0) >= 0.49 && ditherKeep(4.64, 8.0) <= 0.51,
+    'a distância observada de 4,64 m abre aproximadamente metade da figueira');
+  assert.equal(ditherKeep(4.64, 2.2), 1,
+    'o alcance antigo de 2,2 m deixava a figueira totalmente opaca a 4,64 m');
 });

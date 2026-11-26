@@ -19,7 +19,6 @@ on:
       - 'build-info.js'
       - 'tools/visual-lab/world-module-loader.test.cjs'
       - 'camera-water-clearance3d.js'
-      - 'eldoria-live-village3d.js'
       - 'tests/camera-water-clearance.test.mjs'
 
 permissions:
