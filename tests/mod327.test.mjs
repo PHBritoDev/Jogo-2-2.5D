@@ -198,6 +198,7 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
 import { auroraColor, auroraLightK, auroraLowProfile, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
+import { createSkyAtmosphere } from '../ceu-atmosfera3d.js';
 test('aurora: paleta e intensidade cinematográfica preservadas no perfil baixo; custo cai só no detalhe', () => {
   assert.equal(auroraLightK(0, false, false), 0); assert.equal(auroraLightK(.8, true, false), 0, 'caverna/interior/dimensão: nada');
   assert.equal(auroraLightK(.8, false, false), .8);
@@ -258,14 +259,41 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
 
-test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métricas informativas', () => {
+test('aurora no céu: perfil baixo corta amostras de ruído sem reduzir intensidade nem recompilar', needs3, () => {
+  assert.ok(THREE, 'CI precisa de three.js');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const sky = createSkyAtmosphere(THREE, scene), material = sky.mesh.material, uniforms = material.uniforms;
+  assert.equal(uniforms.uAurLow, auroraUniforms(THREE).uAurLow, 'céu, água e terreno compartilham o mesmo uniforme');
+  const shader = material.fragmentShader;
+  const branches = [...shader.matchAll(/if \(uAurLow > \.5\) rays = ([^;]+);\s*else rays = ([^;]+);/g)];
+  assert.equal(branches.length, 2, 'arcos e coroa têm variante econômica');
+  for (const [, lowExpr, highExpr] of branches) {
+    assert.equal((lowExpr.match(/n1\(/g) || []).length, 1, 'baixo: uma amostra de ruído por raio');
+    assert.equal((highExpr.match(/n1\(/g) || []).length, 2, 'médio/alto/máximo: duas amostras por raio');
+  }
+  sky.update(.016, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: true });
+  const auroraIntensity = sky.aurora, version = material.version;
+  updateAuroraLight(THREE, { level: .8, time: 700, low: true });
+  assert.equal(uniforms.uAurLow.value, 1, 'baixo chega ao shader do céu pelo uniforme compartilhado');
+  assert.equal(sky.aurora, auroraIntensity, 'a intensidade visual não é reduzida');
+  updateAuroraLight(THREE, { level: .8, time: 701, low: false });
+  assert.equal(uniforms.uAurLow.value, 0, 'alto restaura as duas amostras');
+  assert.equal(sky.aurora, auroraIntensity, 'a troca de qualidade preserva a intensidade');
+  assert.equal(material.version, version, 'troca por uniforme, sem recompilação');
+  assert.equal(scene.children.filter(o => o.name === 'ceu-atmosfera-mod323').length, 1, 'continua sendo uma esfera / um draw');
+  material.dispose(); sky.mesh.geometry.dispose();
+});
+
+test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizada', () => {
   const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
   assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa) && /d\.setHour\(s\.hour\)/.test(qa), 'hora é reaplicada após congelar o relógio de animação');
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
-  assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa) && !/skyRoi:/.test(qa), 'mede água limpa nos dois horários e não pontua céu obstruído pela copa');
+  assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa), 'mede água limpa nos dois horários');
+  assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /skyRoi:/.test(qa) && /viewQA\(true/.test(qa), 'mede a cortina em céu aberto, em primeira pessoa');
+  assert.ok(/'ceu-atmosfera3d\.js'/.test(qa) && /baselineRouteHits\.sky/.test(qa), 'baseline intercepta o shader real do céu');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
   assert.ok(/state\.dim\?\.hour/.test(qa) && /state\.night/.test(qa) && /u\.uAurK\?\.value/.test(qa), 'registra relógio, fase dia/noite e intensidade real da aurora');
   assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa), 'compara o estado de iluminação antes de aceitar pixels');

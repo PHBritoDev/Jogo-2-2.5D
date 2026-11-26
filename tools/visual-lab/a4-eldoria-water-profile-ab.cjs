@@ -15,7 +15,7 @@ const out = path.resolve('visual-lab-results/a4-water-profile-ab');
 fs.mkdirSync(out, { recursive: true });
 if (!/^[a-f0-9]{40}$/.test(baseSha)) throw new Error('BASE_SHA ausente ou inválido');
 
-const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.js', 'eldoria-water.js'].map(file => [
+const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.js', 'eldoria-water.js', 'ceu-atmosfera3d.js'].map(file => [
   file, execFileSync('git', ['show', baseSha + ':' + file], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
 ]));
 const profiles = ['low', 'medium', 'high', 'max'];
@@ -29,12 +29,17 @@ const scenes = [
     name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10,
     // Faixa central-esquerda da água; y=310 era chão, não água.
     waterRoi: { left: 280, top: 235, width: 100, height: 40 }
+  },
+  {
+    name: 'aurora-ceu', hour: 22, x: 0, z: -29, yaw: 0, pitch: -.82, distance: .72, firstPerson: true,
+    // Vista em primeira pessoa no claro do ritual: a faixa superior deve conter a cortina, não copas/HUD.
+    skyRoi: { left: 150, top: 35, width: 552, height: 270 }
   }
 ];
 const report = {
   status: 'incomplete', baseSha, candidateSha,
   renderer: 'Chromium/WebGL SwiftShader 852x480 — não Android físico',
-  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0 }
+  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0, sky: 0 }
 };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -60,11 +65,12 @@ async function captureSide(browser, side, baseline) {
         report.errors.push(side + ' HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
     });
     if (baseline) {
-      await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
+      await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water|ceu-atmosfera3d)\.js(?:\?.*)?$/, async route => {
         const name = path.basename(new URL(route.request().url()).pathname);
         if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
         if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
         if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
+        if (name === 'ceu-atmosfera3d.js') report.baselineRouteHits.sky++;
         await route.fulfill({
           status: 200, contentType: 'text/javascript; charset=utf-8',
           body: baseModules[name]
@@ -86,7 +92,10 @@ async function captureSide(browser, side, baseline) {
           if (typeof d.weather === 'function') d.weather('limpo');
           d.teleport(s.x, s.z);
           d.fly(null);
-          d.view(s.yaw, s.pitch, s.distance);
+          if (s.firstPerson) {
+            if (typeof d.viewQA !== 'function') throw new Error('viewQA indisponível para a captura do céu');
+            d.viewQA(true, s.yaw, s.pitch);
+          } else d.view(s.yaw, s.pitch, s.distance);
           // snapCam é o mesmo ajuste imediato usado pelo QA de dimensão/câmera do projeto.
           window.__a4SnapCamera = typeof d.snapCam === 'function' ? d.snapCam() : null;
           window.__a4CameraPrevious = null;
@@ -231,7 +240,7 @@ async function imageDiff(a, b, region = null) {
     ] });
     await captureSide(browser, 'baseline', true);
     await captureSide(browser, 'candidate', false);
-    if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water)
+    if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water || !report.baselineRouteHits.sky)
       report.errors.push('Baseline inválido: não interceptou mundo + os dois módulos A4');
     for (const profile of profiles) for (const scene of scenes) {
       const a = report.cases.find(x => x.side === 'baseline' && x.profile === profile && x.scene === scene.name);
