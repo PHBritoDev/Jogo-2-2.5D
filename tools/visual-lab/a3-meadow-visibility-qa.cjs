@@ -12,12 +12,16 @@ const SEED = 0xA3C0FFEE;
 const CHANGED_MODULES = ["eldoria-prologue-meadow.js", "eldoria-undergrowth.js"];
 const VIEWPORTS = [
   { id: "mobile", width: 852, height: 393, isMobile: true, profile: "low" },
+  { id: "mobile-portrait", width: 393, height: 852, isMobile: true, profile: "low" },
   { id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }
 ];
 const SCENES = [
   { id: "prado-prologo", x: 54, z: 160, yaw: Math.PI, pitch: .12, distance: 6 },
-  { id: "trilha-samambaias", x: -14, z: -105, yaw: -Math.PI / 2, pitch: .12, distance: 6 }
+  { id: "trilha-samambaias", x: -14, z: -105, yaw: -Math.PI / 2, pitch: .12, distance: 6 },
+  // Vista lateral do mesmo ponto, mantendo o herói voltado para a estrada: expõe o ombro do prado no mobile.
+  { id: "prado-ombro-lateral", x: 54, z: 160, yaw: Math.PI / 2, heroYaw: Math.PI, pitch: .12, distance: 8 }
 ];
+const WALK_SCENES = new Set(["prado-prologo", "trilha-samambaias"]);
 
 function readBaseModules() {
   if (!/^[a-f0-9]{40}$/.test(BASE_SHA)) throw new Error("BASE_SHA ausente ou inválido");
@@ -87,7 +91,7 @@ async function setPose(page, scene) {
     const D = window.SevenSinsDebug3D;
     // Reposiciona o jogador antes de reativar o follow-camera; esta é a ordem usada
     // pelos outros laboratórios do projeto e evita conservar a câmera do spawn.
-    D.teleport(s.x, s.z, s.yaw);
+    D.teleport(s.x, s.z, s.heroYaw ?? s.yaw);
     D.fly(null);
     D.view(s.yaw, s.pitch, s.distance);
     // snapCam é o preset de câmera determinístico usado pelos laboratórios do projeto;
@@ -227,36 +231,23 @@ async function runSession(browser, viewport, variant, baselineModules) {
     }
   }
   try {
-    const meadow = SCENES[0];
-    const before = await setPose(session.page, meadow);
-    captures.push(await capture(session.page, viewport, variant, meadow, before));
-    if (!before.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera do prado não assentou");
-    if (!cameraClear(before)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto no prado");
+    for (const scene of SCENES) {
+      const state = await setPose(session.page, scene);
+      captures.push(await capture(session.page, viewport, variant, scene, state));
+      if (!state.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera não assentou em " + scene.id);
+      if (!cameraClear(state)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto em " + scene.id);
 
-    if (variant === "candidate") {
-      const walk = await walkForward(session.page, meadow);
-      const walkFile = viewport.id + "-candidate-prado-apos-caminhada.png";
-      await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
-      walks.push({ viewport: viewport.id, scene: "prado-prologo", ...walk, file: walkFile });
-      if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada no prado");
-      if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada no prado avançou menos de 2 m");
-      if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar no prado");
-    }
-
-    const forest = SCENES[1];
-    const forestState = await setPose(session.page, forest);
-    captures.push(await capture(session.page, viewport, variant, forest, forestState));
-    if (!forestState.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera da trilha não assentou");
-    if (!cameraClear(forestState)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto na trilha");
-
-    if (variant === "candidate") {
-      const walk = await walkForward(session.page, forest);
-      const walkFile = viewport.id + "-candidate-trilha-apos-caminhada.png";
-      await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
-      walks.push({ viewport: viewport.id, scene: forest.id, ...walk, file: walkFile });
-      if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada na trilha");
-      if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada na trilha avançou menos de 2 m");
-      if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhar na trilha");
+      if (variant === "candidate" && WALK_SCENES.has(scene.id)) {
+        const walk = await walkForward(session.page, scene);
+        const walkFile = viewport.id + "-candidate-" + scene.id + "-apos-caminhada.png";
+        await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
+        walks.push({ viewport: viewport.id, scene: scene.id, ...walk, file: walkFile });
+        const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";
+        const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";
+        if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);
+        if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");
+        if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhada " + routeArticle + " " + routeLabel);
+      }
     }
   } finally {
     await session.context.close().catch(() => {});
@@ -312,9 +303,9 @@ async function main() {
         if (cam > .25) fatal.push(viewport.id + " " + scene.id + ": câmera A/B divergiu " + cam.toFixed(3) + " m");
         if (!cameraClear(b?.state) || !cameraClear(c?.state)) fatal.push(viewport.id + " " + scene.id + ": protagonista não está totalmente visível no par A/B");
       }
-      for (const scene of SCENES) {
-        const walk = candidate.walks.find(w => w.scene === scene.id);
-        if (!walk || walk.distance < 2) fatal.push(viewport.id + ": caminhada candidata não comprovada em " + scene.id);
+      for (const sceneId of WALK_SCENES) {
+        const walk = candidate.walks.find(w => w.scene === sceneId);
+        if (!walk || walk.distance < 2) fatal.push(viewport.id + ": caminhada candidata não comprovada em " + sceneId);
       }
     }
   } finally {
