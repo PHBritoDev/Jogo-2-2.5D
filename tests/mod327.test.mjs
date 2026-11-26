@@ -293,7 +293,8 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
   assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa), 'mede água limpa nos dois horários');
   assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /camera: \{ from: \[0, 2, -29\], to: \[0, 22, -15\] \}/.test(qa) && /skyRoi:/.test(qa) && /d\.fly\(s\.camera\.from, s\.camera\.to\)/.test(qa), 'mede a cortina com câmera livre fixa e repetível');
-  assert.ok(/page\.locator\('#__a4-webgl-canvas'\)\.screenshot/.test(qa) && /scale: 'css'/.test(qa), 'compara somente o canvas WebGL, sem HUD/toast');
+  assert.ok(/getElementById\('scene'\)/.test(qa) && /page\.locator\('#scene'\)\.screenshot/.test(qa) && /scale: 'css'/.test(qa), 'compara somente o canvas WebGL #scene, sem HUD/toast');
+  assert.ok(/canvasInfo\.width < 800/.test(qa) && /canvasInfo\.cssHeight < 400/.test(qa), 'registra backing e viewport reais do canvas');
   assert.ok(/cameraTargetView/.test(qa), 'verifica que o alvo da câmera no céu não está obstruído');
   assert.ok(/const cameraA =/.test(qa) && /const cameraB =/.test(qa), 'compara posição e alvo da câmera entre baseline e candidata');
   assert.ok(/'ceu-atmosfera3d\.js'/.test(qa) && /baselineRouteHits\.sky/.test(qa), 'baseline intercepta o shader real do céu');
