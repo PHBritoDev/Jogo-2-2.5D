@@ -6,7 +6,7 @@ import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '..
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailSegment } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -889,6 +889,19 @@ test('Passagem uses a narrow curved ribbon instead of the shared broad crescent'
  assert.ok(vfx.includes("geometry=crescent"),'ordinary impacts retain the original crescent geometry by default');
  assert.ok(vfx.includes("m.geometry=geometry"),'the pooled cut meshes accept a dedicated judgment geometry');
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
+});
+
+test('Passagem blade trail is shorter, softer and capped at 30 Hz without changing other sword trails',()=>{
+ const base={x:0,y:0,z:0},tip={x:0,y:1,z:2};
+ const passage=swordTrailSegment('prota',base,tip),standard=swordTrailSegment('basic',base,tip);
+ const length=segment=>Math.hypot(segment.tip.x-segment.base.x,segment.tip.y-segment.base.y,segment.tip.z-segment.base.z);
+ assert.ok(length(passage)<length(standard)*.7,'Passagem uses a shorter blade segment to avoid a broad white fan');
+ assert.equal(SWORD_TRAIL_PROFILES.prota.life,.14);
+ assert.equal(SWORD_TRAIL_PROFILES.prota.opacity,.72);
+ assert.equal(SWORD_TRAIL_PROFILES.prota.interval,1/30);
+ assert.equal(SWORD_TRAIL_PROFILES.standard.life,.24,'ordinary sword trails keep their original lifetime');
+ assert.equal(SWORD_TRAIL_PROFILES.standard.opacity,1,'ordinary sword trails keep their original opacity');
+ assert.equal(SWORD_TRAIL_PROFILES.standard.interval,0,'ordinary sword trails keep full sampling');
 });
 
 test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{

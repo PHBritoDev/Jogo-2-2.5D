@@ -42,6 +42,17 @@ export function swordJudgmentCue(e){
  */
 /** Compact profile for the 16 individual Passagem blade marks. */
 export const JUDGMENT_SLASH_PROFILE=Object.freeze({length:.82,endWidth:.014,maxWidth:.078,curve:.085,tilt:.035,bow:.018});
+/** Per-rite blade trails: Passagem gets a shorter, softer, 30Hz ribbon. */
+export const SWORD_TRAIL_PROFILES=Object.freeze({
+ standard:Object.freeze({base:.15,tip:1,life:.24,opacity:1,interval:0}),
+ prota:Object.freeze({base:.34,tip:.86,life:.14,opacity:.72,interval:1/30})
+});
+export function swordTrailSegment(kind,base,tip){
+ const p=kind==='prota'?SWORD_TRAIL_PROFILES.prota:SWORD_TRAIL_PROFILES.standard;
+ const lerp=(a,b,t)=>a+(b-a)*t;
+ const point=t=>({x:lerp(base.x,tip.x,t),y:lerp(base.y,tip.y,t),z:lerp(base.z,tip.z,t)});
+ return{base:point(p.base),tip:point(p.tip)};
+}
 export function swordJudgmentSlashPoint(u,edge){
  const t=Math.max(0,Math.min(1,Number.isFinite(u)?u:0)),side=edge?1:-1,p=JUDGMENT_SLASH_PROFILE;
  const width=p.endWidth+(p.maxWidth-p.endWidth)*Math.pow(Math.sin(Math.PI*t),.8);
@@ -59,13 +70,16 @@ export function createSwordRitesVFX(T,scene){
  const makeMaterial=(sword='prota',glow=0)=>{const p=palettes[sword];return new T.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,uniforms:{clock:{value:0},ink:{value:new T.Color(p[0])},core:{value:new T.Color(p[1])},dark:{value:new T.Color(p[2])},filament:{value:new T.Color(p[3])},opacity:{value:1},life:{value:.3},glow:{value:glow}},side:T.DoubleSide,transparent:true,depthWrite:false,toneMapped:false,blending:glow?T.AdditiveBlending:T.NormalBlending});};
  const tint=(m,s)=>{const p=palettes[s];['ink','core','dark','filament'].forEach((k,i)=>m.uniforms[k].value.setHex(p[i]));};
  const segments=64;
- function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0};}
+ function ribbon(){const geometry=new T.BufferGeometry(),positions=new Float32Array(segments*2*3),uv=new Float32Array(segments*4),birth=new Float32Array(segments*2),indices=[];for(let i=0;i<segments;i++){uv[i*4]=uv[i*4+2]=i/(segments-1);uv[i*4+1]=0;uv[i*4+3]=1;if(i<segments-1){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}}geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));geometry.setAttribute('uv',new T.BufferAttribute(uv,2));geometry.setAttribute('birth',new T.BufferAttribute(birth,1).setUsage(T.DynamicDrawUsage));geometry.setIndex(indices);geometry.setDrawRange(0,0);const material=makeMaterial(),mesh=new T.Mesh(geometry,material);mesh.frustumCulled=false;root.add(mesh);return{geometry,positions,birth,mesh,material,n:0,last:0,life:.24,opacity:1};}
  const trails=Array.from({length:3},ribbon);
  function sample({a,blade}){
   const serial=a.kind==='aurora'?a.serial*10+a.events:a.serial*10;
   if(serial!==trailSerial){trailSerial=serial;trailCursor=(trailCursor+1)%trails.length;const t=trails[trailCursor];t.n=0;t.geometry.setDrawRange(0,0);tint(t.material,a.sword);}
-  const t=trails[trailCursor];if(t.n===segments){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
-  const i=t.n++,o=i*6,b=blade.base,p=blade.tip;t.positions.set([b.x+(p.x-b.x)*.15,b.y+(p.y-b.y)*.15,b.z+(p.z-b.z)*.15,p.x,p.y,p.z],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.mesh.visible=true;t.material.uniforms.life.value=.24;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
+  const t=trails[trailCursor],profile=a.kind==='prota'?SWORD_TRAIL_PROFILES.prota:SWORD_TRAIL_PROFILES.standard;
+  if(profile.interval>0&&t.n>0&&time-t.last<profile.interval-1e-4)return;
+  if(t.n===segments){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
+  const segment=swordTrailSegment(a.kind,blade.base,blade.tip),i=t.n++,o=i*6,b=segment.base,p=segment.tip;
+  t.positions.set([b.x,b.y,b.z,p.x,p.y,p.z],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.life=profile.life;t.opacity=profile.opacity;t.mesh.visible=true;t.material.uniforms.life.value=profile.life;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
  }
  // Thick curved crescent with a tapered, serrated inner edge and a 3D bow.
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;
@@ -165,7 +179,7 @@ export function createSwordRitesVFX(T,scene){
   else if(type==='start'){trailSerial=-1;if(e.kind==='prota'&&e.markedTarget){mark.position.set(e.markedTarget.x,e.markedTarget.y,e.markedTarget.z);markAge=0;mark.visible=true;}}
   else if(type==='cancel')clear();
  }
- function update(dt,level='high',firstPerson=false){time+=dt;quality=level;markAge+=dt;mark.visible=markAge<.3;markMaterial.opacity=Math.max(0,1-markAge/.3);mark.rotation.y+=dt*4;for(const t of trails){t.material.uniforms.clock.value=time;t.material.uniforms.opacity.value=firstPerson?.38:1;t.mesh.visible=t.n>1&&time-t.last<.25;}
+ function update(dt,level='high',firstPerson=false){time+=dt;quality=level;markAge+=dt;mark.visible=markAge<.3;markMaterial.opacity=Math.max(0,1-markAge/.3);mark.rotation.y+=dt*4;for(const t of trails){t.material.uniforms.clock.value=time;t.material.uniforms.opacity.value=firstPerson?Math.min(t.opacity,.38):t.opacity;t.mesh.visible=t.n>1&&time-t.last<t.life;}
   for(const c of cuts){c.age+=dt;if(c.wave){c.g.position.set(c.wave.p.x,c.wave.p.y,c.wave.p.z);c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=.06;c.g.scale.setScalar(c.wave.radius);const opacity=firstPerson?Math.min(1,.25+c.wave.travel/2.4):1;c.mat.uniforms.opacity.value=c.glow.uniforms.opacity.value=opacity;}else{c.g.visible=c.age<c.life;c.mat.uniforms.clock.value=c.glow.uniforms.clock.value=c.age;}c.g.children[1].visible=quality!=='low';}
   let count=0,changedMatrixCount=0;for(let n=0;n<activeCount;){const i=activeIndices[n],p=particles[i];p.age+=dt;if(p.age<p.life){p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=2.8*dt;const s=p.size*(1-p.age/p.life);writeParticleMatrix(i,p,s);count++;n++;}else{p.life=0;writeParticleMatrix(i,p,0);deactivateParticleAt(n);}changedMatrixIndices[changedMatrixCount++]=i;}shards.visible=count>0;if(changedMatrixCount){const components=publishAttributeRanges(shards.instanceMatrix,changedMatrixIndices,changedMatrixCount,16);particleMatrixUploads++;particleMatrixUploadComponents+=components;particleMatrixUploadBytes+=components*shards.instanceMatrix.array.BYTES_PER_ELEMENT;}
   for(const h of ghosts){h.age+=dt;h.g.visible=!firstPerson&&h.age<.2;h.mat.opacity=.16*Math.max(0,1-h.age/.2);}
