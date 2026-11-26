@@ -73,10 +73,35 @@ async function applyMod181(code) {
 // O HTML passa ?v=BUILD ao carregar este módulo; execução direta usa metadata central.
 const BUILD = new URL(import.meta.url).searchParams.get('v') || (await import('./build-info.js?stamp='+Date.now())).BUILD;
 const statusEl = document.getElementById('status');
+const loadingPanel = document.getElementById('loading');
+const loadingCopy = document.getElementById('loading-copy');
+const loadingState = document.getElementById('loading-state');
+const loadingProgress = document.getElementById('loading-progress');
+const loadingFill = document.getElementById('loading-progress-fill');
+const loadingPercent = document.getElementById('loading-percent');
+const loadingProgressLabel = document.getElementById('loading-progress-label');
+const loadingError = document.getElementById('loading-error');
+const loadingRetry = document.getElementById('load-retry');
+
+function setLoadingProgress(done, total, stateLabel) {
+  const count = Math.max(0, Number(done) || 0);
+  const maximum = Math.max(0, Number(total) || 0);
+  const percent = maximum > 0 ? Math.max(0, Math.min(100, Math.round(count / maximum * 100))) : 0;
+  if (loadingFill) loadingFill.style.width = percent + '%';
+  if (loadingPercent) loadingPercent.textContent = percent + '%';
+  if (loadingProgress) loadingProgress.setAttribute('aria-valuenow', String(percent));
+  if (loadingProgressLabel) loadingProgressLabel.textContent = maximum > 0
+    ? count + ' DE ' + maximum + ' MÓDULOS'
+    : 'PREPARANDO RECURSOS';
+  if (loadingState && stateLabel) loadingState.textContent = stateLabel;
+}
 const baseHref = new URL('./', import.meta.url).href;
 let warm = null;
 try {
   if (statusEl) statusEl.textContent = 'Preparando o mundo 3D…';
+  if (loadingPanel) loadingPanel.dataset.state = 'loading';
+  if (loadingCopy) loadingCopy.textContent = 'Organizando os módulos e recursos necessários para abrir este mundo.';
+  setLoadingProgress(0, 0, 'PREPARANDO O MUNDO');
   let code = await loadText(new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href);
   code = await applyMod181(code);
   // Módulos locais importados pelo mundo (o código roda a partir de um blob, então os caminhos precisam ser absolutos).
@@ -93,8 +118,13 @@ try {
   if (statusEl) statusEl.textContent = 'Baixando os módulos do mundo 3D…';
   warm = await warmModuleGraph(code, new URL('./mundo-3d-prototype.js?v=' + BUILD, import.meta.url).href, {
     importMap: pageImportMap(),
-    onProgress: (d, t) => { if (statusEl && (d % 20 === 0 || d === t)) statusEl.textContent = 'Baixando os módulos do mundo 3D… ' + d + '/' + t; }
+    onProgress: (d, t) => {
+      setLoadingProgress(d, t, 'CARREGANDO MÓDULOS DO PLANETA');
+      if (statusEl && (d % 5 === 0 || d === t)) statusEl.textContent = 'Baixando os módulos do mundo 3D… ' + d + '/' + t;
+    }
   });
+  setLoadingProgress(warm.modules || 0, warm.modules || 0, 'MÓDULOS PREPARADOS');
+  if (loadingCopy) loadingCopy.textContent = 'Os módulos foram preparados. Finalizando a montagem do mundo 3D.';
   if (warm.failures.length) console.warn('[Mod 186] módulos que falharam ao baixar:', warm.failures);
   const blob = new Blob([code], { type: 'text/javascript' });
   await import(URL.createObjectURL(blob));
@@ -103,13 +133,11 @@ try {
   console.error('[Mod 186]', err, failures);
   const msg = describeFailure(err, failures);
   if (statusEl) statusEl.textContent = 'Erro na Mod 186: ' + msg;
-  const loading = document.getElementById('loading');
-  if (loading) {
-    loading.textContent = ''; loading.style.flexDirection = 'column';
-    const t = document.createElement('div'); t.textContent = 'Falha ao montar o mundo 3D (Mod 186).'; loading.appendChild(t);
-    const d = document.createElement('div'); d.style.marginTop = '1em'; d.textContent = msg; loading.appendChild(d);
-    const b = document.createElement('button'); b.type = 'button'; b.id = 'load-retry'; b.textContent = 'Tentar de novo';
-    b.style.cssText = 'margin-top:1.2em;padding:.6em 1.4em;font:inherit;border-radius:8px;border:1px solid #a88b50;background:#1d1a14;color:#eddfc2;pointer-events:auto';
-    b.addEventListener('click', () => location.reload()); loading.appendChild(b);
+  if (loadingPanel) {
+    loadingPanel.dataset.state = 'error';
+    if (loadingState) loadingState.textContent = 'NÃO FOI POSSÍVEL PREPARAR O PLANETA';
+    if (loadingCopy) loadingCopy.textContent = 'O carregamento foi interrompido. Confira o diagnóstico abaixo e tente novamente.';
+    if (loadingError) loadingError.textContent = 'Falha ao montar o mundo 3D (Mod 186).\n' + msg;
+    if (loadingRetry) loadingRetry.addEventListener('click', () => location.reload(), { once: true });
   }
 }

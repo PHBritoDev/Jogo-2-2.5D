@@ -161,6 +161,81 @@ button:active{transform:scale(.96);background:#31583d}
   }
 }
 body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:none; }
+
+/* Loading cinematográfico do planeta — sem WebGL, modelos ou loops pesados. */
+#loading{
+  position:fixed;inset:0;z-index:50;display:grid;place-items:center;
+  padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  overflow:hidden;color:#f4ead6;text-align:center;
+  background:
+    linear-gradient(90deg,#050810d9 0%,#080b16a6 45%,#080710c7 100%),
+    linear-gradient(0deg,#05070ed9 0%,transparent 54%,#05070e66 100%),
+    url('./assets/ui/menu/cinematic/environment.webp') center 43%/cover no-repeat,
+    radial-gradient(ellipse at 50% 38%,#25324b 0%,#111a2b 30%,#080d18 68%,#03060d 100%);
+  isolation:isolate;
+}
+#loading.hidden{display:none}
+#loading::before,#loading::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1}
+#loading::before{
+  opacity:.45;
+  background-image:radial-gradient(1px 1px at 8% 18%,#f8e6c7 99%,transparent),radial-gradient(1px 1px at 82% 13%,#fff 99%,transparent),radial-gradient(1.5px 1.5px at 70% 72%,#e9c58b 99%,transparent),radial-gradient(1px 1px at 23% 77%,#fff 99%,transparent),radial-gradient(1px 1px at 91% 48%,#fff 99%,transparent),radial-gradient(1px 1px at 38% 29%,#fff 99%,transparent);
+  background-size:310px 260px,370px 310px,420px 350px,290px 330px,450px 390px,510px 420px;
+}
+#loading::after{background:linear-gradient(115deg,transparent 0 47%,#c49a5a08 50%,transparent 53%);opacity:.8}
+#loading .pl-card{
+  position:relative;width:min(520px,100%);padding:clamp(20px,4vw,34px) clamp(18px,5vw,42px) 24px;
+  border:1px solid #c8a96d88;border-radius:22px 5px 22px 5px;
+  background:linear-gradient(150deg,#111a2bea,#080d17f5 72%);
+  box-shadow:0 24px 80px #000b,inset 0 1px #fff2,0 0 48px #7894c018;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+#loading .pl-card::before,#loading .pl-card::after{content:"";position:absolute;width:34px;height:34px;border-color:#d7b979;opacity:.85;pointer-events:none}
+#loading .pl-card::before{top:8px;left:8px;border-top:1px solid;border-left:1px solid}
+#loading .pl-card::after{right:8px;bottom:8px;border-right:1px solid;border-bottom:1px solid}
+#loading .pl-kicker{margin:0;color:#d9bd83;font:700 9px/1.5 system-ui,sans-serif;letter-spacing:.27em;text-transform:uppercase}
+#loading .pl-title{margin:0;color:#f5e8cf;font:500 clamp(20px,4.8vw,29px)/1.15 Georgia,"Times New Roman",serif;letter-spacing:.025em;text-shadow:0 2px 16px #000}
+#loading .pl-subtitle{margin:9px auto 0;max-width:360px;color:#b9c4d5;font:400 12px/1.55 system-ui,sans-serif}
+#loading .pl-divider{width:72%;height:1px;margin:20px auto 15px;background:linear-gradient(90deg,transparent,#c8a96d99,transparent)}
+#loading .pl-state{min-height:16px;color:#e6d3ad;font:700 9px/1.5 system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase}
+#loading .pl-track{height:5px;margin:11px auto 8px;max-width:350px;overflow:hidden;border:1px solid #a88b5055;border-radius:20px;background:#050912}
+#loading .pl-fill{width:0;height:100%;border-radius:20px;background:linear-gradient(90deg,#8a6332,#e7ca8a,#fff0c9);box-shadow:0 0 12px #d6b36b88;transition:width .18s ease}
+#loading .pl-meta{display:flex;justify-content:space-between;gap:12px;max-width:350px;margin:0 auto;color:#8190a5;font:600 9px/1.4 system-ui,sans-serif;letter-spacing:.1em}
+#loading .pl-percent{color:#e9d5aa;font-variant-numeric:tabular-nums}
+#loading .pl-error{display:none;max-height:22vh;overflow:auto;margin:14px 0 0;padding:10px;border:1px solid #9c514c88;border-radius:8px;background:#260f16aa;color:#ffd6cf;font:11px/1.45 ui-monospace,monospace;text-align:left;overflow-wrap:anywhere}
+#loading[data-state="error"] .pl-error{display:block}
+#loading .pl-retry{display:none;width:auto;min-width:150px;height:42px;margin:14px auto 0;padding:0 20px;border:1px solid #d8bb7d;border-radius:5px;background:linear-gradient(120deg,#69502a,#2c2419);color:#fff0cf;font:800 10px system-ui,sans-serif;letter-spacing:.13em}
+#loading[data-state="error"] .pl-retry{display:block}
+#loading[data-state="error"] .pl-state{color:#ffb4a8}
+@media(max-width:560px){
+ #loading .pl-card{padding:18px 16px 20px}
+ #loading .pl-divider{margin:15px auto 12px}
+ #loading .pl-subtitle{font-size:11px}
+}
+@media(max-height:520px){
+ #loading .pl-card{padding:12px 18px}
+ #loading .pl-divider{margin:9px auto 8px}
+ #loading .pl-subtitle{margin-top:5px}
+}
+@media(prefers-reduced-motion:no-preference){
+}
+
+
+/* Reaproveita a arte cinematográfica original aprovada no menu #569:
+   anjo, demônio, arco partido, ruínas, sete mundos e protagonista. */
+#loading .pl-card{width:min(720px,100%);padding:clamp(16px,3vh,28px) clamp(16px,4vw,34px) 22px;background:linear-gradient(155deg,#080c16d9,#080b13e8 78%);border-color:#c8a96d99}
+#loading .pl-world-art{display:block;width:min(100%,650px);height:clamp(116px,27vh,232px);margin:4px auto 8px;object-fit:contain;object-position:center;filter:drop-shadow(0 12px 24px #000b);animation:plWorldDrift 7s ease-in-out infinite}
+#loading .pl-title{font-size:clamp(19px,4.4vw,28px)}
+#loading .pl-subtitle{color:#d2d4df}
+#loading .pl-state{color:#e9d5aa}
+@keyframes plWorldDrift{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media(max-width:560px){
+ #loading{background-position:center,center,58% center,center}
+ #loading .pl-card{padding:14px 13px 18px}
+ #loading .pl-world-art{height:clamp(104px,25vh,156px);margin:0 auto 5px}
+ #loading .pl-kicker{font-size:8px;letter-spacing:.18em}
+}
+@media(max-height:520px){#loading .pl-world-art{height:clamp(76px,22vh,112px);margin:0 auto 2px}}
+
 </style>
 <link rel="stylesheet" href="./hud3d.css?v=a1-vorgazhek-portrait-vs-fit-r2">
 <link rel="stylesheet" href="./galaxies-infernal-reference.css?v=ui-inferno-20261112">
@@ -283,7 +358,20 @@ body.lunar-ult-cine #lunar-skip{display:block}
 <label>Alvo <select id="lab-scenario"><option value="still">Parado</option><option value="moving">Móvel</option><option value="ground">Solo</option><option value="wall">Parede</option></select></label>
 <label>Qualidade <select id="lab-quality"><option value="auto">Auto</option><option value="low">Baixa</option><option value="high">Alta</option><option value="max">Máxima</option></select></label>
 <button id="lab-reset" type="button">Reiniciar</button><div id="lab-metrics" aria-live="off"></div></section>
-<div id="loading">Carregando os modelos e animações 3D…<br><br>Iniciando o mundo 3D.</div>
+<div id="loading" role="status" aria-live="polite" aria-label="Carregamento do planeta">
+  <div class="pl-card">
+    <p class="pl-kicker">A BATALHA CONTRA OS 7 PECADOS CAPITAIS</p>
+    <img class="pl-world-art" src="./assets/ui/menu/cinematic/worlds-hero.webp" alt="" aria-hidden="true" fetchpriority="high">
+    <h1 class="pl-title">A travessia entre mundos</h1>
+    <p class="pl-subtitle" id="loading-copy">Preparando o planeta e organizando seus recursos 3D.</p>
+    <div class="pl-divider"></div>
+    <div class="pl-state" id="loading-state">PREPARANDO O MUNDO</div>
+    <div class="pl-track" role="progressbar" aria-label="Módulos preparados" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="loading-progress"><div class="pl-fill" id="loading-progress-fill"></div></div>
+    <div class="pl-meta"><span id="loading-progress-label">AGUARDE UM INSTANTE</span><span class="pl-percent" id="loading-percent">0%</span></div>
+    <pre class="pl-error" id="loading-error"></pre>
+    <button class="pl-retry" id="load-retry" type="button">TENTAR NOVAMENTE</button>
+  </div>
+</div>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script type="module">
 // O painel ADM usa o mesmo canal de QA já existente; sem isso vxTech só existe em ?debug3d=1.
@@ -294,7 +382,7 @@ const meta = await import('./build-info.js?stamp='+Date.now());
 const marker=document.getElementById('marker');
 meta.syncBuildMarker(marker);
 const loading=document.getElementById('loading');
-if(loading)loading.textContent='Carregando os modelos e animações 3D… '+meta.DESCRIPTION;
+if(loading){const copy=document.getElementById('loading-copy');if(copy)copy.textContent='Preparando '+meta.DESCRIPTION+' e organizando os recursos 3D.';}
 await import('./mod181-loader.js?v='+encodeURIComponent(meta.BUILD));
 </script>
 <script>
