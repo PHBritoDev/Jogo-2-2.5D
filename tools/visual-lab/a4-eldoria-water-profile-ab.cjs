@@ -22,8 +22,8 @@ const profiles = ['low', 'medium', 'high', 'max'];
 const scenes = [
   {
     name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5,
-    // Patch limpo à esquerda: água sem jogador, HUD ou toast.
-    waterRoi: { left: 100, top: 170, width: 120, height: 120 }
+    // Faixa superior central: correnteza visível, fora do HUD, toast e jogador.
+    waterRoi: { left: 320, top: 75, width: 140, height: 60 }
   },
   {
     name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10,
