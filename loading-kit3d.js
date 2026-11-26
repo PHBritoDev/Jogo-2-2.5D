@@ -46,6 +46,18 @@ export function treadmill(T, clip, root, hips) {
   return Math.hypot(p1.x - p0.x, p1.z - p0.z) / clip.duration;
 }
 
+/** Clipes "no lugar" (o quadril não avança): a velocidade que casa com a animação é a do PÉ APOIADO, que recua em
+    relação ao corpo durante o apoio. Mede a velocidade horizontal média do pé nas amostras mais baixas (apoio) dos dois
+    pés, em unidades do modelo SEM escala (multiplicar pela escala do modelo para metros). */
+export function strideSpeed(T, clip, root, feet) {
+  const fs = feet.filter(Boolean); if (!fs.length) return 0; const mixer = new T.AnimationMixer(root), act = mixer.clipAction(clip); act.play();
+  const N = 72, dt = clip.duration / N, p = new T.Vector3(), rq = root.quaternion.clone(); let sum = 0, n = 0;
+  for (const f of fs) { const ys = [], ps = []; for (let i = 0; i <= N; i++) { mixer.setTime(i * dt); root.updateMatrixWorld(true); f.getWorldPosition(p); root.worldToLocal(p); ps.push(p.clone()); ys.push(p.y); }
+    const sorted = [...ys].sort((a, b) => a - b), cut = sorted[Math.floor(N * .35)];
+    for (let i = 1; i <= N; i++) if (ys[i] <= cut && ys[i - 1] <= cut) { sum += Math.hypot(ps[i].x - ps[i - 1].x, ps[i].z - ps[i - 1].z) / dt; n++; } }
+  mixer.stopAllAction(); mixer.uncacheRoot(root); root.quaternion.copy(rq); return n ? sum / n : 0;
+}
+
 /* ---------------- olhos ---------------- */
 // uShape: 0 fenda curta horizontal · 1 núcleo pequeno · 2 olho único concentrado (amêndoa) · 3 fissura estreita.
 // Núcleo nítido e halo CURTO: lê no celular sem virar barra, feixe ou LED.

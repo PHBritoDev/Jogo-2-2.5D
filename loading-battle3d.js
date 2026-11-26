@@ -112,7 +112,7 @@ export async function createBattle(ctx) {
     a.holder.visible = true; a.holder.position.set(x, 0, z); a.holder.rotation.set(0, yaw, 0); n.yaw = yaw; a.mat.userData.dis.value = 0; a.mixer.stopAllAction(); a.act = null;
     const act = play(a, anim, { fade: 0, loop: anim !== 'falling_down', from }); return n;
   }
-  function moveTo(n, x, z, run = false) { if (!n || !n.on || n.dis >= 0) return; n.st = 'move'; n.tgt.set(x, 0, z); n.speed = run ? 3.1 : 1.15; play(n.a, run ? 'Running' : 'Walking', { fade: .2, loop: true }); const nat = n.a.clips[run ? 'Running' : 'Walking'].userData.natural || 1; n.a.act.timeScale = n.speed / nat; }
+  function moveTo(n, x, z, run = false) { if (!n || !n.on || n.dis >= 0) return; n.st = 'move'; n.tgt.set(x, 0, z); n.speed = run ? 3.1 : 1.15; play(n.a, run ? 'Running' : 'Walking', { fade: .2, loop: true }); const c = n.a.clips[run ? 'Running' : 'Walking'], nat = (c.userData && c.userData.natural || 0) * n.a.unit; n.a.act.timeScale = nat > .05 ? clamp(n.speed / nat, .6, 1.6) : 1; } // passada casada com o deslocamento
   function attackAnim(n, from = .3) { if (!n || !n.on || n.dis >= 0) return; n.st = 'attack'; play(n.a, 'Triple_Combo_Attack', { fade: .15, loop: true, from }); }
   function leapAt(n, x, y, z, dur = 1.1) { if (!n || !n.on || n.dis >= 0) return; const p = n.a.holder.position; n.st = 'leap'; n.leap = { from: p.clone(), to: new T.Vector3(x, y, z), t: 0, dur }; const a = play(n.a, 'Regular_Jump', { fade: .1, from: .35 }); if (a) a.timeScale = 1.1; }
   /** Derrota sem sangue: tranco para trás, queda inteira e o corpo se desfaz em brasas pela borda. */

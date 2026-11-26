@@ -27,7 +27,7 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 // mesmos tokens de versão do módulo pai (?v=BUILD): os submódulos nunca vêm de um cache antigo
 const VQ = (() => { try { const v = new URL(import.meta.url).searchParams.get('v'); return v ? '?v=' + encodeURIComponent(v) : ''; } catch (_) { return ''; } })();
 const kit = await import('./loading-kit3d.js' + VQ), FX = await import('./loading-fx3d.js' + VQ);
-const { NOISE, PLANE_V, clamp, lerp, smooth, hash, silhouetteMaterial, treadmill, dressEyes, twoBoneIK, bodyFrame, weaponQuat, weaponBuilders, grips, silhouetteWeapon } = kit;
+const { NOISE, PLANE_V, clamp, lerp, smooth, hash, silhouetteMaterial, treadmill, strideSpeed, dressEyes, twoBoneIK, bodyFrame, weaponQuat, weaponBuilders, grips, silhouetteWeapon } = kit;
 
 export const LOADING_CINE_BUILD = '375-campo-da-ultima-guerra';
 export const ACT_LEN = 7, MARCH = 21;           // s
@@ -40,10 +40,10 @@ export const ACTS = [
 /** Elenco: arquivo de silhueta, lugar na formação (x lateral, z profundidade), altura-alvo, recorte e armas [arma, pose]. */
 export const CAST = [
   { id: 'ganancia', name: 'Ganância', file: 'ganancia-silhueta.glb', x: 0, z: 0, h: 2.45, rim: 0xa8763a, rimK: .36, rimDir: [0, 1], weapons: [['greedA', 'yoke'], ['greedB', 'drag']], phase: 0 },
-  { id: 'bispo1', name: 'VHAZRAEL', file: 'bispo1-silhueta.glb', x: -1.9, z: -.9, h: 2.2, rim: 0x7462d8, rimK: .28, rimDir: [-1, .3], weapons: [['throne', 'bone']], phase: .31, cadence: 1.03 },
-  { id: 'bispo2', name: 'VORGAZHEK', file: 'bispo2-silhueta.glb', x: -3.7, z: -2.0, h: 2.1, rim: 0x2a968c, rimK: .3, rimDir: [-1, .2], weapons: [['axe', 'port']], phase: .64, cadence: .96 },
-  { id: 'bispo3', name: "ZAR'KHAEL", file: 'bispo3-silhueta.glb', x: 1.9, z: -.85, h: 2.15, rim: 0xb2aa9a, rimK: .3, rimDir: [1, .3], weapons: [['scythe', 'shoulder']], phase: .18, cadence: 1.02 },
-  { id: 'bispo4', name: 'VÉRAXION', file: 'bispo4-silhueta.glb', x: 3.6, z: -1.9, h: 2.05, rim: 0x5e7ec8, rimK: .3, rimDir: [1, .2], weapons: [], phase: .47, cadence: .98 }
+  { id: 'bispo1', name: 'VHAZRAEL', file: 'bispo1-silhueta.glb', x: -1.9, z: -.9, h: 2.2, rim: 0x7462d8, rimK: .28, rimDir: [-1, .3], weapons: [['throne', 'bone']], phase: .31 },
+  { id: 'bispo2', name: 'VORGAZHEK', file: 'bispo2-silhueta.glb', x: -3.7, z: -2.0, h: 2.1, rim: 0x2a968c, rimK: .3, rimDir: [-1, .2], weapons: [['axe', 'port']], phase: .64 },
+  { id: 'bispo3', name: "ZAR'KHAEL", file: 'bispo3-silhueta.glb', x: 1.9, z: -.85, h: 2.15, rim: 0xb2aa9a, rimK: .3, rimDir: [1, .3], weapons: [['scythe', 'shoulder']], phase: .18 },
+  { id: 'bispo4', name: 'VÉRAXION', file: 'bispo4-silhueta.glb', x: 3.6, z: -1.9, h: 2.05, rim: 0x5e7ec8, rimK: .3, rimDir: [1, .2], weapons: [], phase: .47 }
 ];
 /** Ameaça implícita (tempo da marcha, s): corte → aproximação → pausa → momento oculto → queda → a formação segue. */
 export const VIGNETTE = { id: 'ameaca-implicita', who: 'ganancia', at: 7.6, approach: 2.3, hidden: [3.05, 3.95], fall: 3.7, resume: 4.6, end: 6.4 };
@@ -256,15 +256,18 @@ export function startLoadingCinematic({ host, base = new URL('./', import.meta.u
     const mat = keep(silhouetteMaterial(T, def.rim || 0x5a6070, def.rimDir || [0, 1], def.rimK || .5, { dissolve }));
     model.traverse(o => { if (o.isMesh) { o.material = mat; trash.add(o.geometry); } });
     const hips = bones.Hips || bones.mixamorigHips, clips = {}; for (const c of g.animations) clips[c.name] = c;
-    if (mill) { for (const c of g.animations) { const v = hips ? treadmill(T, c, model, hips) : 0; c.userData = { natural: v }; } }
-    const walk = clips.Walking || clips.Walk, natural = (walk && walk.userData && walk.userData.natural) || 1;
+    // velocidade nativa (unidades do modelo SEM escala): avanço do quadril; se o clipe for "no lugar", a do pé apoiado
+    const feet = [bones.LeftFoot || bones.LeftToeBase || bones.mixamorigLeftFoot, bones.RightFoot || bones.RightToeBase || bones.mixamorigRightFoot];
+    if (mill) { for (const c of g.animations) { let v = hips ? treadmill(T, c, model, hips) : 0; if (/Walk|Run/.test(c.name) && v < .05) v = strideSpeed(T, c, model, feet); c.userData = { natural: v }; } }
+    const walk = clips.Walking || clips.Walk;
     const mixer = new T.AnimationMixer(model);
-    const a = { def, holder, model, bones, mixer, clips, walk: walk ? mixer.clipAction(walk) : null, natural, mat, eyes: [], weapons: [], head: bones.Head, npc, gltf: g, mode: 'march', act: null };
+    const a = { def, holder, model, bones, mixer, clips, walk: walk ? mixer.clipAction(walk) : null, natural: 1, mat, eyes: [], weapons: [], head: bones.Head, npc, gltf: g, mode: 'march', act: null };
     if (a.walk) { a.walk.play(); a.walk.time = (def.phase || 0) * walk.duration; }
     mixer.setTime(0); model.updateMatrixWorld(true);
     if (like) { model.scale.copy(like.model.scale); model.position.y = like.model.position.y; a.scale = like.scale; a.H = like.H; } // mesmo rig, mesma escala (fase II)
     else { const box = new T.Box3().setFromObject(model), H = box.max.y - box.min.y, k = (def.h || 1.8) / Math.max(.01, H);
-      model.scale.multiplyScalar(k); model.position.y -= box.min.y * k; a.scale = k; a.H = def.h || 1.8; }
+      model.scale.multiplyScalar(k); model.position.y -= box.min.y * k; a.scale = model.scale.x; a.H = def.h || 1.8; }
+    a.unit = a.scale; a.natural = walk && walk.userData && walk.userData.natural > 1e-4 ? walk.userData.natural * a.unit : MARCH_SPEED; // m/s no mundo
     const blob = new T.Mesh(blobGeo, blobMat); blob.scale.setScalar(a.H / 2.1); blob.position.y = .012; holder.add(blob); a.blob = blob;
     scene.add(holder); holder.updateMatrixWorld(true);
     if (!npc) dressEyes(T, a, keep, eyeGeo);
@@ -471,7 +474,8 @@ export function startLoadingCinematic({ host, base = new URL('./', import.meta.u
     vignette(mt, dt);
     for (const a of actors) {
       if (a.mode !== 'march') continue;
-      if (a.walk && !a.paused) a.walk.timeScale = clamp(MARCH_SPEED / Math.max(.2, a.natural), .5, 1.2) * (a.def.cadence || 1) * state.vk; // passada ∝ chão: para junto, sem patinar
+      // passada = chão ÷ velocidade do pé apoiado (medida): pés sem patinar; a cadência difere naturalmente pela passada de cada um
+      if (a.walk && !a.paused) a.walk.timeScale = clamp(MARCH_SPEED / Math.max(.2, a.natural), .3, 1.5) * state.vk;
       a.holder.position.z = a.def.z;
       a.holder.position.x += (a.home - a.holder.position.x) * Math.min(1, dt * 2); a.holder.rotation.y *= 1 - Math.min(1, dt * 3);
       a.mixer.update(dt); a.model.updateMatrixWorld(true);

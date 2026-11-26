@@ -114,7 +114,8 @@ test('armas: poses de carregar distintas por IK de dois ossos (arrasto, nuca, om
 
 test('marcha lenta e pesada: chão, cenários e passada pelo mesmo fator (sem moonwalk); formação mais espaçada', () => {
   assert.match(cine, /export const MARCH_SPEED = \.72/);
-  assert.match(cine, /a\.walk\.timeScale = clamp\(MARCH_SPEED \/ Math\.max\(\.2, a\.natural\), \.5, 1\.2\) \* \(a\.def\.cadence \|\| 1\) \* state\.vk/);
+  assert.match(cine, /a\.walk\.timeScale = clamp\(MARCH_SPEED \/ Math\.max\(\.2, a\.natural\), \.3, 1\.5\) \* state\.vk/);
+  assert.match(kit, /export function strideSpeed\(/, 'clipes "no lugar": velocidade do pé apoiado'); assert.match(cine, /walk\.userData\.natural \* a\.unit/, 'convertida para metros pela escala do modelo');
   assert.match(cine, /state\.V = MARCH_SPEED \* state\.vk; state\.scroll \+= state\.V \* dt/); assert.match(cine, /travel = \(state\.scroll - S\.s0\)/, 'cenários integrados ao chão');
   const xs = [...cine.matchAll(/id: '(\w+)'.*?x: (-?[\d.]+), z: (-?[\d.]+)/g)].map(m => [m[1], +m[2], +m[3]]);
   const g = xs.find(r => r[0] === 'ganancia'); assert.deepEqual(g.slice(1), [0, 0], 'Ganância no centro');
