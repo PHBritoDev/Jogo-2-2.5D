@@ -14,6 +14,7 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   await p.goto(base+'/mundo-3d-prototype.html?testeEnemy1=1&debug3d=1&fullCombatQA=1',{waitUntil:'domcontentloaded',timeout:90000});
   await p.waitForFunction(()=>window.SevenSinsDebug3D&&SevenSinsDebug3D.riteState&&SevenSinsDebug3D.riteState().ready,null,{timeout:300000});
   const E=(f,a)=>p.evaluate(f,a),shot=async n=>{await E(()=>{const D=SevenSinsDebug3D,h=D.heroState(),q=D.squadState().snap.actors[0],mx=(h.p[0]+q.x)/2,mz=(h.p[2]+q.z)/2;D.fly([mx+5.2,h.p[1]+2.3,mz+1.2],[mx,h.p[1]+1,mz]);D.render();});await p.screenshot({path:path.join(out,n+'.png'),timeout:120000});await E(()=>SevenSinsDebug3D.fly(null));};
+  const riteShot=async n=>{await E(()=>{const D=SevenSinsDebug3D,s=D.riteState(),h=s.hero,t=s.target,mx=(h[0]+t[0])/2,mz=(h[2]+t[2])/2;D.fly([mx+5.2,h[1]+2.3,mz+1.2],[mx,h[1]+1,mz]);D.render();});await p.screenshot({path:path.join(out,n+'.png'),timeout:120000});await E(()=>SevenSinsDebug3D.fly(null));};
   await E(()=>{for(const id of ['vfx-lab','quest-hud','status'])document.getElementById(id)&&(document.getElementById(id).style.display='none');});
   await E(()=>{const D=SevenSinsDebug3D;D.setHour&&D.setHour(10);D.squadLab('1');});
   await p.waitForFunction(()=>SevenSinsDebug3D.squadState().on&&SevenSinsDebug3D.combat315().enemies.length===1,null,{timeout:120000});
@@ -44,6 +45,20 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
   report.steps.claws=await E(()=>{const D=SevenSinsDebug3D;D.squadPose('e1',-5,14.1,0,true);const hp0=D.heroState().hp;D.squadNative('e1','rasgo');D.combatStep(.55,{fps:60,draw:true});return {hp0};});await shot('04-garras');
   report.perf=await E(()=>SevenSinsDebug3D.perfProbe(4));
   report.after=await E(()=>SevenSinsDebug3D.combat315());
+  // A2: exercise the real Passagem do Julgamento route in the isolated game scene.
+  report.steps.passage=await E(async()=>{
+   const D=SevenSinsDebug3D;await D.riteQA(true);D.riteEquip('prota');
+   D.motionQA({x:-5,z:16,enemyDistance:4,sword:'prota'});D.viewQA(false);
+   const before=D.riteState();D.riteCast();const after=D.riteSim(2.1,30);
+   return{before:before.hero,target:before.target,after:after.hero,hp:after.hp,mana:after.mana,
+    cuts:(after.events||[]).filter(e=>e.type==='judgment').length,
+    safe:!D.collisionAt(after.hero[0],after.hero[2])};
+  });
+  assert.ok(report.steps.passage.after[2]<report.steps.passage.target[2],'Passagem termina atrás do alvo');
+  assert.equal(report.steps.passage.hp,9924,'16 cortes mantêm o orçamento de dano 76');
+  assert.equal(report.steps.passage.cuts,16,'todos os 16 cortes visuais/lógicos são emitidos');
+  assert.ok(report.steps.passage.safe,'posição final fora dos colisores do cenário');
+  await riteShot('05-passagem-julgamento');
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.assets,[]);report.ok=true;
  }finally{fs.writeFileSync(path.join(out,'resultado.json'),JSON.stringify(report,null,2)+'\n');await context?.close();await b.close();}
  console.log(JSON.stringify({ok:report.ok,steps:report.steps,perf:report.perf&&{calls:report.perf.calls,tris:report.perf.tris}},null,1));
