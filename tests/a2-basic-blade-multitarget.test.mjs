@@ -902,13 +902,13 @@ test('Passagem uses a compact tapered ribbon instead of the shared broad crescen
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
 });
 
-test('Passagem blade trail is shorter, softer and capped at 30 Hz without changing other sword trails',async()=>{
+test('Passagem blade trail is a short, soft accent capped at 30 Hz without changing other sword trails',async()=>{
  const passage=swordTrailProfile('prota'),standard=swordTrailProfile('basic');
- assert.ok(passage.tip-passage.base<(standard.tip-standard.base)*.7,'Passagem uses a shorter blade segment to avoid a broad white fan');
+ assert.ok(passage.tip-passage.base<(standard.tip-standard.base)*.35,'Passagem trail is only a short accent of the real blade');
  assert.equal(passage,SWORD_TRAIL_PROFILES.prota);
  assert.equal(standard,SWORD_TRAIL_PROFILES.standard);
- assert.equal(passage.life,.14);
- assert.equal(passage.opacity,.72);
+ assert.equal(passage.life,.09);
+ assert.equal(passage.opacity,.38);
  assert.equal(passage.interval,1/30);
  assert.equal(standard.life,.24,'ordinary sword trails keep their original lifetime');
  assert.equal(standard.opacity,1,'ordinary sword trails keep their original opacity');
