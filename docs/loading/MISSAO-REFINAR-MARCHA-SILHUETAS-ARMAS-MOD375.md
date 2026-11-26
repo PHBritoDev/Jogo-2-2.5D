@@ -1,9 +1,9 @@
 # MISSÃO — REVISÃO DA ABERTURA CINEMATOGRÁFICA DOS PECADOS
 ## Mod alvo: próximo Mod de gameplay após o Mod 374
 ## Responsável: Claude
-## Estado: briefing em preparação; aguardar o criador completar este arquivo antes de executar
+## Estado: BRIEFING COMPLETO — AUTORIZADO PARA EXECUÇÃO (26/11/2026)
 
-> **IMPORTANTE:** O criador vai complementar este briefing em outra conversa, incluindo requisitos visuais adicionais (especialmente olhos e explosões de fundo) e poderá anexar imagens de referência. Não iniciar implementação, não abrir PR de código e não consumir trabalho de agentes até o criador confirmar que terminou de complementar o briefing e enviar a instrução de execução.
+> **IMPORTANTE:** Este documento recebeu complementos autorizados nas seções 12, 13 e 14. A autorização de execução já foi dada pelo criador. Seguir a hierarquia e as correções da seção 14; não aguardar uma nova confirmação.
 
 ---
 
@@ -160,7 +160,7 @@ Se houver dúvida sobre uma pose, faça variações no harness, compare lado a l
 - Não aumentar sombras dinâmicas ou custo de render sem medir o impacto.
 - Não quebrar automação/headless.
 - Não fazer merge direto na main. Trabalhar em branch própria e abrir PR para revisão.
-- Não mexer em PRs, branches ou arquivos de outros agentes.
+- Não editar diretamente branches ou arquivos de outros agentes. A seção 12.10 autoriza expressamente revisar PRs existentes e, quando comprovadamente útil, integrar seletivamente as mudanças por merge aprovado ou portabilidade controlada, preservando autoria e histórico.
 - Não atualizar `build-info.js` para alterações apenas documentais. Se houver mudança real de código do jogo, atualizar a versão conforme o padrão vigente e somente após confirmar o estado atual da main.
 
 ## 9. Plano de execução — após autorização do criador
@@ -196,9 +196,9 @@ A PR deve informar:
 
 ---
 
-## 11. Complementos do criador — NÃO EDITAR NEM ANTECIPAR
+## 11. Registro histórico de complementos
 
-Esta seção será preenchida pelo criador em outra conversa com requisitos adicionais e referências visuais, incluindo detalhes sobre olhos e explosões de fundo. Preserve os complementos que forem adicionados. Se houver conflito entre um complemento posterior explícito do criador e este briefing, siga a instrução mais recente do criador e registre a decisão.
+Esta seção foi originalmente reservada para complementos futuros. Os complementos foram concluídos e estão registrados nas seções 12, 13 e 14. Não aguardar novas instruções nem tratar este texto histórico como bloqueio de execução.
 
 ## 12. COMPLEMENTOS FINAIS DO CRIADOR — 26/11/2026
 ## AUTORIZAÇÃO DE EXECUÇÃO: BRIEFING COMPLETO
@@ -470,7 +470,7 @@ A ultimate atual foi considerada genérica em alguns trechos e longa sem necessi
 - não deixar a personagem suspensa sem motivo, nem repetir a mesma explosão em camadas redundantes;
 - a explosão final deve ser a mais memorável da sequência, mas não a maior massa de partículas possível. Priorizar forma, contraste, timing, som e composição.
 
-O criador citou a ultimate conhecida como “I AM ATOMIC” como referência de impacto dramático. Usar somente princípios abstratos de direção — preparação deliberada, concentração de poder, contraste entre silêncio e liberação, escala e consequência — para criar uma solução original de Ganância. Não copiar enquadramento, falas, música, sequência exata, coreografia, efeitos ou identidade visual dessa obra.
+O criador quer que a ultimate de Ganância tenha como referência direta a cena “I AM ATOMIC”, de The Eminence in Shadow, e pediu uma reprodução fiel. Há, porém, um limite obrigatório: não reproduzir a cena protegida de forma idêntica nem copiar sua sequência específica, enquadramentos, falas, música, coreografia ou desenho exato dos efeitos. Em vez disso, criar uma homenagem original que preserve a intenção geral que o criador procura: preparação solene, concentração extrema de energia, breve contraste/pausa, liberação monumental e aftermath com Ganância dominante. A execução deve ser própria do universo do jogo e usar os VFX originais de Ganância. Se o criador anexar a referência diretamente, usá-la para compreender a intenção de ritmo e impacto, não para traçar ou reconstruir cada quadro.
 
 Ao final da ultimate, mostrar Ganância intacta, em pose dominante e coerente com o estado/forma existente. O cenário deve continuar visível.
 
@@ -572,3 +572,83 @@ Na conversa com o criador, não enviar atualizações, resumos parciais nem expl
 Estado do briefing: COMPLETO — SEGUNDO COMPLEMENTO AUTORIZADO PELO CRIADOR EM 26/11/2026.
 
 Estado do briefing: COMPLETO — AUTORIZADO PARA EXECUÇÃO PELO CRIADOR EM 26/11/2026.
+
+## 14. TERCEIRO COMPLEMENTO — RESOLUÇÃO DE CONTRADIÇÕES, DIREÇÃO FINAL E REFINAMENTO (26/11/2026)
+
+Esta seção foi adicionada após uma revisão integral do documento. Ela resolve instruções antigas que poderiam confundir a execução. Em caso de conflito, esta seção prevalece sobre as seções anteriores; depois dela, prevalecem as seções 13 e 12, nesta ordem, e por último o briefing original. Não interpretar esta hierarquia como autorização para ignorar requisitos compatíveis.
+
+### 14.1 Estado e autorização
+
+- O briefing está completo e autorizado. Não aguardar o criador preencher mais seções nem pedir confirmação para iniciar a auditoria.
+- A frase antiga de que o arquivo estava “em preparação” e a instrução antiga para aguardar foram substituídas por esta autorização.
+- A seção 11 é somente um registro histórico; os complementos válidos estão nas seções 12, 13 e 14.
+
+### 14.2 Hierarquia clara para evitar conflitos
+
+- A seção 3 original pedia remover todos os olhos. Isso foi substituído pela seção 12.1: remover sorrisos, bocas, dentes e sangue; preservar olhos selecionados como acentos discretos. Não implementar as duas instruções simultaneamente.
+- A seção 8 original dizia para não mexer em PRs de agentes. A seção 12.10 posterior autoriza revisar PRs e integrar seletivamente mudanças úteis. Isso não autoriza editar diretamente as branches dos agentes nem fazer merge sem revisão.
+- A seção 8 continua proibindo merge direto na main. A implementação deve passar por PR própria, checks e revisão. A autorização de revisar PRs de agentes é uma exceção limitada ao fluxo de auditoria seletiva descrito na seção 12.10.
+- A seção 12.3 substitui as duas vinhetas antigas por uma cena de ameaça implícita sem violência gráfica. Não reintroduzir a cena antiga nem mostrar decapitação.
+- A seção 13 descreve ação cinematográfica de fantasia não gráfica. Essa regra prevalece sobre qualquer formulação anterior que peça batalha “brutal”, desmembramento, decapitação ou ferimentos explícitos.
+- A duração mínima obrigatória é 35 segundos para toda a sequência de combate e encerramento; 45–55 segundos é alvo recomendado, não um segundo limite obrigatório. Não alongar com espera vazia.
+- O orçamento de aproximadamente 10 NPCs simultaneamente ativos é ponto inicial medido, não uma meta rígida se o dispositivo não sustentar. A percepção de multidão deve vir de composição e entradas escalonadas, nunca de centenas de rigs ativos.
+- Há quatro Bispos no elenco, mas a sequência individual solicitada pelo criador contém três confrontos de Bispos (Bispo 1, Bispo 2 e Bispo 3) e o confronto final de Ganância. **Não inventar uma quinta luta nem adicionar um solo para Bispo 4.** Bispo 4 deve aparecer na composição coletiva final junto aos outros três, a menos que uma luta individual dele já seja parte indispensável e existente do roteiro — nesse caso, não ampliar o escopo sem autorização.
+- O encerramento deve mostrar os quatro Bispos e Ganância. A frase “quatro confrontos” significa Bispo 1, Bispo 2, Bispo 3 e Ganância; não significa quatro Bispos mais Ganância em cinco duelos.
+
+### 14.3 Ultimate de Ganância — esclarecimento sobre “I AM ATOMIC”
+
+O criador esclareceu que deseja copiar diretamente a ultimate “I AM ATOMIC”. Registrar com transparência: não reproduzir exatamente uma cena protegida nem reconstruir quadro a quadro a sequência, os enquadramentos, a coreografia, as falas, a música ou os efeitos específicos. O objetivo implementável é uma homenagem original muito próxima na intenção dramática — solenidade, pausa, concentração, escala, liberação e consequência — mas com composição, timing, linguagem visual e assinatura de Ganância próprios. Não alegar que a cena foi copiada fielmente.
+
+Melhoria visual proposta para a versão original:
+- fazer o mundo parecer prender a respiração por um instante, com áudio e ambiente reduzidos de modo breve, sem congelar a aplicação;
+- concentrar a atenção num ponto focal pequeno e legível, mantendo Ganância claramente enquadrada;
+- fazer a energia crescer em fases visuais distintas, com silhueta e paleta originais de Ganância, sem simplesmente aumentar bloom e partículas;
+- liberar a energia com uma mudança clara de escala e contraste; usar uma onda expansiva estilizada e camadas de luz/poeira, evitando flashes longos ou tela permanentemente branca;
+- deixar um aftermath curto, limpo e memorável: poeira recuando, luz residual, cenário reaparecendo e Ganância intacta;
+- cortar toda espera, repetição ou pose que não aumente a expectativa ou a consequência. A ultimate deve ser mais impactante e mais curta, não simplesmente mais longa.
+
+A ultimate deve continuar reconhecível como o poder original de Ganância. Não substituir os VFX originais dela por uma cópia dos efeitos de outra obra.
+
+### 14.4 Continuidade de câmera e ritmo — melhoria adicional
+
+- Construir a montagem com uma gramática consistente: plano geral para estabelecer escala, plano médio para ler a silhueta, close curto apenas para um detalhe emocional/energético, e plano de consequência para compreender o resultado.
+- Cada corte precisa ter motivação visual ou sonora. Usar movimento de câmera, passagem de fumaça/bandeira, mudança de foco ou continuidade de luz para evitar cortes aleatórios.
+- Variar a assinatura de cada segmento sem mudar a identidade do palco: Bispo 1 com leitura de cerco e controle; Bispo 2 com escala vertical e impacto; Bispo 3 com círculos e composição espacial; Ganância com domínio aéreo e crescendo final.
+- Não manter câmera lenta por longos períodos. Reservá-la para um único beat de antecipação em cada momento que realmente precise de ênfase.
+- Não esconder a ação com cortes rápidos demais, tremor constante, excesso de partículas ou flashes. O público deve entender onde cada protagonista está e o que mudou depois de cada ultimate.
+- Fazer o título nascer da própria atmosfera do palco, mas garantir contraste suficiente para leitura em telas pequenas. O título não deve cobrir os personagens.
+
+### 14.5 Orçamento técnico e estratégia de NPCs
+
+- Medir separadamente custo de rigs animados, meshes estáticos, partículas, transparências, sombras, áudio e pós-processamento. Não presumir que o gargalo seja somente o número de NPCs.
+- NPCs de fundo que não precisem de animação completa devem usar soluções visuais mais baratas (silhuetas estáticas, planos ou animação simplificada), desde que não pareçam bonecos repetidos nem revelem o truque.
+- Usar InstancedMesh somente para objetos que compartilhem geometria e material e não precisem de esqueleto/skin individual. Não tentar instanciar rigs animados completos como se fossem props estáticos.
+- Reutilizar materiais, geometrias, texturas e shaders quando compatível; manter pools com limites explícitos e reciclagem determinística.
+- Evitar transparências sobrepostas em grandes áreas, pois a névoa, auras e explosões podem causar overdraw alto. Preferir volumes/planos menores, profundidade e timing.
+- Definir níveis de qualidade por capacidade detectada apenas se já houver arquitetura compatível: reduzir densidade de partículas, resolução de efeitos secundários e sombras não essenciais antes de reduzir a clareza da ação ou remover conteúdo.
+- Registrar métricas por segmento e também o pico da sequência inteira. A sequência não está validada se cada luta roda isoladamente mas a montagem completa degrada progressivamente.
+
+### 14.6 Fontes técnicas adicionais e uso correto
+
+Consultar documentação oficial e confirmar compatibilidade com a versão exata instalada:
+- InstancedMesh: https://threejs.org/docs/pages/InstancedMesh.html — adequado a cópias da mesma geometria/material com transformações diferentes; não é substituto automático para personagens esqueléticos animados.
+- WebGLRenderer.info: https://threejs.org/docs/pages/WebGLRenderer.html — observar chamadas de desenho, triângulos, geometrias, texturas e programas; não confundir esses contadores com medição de tempo de quadro.
+- AnimationMixer: https://threejs.org/docs/pages/AnimationMixer.html — controlar ações, misturas e limpeza de animações por rig; parar actions antes de remover/uncache recursos.
+- Guia oficial de limpeza: https://threejs.org/manual/pages/how-to-dispose-of-objects.html — liberar recursos somente quando não forem compartilhados ou necessários.
+
+As páginas atuais podem descrever APIs posteriores à versão instalada. Confirmar no package/lockfile e, se necessário, consultar a documentação/tag correspondente ao Three.js efetivamente usado. Não atualizar a engine nesta missão.
+
+### 14.7 Checklist de consistência antes de implementar
+
+Antes de alterar código, Claude deve escrever para si mesmo uma matriz curta de requisitos → arquivo/sistema responsável → teste que comprova. Não enviar essa matriz ao criador; usá-la internamente para evitar esquecer itens. Confirmar no código:
+- fluxo da abertura e seus estados reais;
+- lista de personagens e quais têm confronto individual;
+- rigs, animações, habilidades e VFX originais;
+- existência/formato de NPC.jbl e Lua.glb;
+- caminho real da ultimate de Ganância;
+- mecanismo de carregamento, pooling, descarte e cache;
+- testes/harness existentes e limitações de execução.
+
+Se um requisito não existir no código ou não puder ser testado, não inventar que existe: registrar a lacuna na PR e propor a alternativa mais próxima sem quebrar sistemas estáveis.
+
+**Estado:** revisão de contradições concluída; seção 14 prevalece em caso de conflito e o briefing permanece autorizado para execução.
