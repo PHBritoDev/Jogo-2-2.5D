@@ -30,12 +30,12 @@ export function swordJudgmentCue(e){
  const hasFrom=from&&Number.isFinite(from.x)&&Number.isFinite(from.z);
  const dx=hasFrom?t.x-from.x:0,dz=hasFrom?t.z-from.z:1,len=Math.hypot(dx,dz);
  const yaw=len>1e-5?Math.atan2(dx,dz):Number.isFinite(e?.yaw)?e.yaw:0;
- const radius=Number.isFinite(t.radius)&&t.radius>0?t.radius:.48;
+ const radius=Number.isFinite(t.radius)&&t.radius>0?t.radius:.48,surfaceRadius=radius+.035;
  const height=Number.isFinite(t.height)&&t.height>0?t.height:1.7,n=Number.isFinite(e?.n)?e.n:0,phase=n*2.399;
- // Spread the 16 cuts around the front arc of the capsule while keeping each one on its surface.
+ // Keep each cut a few centimeters outside the collision capsule: inside it, the enemy mesh depth-occludes the VFX.
  const surfaceYaw=yaw+Math.sin(phase)*.28,nx=Math.sin(surfaceYaw),nz=Math.cos(surfaceYaw);
  const vertical=Math.sin(n*1.13+.35)*Math.min(.45,height*.25);
- return{p:{x:t.x-nx*radius*.92,y:t.y+vertical,z:t.z-nz*radius*.92},yaw,roll:phase%Math.PI-Math.PI/2};
+ return{p:{x:t.x-nx*surfaceRadius,y:t.y+vertical,z:t.z-nz*surfaceRadius},yaw,roll:phase%Math.PI-Math.PI/2};
 }
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
  * Bounded pools: 3 ribbons, 16 cuts, 192 instanced shards, 3 hero echoes.
