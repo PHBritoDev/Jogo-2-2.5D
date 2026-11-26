@@ -883,7 +883,7 @@ test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async
  assert.ok(minSpacing>.34,'short marks keep visible gaps instead of merging into a single sheet');
  const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
  assert.ok(source.includes('m.material.depthTest=!overlay'),'surface cuts render above the enemy mesh without moving far off the capsule');
- assert.ok(source.includes("cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?.28:.20,judgmentSlash)"));
+ assert.ok(source.includes("cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?JUDGMENT_SLASH_TIMING.finalLife:JUDGMENT_SLASH_TIMING.life,judgmentSlash)"));
  assert.ok(!source.includes("if(e.final)cut(p,'prota',.82"),'finalizer must not add a crossed second slab');
 });
 
