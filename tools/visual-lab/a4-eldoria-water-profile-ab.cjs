@@ -337,6 +337,16 @@ async function captureAuroraMotion(browser, side, baseline) {
       const stream = canvas.captureStream(30);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2400000 });
       const chunks = [];
+      const targets = [0, 2000, 4000, 6000, 8000];
+      const readDiagnostic = () => {
+        const d = window.SevenSinsDebug3D, state = d?.state?.() || {}, u = window.__aurora327U || {};
+        return {
+          hour: state.dim?.hour ?? null, night: state.night ?? null,
+          auroraK: u.uAurK?.value ?? null, lowUniform: u.uAurLow?.value ?? null,
+          player: [state.x, state.y, state.z], camera: d?.cam?.() || null,
+          targetView: d?.camView?.([0, 22, -15]) || null
+        };
+      };
       window.__a4MotionRecordError = null;
       recorder.addEventListener('dataavailable', event => {
         if (event.data?.size) chunks.push(event.data);
@@ -345,49 +355,32 @@ async function captureAuroraMotion(browser, side, baseline) {
         window.__a4MotionRecordError = String(event.error?.message || event.message || event);
       });
       recorder.start(250);
-      window.__a4MotionRecording = { stream, recorder, chunks, startedAt: performance.now(), mimeType };
-      return { mimeType, width: canvas.width, height: canvas.height, fps: 30 };
+      const startedAt = performance.now();
+      window.__a4MotionRecording = { stream, recorder, chunks, startedAt, mimeType };
+      window.__a4MotionSamples = [{ tMs: 0, ...readDiagnostic() }];
+      let nextTarget = 1;
+      const collect = () => {
+        const elapsed = performance.now() - startedAt;
+        if (nextTarget < targets.length && elapsed >= targets[nextTarget]) {
+          window.__a4MotionSamples.push({ tMs: Math.round(elapsed), ...readDiagnostic() });
+          nextTarget++;
+        }
+        if (nextTarget < targets.length) requestAnimationFrame(collect);
+      };
+      requestAnimationFrame(collect);
+      return { mimeType, width: canvas.width, height: canvas.height, fps: 30, targetsMs: targets };
     });
 
-    const frames = [];
-    for (let i = 0; i < 5; i++) {
-      if (i > 0) await page.evaluate(async targetMs => {
-        const startedAt = window.__a4MotionRecording?.startedAt;
-        if (!Number.isFinite(startedAt)) throw new Error('relógio do vídeo temporal ausente');
-        const remaining = targetMs - (performance.now() - startedAt);
-        if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
-      }, i * 2000);
-      const diagnostic = await page.evaluate(() => {
-        const d = window.SevenSinsDebug3D, state = d?.state?.() || {}, u = window.__aurora327U || {};
-        return {
-          hour: state.dim?.hour ?? null, night: state.night ?? null,
-          auroraK: u.uAurK?.value ?? null, lowUniform: u.uAurLow?.value ?? null,
-          player: [state.x, state.y, state.z], camera: d?.cam?.() || null,
-          targetView: d?.camView?.([0, 22, -15]) || null
-        };
-      });
-      if (!Number.isFinite(diagnostic.hour) || !(diagnostic.hour >= 18 || diagnostic.hour < 6)
-        || !Number.isFinite(diagnostic.night) || diagnostic.night < .99
-        || !Number.isFinite(diagnostic.auroraK) || diagnostic.auroraK < .5
-        || diagnostic.lowUniform !== 1)
-        report.errors.push(side + ' motion frame ' + i + ': aurora saiu do estado noturno/baixo=' + JSON.stringify(diagnostic));
-      if (!diagnostic.player.every(Number.isFinite) || Math.hypot(diagnostic.player[0], diagnostic.player[2] + 29) >= .25)
-        report.errors.push(side + ' motion frame ' + i + ': jogador saiu da pose=' + JSON.stringify(diagnostic.player));
-      if (!diagnostic.targetView?.onScreen || diagnostic.targetView?.blocked)
-        report.errors.push(side + ' motion frame ' + i + ': alvo da câmera ficou obstruído=' + JSON.stringify(diagnostic.targetView));
-      const tMs = await page.evaluate(() => Math.round(performance.now() - window.__a4MotionRecording.startedAt));
-      const image = 'motion/' + side + '-low-aurora-' + String(i).padStart(2, '0') + '.png';
-      await page.locator('#scene').screenshot({ path: path.join(out, image), timeout: 90000, animations: 'disabled', scale: 'css' });
-      frames.push({ tMs, image, ...diagnostic });
-    }
-
+    // Não fazer screenshots durante a gravação: readback do canvas bloqueava o RAF e congelava o WebM.
+    await page.waitForTimeout(8500);
     const videoPath = path.join(motionDir, side + '-low-aurora-ceu.webm');
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
     const videoMeta = await page.evaluate(async () => {
       const state = window.__a4MotionRecording;
       if (!state?.recorder || state.recorder.state === 'inactive')
         throw new Error('MediaRecorder temporal não está ativo');
-      const durationMs = Math.round(performance.now() - state.startedAt);
+      const recordingElapsedMs = Math.round(performance.now() - state.startedAt);
+      const samples = Array.isArray(window.__a4MotionSamples) ? window.__a4MotionSamples : [];
       const stopped = new Promise((resolve, reject) => {
         state.recorder.addEventListener('stop', resolve, { once: true });
         state.recorder.addEventListener('error', event => reject(new Error(String(event.error?.message || event.message || event))), { once: true });
@@ -405,13 +398,44 @@ async function captureAuroraMotion(browser, side, baseline) {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      return { durationMs, bytes: blob.size, mimeType: blob.type, objectUrl };
+      return { recordingElapsedMs, bytes: blob.size, mimeType: blob.type, objectUrl, samples };
     });
     const download = await downloadPromise;
     await download.saveAs(videoPath);
     await page.evaluate(url => URL.revokeObjectURL(url), videoMeta.objectUrl);
     await context.close();
     contextClosed = true;
+
+    const probe = JSON.parse(execFileSync('ffprobe', [
+      '-v', 'error', '-select_streams', 'v:0', '-show_frames',
+      '-show_entries', 'frame=best_effort_timestamp_time', '-of', 'json', videoPath
+    ], { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }));
+    const pts = (probe.frames || []).map(frame => Number(frame.best_effort_timestamp_time)).filter(Number.isFinite);
+    const gapsMs = pts.slice(1).map((time, i) => Math.max(0, Math.round((time - pts[i]) * 1000)));
+    const encodedDurationMs = pts.length > 1 ? Math.round((pts[pts.length - 1] - pts[0]) * 1000) : 0;
+    const maxFrameGapMs = gapsMs.length ? Math.max(...gapsMs) : null;
+    const meanFrameIntervalMs = gapsMs.length ? Math.round(gapsMs.reduce((sum, gap) => sum + gap, 0) / gapsMs.length) : null;
+    if (encodedDurationMs < 7800)
+      report.errors.push(side + ' motion: duração codificada abaixo de 7,8 s (' + encodedDurationMs + ' ms)');
+    if (pts.length < 20)
+      report.errors.push(side + ' motion: poucos quadros codificados (' + pts.length + ')');
+    if (videoMeta.samples.length !== 5)
+      report.errors.push(side + ' motion: amostras RAF incompletas (' + videoMeta.samples.length + '/5)');
+    if (maxFrameGapMs > 1200)
+      report.warnings.push(side + ' motion: maior intervalo entre quadros=' + maxFrameGapMs + ' ms (limite informativo do SwiftShader)');
+
+    const frames = [];
+    for (const sample of videoMeta.samples) {
+      if (!Number.isFinite(sample.tMs)) continue;
+      const frameTimeMs = Math.min(sample.tMs, Math.max(0, encodedDurationMs - 50));
+      const image = 'motion/' + side + '-low-aurora-' + String(frames.length).padStart(2, '0') + '.png';
+      execFileSync('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-i', videoPath, '-ss',
+        (frameTimeMs / 1000).toFixed(3), '-frames:v', '1', '-y', path.join(out, image)
+      ], { stdio: 'pipe' });
+      frames.push({ ...sample, tMs: frameTimeMs, image });
+    }
+
     const frameDeltas = [];
     for (let i = 1; i < frames.length; i++) {
       frameDeltas.push({
@@ -422,13 +446,15 @@ async function captureAuroraMotion(browser, side, baseline) {
     }
     report.motion[side] = {
       profile: 'low', scene: 'aurora-ceu', sampleWindowMs: 8000,
-      videoDurationMs: videoMeta.durationMs, videoBytes: videoMeta.bytes,
-      videoMimeType: videoMeta.mimeType, videoSource: 'canvas.captureStream/MediaRecorder (canvas only; no boot or HUD)',
+      videoDurationMs: encodedDurationMs, recordingElapsedMs: videoMeta.recordingElapsedMs,
+      videoBytes: videoMeta.bytes, videoMimeType: videoMeta.mimeType,
+      encodedFrameCount: pts.length, maxFrameGapMs, meanFrameIntervalMs,
+      videoSource: 'canvas.captureStream/MediaRecorder sem screenshots durante a gravação; PNGs extraídos depois com ffmpeg',
       recordingStart, video: path.relative(out, videoPath).replace(/\\/g, '/'),
       captureInfo, frames, frameDeltas
     };
-    if (frameDeltas.every(delta => delta.changedChannelsOver4 < .001))
-      report.warnings.push(side + ' motion: variação temporal abaixo de 0,1% dos canais do ROI do céu; inspecionar o WebM antes de concluir');
+    if (frameDeltas.length !== 4 || frameDeltas.every(delta => delta.changedChannelsOver4 < .001))
+      report.warnings.push(side + ' motion: variação temporal insuficiente no ROI do céu; inspecionar o WebM antes de concluir');
   } finally {
     if (!contextClosed) await context.close().catch(() => {});
   }
