@@ -44,6 +44,7 @@ test('loader: aquece o grafo antes do import do blob e mostra o arquivo real + T
 test('pré-carga segue a versão nas arenas, na alvenaria e no Vale do Despertar', () => {
   const sources = {
     'dimension-arenas3d.js': ['volcano-cave-scene.js', 'vorgazhek-abyss-dimension3d.js'],
+    'eldoria-waterfall3d.js': ['eldoria-water.js'],
     'eldoria-valley-ruin3d.js': ['eldoria-valley-landscape.js'],
     'volcano-cave-scene.js': ['volcano-cave-grove.js', 'volcano-cave-masonry.js'],
     'volcano-cave-grove.js': ['volcano-cave-masonry.js'],

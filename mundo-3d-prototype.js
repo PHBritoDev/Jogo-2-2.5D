@@ -523,7 +523,7 @@ function updateDayNight(dt){
  eldoriaWeatherView.update(eldoriaWeather.params,nostalgicLight,{camera,dt,time:performance.now()*.001,night:dayNightState.t,sunDir:weatherSunDir,wind:eldoriaWeather.windNow,windDir:weatherWindDir,wetness:eldoriaWeather.wetness,active:weatherActive,allowRain:weatherActive,lowFps:weatherLowFps});
  skyAtmo.update(dt,{camera,sunDir:SUN_DIRECTION,elev:nostalgicLight.elev,night:dayNightState.t,clear:skyClearK,visible:skyDome.visible&&!(typeof voidMode!=='undefined'&&voidMode)});
  // MOD 325: a aurora tinge de leve o ambiente (céu/hemisfério, chão e névoa) — aproximação artística discreta, sem luz extra
- {const ak=skyAtmo.aurora;/* MOD 327: luz espacial da aurora (terreno + água) por uniforms compartilhados; o tom global ficou mais leve (antes tingia o mapa inteiro por igual) e some em lugar fechado */updateAuroraLight(THREE,{level:ak,time:performance.now()*.001,closed:voidMode||!!caveWalk||auroraQAOff,low:terrainLowSpec});if(ak>.01&&!voidMode){hemiLight.color.lerp(AUR_TINT_SKY,ak*.24);hemiLight.groundColor.lerp(AUR_TINT_GND,ak*.18);scene.fog.color.lerp(AUR_TINT_FOG,ak*.16);hemiLight.intensity*=1+ak*.18;/* MOD 326: tinta perceptível no chão, pedras, árvores e água (via hemisfério/névoa, sem luz extra nem pós) */}}
+ {const ak=skyAtmo.aurora;/* MOD 327: luz espacial da aurora (terreno + água) por uniforms compartilhados; o tom global ficou mais leve (antes tingia o mapa inteiro por igual) e some em lugar fechado */updateAuroraLight(THREE,{level:ak,time:performance.now()*.001,closed:voidMode||!!caveWalk||auroraQAOff,low:graphics3DMode==='auto'?graphics3DAutoTier<=1:graphics3DMode==='low'});if(ak>.01&&!voidMode){hemiLight.color.lerp(AUR_TINT_SKY,ak*.24);hemiLight.groundColor.lerp(AUR_TINT_GND,ak*.18);scene.fog.color.lerp(AUR_TINT_FOG,ak*.16);hemiLight.intensity*=1+ak*.18;/* MOD 326: tinta perceptível no chão, pedras, árvores e água (via hemisfério/névoa, sem luz extra nem pós) */}}
  if(worldAudio.setRain)worldAudio.setRain(weatherActive?eldoriaWeather.params.rain:0);
  clockBtnT+=dt;if(clockBtnT>1){clockBtnT=0;syncDayNightButton();}
  clockSaveT+=dt;if(clockSaveT>5){clockSaveT=0;try{localStorage.setItem('seven-sins-3d-clock',gameClock.hour.toFixed(3));}catch(e){}}
@@ -5085,7 +5085,7 @@ function updateSquadCombat(dt,now){
  const paused=dialogueOpen||cineActive||gamePaused||playerHP<=0||!!portalPull||!!(squadLab&&squadLab.behavior==='parado')||admFreezeNearby
  const enemyDt=admFreezeNearby?0:dt;
  squadRT.update(enemyDt,{targets,foreign,camera,quality:graphics3DIsLow()?0:1,paused:paused||squadQAPause||admFreezeNearby||!!greedAtomic?.active});greedAtomicTick(enemyDt,paused||squadQAPause||admFreezeNearby);if(!admFreezeNearby)vzAuditTick();
- updateAllies(enemyDt);
+ updateAllies(dt);
  // 5) foco e procurador
  pickSquadFocus(false);
  const nAlive=squadAlive().length;if(nAlive){writeSquadProxy();if(nAlive!==squadLabelN){squadLabelN=nAlive;syncEnemyLabel();const el=document.getElementById('enemy-name');if(el&&nAlive>1)el.textContent+=' ×'+nAlive;}}
@@ -8734,7 +8734,7 @@ let riteClips={},riteLayers=null,riteLower=null,riteAnimation=null,restoreRiteSc
 const riteVFX=createSwordRitesVFX(THREE,scene),riteBase=new THREE.Vector3(),riteTip=new THREE.Vector3();
 const riteBlade={base:riteBase,tip:riteTip};
 let riteTargetEpoch=-1,riteTargetModel=null,riteTargetHeight=1.75,riteTargetRadius=.48;
-function riteTarget(){const t=siegeTarget(true);if(squadOn&&squadFocus?.alive){const a=squadFocus;t.radius=a.T.radius;t.height=squadRT.body(a.id)?.height||a.T.height;t.y=a.y+t.height*.5;return t;}if(enemyModel&&(riteTargetEpoch!==siegeEpoch||riteTargetModel!==enemyModel)){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());riteTargetHeight=THREE.MathUtils.clamp(size.y,1.2,6);const boss=/^(vhazrael|vorgazhek|zarkhael|veraxion|greed|fallen|miniboss)/.test(encounterProfile);riteTargetRadius=boss?THREE.MathUtils.clamp(Math.min(size.x,size.z)*.42,.95,2.4):.48;riteTargetEpoch=siegeEpoch;riteTargetModel=enemyModel;}t.radius=riteTargetRadius;t.height=riteTargetHeight;t.y=enemy.position.y+riteTargetHeight*.52;return t;}
+function riteTarget(){const t=siegeTarget(true);if(squadOn&&squadFocus?.alive){const a=squadFocus;t.squadActorId=a.id;t.radius=a.T.radius;t.height=squadRT.body(a.id)?.height||a.T.height;t.y=a.y+t.height*.5;return t;}if(enemyModel&&(riteTargetEpoch!==siegeEpoch||riteTargetModel!==enemyModel)){const size=measureModelBounds(enemyModel).getSize(new THREE.Vector3());riteTargetHeight=THREE.MathUtils.clamp(size.y,1.2,6);const boss=/^(vhazrael|vorgazhek|zarkhael|veraxion|greed|fallen|miniboss)/.test(encounterProfile);riteTargetRadius=boss?THREE.MathUtils.clamp(Math.min(size.x,size.z)*.42,.95,2.4):.48;riteTargetEpoch=siegeEpoch;riteTargetModel=enemyModel;}t.radius=riteTargetRadius;t.height=riteTargetHeight;t.y=enemy.position.y+riteTargetHeight*.52;return t;}
 function riteBlocked(p,body=true){
  const x=p.x,z=p.z;if(body?playerBlockedAt(x,z):blockedAt(x,z))return true;
  // Capsule clearance around walls, plus a conservative floor continuity check.

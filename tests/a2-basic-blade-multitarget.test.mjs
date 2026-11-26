@@ -22,21 +22,22 @@ function encounter(blocked=()=>false) {
 }
 function focusHandoffSweep(fps){
  const outgoing=enemy('outgoing-focus',20,3),incoming=enemy('incoming-focus',30,30);
+ const proxy=actor=>({id:'siege-epoch',squadActorId:actor.id,x:actor.x,y:actor.y,z:actor.z,radius:actor.radius,height:actor.height,alive:actor.alive});
  const hits=[],impacts=[],rites=new SwordRites({
   moveset:()=>({id:'focus-handoff',duration:.8,open:.01,close:.7,buffer:.1,multiplier:1,hit:'blade',count:1}),
   pose:()=>({base:{x:0,y:.2,z:3},tip:{x:0,y:1.8,z:3}}),
   hit:(damage,id,kind)=>{hits.push({id,kind});return true;},
   event:(type,data)=>{if(type==='impact')impacts.push(data);}
  });
- assert.equal(rites.attack('prota',{target:outgoing}),true);
+ assert.equal(rites.attack('prota',{target:proxy(outgoing)}),true);
  const dt=1/fps,travel=PROTA_DASH.distance/PROTA_DASH.travel*dt,fraction=fps===20?.5:.58;
  outgoing.x=-travel*fraction;
- // Production shape: the focused actor is absent from others; only the new focus is excluded after handoff.
- rites.update(dt,{from:{x:0,y:0,z:0},target:outgoing,others:[incoming],sword:'prota',grounded:true});
+ // Production shape: target.id is siegeEpoch, squadActorId is the actor; the focused actor is absent from others.
+ rites.update(dt,{from:{x:0,y:0,z:0},target:proxy(outgoing),others:[incoming],sword:'prota',grounded:true});
  const hitsBeforeHandoff=hits.length,previousFocus=rites.previousOthers.get(outgoing.id);
  const previousFocusX=previousFocus?.x,activeKind=rites.active?.kind;
  outgoing.x=travel*fraction;
- rites.update(dt,{from:{x:0,y:0,z:0},target:incoming,others:[outgoing],sword:'prota',grounded:true});
+ rites.update(dt,{from:{x:0,y:0,z:0},target:proxy(incoming),others:[outgoing],sword:'prota',grounded:true});
  return{hits,impacts,hitsBeforeHandoff,previousFocusX,expectedPreviousX:-travel*fraction,activeKind};
 }
 function movingSecondarySweep(fps,{blocked=()=>false,fromX=null,toX=null}={}){
@@ -82,6 +83,13 @@ test('squad actor history reuses snapshot records between frames and removes sta
  assert.equal(history.has(e.primary.id),true,'the current focus remains tracked');
  assert.equal(history.has(e.hidden.id),true);
 });
+test('world focus proxy keeps squad actor identity separate from siege epoch',async()=>{
+ const source=await readFile(new URL('../mundo-3d-prototype.js',import.meta.url),'utf8');
+ const start=source.indexOf('function riteTarget()'),end=source.indexOf('\nfunction riteBlocked',start);
+ assert.ok(start>=0&&end>start,'production riteTarget adapter must exist');
+ assert.match(source.slice(start,end),/t\.squadActorId=a\.id/);
+});
+
 test('focus handoff keeps the outgoing target in actor history for a swept side hit at 20/30 FPS',()=>{
  for(const fps of [20,30]){
   const result=focusHandoffSweep(fps);

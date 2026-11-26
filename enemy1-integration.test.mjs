@@ -20,7 +20,7 @@ test('o inimigo legado vira procurador do foco: IA e kit antigos desligados, dan
   assert.match(src, /function updateFoeKit\(dt\)\{\n if\(swordTraining\|\|squadOn\)return;/);
   assert.match(src, /const lost=squadProxy\.hp-enemyHP;/);
   assert.match(src, /function advanceAfterEnemyDefeat\(\)\{if\(squadOn\|\|performance\.now\(\)<squadSwallowUntil\)return;/);
-  assert.match(src, /updateSquadCombat\(dt,now\);updateEnemy1Lab\(dt\);updateEnemyAI\(dt\);/);
+  assert.match(src, /updateSquadCombat\(dt,now\);if\(!admFreezeNearby\)updateEnemy1Lab\(dt\);if\(!admFreezeNearby\)updateEnemyAI\(dt\);/);
 });
 
 test('golpe, projéteis e magias em área alcançam os outros atores; colisão com o herói', () => {
