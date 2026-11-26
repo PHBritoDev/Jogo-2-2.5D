@@ -18,10 +18,12 @@ const VIEWPORTS = [
 const SCENES = [
   { id: "prado-prologo", x: 54, z: 160, yaw: Math.PI, pitch: .12, distance: 6 },
   { id: "trilha-samambaias", x: -14, z: -105, yaw: -Math.PI / 2, pitch: .12, distance: 6 },
+  // Pose exata do A1 (-14,-82): valida se o sub-bosque em primeiro plano encobre as pernas no spawn.
+  { id: "mata-entrada-inicial", x: -14, z: -82, yaw: 0, pitch: .12, distance: 6 },
   // Vista lateral do mesmo ponto, mantendo o herói voltado para a estrada: expõe o ombro do prado no mobile.
   { id: "prado-ombro-lateral", x: 54, z: 160, yaw: Math.PI / 2, heroYaw: Math.PI, pitch: .12, distance: 8 }
 ];
-const WALK_SCENES = new Set(["prado-prologo", "trilha-samambaias"]);
+const WALK_SCENES = new Set(["prado-prologo", "trilha-samambaias", "mata-entrada-inicial"]);
 
 function readBaseModules() {
   if (!/^[a-f0-9]{40}$/.test(BASE_SHA)) throw new Error("BASE_SHA ausente ou inválido");
@@ -50,9 +52,33 @@ function heroPositionDelta(a, b) {
   return Math.hypot(x.x - y.x, x.y - y.y, x.z - y.z);
 }
 
+const FADED_UNDERGROWTH_BLOCKERS = new Set([
+  "eldoria-ferns",
+  "eldoria-bushes",
+  "eldoria-broadleaf"
+]);
+const UNDERGROWTH_FADE_START_METERS = 0.6;
+const UNDERGROWTH_FADE_SPAN_METERS = 5.6;
+const UNDERGROWTH_FADE_CLEAR_THRESHOLD = 0.92;
+
+function isVisuallyFadedUndergrowthBlocker(view) {
+  const hit = view && view.blocked;
+  if (!hit || !FADED_UNDERGROWTH_BLOCKERS.has(hit.name)) return false;
+  if (!Number.isFinite(hit.dist)) return false;
+  // camView raycasts geometry and cannot see fragment-shader discard. The fade shader
+  // uses this same camera-space distance along the center ray. Only forgive a hit when
+  // at least 92% of the Bayer samples are discarded; trunks/rocks and partial fades
+  // remain hard occluders. The center ray is inside the shader's focal cone.
+  const fade = Math.max(0, Math.min(1,
+    (hit.dist - UNDERGROWTH_FADE_START_METERS) / UNDERGROWTH_FADE_SPAN_METERS
+  ));
+  return fade >= UNDERGROWTH_FADE_CLEAR_THRESHOLD;
+}
+
 function cameraClear(state) {
   const view = state && state.camView;
-  return !!view && view.onScreen === true && !view.blocked;
+  return !!view && view.onScreen === true &&
+    (!view.blocked || isVisuallyFadedUndergrowthBlocker(view));
 }
 
 async function readState(page) {
@@ -231,21 +257,31 @@ async function runSession(browser, viewport, variant, baselineModules) {
     }
   }
   try {
+    // Primeira passada: todos os pares estáticos A/B usam o mesmo estado inicial.
+    // Caminhar antes da última cena pode alterar LOD/culling e contaminar a comparação.
     for (const scene of SCENES) {
       const state = await setPose(session.page, scene);
       captures.push(await capture(session.page, viewport, variant, scene, state));
       if (!state.settled) session.errors.page.push(viewport.id + " " + variant + ": câmera não assentou em " + scene.id);
       if (!cameraClear(state)) session.errors.page.push(viewport.id + " " + variant + ": protagonista fora do quadro ou encoberto em " + scene.id);
+    }
 
-      if (variant === "candidate" && WALK_SCENES.has(scene.id)) {
+    // Segunda passada: somente depois das fotos equivalentes, executa as caminhadas reais.
+    if (variant === "candidate") {
+      for (const scene of SCENES.filter(scene => WALK_SCENES.has(scene.id))) {
+        const pose = await setPose(session.page, scene);
+        if (!pose.settled) session.errors.page.push(viewport.id + ": câmera não assentou antes da caminhada em " + scene.id);
+        if (!cameraClear(pose)) session.errors.page.push(viewport.id + ": protagonista fora do quadro antes da caminhada em " + scene.id);
         const walk = await walkForward(session.page, scene);
         const walkFile = viewport.id + "-candidate-" + scene.id + "-apos-caminhada.png";
         await session.page.locator("#scene").screenshot({ path: path.join(OUT, walkFile), timeout: 90000 });
         walks.push({ viewport: viewport.id, scene: scene.id, ...walk, file: walkFile });
         const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";
         const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";
-        if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);
-        if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");
+        const walkArticle = scene.id === "mata-entrada-inicial" ? "na" : routeArticle;
+        const walkLabel = scene.id === "mata-entrada-inicial" ? "entrada da mata" : routeLabel;
+        if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + walkArticle + " " + walkLabel);
+        if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + walkArticle + " " + walkLabel + " avançou menos de 2 m");
         if (!cameraClear(walk.end)) session.errors.page.push(viewport.id + ": protagonista fora do quadro ou encoberto após caminhada " + routeArticle + " " + routeLabel);
       }
     }
@@ -257,7 +293,7 @@ async function runSession(browser, viewport, variant, baselineModules) {
   if (variant === "candidate" && session.video) {
     try {
       const source = await session.video.path();
-      videoFile = viewport.id + "-candidate-prado-walk.webm";
+      videoFile = viewport.id + "-candidate-undergrowth-walk.webm";
       fs.copyFileSync(source, path.join(OUT, videoFile));
     } catch (e) {
       session.errors.page.push(viewport.id + ": vídeo não foi finalizado: " + String(e.message || e));
@@ -340,7 +376,7 @@ async function main() {
     "",
     ...pairs.map(p => "- " + p.viewport + " / " + p.scene + ": herói Δ " + p.heroDelta.toFixed(3) + " m; câmera Δ " + p.cameraDelta.toFixed(3) + " m; " + p.baseline + " × " + p.candidate),
     "",
-    ...sessions.flatMap(s => s.walks.map(w => "- Caminhada " + w.viewport + ": " + w.distance.toFixed(2) + " m; vídeo " + (s.video || "não disponível"))),
+    ...sessions.flatMap(s => s.walks.map(w => "- Caminhada " + w.viewport + " / " + w.scene + ": " + w.distance.toFixed(2) + " m; movimento=" + w.movementReached + "; câmera=" + w.settled + "; visível=" + w.onScreen + "; vídeo " + (s.video || "não disponível"))),
     "",
     ...fatal.map(e => "- ERRO: " + e),
     "",

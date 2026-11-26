@@ -5,6 +5,15 @@
  */
 import { makeRng } from './eldoria-prologue-meadow.js';
 
+/** Alturas-base do extras.height do GLB tropical (tools/eldoria/trees/tree-species.mjs). */
+export const TROPICAL_SPECIES_HEIGHTS = Object.freeze({
+  sumauma: 30.4,
+  copaLarga: 14.6,
+  figueira: 14.4,
+  palmeira: 14.5,
+  embauba: 15.6
+});
+
 export function fernGeometry(THREE) {
   const pos = [], col = [], base = [.12, .22, .09], tip = [.36, .52, .2];
   for (let f = 0; f < 7; f++) {
@@ -69,15 +78,66 @@ export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, se
   return { ferns, bushes };
 }
 
+/**
+ * Fade pontilhado das plantas que ficam entre a câmera e o protagonista. O controlador compartilhado mantém
+ * seu fade-base de 2,2 m; esta camada leva a transição a 5,6 m para alcançar folhas/folíolos que ainda cobriam
+ * as pernas na pose de entrada (-14,-82). Bayer 4x4 distribui 16 limiares uniformes sem alpha blending,
+ * remoção de instâncias ou abertura de clareiras.
+ */
+export const UNDERGROWTH_CAMERA_FADE_METERS = 5.6;
+/**
+ * Fade focal: só afeta vegetação próxima dentro do cone de visão centrado no protagonista.
+ * O restante do sub-bosque continua opaco, evitando uma clareira que acompanha a câmera.
+ * O Bayer 8x8 é ancorado em coordenadas de mundo para não rastejar pela tela durante a caminhada.
+ */
+export function applyUndergrowthCameraFade(material, fadeSpanMeters = UNDERGROWTH_CAMERA_FADE_METERS) {
+  if (!material || typeof material !== 'object') return material;
+  const fadeSpan = Number.isFinite(fadeSpanMeters) ? Math.max(.61, fadeSpanMeters) : UNDERGROWTH_CAMERA_FADE_METERS;
+  const marker = 'a3-undergrowth-focus-fade-' + fadeSpan.toFixed(2) + '-world-bayer8-32';
+  material.userData ||= {};
+  if (material.userData[marker]) return material;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = function(shader, renderer) {
+    if (previous) previous.call(this, shader, renderer);
+    const common = '#include <common>';
+    const worldPositionChunk = '#include <worldpos_vertex>';
+    const clippingChunk = '#include <clipping_planes_fragment>';
+    if (!shader.vertexShader.includes(common) || !shader.vertexShader.includes(worldPositionChunk)) {
+      throw new Error('Shader do sub-bosque sem common/worldpos_vertex');
+    }
+    if (!shader.fragmentShader.includes(common) || !shader.fragmentShader.includes(clippingChunk)) {
+      throw new Error('Shader do sub-bosque sem common/clipping_planes_fragment');
+    }
+    shader.vertexShader = shader.vertexShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
+    shader.vertexShader = shader.vertexShader.replace(
+      worldPositionChunk,
+      worldPositionChunk + '\nvec4 a3UndergrowthWorldPosition = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\na3UndergrowthWorldPosition = instanceMatrix * a3UndergrowthWorldPosition;\n#endif\na3UndergrowthWorldPosition = modelMatrix * a3UndergrowthWorldPosition;\nvA3UndergrowthWorldPosition = a3UndergrowthWorldPosition.xyz;'
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
+    const fade = '\n{float a3UnderDepth=max(-vViewPosition.z,0.001);vec2 a3UnderViewAngle=vec2(vViewPosition.x/a3UnderDepth,vViewPosition.y/a3UnderDepth+0.10);float a3UnderFocusRadius=length(a3UnderViewAngle/vec2(0.30,0.38));float a3UnderFocus=1.0-smoothstep(0.72,1.05,a3UnderFocusRadius);float a3UnderFade=clamp((length(vViewPosition)-0.6)/'
+      + fadeSpan.toFixed(2)
+      + ',0.0,1.0);a3UnderFade=mix(1.0,a3UnderFade,a3UnderFocus);vec2 a3UnderCell=mod(floor(vA3UndergrowthWorldPosition.xz*32.0),8.0);float a3UnderX0=mod(a3UnderCell.x,2.0);float a3UnderY0=mod(a3UnderCell.y,2.0);float a3UnderX1=mod(floor(a3UnderCell.x*0.5),2.0);float a3UnderY1=mod(floor(a3UnderCell.y*0.5),2.0);float a3UnderX2=floor(a3UnderCell.x*0.25);float a3UnderY2=floor(a3UnderCell.y*0.25);float a3UnderBayer4=4.0*mod(2.0*a3UnderX0+3.0*a3UnderY0,4.0)+mod(2.0*a3UnderX1+3.0*a3UnderY1,4.0);float a3UnderBayer8=4.0*a3UnderBayer4+mod(2.0*a3UnderX2+3.0*a3UnderY2,4.0);float a3UnderDither=(a3UnderBayer8+0.5)/64.0;if(a3UnderDither>a3UnderFade)discard;}';
+    shader.fragmentShader = shader.fragmentShader.replace(clippingChunk, clippingChunk + fade);
+  };
+  material.customProgramCacheKey = function() {
+    const key = previousKey ? previousKey.call(this) : '';
+    return key + '|' + marker;
+  };
+  material.needsUpdate = true;
+  material.userData[marker] = true;
+  return material;
+}
 export function buildUndergrowth(THREE, o) {
   const { scene, groundHeightAt, addWind, registerCull, lowSpec } = o, plan = planUndergrowth(o), d = new THREE.Object3D(), group = new THREE.Group();
   group.name = 'eldoria-undergrowth-mod291'; scene.add(group);
   const fernMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide });
   if (addWind) addWind(fernMat, .05, 'clamp(position.y*2.2,0.0,1.0)', .9, 'mod291-fern');
+  applyUndergrowthCameraFade(fernMat);
   const ferns = new THREE.InstancedMesh(fernGeometry(THREE), fernMat, Math.max(1, plan.ferns.length));
   plan.ferns.forEach((f, i) => { d.position.set(f.x, groundHeightAt(f.x, f.z) - .03, f.z); d.rotation.set(0, f.rot, 0); d.scale.setScalar(f.s); d.updateMatrix(); ferns.setMatrixAt(i, d.matrix); });
   ferns.count = plan.ferns.length; ferns.instanceMatrix.needsUpdate = true; ferns.receiveShadow = true; ferns.name = 'eldoria-ferns'; group.add(ferns);
   const bushMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .92, flatShading: false, side: THREE.DoubleSide });
+  applyUndergrowthCameraFade(bushMat);
   const bushes = new THREE.InstancedMesh(bushGeometry(THREE), bushMat, Math.max(1, plan.bushes.length));
   plan.bushes.forEach((b, i) => { d.position.set(b.x, groundHeightAt(b.x, b.z) + b.s * .25, b.z); d.rotation.set(0, b.rot, 0); d.scale.set(b.s * 1.4, b.s, b.s * 1.2); d.updateMatrix(); bushes.setMatrixAt(i, d.matrix); });
   bushes.count = plan.bushes.length; bushes.instanceMatrix.needsUpdate = true; bushes.receiveShadow = true; bushes.castShadow = !lowSpec; bushes.name = 'eldoria-bushes'; group.add(bushes);
@@ -115,6 +175,11 @@ export function broadLeafGeometry(THREE) {
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   g.computeVertexNormals();g.computeBoundingSphere();return g;
 }
+/** A ponta de um folíolo alcança y=-0.1; a origem da instância não é o limite inferior real. */
+const VINE_GEOMETRY_MIN_Y = -.1;
+const VINE_GEOMETRY_MAX_Y = 1;
+const VINE_GEOMETRY_VERTICAL_SPAN = VINE_GEOMETRY_MAX_Y - VINE_GEOMETRY_MIN_Y;
+
 /** Cipó: fita fina curva de altura 1 (topo em y=1), balança com o vento do jogo. */
 export function vineGeometry(THREE) {
   const pos = [], col = [], S = 8, w = .035;
@@ -157,14 +222,20 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
       const a = rnd() * 6.28, r = 1.4 + rnd() * 2.2;
       const x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
       // Consome os mesmos valores antes do filtro para manter o RNG dos próximos troncos estável.
-      // planTropicalBelt fornece sp/s, mas não h; o sub-bosque sul precisa derivar
-      // a altura para não criar matrizes NaN. Mantém os mesmos valores do cinturão já explícito.
-      const baseHeight = t.sp === 'sumauma' ? 26 : 11;
+      // planTropicalBelt fornece sp/s, mas não h; usa a altura-base real do GLB por espécie.
+      // h explícito continua prioritário; a escala s acompanha a mesma instância do tronco.
+      const speciesHeight = TROPICAL_SPECIES_HEIGHTS[t.sp] || 12;
       const treeHeight = Number.isFinite(t.h) && t.h > 0
         ? t.h
-        : baseHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
-      const top = treeHeight * (.62 + rnd() * .2), len = treeHeight * (.35 + rnd() * .35), rot = rnd() * 6.28;
-      if (vineFits(x, z)) vines.push({ x, z, top, len, rot });
+        : speciesHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
+      const top = treeHeight * (.62 + rnd() * .2);
+      const rawLength = treeHeight * (.35 + rnd() * .35);
+      // O último folíolo passa de y=0 até y=-0.1; limitar pelo span real da malha evita enterrá-lo.
+      // O topo continua fixo e a menor coordenada renderizada fica a pelo menos 20 cm do terreno.
+      const maxLengthAboveGround = Math.max(0, (top - .2) / VINE_GEOMETRY_VERTICAL_SPAN);
+      const len = Math.min(rawLength, maxLengthAboveGround);
+      const rot = rnd() * 6.28;
+      if (len > 0 && vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
   }
   if (zone) for (let i = 0; i < (lowSpec ? 280 : 560) && leaves.length < maxL; i++) { const x = zone.x0 + rnd() * (zone.x1 - zone.x0), z = zone.z0 + rnd() * (zone.z1 - zone.z0); if (isFree(x, z)) leaves.push({ x, z, s: .8 + rnd() * .9, rot: rnd() * 6.28 }); }
@@ -175,6 +246,7 @@ export function buildTropical(THREE, o) {
   group.name = 'eldoria-tropical-mod291'; scene.add(group);
   const leafMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .8, side: THREE.DoubleSide });
   if (addWind) addWind(leafMat, .05, 'clamp(position.y*1.6,0.0,1.0)', .8, 'mod291-broadleaf');
+  applyUndergrowthCameraFade(leafMat);
   const leaves = new THREE.InstancedMesh(broadLeafGeometry(THREE), leafMat, Math.max(1, plan.leaves.length));
   plan.leaves.forEach((l, i) => { d.position.set(l.x, groundHeightAt(l.x, l.z) - .02, l.z); d.rotation.set(0, l.rot, 0); d.scale.setScalar(l.s); d.updateMatrix(); leaves.setMatrixAt(i, d.matrix); });
   leaves.count = plan.leaves.length; leaves.instanceMatrix.needsUpdate = true; leaves.receiveShadow = true; leaves.name = 'eldoria-broadleaf'; group.add(leaves);
