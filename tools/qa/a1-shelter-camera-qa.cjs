@@ -167,6 +167,8 @@ async function main() {
     assert.ok(b.diagnostics.finalLimit >= 0.65, 'colisão posterior ainda comprime o braço: limit=' + b.diagnostics.finalLimit);
     assert.ok(b.diagnostics.chosenClearance >= b.diagnostics.minClearance,
       'o candidato selecionado não atingiu a folga mínima');
+    assert.equal(b.diagnostics.chosenVisible, true, 'o protagonista continua encoberto por pilar/vegetação');
+    assert.equal(b.diagnostics.visibilityFailed, false, 'nenhum corredor manteve a linha de visão do protagonista');
     const criticalConsole = report.consoleErrors.filter(error => !/KHR_parallel|PropertyBinding/i.test(error));
     assert.equal(report.errors.length, 0, 'erros JavaScript: ' + report.errors.join(' | '));
     assert.equal(report.httpErrors.length, 0, 'falhas de assets: ' + report.httpErrors.join(' | '));

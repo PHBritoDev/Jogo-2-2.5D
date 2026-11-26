@@ -132,6 +132,8 @@ test('desvio permanece no braço da câmera e não altera o referencial do joyst
   assert.ok(world.includes('rocksBlock(rockObstacles,x,z,y-.25,terrainHeightAt)'));
   assert.ok(world.includes('samples:24,minClearance:Math.max(3.2,camDistUse*.65)'));
   assert.ok(world.includes('shelterCameraState(){return a1ShelterCameraDiagnostics;}'));
+  assert.ok(world.includes('const visibleAt=cameraPoint=>'));
+  assert.ok(world.includes('chosenVisible:shelterDecision?.chosen?.visible??null'));
   assert.ok(!world.includes('cameraYaw=baseYaw+shelterCameraYawOffset'));
   const movementStart = world.indexOf('function updatePlayerMovement(dt,now){');
   const movementEnd = world.indexOf('function protaLocomotion', movementStart);
@@ -147,5 +149,40 @@ test('A/B atualiza a câmera após teleporte de fixture antes de medir o braço'
   const qa = readFileSync(new URL('../tools/qa/a1-shelter-camera-qa.cjs', import.meta.url), 'utf8');
   assert.ok(world.includes('snapCam(){for(let i=0;i<10;i++)updatePlayerCamera(1);'));
   assert.ok(qa.includes('api.snapCam()'));
+  assert.ok(qa.includes('assert.equal(b.diagnostics.chosenVisible, true'));
   assert.ok(qa.indexOf('api.snapCam()') > qa.indexOf('api.viewQA(false, pose.yaw, pose.pitch)'));
+});
+
+test('prefere o lado que mantém o tronco do protagonista visível, não só o braço livre', () => {
+  const walk = realShelterWalkables();
+  const hero = { x: target.x - Math.cos(yaw) * 0.42, z: target.z + Math.sin(yaw) * 0.42 };
+  const visibleAt = camera => {
+    let visible = 0;
+    for (const height of [0.95, 1.15, 1.55]) {
+      let blocked = false;
+      for (let i = 1; i < 20; i++) {
+        const t = i / 20, x = camera.x + (hero.x - camera.x) * t;
+        const y = camera.y + (height - camera.y) * t, z = camera.z + (hero.z - camera.z) * t, queryY = y - 0.9;
+        const visualPillar = walk.walls.find(w => w.name === 'abrigo-pilar' &&
+          queryY >= w.yb - 0.05 && queryY <= w.yt + 0.05 &&
+          Math.hypot(x - w.cx, z - w.cz) < (w.r || 0.42) + 0.12);
+        if (visualPillar || walk.blocked(x, z, queryY, () => 0)) { blocked = true; break; }
+      }
+      if (!blocked) visible++;
+    }
+    return visible >= 2;
+  };
+  const result = chooseShelterCameraShoulder({ target, offset, blockedAt: walkBlocker(walk), visibleAt });
+  assert.equal(result.direct.triggerBlocker.name, 'abrigo-pilar');
+  assert.equal(result.angle, -0.24);
+  assert.equal(result.chosen.visible, true);
+  assert.equal(result.visibilityFailed, false);
+});
+
+test('não aplica shoulder se nenhum candidato mantém o protagonista visível', () => {
+  const result = chooseShelterCameraShoulder({
+    target, offset, blockedAt: walkBlocker(realShelterWalkables()), visibleAt: () => false
+  });
+  assert.equal(result.angle, 0);
+  assert.equal(result.visibilityFailed, true);
 });

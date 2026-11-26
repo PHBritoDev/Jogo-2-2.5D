@@ -1,14 +1,5 @@
 name: QA A1 — câmera do abrigo (A/B)
 on:
-  push:
-    branches:
-      - agentes/a1/abrigo-mata-follow-camera-mod372-20261126
-    paths:
-      - '.github/workflows/qa-a1-shelter-camera.yml'
-      - 'mundo-3d-prototype.js'
-      - 'follow-camera-clearance3d.js'
-      - 'tests/follow-camera-clearance3d.test.mjs'
-      - 'tools/qa/a1-shelter-camera-qa.cjs'
   pull_request:
     paths:
       - '.github/workflows/qa-a1-shelter-camera.yml'
@@ -23,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: a1-shelter-camera-${{ github.event.pull_request.number || github.ref }}
+  group: a1-shelter-camera-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: false
 jobs:
   camera-ab:

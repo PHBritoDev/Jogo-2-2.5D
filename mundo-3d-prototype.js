@@ -2470,17 +2470,24 @@ if(firstPerson){
   // estável do joystick, dash, mira e rotação do jogador.
   const baseOrbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;
   const baseOffset=new THREE.Vector3(Math.sin(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch));
-  shelterNearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
+  const nearbyPillars=eldoriaWalk.walls.filter(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+2);
+  shelterNearPillar=nearbyPillars.some(w=>Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
   if(shelterNearPillar){
    // Avalia o braço inteiro, não só o collider do pilar: um desvio que libera a pedra
    // mas termina dentro de uma árvore/rocha ainda comprime o enquadramento.
    const nearbyTrees=treeObstacles.filter(o=>Math.abs(o.x-target.x)<camDistUse+2&&Math.abs(o.z-target.z)<camDistUse+2);
-   const blockedAt=(x,y,z)=>{
-    const wall=eldoriaWalk.blocked(x,z,y-.9,groundHeightAt);
+   const blockedAt=(x,y,z,rayOrigin=target,pillarMargin=0)=>{
+    const queryY=y-.9;
+    if(pillarMargin>0)for(const p of nearbyPillars){
+     if(queryY<p.yb-.05||queryY>p.yt+.05)continue;
+     const r=(p.r||.42)+pillarMargin,dx=x-p.cx,dz=z-p.cz;
+     if(dx*dx+dz*dz<r*r)return p;
+    }
+    const wall=eldoriaWalk.blocked(x,z,queryY,groundHeightAt);
     if(wall?.name==='abrigo-pilar')return wall;
-    const rayX=x-target.x,rayZ=z-target.z,rayLen2=rayX*rayX+rayZ*rayZ;
+    const rayX=x-rayOrigin.x,rayZ=z-rayOrigin.z,rayLen2=rayX*rayX+rayZ*rayZ;
     if(rayLen2>.01)for(const o of nearbyTrees){
-     const rx=o.x-target.x,rz=o.z-target.z,t=(rx*rayX+rz*rayZ)/rayLen2;
+     const rx=o.x-rayOrigin.x,rz=o.z-rayOrigin.z,t=(rx*rayX+rz*rayZ)/rayLen2;
      if(t<=.05||t>1.05)continue;
      const px=rx-rayX*t,pz=rz-rayZ*t,r=o.radius+.32;
      if(px*px+pz*pz<r*r)return{name:'tree',x:o.x,z:o.z};
@@ -2493,7 +2500,19 @@ if(firstPerson){
     if(sakuraWorld&&sakuraWorld.root.visible&&(roadBlocked(x,z)||sakuraWorld.solidAt(x,z,y-.15,0,.3)))return{name:'sakura'};
     return null;
    };
-   shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
+   const visibleAt=cameraPoint=>{
+    let visible=0;
+    for(const height of [.72,1.15,1.58]){
+     const anchorY=player.position.y+height;let blocked=false;
+     for(let i=1;i<20;i++){
+      const t=i/20,x=cameraPoint.x+(player.position.x-cameraPoint.x)*t,y=cameraPoint.y+(anchorY-cameraPoint.y)*t,z=cameraPoint.z+(player.position.z-cameraPoint.z)*t;
+      if(blockedAt(x,y,z,cameraPoint,.12)){blocked=true;break;}
+     }
+     if(!blocked)visible++;
+    }
+    return visible>=2;
+   };
+   shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,visibleAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
   }
   const wanted=shelterDecision?.angle||0;
   shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
@@ -2558,7 +2577,7 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
    shoulderYawOffset:shelterCameraYawOffset,finalLimit:shelterCameraLimit,
    directClearance:shelterDecision?.direct?.clearance??null,chosenClearance:shelterDecision?.chosen?.clearance??null,
    directBlocker:shelterDecision?.direct?.blocker?.name??null,triggerBlocker:shelterDecision?.direct?.triggerBlocker?.name??null,
-   chosenBlocker:shelterDecision?.chosen?.blocker?.name??null,minClearance:shelterDecision?.requiredClearance??null};
+   chosenBlocker:shelterDecision?.chosen?.blocker?.name??null,chosenVisible:shelterDecision?.chosen?.visible??null,visibilityFailed:!!shelterDecision?.visibilityFailed,minClearance:shelterDecision?.requiredClearance??null};
  }
  if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
  // A1: o braço de câmera não pode ficar no plano da água; o teste de terreno sozinho permite isso.
