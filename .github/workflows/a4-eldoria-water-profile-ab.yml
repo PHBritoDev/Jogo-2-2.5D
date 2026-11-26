@@ -4,6 +4,16 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "SHA exato da main usada como baseline"
+        required: true
+        type: string
+      candidate_sha:
+        description: "SHA exato do HEAD da branch A4 selecionada"
+        required: true
+        type: string
       - 'aurora-luz3d.js'
       - 'ceu-atmosfera3d.js'
       - 'eldoria-water.js'
@@ -22,11 +32,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validar SHA informado no dispatch manual
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          if [ "$INPUT_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::candidate_sha precisa corresponder ao HEAD da branch selecionada."
+            exit 1
+          fi
       - name: Validar sintaxe do comparador antes de instalar o navegador
         run: node --check tools/visual-lab/a4-eldoria-water-profile-ab.cjs
       - name: Instalar ffmpeg/ffprobe para o QA temporal
@@ -39,7 +58,7 @@ jobs:
           ffprobe -version
       - name: Buscar o SHA exato da base da PR
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
         run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
       - name: Instalar Playwright e Chromium
         run: |
@@ -57,7 +76,7 @@ jobs:
       - name: Comparar água e aurora do céu em quatro perfis
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}
           VISUAL_BASE_URL: http://127.0.0.1:4173
         run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/a4-eldoria-water-profile-ab.cjs
       - name: Publicar A/B para inspeção manual
