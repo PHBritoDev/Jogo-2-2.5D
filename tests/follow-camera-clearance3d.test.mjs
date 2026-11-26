@@ -141,3 +141,11 @@ test('desvio permanece no braço da câmera e não altera o referencial do joyst
   assert.ok(movement.includes('let worldZ=-axisX*Math.sin(cameraYaw)+axisZ*Math.cos(cameraYaw);'));
   assert.ok(!movement.includes('shelterCameraYawOffset'));
 });
+
+test('A/B atualiza a câmera após teleporte de fixture antes de medir o braço', () => {
+  const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+  const qa = readFileSync(new URL('../tools/qa/a1-shelter-camera-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(world.includes('snapCam(){for(let i=0;i<10;i++)updatePlayerCamera(1);'));
+  assert.ok(qa.includes('api.snapCam()'));
+  assert.ok(qa.indexOf('api.snapCam()') > qa.indexOf('api.viewQA(false, pose.yaw, pose.pitch)'));
+});
