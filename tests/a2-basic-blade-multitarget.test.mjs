@@ -869,7 +869,7 @@ test('Passagem do Julgamento rejeita paredes de 1 cm entre os waypoints de 6 cm'
  let probes=0;
  const blocked=p=>{
   probes++;
-  return p.z>.997&&p.z<1.009&&Math.abs(Math.abs(p.x)-.30)<.018;
+  return p.z>1&&p.z<1.01&&Math.abs(Math.abs(p.x)-.30)<.018;
  };
  assert.equal(passagePath(from,focus,blocked),null,'os dois corredores laterais têm uma parede fina no primeiro segmento');
  assert.ok(probes<5000,'a verificação fina continua limitada a uma única construção de rota');
