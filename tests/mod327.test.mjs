@@ -317,7 +317,7 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   const motion = qa.slice(motionStart, motionEnd);
   assert.ok(motion.includes('canvas.captureStream(30)') && motion.includes('new MediaRecorder') && motion.includes("page.waitForEvent('download'") && motion.includes('await download.saveAs(videoPath)'), 'grava somente o canvas WebGL por MediaRecorder, sem boot/HUD');
   assert.ok(motion.includes('await page.waitForTimeout(8500)') && motion.includes('requestAnimationFrame(collect)') && motion.includes('window.__a4MotionSamples') && motion.includes('videoDurationMs: encodedDurationMs'), 'grava janela contínua e coleta diagnósticos sem screenshots bloqueantes');
-  assert.ok(!/\\.screenshot\\(/.test(motion), 'não faz readback/screenshot durante a gravação');
+  assert.ok(!motion.includes('.screenshot('), 'não faz readback/screenshot durante a gravação');
   assert.ok(motion.includes('ffprobe') && motion.includes('ffmpeg') && motion.includes('maxFrameGapMs'), 'mede duração/quadros codificados e extrai PNGs depois do vídeo');
 });
 
