@@ -180,7 +180,7 @@ test('a menor coordenada renderizada de cada cipó mantém 20 cm de folga do ter
   );
 });
 
-test('fade Bayer 4x4 alcança folhas, samambaias e arbustos até 5,6 m sem alpha blending', () => {
+test('fade focal usa cone da câmera e Bayer 8x8 ancorado no mundo sem clareira global', () => {
   const calls = [];
   let windVersion = 1;
   const material = {
@@ -189,31 +189,56 @@ test('fade Bayer 4x4 alcança folhas, samambaias e arbustos até 5,6 m sem alpha
     customProgramCacheKey() { return 'mod291-fern-wind-' + windVersion; }
   };
   applyUndergrowthCameraFade(material);
-  const shader = { fragmentShader: '#include <clipping_planes_fragment>\nvoid main() {}' };
+  const shader = {
+    vertexShader: '#include <common>\n#include <worldpos_vertex>\nvoid main() {}',
+    fragmentShader: '#include <common>\n#include <clipping_planes_fragment>\nvoid main() {}'
+  };
   material.onBeforeCompile(shader, {});
   assert.equal(UNDERGROWTH_CAMERA_FADE_METERS, 5.6);
   assert.deepEqual(calls, ['wind'], 'o shader de vento anterior continua encadeado');
-  assert.match(shader.fragmentShader, /a3UnderFade=clamp\(\(length\(vViewPosition\)-0\.6\)\/5\.60/);
-  assert.match(shader.fragmentShader, /a3UnderBayer=4\.0\*mod\(2\.0\*a3UnderX0\+3\.0\*a3UnderY0,4\.0\)\+mod\(2\.0\*a3UnderX1\+3\.0\*a3UnderY1,4\.0\)/);
-  assert.match(shader.fragmentShader, /if\(a3UnderDither>a3UnderFade\)discard/);
-  assert.match(shader.fragmentShader, /vento preservado/);
-  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-1|a3-undergrowth-near-fade-5.60');
+  assert.ok(shader.vertexShader.includes('varying vec3 vA3UndergrowthWorldPosition;'));
+  assert.ok(shader.vertexShader.includes('vA3UndergrowthWorldPosition = worldPosition.xyz;'),
+    'a posição mundial inclui a transformação de cada instância');
+  assert.ok(shader.fragmentShader.includes('a3UnderFade=clamp((length(vViewPosition)-0.6)/5.60'),
+    'a distância de fade mantém o alcance validado');
+  assert.ok(shader.fragmentShader.includes('a3UnderFocusRadius=length(a3UnderViewAngle/vec2(0.30,0.38))'),
+    'o fade fica limitado a um cone elíptico próximo do centro da câmera');
+  assert.ok(shader.fragmentShader.includes('a3UnderFade=mix(1.0,a3UnderFade,a3UnderFocus)'),
+    'fora do cone, a vegetação mantém opacidade total');
+  assert.ok(shader.fragmentShader.includes('floor(vA3UndergrowthWorldPosition.xz*32.0)'),
+    'o padrão acompanha coordenadas de mundo em vez de rastejar pela tela');
+  assert.ok(shader.fragmentShader.includes('a3UnderBayer8=4.0*a3UnderBayer4+mod(2.0*a3UnderX2+3.0*a3UnderY2,4.0)'));
+  assert.ok(shader.fragmentShader.includes('(a3UnderBayer8+0.5)/64.0'));
+  assert.ok(!shader.fragmentShader.includes('gl_FragCoord'), 'o dither não depende da grade de pixels da tela');
+  assert.ok(shader.fragmentShader.includes('if(a3UnderDither>a3UnderFade)discard'));
+  assert.ok(shader.fragmentShader.includes('vento preservado'));
+  const cacheTag = '|a3-undergrowth-focus-fade-5.60-world-bayer8-32';
+  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-1' + cacheTag);
   windVersion = 2;
-  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-2|a3-undergrowth-near-fade-5.60',
+  assert.equal(material.customProgramCacheKey(), 'mod291-fern-wind-2' + cacheTag,
     'o cache key continua acompanhando versões do shader de vento');
   const key = material.customProgramCacheKey();
   applyUndergrowthCameraFade(material);
   assert.equal(material.customProgramCacheKey(), key, 'aplicar duas vezes não duplica o shader');
   assert.equal(material.needsUpdate, true);
 
-  const bayer = Array.from({ length: 4 }, (_, y) => Array.from({ length: 4 }, (_, x) => {
-    const x0 = x % 2, y0 = y % 2, x1 = Math.floor(x / 2), y1 = Math.floor(y / 2);
-    return 4 * ((2 * x0 + 3 * y0) % 4) + ((2 * x1 + 3 * y1) % 4);
+  const bayer8 = Array.from({ length: 8 }, (_, y) => Array.from({ length: 8 }, (_, x) => {
+    const x0 = x % 2, y0 = y % 2;
+    const x1 = Math.floor(x / 2) % 2, y1 = Math.floor(y / 2) % 2;
+    const x2 = Math.floor(x / 4), y2 = Math.floor(y / 4);
+    const bayer4 = 4 * ((2 * x0 + 3 * y0) % 4) + ((2 * x1 + 3 * y1) % 4);
+    return 4 * bayer4 + ((2 * x2 + 3 * y2) % 4);
   }));
-  assert.deepEqual(bayer, [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]);
-  assert.equal(new Set(bayer.flat()).size, 16, 'os 16 limiares do padrão são únicos');
-});
+  assert.deepEqual(bayer8[0], [0, 32, 8, 40, 2, 34, 10, 42]);
+  assert.equal(new Set(bayer8.flat()).size, 64, 'os 64 limiares do padrão são únicos');
 
+  const incompatible = { userData: {} };
+  applyUndergrowthCameraFade(incompatible);
+  assert.throws(() => incompatible.onBeforeCompile({
+    vertexShader: '#include <common>\nvoid main() {}',
+    fragmentShader: '#include <common>\n#include <clipping_planes_fragment>\nvoid main() {}'
+  }, {}), /worldpos_vertex/, 'shader incompatível falha fechado em vez de compilar posição falsa');
+});
 test('fernMat e bushMat recebem o fade ambiental e o A/B inclui a pose inicial da mata', () => {
   const source = readFileSync(new URL('../eldoria-undergrowth.js', import.meta.url), 'utf8');
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');

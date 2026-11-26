@@ -85,19 +85,39 @@ export function planUndergrowth({ trees, banks = [], isFree, lowSpec = false, se
  * remoção de instâncias ou abertura de clareiras.
  */
 export const UNDERGROWTH_CAMERA_FADE_METERS = 5.6;
+/**
+ * Fade focal: só afeta vegetação próxima dentro do cone de visão centrado no protagonista.
+ * O restante do sub-bosque continua opaco, evitando uma clareira que acompanha a câmera.
+ * O Bayer 8x8 é ancorado em coordenadas de mundo para não rastejar pela tela durante a caminhada.
+ */
 export function applyUndergrowthCameraFade(material, fadeSpanMeters = UNDERGROWTH_CAMERA_FADE_METERS) {
   if (!material || typeof material !== 'object') return material;
   const fadeSpan = Number.isFinite(fadeSpanMeters) ? Math.max(.61, fadeSpanMeters) : UNDERGROWTH_CAMERA_FADE_METERS;
-  const marker = 'a3-undergrowth-near-fade-' + fadeSpan.toFixed(2);
+  const marker = 'a3-undergrowth-focus-fade-' + fadeSpan.toFixed(2) + '-world-bayer8-32';
   material.userData ||= {};
   if (material.userData[marker]) return material;
   const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
   material.onBeforeCompile = function(shader, renderer) {
     if (previous) previous.call(this, shader, renderer);
-    const chunk = '#include <clipping_planes_fragment>';
-    if (!shader.fragmentShader.includes(chunk)) throw new Error('Shader do sub-bosque sem clipping_planes_fragment');
-    const fade = '\n{float a3UnderFade=clamp((length(vViewPosition)-0.6)/' + fadeSpan.toFixed(2) + ',0.0,1.0);vec2 a3UnderCell=mod(floor(gl_FragCoord.xy),4.0);float a3UnderX0=mod(a3UnderCell.x,2.0);float a3UnderY0=mod(a3UnderCell.y,2.0);float a3UnderX1=floor(a3UnderCell.x*0.5);float a3UnderY1=floor(a3UnderCell.y*0.5);float a3UnderBayer=4.0*mod(2.0*a3UnderX0+3.0*a3UnderY0,4.0)+mod(2.0*a3UnderX1+3.0*a3UnderY1,4.0);float a3UnderDither=(a3UnderBayer+0.5)/16.0;if(a3UnderDither>a3UnderFade)discard;}';
-    shader.fragmentShader = shader.fragmentShader.replace(chunk, chunk + fade);
+    const common = '#include <common>';
+    const worldPositionChunk = '#include <worldpos_vertex>';
+    const clippingChunk = '#include <clipping_planes_fragment>';
+    if (!shader.vertexShader.includes(common) || !shader.vertexShader.includes(worldPositionChunk)) {
+      throw new Error('Shader do sub-bosque sem common/worldpos_vertex');
+    }
+    if (!shader.fragmentShader.includes(common) || !shader.fragmentShader.includes(clippingChunk)) {
+      throw new Error('Shader do sub-bosque sem common/clipping_planes_fragment');
+    }
+    shader.vertexShader = shader.vertexShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
+    shader.vertexShader = shader.vertexShader.replace(
+      worldPositionChunk,
+      worldPositionChunk + '\nvA3UndergrowthWorldPosition = worldPosition.xyz;'
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
+    const fade = '\n{float a3UnderDepth=max(-vViewPosition.z,0.001);vec2 a3UnderViewAngle=vec2(vViewPosition.x/a3UnderDepth,vViewPosition.y/a3UnderDepth+0.10);float a3UnderFocusRadius=length(a3UnderViewAngle/vec2(0.30,0.38));float a3UnderFocus=1.0-smoothstep(0.72,1.05,a3UnderFocusRadius);float a3UnderFade=clamp((length(vViewPosition)-0.6)/'
+      + fadeSpan.toFixed(2)
+      + ',0.0,1.0);a3UnderFade=mix(1.0,a3UnderFade,a3UnderFocus);vec2 a3UnderCell=mod(floor(vA3UndergrowthWorldPosition.xz*32.0),8.0);float a3UnderX0=mod(a3UnderCell.x,2.0);float a3UnderY0=mod(a3UnderCell.y,2.0);float a3UnderX1=mod(floor(a3UnderCell.x*0.5),2.0);float a3UnderY1=mod(floor(a3UnderCell.y*0.5),2.0);float a3UnderX2=floor(a3UnderCell.x*0.25);float a3UnderY2=floor(a3UnderCell.y*0.25);float a3UnderBayer4=4.0*mod(2.0*a3UnderX0+3.0*a3UnderY0,4.0)+mod(2.0*a3UnderX1+3.0*a3UnderY1,4.0);float a3UnderBayer8=4.0*a3UnderBayer4+mod(2.0*a3UnderX2+3.0*a3UnderY2,4.0);float a3UnderDither=(a3UnderBayer8+0.5)/64.0;if(a3UnderDither>a3UnderFade)discard;}';
+    shader.fragmentShader = shader.fragmentShader.replace(clippingChunk, clippingChunk + fade);
   };
   material.customProgramCacheKey = function() {
     const key = previousKey ? previousKey.call(this) : '';
@@ -107,7 +127,6 @@ export function applyUndergrowthCameraFade(material, fadeSpanMeters = UNDERGROWT
   material.userData[marker] = true;
   return material;
 }
-
 export function buildUndergrowth(THREE, o) {
   const { scene, groundHeightAt, addWind, registerCull, lowSpec } = o, plan = planUndergrowth(o), d = new THREE.Object3D(), group = new THREE.Group();
   group.name = 'eldoria-undergrowth-mod291'; scene.add(group);
