@@ -91,19 +91,22 @@ test('harness A/B falha fechado em console, módulos candidatos, oclusão e deri
   assert.ok(harness.includes('cameraClear('), 'o protagonista precisa estar enquadrado e sem oclusão');
 });
 
-test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', () => {
+test('o A/B executa caminhada real no prado, na trilha tropical e na entrada da mata', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
-  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas às duas rotas jogáveis');
-  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada rota jogável precisa ter uma caminhada candidata');
+  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas a cenas de rota jogável');
+  assert.ok(harness.includes('"mata-entrada-inicial"'), 'a pose inicial da mata também recebe caminhada real');
+  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada cena de caminhada precisa ter evidência candidata');
   assert.ok(
     harness.includes('const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";') &&
     harness.includes('const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";') &&
-    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");'),
-    'prado e trilha precisam reprovar deslocamento curto com diagnóstico específico'
+    harness.includes('const walkArticle = scene.id === "mata-entrada-inicial" ? "na" : routeArticle;') &&
+    harness.includes('const walkLabel = scene.id === "mata-entrada-inicial" ? "entrada da mata" : routeLabel;') &&
+    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + walkArticle + " " + walkLabel + " avançou menos de 2 m");'),
+    'prado, trilha e entrada da mata precisam reprovar deslocamento curto com diagnóstico específico'
   );
   assert.ok(
-    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);'),
-    'prado e trilha precisam reprovar câmera instável após a caminhada'
+    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + walkArticle + " " + walkLabel);'),
+    'as três cenas precisam reprovar câmera instável após a caminhada'
   );
 });
 
