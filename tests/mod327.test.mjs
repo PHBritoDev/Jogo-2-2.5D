@@ -265,7 +265,7 @@ test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métric
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
   assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
-  assert.ok(/skyRoi: \{ left: 180, top: 60, width: 520, height: 100 \}/.test(qa) && /waterRoi:/.test(qa), 'separa a inspeção de aurora e água');
+  assert.ok(/waterRoi: \{ left: 100, top: 170, width: 120, height: 120 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa) && !/skyRoi:/.test(qa), 'mede água limpa nos dois horários e não pontua céu obstruído pela copa');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
   assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
