@@ -50,12 +50,13 @@ const out=path.resolve(process.env.VISUAL_OUTPUT||'visual-lab-results','combat31
    const D=SevenSinsDebug3D;await D.riteQA(true);D.riteEquip('prota');
    D.motionQA({x:-5,z:16,enemyDistance:4,sword:'prota'});D.viewQA(false);
    const before=D.riteState();D.riteCast();const after=D.riteSim(2.1,30);
-   return{before:before.hero,target:before.target,after:after.hero,hp:after.hp,mana:after.mana,
+   return{before:before.hero,target:before.target,after:after.hero,hpBefore:before.hp,hpAfter:after.hp,
+    damage:before.hp-after.hp,mana:after.mana,
     cuts:(after.events||[]).filter(e=>e.type==='judgment').length,
     safe:!D.collisionAt(after.hero[0],after.hero[2])};
   });
   assert.ok(report.steps.passage.after[2]<report.steps.passage.target[2],'Passagem termina atrás do alvo');
-  assert.equal(report.steps.passage.hp,9924,'16 cortes mantêm o orçamento de dano 76');
+  assert.equal(report.steps.passage.damage,76,'16 cortes mantêm o orçamento de dano 76');
   assert.equal(report.steps.passage.cuts,16,'todos os 16 cortes visuais/lógicos são emitidos');
   assert.ok(report.steps.passage.safe,'posição final fora dos colisores do cenário');
   await riteShot('05-passagem-julgamento');
