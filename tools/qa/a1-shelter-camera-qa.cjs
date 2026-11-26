@@ -90,6 +90,11 @@ async function capture(label, url, browser) {
       const api = window.SevenSinsDebug3D;
       api.teleport(pose.x, pose.z, pose.yaw, pose.y);
       api.viewQA(false, pose.yaw, pose.pitch);
+      if (typeof api.snapCam !== 'function') throw new Error('snapCam de QA indisponível');
+      // O loop de gameplay pode estar pausado no harness; força a atualização do
+      // follow-camera no pose fixo antes de medir/capturar, sem mover o jogador.
+      api.snapCam();
+      api.viewQA(false, pose.yaw, pose.pitch); // renderiza a pose já estabilizada
     }, POSE);
     await page.waitForTimeout(2600);
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
