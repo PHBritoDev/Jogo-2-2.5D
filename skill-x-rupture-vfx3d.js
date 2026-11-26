@@ -1,6 +1,7 @@
+import {XRUP} from './skill-x-rupture3d.js?v=mod236-vfx2';
 import {FLOW_NOISE,energyMaterial} from './vfx-flow3d.js?v=mod241-gemini-vfx-fixed';
 import {volumeTrail} from './vfx-trail3d.js?v=mod241-gemini-vfx-fixed';
-import {impactDirector} from './vfx-impact3d.js?v=mod241-gemini-vfx-fixed';
+import {impactDirector,impactTouchesGround} from './vfx-impact3d.js?v=a2-impact-ground-20261126';
 import { softParticles, groundDecals, groundNormal, ribbons, smooth, easeOut, hash } from './celestial-fxkit3d.js?v=mod241-gemini-vfx-fixed';
 /**
  * MOD 233 — Ruptura em X (VFX). Duas lâminas de energia 3D (malha com espessura e curvatura, não um sprite) se cruzam
@@ -153,14 +154,14 @@ export function createXRuptureVFX(T, scene, { ground = () => 0 } = {}) {
       const sc = ph === 'wall' ? .75 : 1, P = s.at; cutGroup.visible = true; cutGroup.position.set(P.x, P.y, P.z); orient(cutGroup, s.dir.x, s.dir.z);
       const open = easeOut(A / .12), out = 1 - smooth((A - .25) / .45);
       cutSl.forEach((c, i) => { c.g.scale.set(3.6 * sc * (.25 + .9 * open), 2.2 * sc * (1 + A * .8), 2.2 * sc); c.material.uniforms.grow.value = Math.max(.02, open); c.material.uniforms.alpha.value = out; c.body.material.uniforms.time.value = t; c.body.material.uniforms.alpha.value = out; c.body.material.uniforms.dissolve.value = smooth((A - .2) / .6) * .9; c.core.material.uniforms.alpha.value = out * (1 - smooth(A / .35)); });
-      if (A < .5) { glow.add(P.x, P.y, P.z, 5 * sc * (1 - A), 5 * sc * (1 - A), 1, .3, .45, .7 * (1 - A * 2), 0); const gy = ground(P.x, P.z); if (P.y - gy < 2.5) { groundNormal(ground, P.x, P.z, nrm); decals.add(P.x, gy, P.z, (1.5 + easeOut(A / .5) * 5) * sc,  .95, .02, .06, 1 - A * 2, 0, A * 2, 7, nrm); } }
+      if (A < .5) { glow.add(P.x, P.y, P.z, 5 * sc * (1 - A), 5 * sc * (1 - A), 1, .3, .45, .7 * (1 - A * 2), 0); const gy = ground(P.x, P.z); if (impactTouchesGround(P.y, gy, XRUP.height + .25)) { groundNormal(ground, P.x, P.z, nrm); decals.add(P.x, gy, P.z, (1.5 + easeOut(A / .5) * 5) * sc,  .95, .02, .06, 1 - A * 2, 0, A * 2, 7, nrm); } }
       const nS = low ? 18 : quality===1?30:46;
       for (let i = 0; i < nS && A < .6; i++) { // faíscas saindo ao longo das duas diagonais do X e de volta pelo caminho
         const diag = i % 2 ? 1 : -1, along = (i % 4 < 2 ? 1 : -1), sp = (5 + hash(i) * 7) * sc, d = sp * A;
         tip.set(along * .707, diag * .707, -(hash(i * 3) * .6)).applyQuaternion(cutGroup.quaternion);
         glow.add(P.x + tip.x * d, P.y + tip.y * d - 4 * A * A, P.z + tip.z * d, .06, .45, 1, .4 + .4 * hash(i + 9), .6, 1 - A / .6, 3, Math.atan2(tip.y, tip.x) + Math.PI / 2, i);
       }
-      impacts.emit({id:'x'+s.hitAtTime,time:s.hitAtTime,point:P,size:3.8,preset:'crimson',kind:'x',dir:{x:s.dir.x,y:0,z:s.dir.z}});
+      impacts.emit({id:'x'+s.hitAtTime,time:s.hitAtTime,point:P,size:3.8,preset:'crimson',kind:'x',dir:{x:s.dir.x,y:0,z:s.dir.z},groundReach:XRUP.height+.25});
     }
     let ac=0;for(let branch=0;branch<4;branch++){let px=0,py=0,pz=0;for(let j=1;j<=12;j++){const u=j/12,a=branch*Math.PI/2+Math.PI/4,r=u*3.5,x=Math.cos(a)*r+Math.sin(j*3+t*16+branch)*.13,y=Math.sin(a)*r+Math.cos(j*4+t*13)*.14,z=.25+Math.sin(u*8+t*6)*.2;arcPos.set([px,py,pz,x,y,z],ac++*6);px=x;py=y;pz=z;}}arcGeo.setDrawRange(0,ac*2);arcGeo.attributes.position.needsUpdate=true;
     if (ph === 'fade') for (let i = 0; i < (low ? 14 : quality===1?24:34); i++) { const a = i * 2.4, r = A * (2 + hash(i) * 2); glow.add(s.p.x + Math.cos(a) * r, s.p.y + Math.sin(a * 1.3) * r * .6, s.p.z + Math.sin(a) * r, .05, .25, 1, .3, .55, 1 - A / .6, 3, a, i); }
