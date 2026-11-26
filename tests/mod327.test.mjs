@@ -286,6 +286,7 @@ test('aurora no céu: perfil baixo corta amostras de ruído sem reduzir intensid
 
 test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizada', () => {
   const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
+  const wf = fs.readFileSync(new URL('../.github/workflows/a4-eldoria-water-profile-ab.yml', import.meta.url), 'utf8');
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
@@ -294,6 +295,7 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/waterRoi: \{ left: 320, top: 75, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa), 'mede água limpa nos dois horários');
   assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /skyRoi:/.test(qa) && /viewQA\(true/.test(qa), 'mede a cortina em céu aberto, em primeira pessoa');
   assert.ok(/'ceu-atmosfera3d\.js'/.test(qa) && /baselineRouteHits\.sky/.test(qa), 'baseline intercepta o shader real do céu');
+  assert.ok(/workflow_dispatch:/.test(wf) && /github\.event\.pull_request\.head\.sha \|\| github\.sha/.test(wf) && /BASE_REF: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.repository\.default_branch \}\}/.test(wf), 'captura manual usa a branch selecionada e compara com a main');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
   assert.ok(/state\.dim\?\.hour/.test(qa) && /state\.night/.test(qa) && /u\.uAurK\?\.value/.test(qa), 'registra relógio, fase dia/noite e intensidade real da aurora');
   assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa), 'compara o estado de iluminação antes de aceitar pixels');

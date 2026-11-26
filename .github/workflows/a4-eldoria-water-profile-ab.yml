@@ -1,6 +1,7 @@
 name: A4 — Eldória água e aurora low/medium/high A/B
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -22,17 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Validar sintaxe do comparador antes de instalar o navegador
         run: node --check tools/visual-lab/a4-eldoria-water-profile-ab.cjs
-      - name: Buscar o SHA exato da base da PR
+      - name: Buscar o SHA exato da base da PR ou main
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          echo "BASE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
       - name: Instalar Playwright e Chromium
         run: |
           npm install --prefix tools/visual-lab --no-audit --no-fund
@@ -48,8 +51,8 @@ jobs:
           exit 1
       - name: Comparar água e aurora do céu em quatro perfis
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ env.BASE_SHA }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           VISUAL_BASE_URL: http://127.0.0.1:4173
         run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/a4-eldoria-water-profile-ab.cjs
       - name: Publicar A/B para inspeção manual
