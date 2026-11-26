@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { SwordRites, segmentBlocked, swordSideHitContext } from '../sword-rites3d.js';
+import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '../sword-rites3d.js';
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
@@ -861,4 +861,34 @@ test('production blade impacts forward their yaw and both impact cuts use the re
  assert.match(branch,/cut\(p,e\.sword,cue\.scale,Math\.PI\*\.5,yaw,cue\.life\)/);
  assert.match(branch,/cut\(p,e\.sword,cue\.secondScale,-Math\.PI\*\.5,yaw\+Math\.PI\/2,cue\.secondLife\)/);
  assert.doesNotMatch(branch,/time\*3/,'impact orientation must not depend on global elapsed time');
+});
+
+
+test('Passagem do Julgamento rejeita paredes de 1 cm entre os waypoints de 6 cm',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('thin-wall-focus',0,5);
+ let probes=0;
+ const blocked=p=>{
+  probes++;
+  return p.z>.997&&p.z<1.009&&Math.abs(Math.abs(p.x)-.30)<.018;
+ };
+ assert.equal(passagePath(from,focus,blocked),null,'os dois corredores laterais têm uma parede fina no primeiro segmento');
+ assert.ok(probes<5000,'a verificação fina continua limitada a uma única construção de rota');
+});
+
+test('Passagem do Julgamento cancela em posição segura se uma parede fina surgir entre waypoints',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('dynamic-wall-focus',0,5);
+ let wall=null;const moves=[];
+ const blocked=p=>!!wall&&Math.hypot(p.x-wall.x,p.y-wall.y,p.z-wall.z)<.006;
+ const rites=new SwordRites({blocked,move:p=>{Object.assign(from,p);moves.push({...p});}});
+ assert.deepEqual(rites.cast('prota',{mana:100,from,target:focus}),{ok:true,cost:28});
+ const path=rites.active.path;
+ assert.ok(path.length>8,'o trajeto deve conter waypoints de movimento');
+ const a=path[4],b=path[5];
+ wall={x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2};
+ const ctx={from,target:focus,sword:'prota',grounded:true};
+ rites.update(.25,ctx);
+ rites.update(.06,ctx);
+ assert.equal(rites.busy,false,'a passagem deve cancelar antes de cruzar o obstáculo novo');
+ assert.deepEqual(from,path[4],'o herói permanece no último waypoint livre');
+ assert.equal(moves.length,4,'nenhum waypoint depois da parede pode ser aplicado');
 });
