@@ -47,11 +47,8 @@ export const SWORD_TRAIL_PROFILES=Object.freeze({
  standard:Object.freeze({base:.15,tip:1,life:.24,opacity:1,interval:0}),
  prota:Object.freeze({base:.34,tip:.86,life:.14,opacity:.72,interval:1/30})
 });
-export function swordTrailSegment(kind,base,tip){
- const p=kind==='prota'?SWORD_TRAIL_PROFILES.prota:SWORD_TRAIL_PROFILES.standard;
- const lerp=(a,b,t)=>a+(b-a)*t;
- const point=t=>({x:lerp(base.x,tip.x,t),y:lerp(base.y,tip.y,t),z:lerp(base.z,tip.z,t)});
- return{base:point(p.base),tip:point(p.tip)};
+export function swordTrailProfile(kind){
+ return kind==='prota'?SWORD_TRAIL_PROFILES.prota:SWORD_TRAIL_PROFILES.standard;
 }
 export function swordJudgmentSlashPoint(u,edge){
  const t=Math.max(0,Math.min(1,Number.isFinite(u)?u:0)),side=edge?1:-1,p=JUDGMENT_SLASH_PROFILE;
@@ -75,11 +72,11 @@ export function createSwordRitesVFX(T,scene){
  function sample({a,blade}){
   const serial=a.kind==='aurora'?a.serial*10+a.events:a.serial*10;
   if(serial!==trailSerial){trailSerial=serial;trailCursor=(trailCursor+1)%trails.length;const t=trails[trailCursor];t.n=0;t.geometry.setDrawRange(0,0);tint(t.material,a.sword);}
-  const t=trails[trailCursor],profile=a.kind==='prota'?SWORD_TRAIL_PROFILES.prota:SWORD_TRAIL_PROFILES.standard;
+  const t=trails[trailCursor],profile=swordTrailProfile(a.kind);
   if(profile.interval>0&&t.n>0&&time-t.last<profile.interval-1e-4)return;
   if(t.n===segments){t.positions.copyWithin(0,6);t.birth.copyWithin(0,2);t.n--;}
-  const segment=swordTrailSegment(a.kind,blade.base,blade.tip),i=t.n++,o=i*6,b=segment.base,p=segment.tip;
-  t.positions.set([b.x,b.y,b.z,p.x,p.y,p.z],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.life=profile.life;t.opacity=profile.opacity;t.mesh.visible=true;t.material.uniforms.life.value=profile.life;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
+  const i=t.n++,o=i*6,b=blade.base,p=blade.tip,dx=p.x-b.x,dy=p.y-b.y,dz=p.z-b.z;
+  t.positions.set([b.x+dx*profile.base,b.y+dy*profile.base,b.z+dz*profile.base,b.x+dx*profile.tip,b.y+dy*profile.tip,b.z+dz*profile.tip],o);t.birth[i*2]=t.birth[i*2+1]=time;t.last=time;t.life=profile.life;t.opacity=profile.opacity;t.mesh.visible=true;t.material.uniforms.life.value=profile.life;t.geometry.setDrawRange(0,Math.max(0,t.n-1)*6);t.geometry.attributes.position.needsUpdate=t.geometry.attributes.birth.needsUpdate=true;
  }
  // Thick curved crescent with a tapered, serrated inner edge and a 3D bow.
  const crescent=new T.BufferGeometry(),pos=[],uv=[],birth=[],indices=[];const N=56;

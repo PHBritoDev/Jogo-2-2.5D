@@ -6,7 +6,7 @@ import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '..
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailSegment } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailProfile } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -891,17 +891,20 @@ test('Passagem uses a narrow curved ribbon instead of the shared broad crescent'
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
 });
 
-test('Passagem blade trail is shorter, softer and capped at 30 Hz without changing other sword trails',()=>{
- const base={x:0,y:0,z:0},tip={x:0,y:1,z:2};
- const passage=swordTrailSegment('prota',base,tip),standard=swordTrailSegment('basic',base,tip);
- const length=segment=>Math.hypot(segment.tip.x-segment.base.x,segment.tip.y-segment.base.y,segment.tip.z-segment.base.z);
- assert.ok(length(passage)<length(standard)*.7,'Passagem uses a shorter blade segment to avoid a broad white fan');
- assert.equal(SWORD_TRAIL_PROFILES.prota.life,.14);
- assert.equal(SWORD_TRAIL_PROFILES.prota.opacity,.72);
- assert.equal(SWORD_TRAIL_PROFILES.prota.interval,1/30);
- assert.equal(SWORD_TRAIL_PROFILES.standard.life,.24,'ordinary sword trails keep their original lifetime');
- assert.equal(SWORD_TRAIL_PROFILES.standard.opacity,1,'ordinary sword trails keep their original opacity');
- assert.equal(SWORD_TRAIL_PROFILES.standard.interval,0,'ordinary sword trails keep full sampling');
+test('Passagem blade trail is shorter, softer and capped at 30 Hz without changing other sword trails',async()=>{
+ const passage=swordTrailProfile('prota'),standard=swordTrailProfile('basic');
+ assert.ok(passage.tip-passage.base<(standard.tip-standard.base)*.7,'Passagem uses a shorter blade segment to avoid a broad white fan');
+ assert.equal(passage,SWORD_TRAIL_PROFILES.prota);
+ assert.equal(standard,SWORD_TRAIL_PROFILES.standard);
+ assert.equal(passage.life,.14);
+ assert.equal(passage.opacity,.72);
+ assert.equal(passage.interval,1/30);
+ assert.equal(standard.life,.24,'ordinary sword trails keep their original lifetime');
+ assert.equal(standard.opacity,1,'ordinary sword trails keep their original opacity');
+ assert.equal(standard.interval,0,'ordinary sword trails keep full sampling');
+ const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(source.includes('profile=swordTrailProfile(a.kind)'),'production trail sampling uses the immutable per-rite profile');
+ assert.ok(source.includes('dx*profile.base')&&source.includes('dx*profile.tip'),'production trail geometry uses the profile endpoints without per-frame point objects');
 });
 
 test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{
