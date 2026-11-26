@@ -1,21 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { impactTouchesGround, impactGroundHeight, impactRecordValid, impactDirectionValid, impactPoolCapacity, impactHasStableId } from '../vfx-impact3d.js';
+import { impactTouchesGround, impactGroundHeight, impactGroundSnapshot, impactRecordValid, impactDirectionValid, impactPoolCapacity, impactHasStableId } from '../vfx-impact3d.js';
 
-test('ground contact accepts nearby finite impact heights', () => {
+test('ground contact uses a bounded skill-specific height window', () => {
   assert.equal(impactTouchesGround(0, 0), true);
-  assert.equal(impactTouchesGround(4.999, 0), true);
-  assert.equal(impactTouchesGround(-1, 0), true);
+  assert.equal(impactTouchesGround(1.6, 0), true, 'the default covers the 1.3 m X launch height plus margin');
+  assert.equal(impactTouchesGround(1.6001, 0), false);
+  assert.equal(impactTouchesGround(2.1, 0, 2.5), true, 'portals start at 2.1 m');
+  assert.equal(impactTouchesGround(2.5, 0, 2.5), true);
+  assert.equal(impactTouchesGround(2.5001, 0, 2.5), false);
+  assert.equal(impactTouchesGround(4.999, 0, 2.5), false, 'an aerial impact must not paint the floor from five metres up');
+  assert.equal(impactTouchesGround(-.35, 0), true, 'small collision penetration is tolerated');
+  assert.equal(impactTouchesGround(-.351, 0), false, 'buried impacts do not create surface effects');
 });
 
-test('airborne, buried and invalid heights cannot spawn terrain effects', () => {
-  assert.equal(impactTouchesGround(5, 0), false);
-  assert.equal(impactTouchesGround(50, 0), false);
-  assert.equal(impactTouchesGround(-1.001, 0), false);
+test('airborne, buried and malformed heights or reaches cannot spawn terrain effects', () => {
+  for (const [point, ground, reach] of [
+    [3, 0, 1.6], [50, 0, 2.5], [-.36, 0, 1.6],
+    [0, NaN, 1.6], [0, Infinity, 1.6], [0, 0, NaN],
+    [0, 0, Infinity], [0, 0, -1], [0, 0, 3.01]
+  ]) assert.equal(impactTouchesGround(point, ground, reach), false);
   for (const invalid of [NaN, Infinity, -Infinity, undefined]) {
     assert.equal(impactTouchesGround(invalid, 0), false);
     assert.equal(impactTouchesGround(0, invalid), false);
   }
+});
+
+test('ground snapshot samples height and normal once per impact, not per rendered frame', () => {
+  const calls = [], ground = (x, z) => { calls.push([x, z]); return 0; }, normal = [9, 9, 9];
+  const snapshot = impactGroundSnapshot(ground, { x: 3, y: 1.3, z: 4 }, 1.6, normal);
+  assert.equal(snapshot.height, 0);
+  assert.equal(snapshot.touches, true);
+  assert.strictEqual(snapshot.normal, normal);
+  assert.deepEqual(normal, [0, 1, 0]);
+  assert.deepEqual(calls, [[3, 4], [3.6, 4], [2.4, 4], [3, 4.6], [3, 3.4]],
+    'one height sample plus four normal samples are cached at emit time');
+
+  const airborneCalls = [], airborneNormal = [9, 9, 9];
+  const airborne = impactGroundSnapshot((x, z) => { airborneCalls.push([x, z]); return 0; },
+    { x: 3, y: 3.2, z: 4 }, 1.6, airborneNormal);
+  assert.equal(airborne.touches, false);
+  assert.deepEqual(airborneNormal, [0, 1, 0]);
+  assert.deepEqual(airborneCalls, [[3, 4]], 'airborne impacts skip the four normal samples entirely');
 });
 
 
