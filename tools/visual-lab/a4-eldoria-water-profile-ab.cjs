@@ -15,26 +15,32 @@ const out = path.resolve('visual-lab-results/a4-water-profile-ab');
 fs.mkdirSync(out, { recursive: true });
 if (!/^[a-f0-9]{40}$/.test(baseSha)) throw new Error('BASE_SHA ausente ou inválido');
 
-const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.js', 'eldoria-water.js'].map(file => [
+const baseModules = Object.fromEntries(['mundo-3d-prototype.js', 'aurora-luz3d.js', 'eldoria-water.js', 'ceu-atmosfera3d.js'].map(file => [
   file, execFileSync('git', ['show', baseSha + ':' + file], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
 ]));
 const profiles = ['low', 'medium', 'high', 'max'];
 const scenes = [
   {
     name: 'lago-dia', hour: 13, x: -27, z: -96, yaw: Math.PI, pitch: .5, distance: 5,
-    // Patch limpo à esquerda: água sem jogador, HUD ou toast.
-    waterRoi: { left: 100, top: 170, width: 120, height: 120 }
+    // Faixa superior central: correnteza visível, fora do HUD, toast e jogador.
+    waterRoi: { left: 320, top: 75, width: 140, height: 60 }
   },
   {
     name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10,
     // Faixa central-esquerda da água; y=310 era chão, não água.
     waterRoi: { left: 280, top: 235, width: 100, height: 40 }
+  },
+  {
+    name: 'aurora-ceu', hour: 22, x: 0, z: -29,
+    camera: { from: [0, 2, -29], to: [0, 22, -15] },
+    // Câmera livre fixa a 55° acima do horizonte; ROI central somente do canvas WebGL.
+    skyRoi: { left: 150, top: 70, width: 552, height: 260 }
   }
 ];
 const report = {
   status: 'incomplete', baseSha, candidateSha,
   renderer: 'Chromium/WebGL SwiftShader 852x480 — não Android físico',
-  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0 }
+  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0, sky: 0 }
 };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -60,11 +66,12 @@ async function captureSide(browser, side, baseline) {
         report.errors.push(side + ' HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
     });
     if (baseline) {
-      await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water)\.js(?:\?.*)?$/, async route => {
+      await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water|ceu-atmosfera3d)\.js(?:\?.*)?$/, async route => {
         const name = path.basename(new URL(route.request().url()).pathname);
         if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
         if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
         if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
+        if (name === 'ceu-atmosfera3d.js') report.baselineRouteHits.sky++;
         await route.fulfill({
           status: 200, contentType: 'text/javascript; charset=utf-8',
           body: baseModules[name]
@@ -86,9 +93,12 @@ async function captureSide(browser, side, baseline) {
           if (typeof d.weather === 'function') d.weather('limpo');
           d.teleport(s.x, s.z);
           d.fly(null);
-          d.view(s.yaw, s.pitch, s.distance);
-          // snapCam é o mesmo ajuste imediato usado pelo QA de dimensão/câmera do projeto.
-          window.__a4SnapCamera = typeof d.snapCam === 'function' ? d.snapCam() : null;
+          if (s.camera) {
+            if (typeof d.fly !== 'function') throw new Error('fly indisponível para a câmera fixa do céu');
+            d.fly(s.camera.from, s.camera.to);
+          } else d.view(s.yaw, s.pitch, s.distance);
+          // A câmera livre não chama snapCam: esse helper reposiciona pela câmera de gameplay.
+          window.__a4SnapCamera = s.camera ? null : (typeof d.snapCam === 'function' ? d.snapCam() : null);
           window.__a4CameraPrevious = null;
           window.__a4CameraStable = 0;
           window.__a4MetricsPrevious = null;
@@ -124,19 +134,30 @@ async function captureSide(browser, side, baseline) {
 
         // Perfil já foi carregado no localStorage antes do boot. Congelar o tempo agora
         // mantém água/aurora no mesmo instante sem impedir a troca de perfil entre páginas.
-        const frozenTime = await page.evaluate(() => {
+        const frozenTime = await page.evaluate(s => {
           try {
             const fixed = 60000;
             Object.defineProperty(performance, 'now', { configurable: true, value: () => fixed });
             window.__a4FrozenTimeMs = fixed;
+            // Reaplica a hora após congelar o relógio de animação: o frame anterior pode ter avançado gameClock.
+            window.SevenSinsDebug3D.setHour(s.hour);
             return fixed;
           } catch (error) {
             return String(error?.message || error);
           }
-        });
+        }, scene);
         if (frozenTime !== 60000) report.errors.push(side + '/' + profile + '/' + scene.name + ': não foi possível congelar o relógio A/B: ' + frozenTime);
+        const expectedNightFactor = scene.hour >= 18 || scene.hour < 6 ? 1 : 0;
+        await page.waitForFunction(s => {
+          const d = window.SevenSinsDebug3D, state = d?.state?.() || {};
+          const hour = state.dim?.hour, night = state.night, aurora = window.__aurora327U?.uAurK?.value;
+          const expectedNight = s.hour >= 18 || s.hour < 6 ? 1 : 0;
+          return Number.isFinite(hour) && Math.abs(hour - s.hour) <= .05
+            && Number.isFinite(night) && Math.abs(night - expectedNight) <= .01
+            && Number.isFinite(aurora) && (expectedNight ? aurora >= .5 : aurora <= .05);
+        }, scene, { timeout: 8000, polling: 100 });
         await wait(120);
-        const diagnostic = await page.evaluate(async () => {
+        const diagnostic = await page.evaluate(async s => {
           const d = window.SevenSinsDebug3D;
           const T = await import('three');
           const A = await import('./aurora-luz3d.js');
@@ -149,18 +170,46 @@ async function captureSide(browser, side, baseline) {
             metricsStable: window.__a4MetricsStableFlag ?? false,
             player: [state.x, state.y, state.z],
             camera: d.cam?.() || null,
+            cameraTarget: s.camera?.to || null,
+            cameraTargetView: s.camera && typeof d.camView === 'function' ? d.camView(s.camera.to) : null,
             snapCamera: window.__a4SnapCamera || null,
             calls: state.calls ?? state.drawCalls ?? null,
             triangles: state.triangles ?? null,
             programCount: d.programList?.()?.length ?? null,
+            hour: state.dim?.hour ?? null,
+            night: state.night ?? null,
+            auroraK: u.uAurK?.value ?? null,
+            awakeningActive: state.awakeningActive ?? null,
+            dialogueOpen: state.dialogueOpen ?? null,
+            namePromptOpen: state.namePromptOpen ?? null,
             lowUniform: u.uAurLow?.value ?? null
           };
-        });
+        }, scene);
+        if (scene.camera && (!diagnostic.cameraTargetView?.onScreen || diagnostic.cameraTargetView?.blocked))
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': alvo da câmera no céu fora do quadro ou obstruído=' + JSON.stringify(diagnostic.cameraTargetView));
         if (!diagnostic.player.every(Number.isFinite)
           || Math.hypot(diagnostic.player[0] - scene.x, diagnostic.player[2] - scene.z) >= .25)
           report.errors.push(side + '/' + profile + '/' + scene.name + ': teleporte não estabilizou; player=' + JSON.stringify(diagnostic.player));
+        if (!Number.isFinite(diagnostic.hour) || Math.abs(diagnostic.hour - scene.hour) > .05)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': gameClock.hour divergente; esperado=' + scene.hour + ' real=' + diagnostic.hour);
+        if (!Number.isFinite(diagnostic.night) || Math.abs(diagnostic.night - expectedNightFactor) > .01)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': fase dia/noite divergente; esperado=' + expectedNightFactor + ' real=' + diagnostic.night);
+        if (!Number.isFinite(diagnostic.auroraK) || (expectedNightFactor ? diagnostic.auroraK < .5 : diagnostic.auroraK > .05))
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': intensidade/uniforme da aurora incompatível com a hora; uAurK=' + diagnostic.auroraK);
+        if (diagnostic.awakeningActive || diagnostic.dialogueOpen || diagnostic.namePromptOpen)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': estado inicial/cinemática ainda ativo durante a captura');
+        const canvasInfo = await page.evaluate(() => {
+          const canvas = [...document.querySelectorAll('canvas')].find(c => c.width >= 800 && c.height >= 450);
+          if (!canvas) throw new Error('canvas WebGL do jogo não encontrado em resolução móvel');
+          canvas.id = '__a4-webgl-canvas';
+          const rect = canvas.getBoundingClientRect();
+          return { width: canvas.width, height: canvas.height, cssWidth: rect.width, cssHeight: rect.height };
+        });
+        if (canvasInfo.cssWidth < 800 || canvasInfo.cssHeight < 450)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': canvas WebGL fora do viewport esperado=' + JSON.stringify(canvasInfo));
+        diagnostic.canvas = canvasInfo;
         const file = side + '/' + profile + '-' + scene.name + '.png';
-        await page.screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled' });
+        await page.locator('#__a4-webgl-canvas').screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled', scale: 'css' });
         report.cases.push({ side, profile, scene: scene.name, hour: scene.hour, image: file, ...diagnostic });
         if (diagnostic.profile !== profile) report.errors.push(side + '/' + profile + ': seletor não confirmou perfil');
         if (!baseline) {
@@ -206,26 +255,35 @@ async function imageDiff(a, b, region = null) {
     ] });
     await captureSide(browser, 'baseline', true);
     await captureSide(browser, 'candidate', false);
-    if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water)
+    if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water || !report.baselineRouteHits.sky)
       report.errors.push('Baseline inválido: não interceptou mundo + os dois módulos A4');
     for (const profile of profiles) for (const scene of scenes) {
       const a = report.cases.find(x => x.side === 'baseline' && x.profile === profile && x.scene === scene.name);
       const b = report.cases.find(x => x.side === 'candidate' && x.profile === profile && x.scene === scene.name);
       if (!a || !b) { report.errors.push('Captura ausente: ' + profile + '/' + scene.name); continue; }
-      const cameraDelta = a.camera && b.camera && a.camera.length === b.camera.length
-        ? +Math.max(...a.camera.map((v, i) => Math.abs(v - b.camera[i]))).toFixed(4) : null;
+      const cameraA = [...(a.camera || []), ...(a.cameraTarget || [])];
+      const cameraB = [...(b.camera || []), ...(b.cameraTarget || [])];
+      const cameraDelta = cameraA.length && cameraA.length === cameraB.length
+        ? +Math.max(...cameraA.map((v, i) => Math.abs(v - cameraB[i]))).toFixed(4) : null;
       const playerDelta = a.player && b.player && a.player.length === b.player.length
         ? +Math.max(...a.player.map((v, i) => Math.abs(v - b.player[i]))).toFixed(4) : null;
+      const hourDelta = Number.isFinite(a.hour) && Number.isFinite(b.hour) ? +Math.abs(a.hour - b.hour).toFixed(3) : null;
+      const nightDelta = Number.isFinite(a.night) && Number.isFinite(b.night) ? +Math.abs(a.night - b.night).toFixed(3) : null;
+      const auroraDelta = Number.isFinite(a.auroraK) && Number.isFinite(b.auroraK) ? +Math.abs(a.auroraK - b.auroraK).toFixed(3) : null;
+      const lightingStateComparable = hourDelta !== null && hourDelta <= .05
+        && nightDelta !== null && nightDelta <= .01 && auroraDelta !== null && auroraDelta <= .05;
       if (cameraDelta !== null && cameraDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': câmera A/B divergiu ' + cameraDelta);
       if (playerDelta !== null && playerDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': jogador A/B divergiu ' + playerDelta);
+      if (!lightingStateComparable)
+        report.errors.push(profile + '/' + scene.name + ': estado de iluminação A/B divergiu (hour=' + hourDelta + ', night=' + nightDelta + ', aurora=' + auroraDelta + ')');
       const renderBudgetComparable = a.calls === b.calls && a.triangles === b.triangles;
       if (!renderBudgetComparable)
         report.warnings.push(profile + '/' + scene.name + ': orçamento de render variou entre boots; comparar como informativo (LOD/culling assíncrono)');
       const baselineImage = path.join(out, a.image), candidateImage = path.join(out, b.image);
       report.comparisons.push({
-        profile, scene: scene.name, cameraDelta, playerDelta, renderBudgetComparable,
+        profile, scene: scene.name, cameraDelta, playerDelta, hourDelta, nightDelta, auroraDelta, lightingStateComparable, renderBudgetComparable,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
         pixels: await imageDiff(baselineImage, candidateImage),
