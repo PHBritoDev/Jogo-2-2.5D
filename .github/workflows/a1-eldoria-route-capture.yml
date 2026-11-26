@@ -23,6 +23,13 @@ on:
       - 'eldoria-live-village3d.js'
       - 'build-info.js'
 
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR de origem (0 para validação direta da main)'
+        required: false
+        default: '0'
+        type: string
 permissions:
   contents: read
 
@@ -38,7 +45,7 @@ jobs:
       AGENT: A1
       SCENARIO: floresta-percurso
       VIDEO: 'true'
-      PR: '692'
+      PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || 0 }}
       VISUAL_OUTPUT: visual-lab-results
       VISUAL_BASE_URL: http://127.0.0.1:4173
       ARTIFACT_NAME: qa-A1-${{ github.run_id }}
