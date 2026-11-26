@@ -12,7 +12,7 @@ A lógica das três habilidades continua em módulos sem Three.js, a 120 Hz.
 | `energyBody(T,parent,preset,options)` | Corpo fechado lobado com frente em +Z e cauda em -Z. `update(time,{position,dir,radius,length,alpha,quality,dissolve})`. | Geometria criada uma vez; normalmente 30×14 anéis/lados. Portal usa 48×24 para evitar facetas. |
 | `flameGeometry(T)` | Língua de chama curva; base em Y=0, ponta em +Y, curva para -Z. Própria para instancing. | 120 triângulos; não criar uma malha/material por língua. |
 | `vfx-trail3d.js`: `volumeTrail(T,parent,preset,options)` | `update(time,point,emitting,quality)` amostra posições reais; seção fechada com twist, largura e vida decrescentes. | Buffer circular de 32–44 amostras nos consumidores atuais; sem geometria por frame. |
-| `vfx-impact3d.js`: `impactDirector(T,parent,ground,{capacity,onImpact})` | `emit({id,time,point,size,preset,kind,dir})` recebe registro de colisão autoritativo. `update(time,quality)` expande pressão, fragmentos, fissuras, poeira, brasas e luz no solo. | 4 slots no dragão, 5 nos portais; 240 fragmentos, 96 partículas de poeira, 160 brasas. Reutiliza o slot mais antigo. |
+| `vfx-impact3d.js`: `impactDirector(T,parent,ground,{capacity,onImpact})` | `emit({id,time,point,size,preset,kind,dir,groundReach?})` recebe o registro de colisão autoritativo. `update(time,quality)` expande pressão, fragmentos, fissuras, poeira, brasas e luz no solo. | 4 slots no dragão, 5 nos portais; 240 fragmentos, 96 partículas de poeira, 160 brasas. Reutiliza o slot mais antigo. Altura e normal do terreno são amostradas uma vez no `emit` e reutilizadas durante o fade. |
 | `skill-scenery3d.js`: `sceneryPoint(p,world)` | Consulta alturas dos troncos, rochas e construções existentes; o sweep físico fornece as amostras do volume. | Não altera colisão do jogador/NPC nem usa raycast da malha. |
 | `vfx-dragon-model3d.js`: `dragonHead` / `dragonBody` | Cabeça com mandíbula articulada, sobrancelhas, crina e bigodes; corpo amostrado por distância no histórico da cabeça. | 128×16 segmentos radiais, 76 m de histórico visível; até 256 línguas instanciadas. Sem esferas encadeadas. |
 
@@ -21,6 +21,13 @@ fazem limpeza no cancelamento, término e reinício do relógio. `clear()` reapr
 libera geometria/material quando o dono é removido definitivamente. Não chamar `dispose()` a cada cast.
 IDs de impactos são únicos **dentro de um cast**; o director rejeita duplicatas e limpa os IDs entre casts.
 Eventos futuros (segunda expansão da explosão) ficam invisíveis até o seu timestamp.
+
+**Contato do ImpactDirector com o terreno:** o alcance padrão é 1,6 m acima da superfície, com tolerância de
+−0,35 m para pequenas penetrações de colisão. A Ruptura em X usa `XRUP.height + 0,25`; Portais usa
+`PORTALS.height + 0,4`; impactos em parede dos Portais usam 1 m. Acima desse alcance continuam o corpo
+energético, fragmentos e brasas, mas não são criados decalques, crateras ou poeira no chão. A altura e a
+normal são calculadas no evento e armazenadas no slot, evitando cinco consultas ao terreno por frame durante
+a dissipação.
 
 ## Exemplo de integração
 
