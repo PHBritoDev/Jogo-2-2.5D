@@ -283,7 +283,7 @@ export function startLoadingCinematic({ host, base = new URL('./', import.meta.u
   /* cada ato = lista de peças (kit, nome, altura, x, distância dentro do ato) + peças distantes do horizonte */
   const ACT_LAYOUT = [
     [['vila', 'CasaB', 7.4, -10.5, 0], ['casa1', null, 8, 10.8, 1.2], ['vila', 'CasaA', 5.8, -12.5, 3], ['ferreiro', null, 6.5, 11.5, 4.2], ['vila', 'Poco', 2.6, -8.6, 5.4], ['casa2', null, 8.6, -11.4, 6.5], ['vila', 'CasaC', 3.6, 9.4, 7], ['vila', 'Barraca', 2.4, 8.2, 2.4], ['casa1', null, 9, -14, 8.5, 1], ['casa2', null, 9.5, 16, 6, 1]],
-    [['torre', 'Torre', 34, -22, 2, 1], ['coliseu', 'Coliseu', 19, 24, 2.6], ['coliseu', 'Estandarte', 4.6, -9.2, 0.6], ['coliseu', 'Estandarte', 4.6, 9.4, 2.2], ['torre', 'Braseiro', 1.6, -8, 3.6], ['coliseu', 'Braseiro', 2.1, 8.2, 5], ['coliseu', 'Estandarte', 4.6, -10, 6.4], ['torre', 'Torre', 28, 20, 8, 1]],
+    [['torre', 'Torre', 34, -22, 2, 1], ['coliseu', 'Coliseu', 22, 34, 2.6, 1], ['coliseu', 'Estandarte', 4.6, -9.2, 0.6], ['coliseu', 'Estandarte', 4.6, 9.4, 2.2], ['torre', 'Braseiro', 1.6, -8, 3.6], ['coliseu', 'Braseiro', 2.1, 8.2, 5], ['coliseu', 'Estandarte', 4.6, -10, 6.4], ['torre', 'Torre', 28, 20, 8, 1]],
     [['neve', 'Estalagem', 9, -12.5, .3], ['neve', 'CasaNeve', 6.2, 11.2, 1.6], ['neve', 'Pinheiro', 6.5, -9.2, 3], ['neve', 'CasaNeveB', 7.6, 12, 4.4], ['neve', 'Guilhotina', 5.2, -8.8, 5.8], ['neve', 'Pinheiro', 7, 9.8, 7], ['neve', 'Lanterna', 2.6, 7.6, 2.2], ['neve', 'Estalagem', 10, 15, 6, 1]]
   ];
   const sets = ACT_LAYOUT.map(() => ({ group: new T.Group(), pieces: [], built: false }));
@@ -309,7 +309,7 @@ export function startLoadingCinematic({ host, base = new URL('./', import.meta.u
         const u = p.userData, travel = state.V * local * 1.9; let z = -1.5 - travel + u.along * 1.9 - 4;
         if (z > -1.5) { p.visible = false; continue; } p.visible = true;
         if (u.far) z = -46 - local * .55 - u.along;
-        p.position.set(u.x * (u.far ? 1 : state.setSpread || 1), 0, z);
+        const half = Math.max(u.w, u.d) / 2; p.position.set(Math.sign(u.x) * Math.max(Math.abs(u.x) * (u.far ? 1 : state.setSpread || 1), 7 + half), 0, u.far ? z - half : z); // a borda interna nunca invade a estrada nem a câmera
         if (u.collapse < 0 && !u.far && z < -15 - (u.along % 4) * 1.5) { u.collapse = 0; }
         if (u.collapse >= 0) { u.collapse += dt; const k = smooth(u.collapse / 2.4);
           u.pivot.rotation.z = -u.side * k * (.35 + .2 * (u.along % 1)); u.pivot.position.y = -k * u.h * .35;
