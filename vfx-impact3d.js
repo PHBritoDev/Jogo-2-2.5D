@@ -133,7 +133,7 @@ export function impactDirector(T, parent, ground, { capacity = 6, onImpact = () 
           embers.add(p.x + Math.cos(a) * d, p.y + Math.sin(i * 3.1) * d * .45 + age * .7 - age * age * 2, p.z + Math.sin(a) * d, .06, .28, ...C, fade * .85, 3, a, i);
         }
         // Airborne collisions keep their energy and embers, but cannot kick up ground dust.
-        if (nearGround) for (let i = 0; i < (low ? 4 : 7); i++) {
+        if (s.groundContact) for (let i = 0; i < (low ? 4 : 7); i++) {
           const a = i * 2.4, d = s.size * (.3 + age * .6);
           dust.add(p.x + Math.cos(a) * d, gy + .25 + age * 1.3, p.z + Math.sin(a) * d,
             s.size * .48 + age * .7, s.size * .35 + age * .5,
