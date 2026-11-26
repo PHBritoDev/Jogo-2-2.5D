@@ -52,9 +52,33 @@ function heroPositionDelta(a, b) {
   return Math.hypot(x.x - y.x, x.y - y.y, x.z - y.z);
 }
 
+const FADED_UNDERGROWTH_BLOCKERS = new Set([
+  "eldoria-ferns",
+  "eldoria-bushes",
+  "eldoria-broadleaf"
+]);
+const UNDERGROWTH_FADE_START_METERS = 0.6;
+const UNDERGROWTH_FADE_SPAN_METERS = 5.6;
+const UNDERGROWTH_FADE_CLEAR_THRESHOLD = 0.92;
+
+function isVisuallyFadedUndergrowthBlocker(view) {
+  const hit = view && view.blocked;
+  if (!hit || !FADED_UNDERGROWTH_BLOCKERS.has(hit.name)) return false;
+  if (!Number.isFinite(hit.dist)) return false;
+  // camView raycasts geometry and cannot see fragment-shader discard. The fade shader
+  // uses this same camera-space distance along the center ray. Only forgive a hit when
+  // at least 92% of the Bayer samples are discarded; trunks/rocks and partial fades
+  // remain hard occluders. The center ray is inside the shader's focal cone.
+  const fade = Math.max(0, Math.min(1,
+    (hit.dist - UNDERGROWTH_FADE_START_METERS) / UNDERGROWTH_FADE_SPAN_METERS
+  ));
+  return fade >= UNDERGROWTH_FADE_CLEAR_THRESHOLD;
+}
+
 function cameraClear(state) {
   const view = state && state.camView;
-  return !!view && view.onScreen === true && !view.blocked;
+  return !!view && view.onScreen === true &&
+    (!view.blocked || isVisuallyFadedUndergrowthBlocker(view));
 }
 
 async function readState(page) {
