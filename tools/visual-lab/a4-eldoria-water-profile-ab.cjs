@@ -27,14 +27,14 @@ const scenes = [
   },
   {
     name: 'lago-aurora', hour: 22, x: -27, z: -96, yaw: Math.PI, pitch: .08, distance: 10,
-    // Faixa central-esquerda da água; y=310 era chão, não água.
-    waterRoi: { left: 280, top: 235, width: 100, height: 40 }
+    // Faixa estreita dentro da lâmina azul-turquesa; exclui margem e personagem.
+    waterRoi: { left: 270, top: 174, width: 150, height: 18 }
   },
   {
     name: 'aurora-ceu', hour: 22, x: 0, z: -29,
     camera: { from: [0, 2, -29], to: [0, 22, -15] },
-    // Câmera livre fixa a 55° acima do horizonte; ROI central somente do canvas WebGL.
-    skyRoi: { left: 150, top: 70, width: 552, height: 260 }
+    // Faixa central do céu, sem copas laterais; overlays DOM são ocultados antes do PNG.
+    skyRoi: { left: 220, top: 75, width: 450, height: 190 }
   }
 ];
 const report = {
@@ -202,22 +202,42 @@ async function captureSide(browser, side, baseline) {
           const canvas = document.getElementById('scene');
           if (!(canvas instanceof HTMLCanvasElement)) throw new Error('canvas WebGL #scene não encontrado');
           const rect = canvas.getBoundingClientRect();
-          return { width: canvas.width, height: canvas.height, cssWidth: rect.width, cssHeight: rect.height };
+          return {
+            width: canvas.width, height: canvas.height, cssWidth: rect.width, cssHeight: rect.height,
+            backingScaleX: +(canvas.width / Math.max(1, rect.width)).toFixed(3),
+            backingScaleY: +(canvas.height / Math.max(1, rect.height)).toFixed(3)
+          };
         });
         if (canvasInfo.cssWidth < 800 || canvasInfo.cssHeight < 400)
           report.errors.push(side + '/' + profile + '/' + scene.name + ': canvas #scene fora do viewport esperado=' + JSON.stringify(canvasInfo));
-        if (canvasInfo.width < 800 || canvasInfo.height < 400)
-          report.warnings.push(side + '/' + profile + '/' + scene.name + ': backing WebGL menor que 800x400=' + JSON.stringify(canvasInfo));
+        if (!(canvasInfo.width > 0) || !(canvasInfo.height > 0)
+          || !(canvasInfo.backingScaleX > 0) || !(canvasInfo.backingScaleY > 0))
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': backing WebGL ou escala inválida=' + JSON.stringify(canvasInfo));
         diagnostic.canvas = canvasInfo;
+        // locator.screenshot recorta a caixa do canvas e também inclui irmãos DOM sobrepostos.
+        // Esconda todos os filhos diretos do body, exceto o canvas WebGL, para não medir HUD/toast.
+        const captureInfo = await page.evaluate(() => {
+          const canvas = document.getElementById('scene');
+          if (!(canvas instanceof HTMLCanvasElement)) throw new Error('canvas WebGL #scene não encontrado na captura');
+          const siblings = Array.from(document.body.children).filter(node => node !== canvas);
+          for (const node of siblings) node.style.setProperty('visibility', 'hidden', 'important');
+          return {
+            canvasTag: canvas.tagName.toLowerCase(),
+            canvasVisible: getComputedStyle(canvas).visibility === 'visible',
+            hiddenBodySiblings: siblings.length,
+            visibleBodySiblings: siblings.filter(node => getComputedStyle(node).visibility !== 'hidden').length
+          };
+        });
+        diagnostic.capture = captureInfo;
+        if (captureInfo.canvasTag !== 'canvas' || !captureInfo.canvasVisible || captureInfo.visibleBodySiblings !== 0)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': screenshot não isolou o canvas=' + JSON.stringify(captureInfo));
         const file = side + '/' + profile + '-' + scene.name + '.png';
         await page.locator('#scene').screenshot({ path: path.join(out, file), timeout: 90000, animations: 'disabled', scale: 'css' });
         report.cases.push({ side, profile, scene: scene.name, hour: scene.hour, image: file, ...diagnostic });
         if (diagnostic.profile !== profile) report.errors.push(side + '/' + profile + ': seletor não confirmou perfil');
-        if (!baseline) {
-          const expected = profile === 'low' ? 1 : 0;
-          if (diagnostic.lowUniform !== expected)
-            report.errors.push(profile + '/' + scene.name + ': uAurLow=' + diagnostic.lowUniform + ', esperado ' + expected);
-        }
+        const expectedLow = profile === 'low' ? 1 : 0;
+        if (diagnostic.lowUniform !== expectedLow)
+          report.errors.push(side + '/' + profile + '/' + scene.name + ': uAurLow=' + diagnostic.lowUniform + ', esperado ' + expectedLow);
       }
     } finally {
       await context.close();
@@ -271,8 +291,10 @@ async function imageDiff(a, b, region = null) {
       const hourDelta = Number.isFinite(a.hour) && Number.isFinite(b.hour) ? +Math.abs(a.hour - b.hour).toFixed(3) : null;
       const nightDelta = Number.isFinite(a.night) && Number.isFinite(b.night) ? +Math.abs(a.night - b.night).toFixed(3) : null;
       const auroraDelta = Number.isFinite(a.auroraK) && Number.isFinite(b.auroraK) ? +Math.abs(a.auroraK - b.auroraK).toFixed(3) : null;
+      const lowUniformDelta = Number.isFinite(a.lowUniform) && Number.isFinite(b.lowUniform) ? +Math.abs(a.lowUniform - b.lowUniform).toFixed(3) : null;
       const lightingStateComparable = hourDelta !== null && hourDelta <= .05
-        && nightDelta !== null && nightDelta <= .01 && auroraDelta !== null && auroraDelta <= .05;
+        && nightDelta !== null && nightDelta <= .01 && auroraDelta !== null && auroraDelta <= .05
+        && lowUniformDelta !== null && lowUniformDelta <= .01;
       if (cameraDelta !== null && cameraDelta > .02)
         report.errors.push(profile + '/' + scene.name + ': câmera A/B divergiu ' + cameraDelta);
       if (playerDelta !== null && playerDelta > .02)
@@ -284,7 +306,7 @@ async function imageDiff(a, b, region = null) {
         report.warnings.push(profile + '/' + scene.name + ': orçamento de render variou entre boots; comparar como informativo (LOD/culling assíncrono)');
       const baselineImage = path.join(out, a.image), candidateImage = path.join(out, b.image);
       report.comparisons.push({
-        profile, scene: scene.name, cameraDelta, playerDelta, hourDelta, nightDelta, auroraDelta, lightingStateComparable, renderBudgetComparable,
+        profile, scene: scene.name, cameraDelta, playerDelta, hourDelta, nightDelta, auroraDelta, lowUniformDelta, lightingStateComparable, renderBudgetComparable,
         baselineCalls: a.calls, candidateCalls: b.calls,
         baselineTriangles: a.triangles, candidateTriangles: b.triangles,
         pixels: await imageDiff(baselineImage, candidateImage),
