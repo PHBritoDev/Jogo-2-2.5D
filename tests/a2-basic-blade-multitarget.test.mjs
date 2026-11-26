@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { SwordRites, segmentBlocked, passagePath, swordSideHitContext } from '../sword-rites3d.js';
+import { SwordRites, segmentBlocked, passagePath, swordSideHitContext, JUDGMENT_TIMES } from '../sword-rites3d.js';
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailProfile } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, JUDGMENT_SLASH_TIMING, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailProfile } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -901,6 +901,12 @@ test('Passagem uses a compact tapered ribbon instead of the shared broad crescen
  assert.ok(vfx.includes("m.material.depthTest=!overlay"),'judgment strokes are visible over the enemy surface');
  assert.ok(vfx.includes("glowMesh.scale.set(1.14,1.3,1.12)"),'judgment strokes receive a restrained, dedicated glow edge');
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
+});
+
+test('Passagem keeps all 16 surface cuts alive together through the final impact',()=>{
+ const sequenceSpan=JUDGMENT_TIMES.at(-1)-JUDGMENT_TIMES[0];
+ assert.ok(JUDGMENT_SLASH_TIMING.life>sequenceSpan+.8,'the first cut remains visible with a fade margin at the sixteenth hit');
+ assert.ok(JUDGMENT_SLASH_TIMING.finalLife>JUDGMENT_SLASH_TIMING.life,'the final cut gets a slightly longer finish');
 });
 
 test('Passagem blade trail is a short, soft accent capped at 30 Hz without changing other sword trails',async()=>{
