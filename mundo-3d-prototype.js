@@ -2443,7 +2443,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(firstPerson&&shelterCameraYawOffset){cameraYaw-=shelterCameraYawOffset;shelterCameraYawOffset=0;}if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(firstPerson)shelterCameraYawOffset=0;if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -2465,19 +2465,19 @@ if(firstPerson){
  lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
  const allowShelterShoulder=!voidMode&&!cineActive&&!riteCinematicView&&!camFrame.engaged&&starfallCameraWeight<.01&&dk<.08&&!(ultCam.w>.01);
  if(allowShelterShoulder){
-  const baseYaw=cameraYaw-shelterCameraYawOffset;
-  const baseTarget={x:target.x-(Math.cos(cameraYaw)-Math.cos(baseYaw))*.42,y:target.y,z:target.z-(-Math.sin(cameraYaw)+Math.sin(baseYaw))*.42};
-  const baseOrbitYaw=baseYaw+(riteCinematicView?.45:0)+dk*1.05;
+  // O desvio pertence apenas ao braço da câmera. cameraYaw continua sendo a referência
+  // estável do joystick, dash, mira e rotação do jogador.
+  const baseOrbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;
   const baseOffset=new THREE.Vector3(Math.sin(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch));
-  const nearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(baseTarget.x-w.cx,baseTarget.z-w.cz)<camDistUse+.75&&baseTarget.y>=w.yb-.5&&baseTarget.y<=w.yt+1);
-  const decision=nearPillar?chooseShelterCameraShoulder({target:baseTarget,offset:baseOffset,previous:shelterCameraYawOffset,blockedAt:(x,y,z)=>eldoriaWalk.blocked(x,z,y-.9,groundHeightAt)}):null;
-  const oldYaw=cameraYaw,wanted=decision?.angle||0;
+  const nearPillar=eldoriaWalk.walls.some(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
+  const decision=nearPillar?chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt:(x,y,z)=>eldoriaWalk.blocked(x,z,y-.9,groundHeightAt)}):null;
+  const wanted=decision?.angle||0;
   shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
-  cameraYaw=baseYaw+shelterCameraYawOffset;
-  const delta=cameraYaw-oldYaw;
-  if(Math.abs(delta)>1e-6){target.x+=(Math.cos(cameraYaw)-Math.cos(oldYaw))*.42;target.z+=(-Math.sin(cameraYaw)+Math.sin(oldYaw))*.42;}
- }else if(shelterCameraYawOffset){cameraYaw-=shelterCameraYawOffset;shelterCameraYawOffset=0;}
- const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
+ }else if(shelterCameraYawOffset){
+  // Libera o ombro suavemente ao sair do abrigo, sem girar o referencial de movimento.
+  shelterCameraYawOffset*=Math.exp(-8*dt);
+ }
+ const orbitYaw=cameraYaw+shelterCameraYawOffset+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
  if(inVolcano&&voidSpec.camSolid?.(target.x-voidSpec.x,target.y-voidSpec.y,target.z-voidSpec.z)){
   target.set(player.position.x,player.position.y+.8,player.position.z);
  }
