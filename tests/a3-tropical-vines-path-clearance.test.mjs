@@ -84,3 +84,24 @@ test('filtrar cipós não desloca o RNG das folhas nem das árvores seguintes', 
   );
   assert.ok(filtered.vines.length < unobstructed.vines.length, 'o caso determinístico realmente filtra um cipó');
 });
+
+test('árvores do plano tropical sem h explícito geram cipós finitos e respeitam a escala', () => {
+  // Forma real de planTropicalBelt: sp/s existem; h não é emitido pelo planejador.
+  const forestTrees = [
+    { sp: 'sumauma', x: 0, z: 0, s: 1.1 },
+    { sp: 'figueira', x: 12, z: 0, s: .9 },
+    { sp: 'copaLarga', x: 24, z: 0, s: 1 },
+    { sp: 'palmeira', x: 36, z: 0, s: 1 },
+    { sp: 'embauba', x: 48, z: 0, s: 1 }
+  ];
+  const plan = planTropical({ trees: forestTrees, zone: null, isFree: () => true, seed: 2926 });
+  assert.ok(plan.vines.length > 0, 'a mata mantém cipós nas árvores');
+  assert.ok(plan.vines.every(v => Number.isFinite(v.top) && Number.isFinite(v.len) && v.top > 0 && v.len > 0),
+    'nenhum cipó pode receber posição/comprimento NaN');
+
+  const tall = planTropical({ trees: [{ sp: 'sumauma', x: 0, z: 0, s: 1 }], zone: null, isFree: () => true, seed: 2926 });
+  const regular = planTropical({ trees: [{ sp: 'figueira', x: 0, z: 0, s: 1 }], zone: null, isFree: () => true, seed: 2926 });
+  const explicit = planTropical({ trees: [{ sp: 'sumauma', x: 0, z: 0, s: 1, h: 10 }], zone: null, isFree: () => true, seed: 2926 });
+  assert.ok(tall.vines[0].len > regular.vines[0].len * 2.3, 'sumaúma usa a altura de 26 m e as demais a base conservadora de 11 m');
+  assert.ok(explicit.vines[0].len < tall.vines[0].len, 'h explícito do cinturão continua tendo precedência');
+});

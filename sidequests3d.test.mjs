@@ -253,7 +253,7 @@ test('save da vila não libera missões por etapa inválida e preserva contagens
   assert.equal(s.pingente.state, 'available');
   collectSide(s, 'flor');
   assert.equal(s.ervas.state, 'ready');
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 4/4 itens reunidos']);
 });
 
 
@@ -449,7 +449,7 @@ test('diário permanece legível antes do próximo refresh de estado corrompido'
   assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 0/4']);
   assert.equal(turnInSide(s, 'ervas'), null);
   s.ervas.progress = 4;
-  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · volte a Mara']);
+  assert.deepEqual(activeSideLines(s), ['Flores de Vigília · 4/4 itens reunidos']);
 });
 
 
@@ -778,4 +778,28 @@ test('falha ao salvar a entrega da vila restaura ready sem pagar', () => {
   assert.equal(calls.rewards, 0, 'não exibe recompensa não persistida');
   assert.equal(calls.hud, 0);
   assert.match(context.status.textContent, /Não foi possível salvar a entrega/);
+});
+
+test('HUD não manda retornar a givers ausentes e preserva retorno quando a categoria está ativa', () => {
+  const state = createSideState({
+    ervas: { state: 'ready', progress: 4 },
+    pingente: { state: 'ready', progress: 1 },
+    abrigos: { state: 'ready', progress: 3 }
+  });
+
+  assert.deepEqual(activeSideLines(state), [
+    'Flores de Vigília · 4/4 itens reunidos',
+    'O Pingente de Lia · volte a Lia',
+    'Pedras que Lembram · 3/3 abrigos registrados'
+  ]);
+  assert.equal(state.ervas.state, 'ready');
+  assert.equal(state.abrigos.state, 'ready');
+  assert.equal(turnInSide(state, 'abrigos'), null, 'o texto neutro não conclui nem paga a missão');
+
+  const withFutureGivers = activeSideLines(state, new Set(['ALIMENTOS', 'PROVISÕES', 'FRUTAS', 'ERVAS', 'ARTESANATO']));
+  assert.deepEqual(withFutureGivers, [
+    'Flores de Vigília · volte a Mara',
+    'O Pingente de Lia · volte a Lia',
+    'Pedras que Lembram · volte a Nara'
+  ]);
 });

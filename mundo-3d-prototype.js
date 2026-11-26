@@ -162,6 +162,7 @@ import { buildCave } from './ascension-cave3d.js';
 import { buildAscent } from './ascension-ascent3d.js';
 import { ACT1, SPEAKERS, sanitizePlayerName, migrateProgress, questPresentation, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, afterVhazraelVictory, personalizeLine, villageArrivalScene, vendorRefusalScene, vendorScene, forestFirstScene, forestSecondScene, keyFoundScene, cageScene, faintScene, massacreScene, clueScene, feedingScene, holeScene, wardenIntroScene, wardenDefeatScene, vhazraelIntroScene, vhazraelDefeatScene, afterVhazraelScene } from './act1-flow.js';
 import { SEWER, sewerWalkable, sewerCheckpoint, sewerZone } from './sewer3d.js';
+import { cameraAboveWaterSurfaceY } from './camera-water-clearance3d.js';
 
 const worldAudio=createWorldAudio();
 for(const type of ['pointerdown','keydown','touchstart'])addEventListener(type,()=>worldAudio.unlock(),{passive:true,capture:true});
@@ -970,7 +971,9 @@ const beltUnder=buildUndergrowth(THREE,{scene,groundHeightAt,lowSpec:terrainLowS
  isFree:(x,z)=>beltFree(x,z,-1.2)});
 const beltTropical=buildTropical(THREE,{scene,groundHeightAt,lowSpec:terrainLowSpec,addWind:addInstancedWind,registerCull:registerInstanceCull,seed:2927,zone:null,
  trees:tropicalPlan.filter(t=>t.sp==='copaLarga'||t.sp==='figueira'||t.sp==='sumauma').map(t=>({x:t.x,z:t.z,h:(t.sp==='sumauma'?26:11)*t.s})),isFree:(x,z)=>beltFree(x,z,-1.5)});
-{const seen=new Set();for(const g of [beltTropical.group,beltUnder.group])g&&g.traverse(o=>{if(o.isMesh&&!seen.has(o.material)){seen.add(o.material);addNearCameraFade(o.material,2.2);}});}
+// A folhagem tropical e os cipós suspensos acompanham o fade de 8 m das árvores do cinturão.
+// O sub-bosque baixo mantém o alcance de 2,2 m.
+{const seen=new Set();for(const [group,near] of [[beltTropical.group,8.0],[beltUnder.group,2.2]])group&&group.traverse(o=>{if(!o.isMesh)return;const materials=Array.isArray(o.material)?o.material:[o.material];for(const material of materials)if(material&&!seen.has(material)){seen.add(material);addNearCameraFade(material,near);}});}
 function tropicalProfile(){return graphics3DMode==='low'?'low':graphics3DMode==='medium'?'auto':graphics3DMode==='auto'?(graphics3DAutoTier<=1?'low':graphics3DAutoTier===2?'auto':'high'):'high';}
 /* MOD 291 — streaming por zona: a cidade (e o resto do vale) fica atrás da serra quando o herói está no prado/estrada do
    sul, e o prado some quando ele está no vale. Nada é descarregado; só deixa de ser enviado à GPU. */
@@ -2510,6 +2513,15 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
  if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
  if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
+ // A1: o braço de câmera não pode ficar no plano da água; o teste de terreno sozinho permite isso.
+ if(!voidMode&&!cineActive&&!riteCinematicView&&dragonViewWeight<.01&&ultCam.want<.01&&ultCam.w<.01&&
+    !inJourney(player.position.x,player.position.z)&&!inJourney(camera.position.x,camera.position.z)&&!sakuraWorld?.root.visible){
+  const cx=camera.position.x,cz=camera.position.z,depth=terrain3D.waterDepth(cx,cz);
+  if(depth>.05&&depth<5){
+   const safeY=cameraAboveWaterSurfaceY(camera.position.y,groundHeightAt(cx,cz),depth,.4);
+   if(safeY>camera.position.y)camera.position.y=safeY;
+  }
+ }
  camera.lookAt(target);applyUltCam(dt,target);
 }
 }

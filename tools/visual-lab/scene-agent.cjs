@@ -12,6 +12,7 @@
  */
 const fs = require("node:fs"), path = require("node:path"), { execFileSync, spawnSync } = require("node:child_process");
 const core = require("./scene-capture-core.cjs");
+const { measureWalkTrace } = require("./agent-qa.cjs");
 
 const out = path.resolve(process.env.VISUAL_OUTPUT || "visual-lab-results", "scene-agent");
 const base = (process.env.VISUAL_BASE_URL || "http://127.0.0.1:4173").replace(/\/$/, "");
@@ -151,7 +152,7 @@ async function main() {
   const { chromium } = require("playwright"), sharp = require("sharp");
   fs.mkdirSync(out, { recursive: true });
   const t0 = Date.now(), scenes = core.validateRequest(process.env.SCENE_AGENT_SCENES);
-  const log = { pageErrors: [], consoleErrors: [], failedRequests: [] }, shots = [], videos = [], timings = [];
+  const log = { pageErrors: [], consoleErrors: [], failedRequests: [] }, shots = [], videos = [], timings = [], routes = [];
   const report = { schema: core.SCHEMA, startedAt: new Date().toISOString(), commit: gitCommit(), base, viewport, renderer: "Chromium headless + SwiftShader (CPU) — não representa FPS de celular",
     request: scenes.map(s => ({ id: s.id, video: s.video })), howToReproduce: "SCENE_AGENT_SCENES='" + JSON.stringify(scenes.map(s => s.video ? { scene: s.id, video: true } : s.id)) + "' node tools/visual-lab/scene-agent.cjs" };
   let browser, fatal = null;
@@ -164,29 +165,224 @@ async function main() {
         if (!report.build) report.build = await ctx.page.evaluate(() => import("./build-info.js").then(m => m.BUILD + " (Mod " + m.MOD + ")")).catch(() => null);
         let prev = null;
         for (let i = 0; i < scene.shots.length; i++) { const r = await shoot(ctx.page, sharp, scene, scene.shots[i], prev, i); shots.push(r.res); prev = r.sig; }
-        if (scene.walk && scene.kind !== "npc") { // percurso real: tecla segurada, quadro final fotografado
-          const {page} = ctx, {key, ms, distance} = scene.walk;
-          const start = distance ? await page.evaluate(() => window.SevenSinsDebug3D.state()) : null;
-          const begin = Date.now();
-          let reached = true;
-          await page.keyboard.down(key);
-          try {
-            if (distance) {
-              await page.waitForFunction(({x, z, distance}) => {
-                const now = window.SevenSinsDebug3D.state();
-                return Math.hypot(now.x - x, now.z - z) >= distance;
-              }, {x:start.x, z:start.z, distance}, {polling:250, timeout:ms}).catch(e => {
-                if (e.name !== "TimeoutError") throw e;
-                reached = false;
+        if (scene.walk && scene.kind !== "npc") {
+          const {page} = ctx;
+          if (Array.isArray(scene.walk.segments)) {
+            const route = { scene: scene.id, segments: [], completed: true, startedAt: new Date().toISOString() };
+            const requestedQuality = scene.walk.captureQuality || null;
+            if (requestedQuality) {
+              route.captureQuality = await page.evaluate(quality => {
+                const select = document.getElementById("graphics-profile-3d");
+                const fps = document.getElementById("fps-badge")?.textContent?.trim() || null;
+                if (!select || !Array.from(select.options).some(option => option.value === quality)) {
+                  return { requested: quality, applied: false, previous: null, fpsBefore: fps, reason: "perfil indisponível" };
+                }
+                const previous = select.value;
+                select.value = quality;
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+                return { requested: quality, applied: select.value === quality, previous, selected: select.value, fpsBefore: fps };
+              }, requestedQuality);
+              if (route.captureQuality.applied) {
+                await page.waitForTimeout(1200);
+                route.captureQuality.fpsAfter = await page.evaluate(() => document.getElementById("fps-badge")?.textContent?.trim() || null);
+                route.captureQuality.status = await page.evaluate(() => document.getElementById("graphics-status-3d")?.textContent?.trim() || null);
+              }
+            }
+            // As tomadas acima teleportam o herói para enquadrar cada ponto. Restaurar a origem declarada
+            // antes da caminhada evita que a última foto (vau) altere silenciosamente o percurso.
+            if (Array.isArray(scene.walk.start)) {
+              const [startX, startZ, startYaw] = scene.walk.start;
+              const actual = await page.evaluate(([x, z, yaw]) => {
+                const D = window.SevenSinsDebug3D;
+                D.teleport(x, z, yaw);
+                return D.state();
+              }, scene.walk.start);
+              const verified = !!actual && Number.isFinite(actual.x) && Number.isFinite(actual.y) &&
+                Number.isFinite(actual.z) && Math.hypot(actual.x - startX, actual.z - startZ) <= .5;
+              route.startReset = {
+                expected: {x: startX, z: startZ, yaw: startYaw},
+                actual: actual && {x: actual.x, y: actual.y, z: actual.z},
+                verified
+              };
+              if (!verified) {
+                route.completed = false;
+                route.error = "Falha ao restaurar a origem do percurso após as tomadas de câmera";
+                route.finishedAt = new Date().toISOString();
+                routes.push(route);
+                shots.push({scene: scene.id, name: "inicio-percurso", file: "", status: "falha", reason: route.error, attempts: 0, pixels: {mean: 0, stdev: 0}});
+                continue;
+              }
+            }
+            for (let j = 0; j < scene.walk.segments.length; j++) {
+              const segment = scene.walk.segments[j];
+              const start = await page.evaluate(() => window.SevenSinsDebug3D.state());
+              const yaw = core.walkYaw(start, segment.target);
+              await page.evaluate(({yaw}) => window.SevenSinsDebug3D.view(yaw, .12, 5.5), {yaw});
+              // Espera a câmera de acompanhamento terminar a curva antes de medir o movimento.
+              const cameraSettleMs = await waitCameraStable(page, 9000, 5.5);
+              // Sem argumento, camView() verifica o protagonista; o argumento opcional é reservado a alvos de cenas livres.
+              await page.evaluate(() => {
+                const D = window.SevenSinsDebug3D;
+                const cap = {active:true,started:performance.now(),last:0,samples:[]};
+                const capture = t => {
+                  const s = D.state(); let v = null, w = null;
+                  try { v = typeof D.camView === "function" ? D.camView() : null; } catch {}
+                  try { w = typeof D.walkState === "function" ? D.walkState() : null; } catch {}
+                  cap.samples.push({t:+(t-cap.started).toFixed(1),x:+s.x.toFixed(2),z:+s.z.toFixed(2),y:+s.y.toFixed(2),
+                    grounded:typeof w?.grounded === "boolean" ? w.grounded : null,
+                    surface:typeof w?.surface === "string" ? w.surface : null,
+                    surfaceY:Number.isFinite(w?.surfaceY) ? +w.surfaceY.toFixed(2) : null,
+                    terrainY:Number.isFinite(w?.terrain) ? +w.terrain.toFixed(3) : null,
+                    camera:v && typeof v.onScreen === "boolean" ? {onScreen:v.onScreen,blocked:v.blocked ? {
+                      name:String(v.blocked.name || ""),dist:Number.isFinite(v.blocked.dist) ? +v.blocked.dist.toFixed(2) : null
+                    } : null} : null});
+                };
+                capture(cap.started); cap.last=cap.started;
+                function tick(t) { if (!cap.active) return; if (t-cap.last >= 500) { capture(t); cap.last=t; } requestAnimationFrame(tick); }
+                window.__a1RouteTrace=cap;
+                window.__a1RouteSteer={updates:0,lastAt:performance.now(),lastYaw:null,intervalMs:750};
+                requestAnimationFrame(tick);
               });
-            } else await page.waitForTimeout(ms);
-          } finally { await page.keyboard.up(key); }
-          const elapsed = Date.now() - begin;
-          await page.waitForTimeout(800);
-          const r = await shoot(page, sharp, scene, { name: "apos-percurso", mode: "camera-do-jogo", none: true }, prev, scene.shots.length);
-          r.res.controls = ["keyboard " + key + " " + elapsed + " ms"];
-          if (!reached) Object.assign(r.res, {status:"falha", reason:"Percurso abaixo de " + distance + " unidades no tempo limite"});
-          shots.push(r.res);
+              const begin = Date.now(); let reached = true;
+              await page.keyboard.down(segment.key);
+              try {
+                await page.waitForFunction(({target, tolerance, intervalMs}) => {
+                  const D = window.SevenSinsDebug3D, now = D.state();
+                  if (Math.hypot(now.x - target[0], now.z - target[1]) <= tolerance) return true;
+                  const steering = window.__a1RouteSteer, t = performance.now();
+                  if (steering && t - steering.lastAt >= intervalMs) {
+                    const yaw = Math.atan2(-(target[0] - now.x), -(target[1] - now.z));
+                    if (Number.isFinite(yaw)) {
+                      D.view(yaw, .12, 5.5);
+                      steering.lastAt = t; steering.lastYaw = yaw; steering.updates++;
+                    }
+                  }
+                  return false;
+                }, {target: segment.target, tolerance: segment.tolerance, intervalMs: 750}, {polling:250, timeout:segment.timeoutMs}).catch(e => {
+                  if (e.name !== "TimeoutError") throw e;
+                  reached = false;
+                });
+              } finally { await page.keyboard.up(segment.key); }
+              const elapsedMs = Date.now() - begin;
+              await page.waitForTimeout(800);
+              const captured = await page.evaluate(() => {
+                const cap=window.__a1RouteTrace,D=window.SevenSinsDebug3D;
+                if (!cap) return null;
+                cap.active=false;
+                const s=D.state(); let v=null,w=null;
+                try { v=typeof D.camView === "function" ? D.camView() : null; } catch {}
+                try { w=typeof D.walkState === "function" ? D.walkState() : null; } catch {}
+                const t=performance.now()-cap.started;
+                cap.samples.push({t:+t.toFixed(1),x:+s.x.toFixed(2),z:+s.z.toFixed(2),y:+s.y.toFixed(2),
+                  grounded:typeof w?.grounded === "boolean" ? w.grounded : null,
+                  surface:typeof w?.surface === "string" ? w.surface : null,
+                  surfaceY:Number.isFinite(w?.surfaceY) ? +w.surfaceY.toFixed(2) : null,
+                  terrainY:Number.isFinite(w?.terrain) ? +w.terrain.toFixed(3) : null,
+                  camera:v && typeof v.onScreen === "boolean" ? {onScreen:v.onScreen,blocked:v.blocked ? {
+                    name:String(v.blocked.name || ""),dist:Number.isFinite(v.blocked.dist) ? +v.blocked.dist.toFixed(2) : null
+                  } : null} : null});
+                return {end:{x:s.x,y:s.y,z:s.z},trace:cap.samples,
+                  steering:window.__a1RouteSteer ? {...window.__a1RouteSteer} : null};
+              });
+              const end = captured?.end || await page.evaluate(() => window.SevenSinsDebug3D.state());
+              const trace = captured?.trace || [];
+              const steering = captured?.steering || {};
+              const measured = core.measureWalk(start, end, segment.target);
+              const traceMetrics = measureWalkTrace(trace,start,end);
+              const metricsForReport = {
+                valid:traceMetrics.valid,samples:traceMetrics.samples,
+                pathDistance:+Number(traceMetrics.pathDistance || 0).toFixed(2),
+                maxStep:+Number(traceMetrics.maxStep || 0).toFixed(2),
+                maxSpeed:+Number(traceMetrics.maxSpeed || 0).toFixed(2),
+                verticalTravel:+Number(traceMetrics.verticalTravel || 0).toFixed(2),
+                maxVerticalStep:+Number(traceMetrics.maxVerticalStep || 0).toFixed(2),
+                maxVerticalSpeed:+Number(traceMetrics.maxVerticalSpeed || 0).toFixed(2),
+                groundedSamples:traceMetrics.groundedSamples || 0,
+                airborneSamples:traceMetrics.airborneSamples || 0,
+                finalGrounded:traceMetrics.finalGrounded === true,
+                surfaceTransitions:traceMetrics.surfaceTransitions || 0,
+                surfaceKinds:traceMetrics.surfaceKinds || [],
+                surfaceMinY:Number.isFinite(traceMetrics.surfaceMinY) ? +traceMetrics.surfaceMinY.toFixed(2) : null,
+                surfaceMaxY:Number.isFinite(traceMetrics.surfaceMaxY) ? +traceMetrics.surfaceMaxY.toFixed(2) : null,
+                maxSurfaceStep:+Number(traceMetrics.maxSurfaceStep || 0).toFixed(2),
+                cameraSamples:traceMetrics.cameraSamples || 0,
+                offScreenSamples:traceMetrics.offScreenSamples || 0,
+                blockedSamples:traceMetrics.blockedSamples || 0,
+                reason:traceMetrics.reason || null
+              };
+              const record = {
+                name: segment.name, key: segment.key, target: segment.target, yaw: +yaw.toFixed(3),
+                start: {x: +start.x.toFixed(2), y: +start.y.toFixed(2), z: +start.z.toFixed(2)},
+                end: {x: +end.x.toFixed(2), y: +end.y.toFixed(2), z: +end.z.toFixed(2)},
+                distance: +measured.distance.toFixed(2), remaining: +measured.remaining.toFixed(2), elapsedMs, cameraSettleMs,
+                steeringUpdates: Number.isInteger(steering.updates) ? steering.updates : 0,
+                steeringIntervalMs: Number.isFinite(steering.intervalMs) ? steering.intervalMs : 750,
+                finalYaw: Number.isFinite(steering.lastYaw) ? +steering.lastYaw.toFixed(3) : yaw,
+                minTravel: segment.minTravel, tolerance: segment.tolerance, timeoutMs: segment.timeoutMs,
+                trace, traceMetrics:metricsForReport,
+                reached: cameraSettleMs >= 0 && reached && traceMetrics.valid && measured.remaining <= segment.tolerance + .25 && measured.distance >= segment.minTravel
+              };
+              const willContinue = record.reached && j < scene.walk.segments.length - 1;
+              if (!willContinue && route.captureQuality?.applied && route.captureQuality.previous) {
+                route.captureQuality.restored = await page.evaluate(previous => {
+                  const select = document.getElementById("graphics-profile-3d");
+                  if (!select || !Array.from(select.options).some(option => option.value === previous)) return false;
+                  select.value = previous;
+                  select.dispatchEvent(new Event("change", { bubbles: true }));
+                  return select.value === previous;
+                }, route.captureQuality.previous);
+                await page.waitForTimeout(900);
+                route.captureQuality.fpsAfterRestore = await page.evaluate(() => document.getElementById("fps-badge")?.textContent?.trim() || null);
+              }
+              const r = await shoot(page, sharp, scene, { name: segment.name, mode: "camera-do-jogo", none: true }, prev, scene.shots.length + j);
+              r.res.controls = ["keyboard " + segment.key + " " + elapsedMs + " ms", "camera yaw " + yaw.toFixed(3), "camera settle " + cameraSettleMs + " ms"];
+              r.res.extra = { ...(r.res.extra || {}), walk: record };
+              if (!record.reached) {
+                route.completed = false;
+                r.res.status = "falha";
+                r.res.reason = cameraSettleMs < 0
+                  ? "Câmera não estabilizou após ajustar o yaw do trecho " + segment.name
+                  : !traceMetrics.valid
+                    ? "Trace inválido no trecho " + segment.name + ": " + (traceMetrics.reason || "métrica inconsistente")
+                    : "Percurso " + segment.name + " não alcançou alvo: " + record.distance + " m percorridos, " + record.remaining + " m restantes; mínimo " + segment.minTravel + " m";
+              }
+              shots.push(r.res); prev = r.sig; route.segments.push(record);
+              if (!record.reached) break; // falha no primeiro trecho: preservar a causa, sem seguir de um ponto incorreto
+            }
+            route.totalDistance = +route.segments.reduce((sum, s) => sum + s.distance, 0).toFixed(2);
+            route.totalPathDistance = +route.segments.reduce((sum, s) => sum + (s.traceMetrics?.pathDistance || 0), 0).toFixed(2);
+            route.cameraTelemetry = route.segments.reduce((acc, s) => {
+              const m=s.traceMetrics || {};
+              acc.samples += m.cameraSamples || 0;
+              acc.offScreenSamples += m.offScreenSamples || 0;
+              acc.blockedSamples += m.blockedSamples || 0;
+              return acc;
+            }, {samples:0,offScreenSamples:0,blockedSamples:0});
+            route.finishedAt = new Date().toISOString();
+            routes.push(route);
+          } else {
+            const {key, ms, distance} = scene.walk;
+            const start = distance ? await page.evaluate(() => window.SevenSinsDebug3D.state()) : null;
+            const begin = Date.now(); let reached = true;
+            await page.keyboard.down(key);
+            try {
+              if (distance) {
+                await page.waitForFunction(({x, z, distance}) => {
+                  const now = window.SevenSinsDebug3D.state();
+                  return Math.hypot(now.x - x, now.z - z) >= distance;
+                }, {x:start.x, z:start.z, distance}, {polling:250, timeout:ms}).catch(e => {
+                  if (e.name !== "TimeoutError") throw e;
+                  reached = false;
+                });
+              } else await page.waitForTimeout(ms);
+            } finally { await page.keyboard.up(key); }
+            const elapsed = Date.now() - begin;
+            await page.waitForTimeout(800);
+            const r = await shoot(page, sharp, scene, { name: "apos-percurso", mode: "camera-do-jogo", none: true }, prev, scene.shots.length);
+            r.res.controls = ["keyboard " + key + " " + elapsed + " ms"];
+            if (!reached) Object.assign(r.res, {status:"falha", reason:"Percurso abaixo de " + distance + " unidades no tempo limite"});
+            shots.push(r.res);
+          }
         }
       } catch (e) {
         shots.push({ scene: scene.id, name: "cena", file: "", status: "falha", reason: "cena não abriu: " + String(e.message || e).slice(0, 240), attempts: 0, pixels: { mean: 0, stdev: 0 } });
@@ -199,7 +395,7 @@ async function main() {
     }
   } catch (e) { fatal = String(e.message || e); } finally { await browser?.close().catch(() => {}); }
   fs.rmSync(path.join(out, "videos", "_tmp"), { recursive: true, force: true });
-  Object.assign(report, core.summarize(shots, fatal), { fatal, shots, videos, timings, totalMs: Date.now() - t0, ...log,
+  Object.assign(report, core.summarize(shots, fatal), { fatal, shots, videos, timings, routes, totalMs: Date.now() - t0, ...log,
     observedVsInferred: { observed: "arquivos PNG/WebM/MP4, métricas de pixels (média, desvio, frações preto/branco), estado do debug (posição, câmera, render.info, caverna, métricas de cabelo), erros e requisições", inferred: "nenhum — nada aqui reconhece objetos; 'ok' só quer dizer que o quadro não é preto/branco/uniforme" } });
   report.finishedAt = new Date().toISOString();
   const idx = core.buildIndex(report);

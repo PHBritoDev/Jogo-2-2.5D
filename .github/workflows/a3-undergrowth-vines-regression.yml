@@ -1,26 +1,69 @@
-name: A3 — regressão dos cipós fora das trilhas
+name: A3 — visibilidade da vegetação nas rotas de Eldória
 on:
   pull_request:
     branches: [main]
     paths:
       - 'eldoria-undergrowth.js'
+      - 'eldoria-prologue-meadow.js'
+      - 'act1-world-layout.js'
+      - 'mundo-3d-prototype.js'
       - 'tests/a3-tropical-vines-path-clearance.test.mjs'
+      - 'tests/a3-prologue-meadow-visibility.test.mjs'
       - 'eldoria-mod291.test.mjs'
+      - 'tools/visual-lab/a3-meadow-visibility-qa.cjs'
       - '.github/workflows/a3-undergrowth-vines-regression.yml'
 permissions:
   contents: read
 jobs:
   undergrowth:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      VISUAL_BASE_URL: http://127.0.0.1:4173
+      VISUAL_OUTPUT: visual-lab-results/a3-meadow
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Sintaxe e regressões de vegetação
         run: |
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
           node --check eldoria-undergrowth.js
+          node --check eldoria-prologue-meadow.js
           node --check tests/a3-tropical-vines-path-clearance.test.mjs
+          node --check tests/a3-prologue-meadow-visibility.test.mjs
+          node --check tools/visual-lab/a3-meadow-visibility-qa.cjs
           node --input-type=module --check < mundo-3d-prototype.js
-          node --test tests/a3-tropical-vines-path-clearance.test.mjs eldoria-mod291.test.mjs
+          node --test tests/a3-tropical-vines-path-clearance.test.mjs tests/a3-prologue-meadow-visibility.test.mjs eldoria-mod291.test.mjs
+      - name: Instalar navegador do QA
+        run: |
+          npm install --prefix tools/visual-lab --no-audit --no-fund
+          tools/visual-lab/node_modules/.bin/playwright install --with-deps chromium
+      - name: Servidor do jogo
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/a3-meadow-http.log 2>&1 &
+          curl -fsS --retry 12 --retry-connrefused "$VISUAL_BASE_URL/mundo-3d-prototype.html" -o /dev/null
+      - name: A/B real do prado e trilha com câmera de acompanhamento
+        run: NODE_PATH=tools/visual-lab/node_modules node tools/visual-lab/a3-meadow-visibility-qa.cjs
+      - name: Resumo do A3
+        if: always()
+        run: |
+          if [ -f "$VISUAL_OUTPUT/report.json" ]; then
+            cat "$VISUAL_OUTPUT/report.json" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "A3: relatório visual não foi produzido." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a3-meadow-${{ github.run_id }}
+          path: visual-lab-results/a3-meadow/
+          retention-days: 14
+          if-no-files-found: warn

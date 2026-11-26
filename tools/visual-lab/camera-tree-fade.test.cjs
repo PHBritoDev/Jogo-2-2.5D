@@ -37,3 +37,18 @@ test('tronco da figueira não fica opaco na distância de obstrução observada'
   assert.ok(candidateKept <= 0.51 && candidateKept >= 0.49,
     'a distância observada precisa descartar aproximadamente metade dos fragmentos do tronco');
 });
+
+test('folhagem tropical e cipós usam fade de 8 m e o sub-bosque preserva 2,2 m', () => {
+  const start = source.indexOf('// A folhagem tropical e os cipós suspensos');
+  const end = source.indexOf('function tropicalProfile()', start);
+  assert.ok(start >= 0 && end > start, 'fade das árvores do percurso precisa estar configurado');
+  const block = source.slice(start, end);
+  assert.ok(block.includes('beltTropical.group,8.0') && block.includes('beltUnder.group,2.2'),
+    'vegetação suspensa e sub-bosque precisam de alcances distintos');
+  assert.ok(block.includes('Array.isArray(o.material)') && block.includes('addNearCameraFade(material,near)'),
+    'todas as malhas e materiais da copa/tronco recebem o fade');
+  assert.ok(ditherKeep(4.64, 8.0) >= 0.49 && ditherKeep(4.64, 8.0) <= 0.51,
+    'a distância observada de 4,64 m abre aproximadamente metade da figueira');
+  assert.equal(ditherKeep(4.64, 2.2), 1,
+    'o alcance antigo de 2,2 m deixava a figueira totalmente opaca a 4,64 m');
+});

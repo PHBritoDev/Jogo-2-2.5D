@@ -72,10 +72,15 @@ fs.mkdirSync(dir, { recursive: true });
       const primaryId = state.focus;
       const sides = actors.filter(a => a.id !== primaryId);
       if (!primaryId || sides.length < 3) throw new Error('Esquadra não forneceu foco + três secundários.');
+      // Use o relógio manual antes de posicionar a esquadra. Uma captura de tela
+      // pode levar mais tempo que a vida dos cortes entre dois combatStep().
+      D.motionQA({ x: -5, z: 16, enemyDistance: 2.1, sword: 'aurora' });
       D.teleport(-5, 16, 0);
       D.squadPose(primaryId, -5, 13.9, 0, true);
-      D.squadPose(sides[0].id, -5.1, 12, 0, true);
-      D.squadPose(sides[1].id, -3.6, 12, 0, true);
+      // A terceira onda sai da ponta inclinada da lâmina, à direita do herói.
+      // Estes dois corpos ficam dentro das quatro trajetórias, separados por 1,50 m.
+      D.squadPose(sides[0].id, -4.65, 12, 0, true);
+      D.squadPose(sides[1].id, -3.15, 12, 0, true);
       D.squadPose(sides[2].id, -8.8, 12, 0, true);
       D.combatStep(.1, { fps: 30, draw: true });
       const synced = D.squadState();

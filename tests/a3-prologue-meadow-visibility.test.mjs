@@ -1,0 +1,158 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { BROKEN_WHEEL, FALL_SPOT, PROLOGUE_MEADOW, TEREN_ROAD, TEREN_STOP } from '../act1-world-layout.js';
+import { planMeadow } from '../eldoria-prologue-meadow.js';
+
+const options = {
+  meadow: PROLOGUE_MEADOW,
+  road: TEREN_ROAD,
+  fall: FALL_SPOT,
+  wheel: BROKEN_WHEEL,
+  stop: TEREN_STOP,
+  isFree: () => true,
+  seed: 2911
+};
+
+function distanceToRoad(x, z) {
+  let best = Infinity;
+  for (let i = 1; i < TEREN_ROAD.length; i++) {
+    const a = TEREN_ROAD[i - 1], b = TEREN_ROAD[i], dx = b[0] - a[0], dz = b[1] - a[1];
+    const len2 = dx * dx + dz * dz;
+    const t = len2 ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / len2)) : 0;
+    best = Math.min(best, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t));
+  }
+  return best;
+}
+
+function maxBladeHeight(tuft, index) {
+  // A geometria tem lâminas de até 0,77 m; a escala vertical também varia por instância.
+  return .77 * tuft.s * (.8 + (index % 5) * .1) * tuft.heightScale;
+}
+
+test('capim no corredor visual da estrada fica abaixo da silhueta do protagonista', () => {
+  const plan = planMeadow(options);
+  const shoulder = plan.tufts.map((tuft, index) => ({
+    tuft,
+    distance: distanceToRoad(tuft.x, tuft.z),
+    height: maxBladeHeight(tuft, index)
+  })).filter(item => item.distance < 6);
+
+  assert.ok(shoulder.length > 0, 'há amostras no ombro da estrada/câmera');
+  assert.ok(shoulder.every(item => item.tuft.heightScale < 1), 'o ombro recebe altura reduzida');
+  assert.ok(shoulder.every(item => item.height <= 1.05), 'capim a até 6 m da rota não passa de 1,05 m');
+});
+
+test('manchas distantes preservam capim alto e o plano continua determinístico', () => {
+  const first = planMeadow(options), second = planMeadow(options);
+  assert.deepEqual(first, second, 'mesma seed produz o mesmo prado');
+  const distant = first.tufts.map((tuft, index) => ({
+    tuft,
+    distance: distanceToRoad(tuft.x, tuft.z),
+    height: maxBladeHeight(tuft, index)
+  })).filter(item => item.distance >= 10);
+
+  assert.ok(distant.length > 0, 'o campo ainda tem manchas fora do corredor');
+  assert.ok(distant.every(item => item.tuft.heightScale === 1), 'capim distante mantém a altura original');
+  assert.ok(distant.some(item => item.height > 1.2), 'o campo continua tendo capim alto');
+});
+
+test('a queda em FALL_SPOT mantém vegetação legível em baixo e alto sem esvaziar o prado', () => {
+  for (const lowSpec of [false, true]) {
+    const plan = planMeadow({ ...options, lowSpec });
+    const nearby = plan.tufts.map((tuft, index) => ({
+      tuft,
+      distance: Math.hypot(tuft.x - FALL_SPOT.x, tuft.z - FALL_SPOT.z),
+      height: maxBladeHeight(tuft, index)
+    })).filter(item => item.distance <= 8);
+
+    assert.ok(nearby.length >= (lowSpec ? 35 : 70), lowSpec ? 'low preserva densidade próxima ao spawn' : 'high preserva densidade próxima ao spawn');
+    assert.ok(nearby.every(item => item.tuft.heightScale < 1), 'vegetação no entorno inicial recebe altura reduzida');
+    assert.ok(nearby.every(item => item.height <= 1.05), 'vegetação no entorno inicial não ultrapassa 1,05 m');
+    assert.ok(nearby.some(item => item.height > .55), 'o prado mantém variação e não vira gramado raspado');
+  }
+});
+
+test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real', () => {
+  const source = readFileSync(new URL('../eldoria-prologue-meadow.js', import.meta.url), 'utf8');
+  const world = readFileSync(new URL('../mundo-3d-prototype.js', import.meta.url), 'utf8');
+
+  assert.match(source, /const heightScale = t\.heightScale \?\? 1/);
+  assert.match(source, /dummy\.scale\.set\(t\.s, t\.s \* \(\.8 \+ \(i % 5\) \* \.1\) \* heightScale, t\.s\)/);
+  assert.match(world, /const prologueMeadow=buildPrologueMeadow\(THREE,\{[\s\S]{0,500}?road:TEREN_ROAD/);
+});
+
+test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('candidate.moduleHits[file]'), 'a candidata precisa carregar os dois módulos alterados');
+  assert.ok(harness.includes('session.errors.console.length'), 'erros de console precisam reprovar a sessão');
+  assert.ok(harness.includes('heroPositionDelta'), 'o par compara a posição 3D completa do protagonista');
+  assert.ok(harness.includes('if (cam > .25)'), 'a câmera precisa coincidir nas duas cenas');
+  assert.ok(harness.includes('cameraClear('), 'o protagonista precisa estar enquadrado e sem oclusão');
+});
+
+test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas às duas rotas jogáveis');
+  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada rota jogável precisa ter uma caminhada candidata');
+  assert.ok(
+    harness.includes('const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";') &&
+    harness.includes('const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";') &&
+    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");'),
+    'prado e trilha precisam reprovar deslocamento curto com diagnóstico específico'
+  );
+  assert.ok(
+    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);'),
+    'prado e trilha precisam reprovar câmera instável após a caminhada'
+  );
+});
+
+
+test('o timeout da câmera não é confundido com a distância esperada após caminhar', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+
+  assert.ok(harness.includes('async function waitCameraStable(page, expectedDistance, timeoutMs = 22000)'), 'a função separa distância e timeout');
+  assert.ok(harness.includes('while (Date.now() - started < timeoutMs)'), 'o laço respeita o timeout configurável');
+  assert.ok(harness.includes('waitCameraStable(page, scene.distance, 9000)'), 'o executor compartilhado usa a distância da cena e 9 s de timeout após caminhar');
+  assert.ok(harness.includes('return waitCameraStable(page, scene.distance)'), 'o preset inicial usa a distância da cena');
+  assert.ok(harness.includes('walkForward(session.page, scene)') && harness.includes('WALK_SCENES.has(scene.id)'), 'prado e trilha usam o mesmo executor de caminhada');
+  assert.ok(!harness.includes('waitCameraStable(session.page, 9000,'), 'timeout não pode ocupar o argumento da distância');
+});
+
+test('as câmeras dirigidas começam alinhadas aos eixos reais da estrada e da trilha', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('x: 54, z: 160, yaw: Math.PI'), 'o prado olha para a estrada ao norte do spawn');
+  assert.ok(harness.includes('x: -14, z: -105, yaw: -Math.PI / 2'), 'a trilha começa voltada para oeste, no eixo de samambaias');
+  assert.ok(harness.includes('{ id: "mobile-portrait", width: 393, height: 852, isMobile: true, profile: "low" }'), 'o QA cobre mobile em retrato');
+  assert.ok(harness.includes('id: "prado-ombro-lateral"') && harness.includes('heroYaw: Math.PI'), 'a vista lateral mostra o ombro sem virar o herói para fora da estrada');
+});
+
+test('o preset posiciona o jogador antes de reativar a câmera de acompanhamento', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const pose = harness.slice(harness.indexOf('async function setPose'), harness.indexOf('async function capture'));
+  assert.ok(pose.indexOf('D.teleport(s.x, s.z, s.heroYaw ?? s.yaw);') < pose.indexOf('D.fly(null);'), 'teleporte preserva o yaw do herói e precede o follow-camera');
+  assert.ok(pose.indexOf('D.fly(null);') < pose.indexOf('D.view(s.yaw, s.pitch, s.distance);'), 'a vista deve ser aplicada após reativar a câmera');
+  assert.ok(pose.indexOf('D.view(s.yaw, s.pitch, s.distance);') < pose.indexOf('D.snapCam();'), 'a câmera deve ser assentada pelo preset determinístico após configurar a vista');
+});
+
+test('a caminhada aguarda deslocamento real e registra bloqueios quando não avança', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('async function walkForward(page, scene)'), 'as duas cenas compartilham o mesmo executor');
+  assert.ok(harness.includes('Math.hypot(s.x - x, s.z - z) >= 2'), 'o teclado permanece pressionado até o jogador avançar 2 m');
+  assert.ok(harness.includes('timeout: 15000, polling: 200'), 'o limite é por deslocamento, não por duração fixa');
+  assert.ok(harness.includes('D.whyBlocked?.(s.x, s.z)'), 'o relatório inclui diagnóstico de bloqueio no ponto final');
+});
+
+test('o comparador registra e reprova cipós com matrizes não finitas', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('window.SevenSinsTropicalReport || null'), 'o relatório captura as métricas reais do sub-bosque');
+  assert.ok(harness.includes('stats.finiteVines !== stats.vines'), 'a candidata exige todos os cipós com altura/posição finitas');
+  assert.ok(harness.includes('tropicalStats: session.tropicalStats'), 'o artifact preserva as métricas para inspeção');
+});
+
+
+test('viewport desktop usa perfil baixo e dimensão estável no renderer de software', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('{ id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }'),
+    'o desktop de QA usa a mesma carga baixa do soak de movimento de PC, sem alterar o perfil publicado');
+});
