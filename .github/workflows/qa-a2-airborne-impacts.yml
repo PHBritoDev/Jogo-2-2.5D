@@ -1,23 +1,58 @@
-name: A2 — regressão de impactos aéreos
+name: A2 — impactos aéreos e contato com o terreno
 on:
   pull_request:
     paths:
       - 'vfx-impact3d.js'
+      - 'skill-x-rupture-vfx3d.js'
+      - 'skill-twin-portals-vfx3d.js'
+      - 'skills-mod233-preview.html'
       - 'tests/a2-impact-airborne-dust.test.mjs'
+      - 'tools/qa/check_vfx236_preview.py'
       - '.github/workflows/qa-a2-airborne-impacts.yml'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  aerial-impact-test:
-    runs-on: ubuntu-latest
+  unit:
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Parse do VFX
-        run: node --check vfx-impact3d.js
-      - name: Contato de solo, posições inválidas e emissor de partículas
+      - name: Parse dos módulos de impacto
+        run: |
+          node --check vfx-impact3d.js
+          node --check skill-x-rupture-vfx3d.js
+          node --check skill-twin-portals-vfx3d.js
+      - name: Contato de solo, posições inválidas e cache do terreno
         run: node --test tests/a2-impact-airborne-dust.test.mjs
+  visual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Chromium WebGL com Playwright
+        run: |
+          python -m pip install playwright==1.56.1
+          python -m playwright install --with-deps chromium
+      - name: Prévia real das três habilidades
+        run: |
+          python3 -m http.server 8786 --bind 127.0.0.1 >/tmp/a2-impact-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID"' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8786/skills-mod233-preview.html >/dev/null; then break; fi
+            sleep 1
+          done
+          python tools/qa/check_vfx236_preview.py --url http://127.0.0.1:8786 --out work/a2-impact-ground
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a2-impact-ground-webgl
+          path: work/a2-impact-ground/
+          retention-days: 14
