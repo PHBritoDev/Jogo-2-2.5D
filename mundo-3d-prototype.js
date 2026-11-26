@@ -4385,7 +4385,7 @@ if(new URLSearchParams(location.search).get('adm')==='1'){
     location.href='mundo-3d-prototype.html?adm=1&debug3d=1&testeDimensao='+encodeURIComponent(key);
     return 'Abrindo teste isolado da dimensão.';
    },
-   onUltimate:()=>greedAdmCastUltimate(),
+   onUltimate:()=>admCastNearbyBossUltimate(),
    onPhase:()=>greedAdmNextPhase(),
    onKill:()=>{
     const count=window.SevenSinsDebug3D?.killNearby?.(12)??0;
@@ -4627,7 +4627,38 @@ function squadRuntime(){
  return squadRT;
 }
 const squadSq=()=>squadRT&&squadRT.squad;
-/** Mod 349: ultimate do Codex ligada ao corpo real da fase III, sem editar o motor do Claude. */
+/** Ultimate ADM universal: aciona a ultimate AUTORAL do chefe atual somente a até 20 m.
+ * Não cria ultimate para perfis sem uma cadastrada (ex.: Ganância) e não usa ataque genérico como fallback. */
+function admCastNearbyBossUltimate(){
+ const range=20;
+ if(!enemy.visible||!enemyAlive)return 'Nenhum chefe ativo para receber a Ultimate.';
+ if(tierOf(encounterProfile)!=='boss')return 'O inimigo atual não possui perfil de chefe.';
+ const distance=Math.hypot(enemy.position.x-player.position.x,enemy.position.z-player.position.z);
+ if(distance>range)return 'Chefe fora do alcance: '+distance.toFixed(1)+' m (máximo '+range+' m).';
+ const ultimate=ultimateFor(encounterProfile);
+ if(!ultimate)return 'Este chefe não possui Ultimate cadastrada.';
+ if(cineActive||gamePaused||bossUlt.kind||lunarUlt||zarkUlt||cosmicUlt)return 'Aguarde a ação atual terminar antes de ativar outra Ultimate.';
+ let started=false;
+ if(isVeraxionProfile(encounterProfile)){
+  if(!lunarGLTF){lunarCosmosReady();return 'Preparando a Ultimate autoral de VÉRAXION. Toque novamente quando terminar.';}
+  started=startLunarUlt();
+ }else if(isZarkhaelProfile(encounterProfile)){
+  started=startZarkUlt();
+ }else if(isVorgazhekProfile(encounterProfile)){
+  started=startCosmicUlt();
+ }else if(ultimate.kind==='nova'){
+  startSupernova();
+  started=!!bossUlt.kind;
+ }else{
+  startKitUlt(ultimate.kind);
+  started=!!bossUlt.kind;
+ }
+ if(!started)return 'A Ultimate deste chefe ainda não está pronta para ser ativada.';
+ bossUlt.used.n=Math.max(bossUlt.used.n||0,ultimate.at?.length||1);
+ showCombatCallout('ADM · '+ultimate.name);
+ return ultimate.name+' ativada a '+distance.toFixed(1)+' m.';
+}
+/** Ultimate cinematográfica da Ganância continua pertencendo à luta normal; não é mais o botão ADM. */
 let greedAtomic=null;
 function greedAdmCastUltimate(){
  const a=squadSq()?.actors.find(x=>x.alive&&x.kind==='greedB');

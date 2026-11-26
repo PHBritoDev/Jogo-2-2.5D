@@ -21,7 +21,7 @@ test('organização PC e celular com três categorias e toque real',()=>{
  assert.match(ui,/aria-expanded/);
  assert.match(ui,/min-height:45px/);
  assert.match(ui,/touch-action:manipulation/);
- assert.match(ui,/ATIVAR ULTIMATE · JUÍZO DA USURA/);
+ assert.match(ui,/ULTIMATE · CHEFES PRÓXIMOS/);
  assert.match(ui,/Próxima fase da Ganância/);
  assert.match(ui,/Cidade 1 · Eldória/);
  assert.match(ui,/Cidade 2 · Cinzária/);
@@ -37,17 +37,19 @@ test('organização PC e celular com três categorias e toque real',()=>{
  assert.match(world,/admFreeze\(on\)/);
  assert.match(world,/^\s*updateAllies\(dt\);/m, 'a pausa dos inimigos preserva o relógio dos aliados');
 });
-test('botão ativa a ultimate real sem matar chefe ou alterar vida',()=>{
- assert.match(world,/onUltimate:\(\)=>greedAdmCastUltimate\(\)/);
- assert.match(world,/function greedAdmCastUltimate\(\)/);
- assert.match(world,/if\(!dimBattle\?\.active\|\|dimBattle\.key!=='greed'\)/);
- assert.match(world,/if\(!a\|\|a\.gk\?\.phase!==3\)/);
- assert.match(world,/if\(greedAtomic\.active\)/);
- assert.match(world,/greedAtomic\.force\(\)/);
- assert.match(adapter,/force\(\)\{if\(!actor\?\.alive\|\|actor\.gk\?\.phase!==3\|\|!inactive\(\)\)return false;driver\.end\(\);forceQueued=true;return true;\}/);
- assert.match(adapter,/hpRatio:forceQueued\?\.4:a\.hp/);
- assert.match(adapter,/if\(forceQueued&&ultimate\.getState\(\)\.phase!=='idle'\)forceQueued=false/);
+test('botão ADM ativa a Ultimate autoral de qualquer chefe dentro de 20 m',()=>{
+ assert.match(world,/onUltimate:\(\)=>admCastNearbyBossUltimate\(\)/);
+ assert.match(world,/function admCastNearbyBossUltimate\(\)/);
+ assert.match(world,/const range=20/);
+ assert.match(world,/tierOf\(encounterProfile\)!=='boss'/);
+ assert.match(world,/const ultimate=ultimateFor\(encounterProfile\)/);
+ assert.match(world,/if\(!ultimate\)return 'Este chefe não possui Ultimate cadastrada\.'/);
+ assert.match(world,/started=startLunarUlt\(\)/);
+ assert.match(world,/started=startZarkUlt\(\)/);
+ assert.match(world,/started=startCosmicUlt\(\)/);
+ assert.doesNotMatch(world,/onUltimate:\(\)=>greedAdmCastUltimate\(\)/);
 });
+
 test('avanço de fases preserva a transição normal da Ganância',()=>{
  assert.match(world,/function greedAdmNextPhase\(\)/);
  assert.match(world,/if\(a\.gk\?\.phase>=3\)/);
