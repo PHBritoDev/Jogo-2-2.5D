@@ -272,6 +272,13 @@ test('aurora no céu: perfil baixo corta amostras de ruído sem reduzir intensid
     assert.equal((highExpr.match(/n1\(/g) || []).length, 2, 'médio/alto/máximo: duas amostras por raio');
   }
   sky.update(.016, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: true });
+  const animationTime = uniforms.uT.value;
+  sky.update(.25, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: true });
+  assert.ok(Math.abs(uniforms.uT.value - animationTime - .25) < 1e-9, 'tempo de movimento das cortinas avança com o delta real');
+  const pausedAnimationTime = uniforms.uT.value;
+  sky.update(.5, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: false });
+  assert.equal(uniforms.uT.value, pausedAnimationTime, 'céu oculto pausa o relógio do shader');
+  assert.ok(shader.includes('uT * .06') && shader.includes('uT * .07') && shader.includes('uT * .045'), 'dobras e raios continuam animados nos dois tiers');
   const auroraIntensity = sky.aurora, version = material.version;
   updateAuroraLight(THREE, { level: .8, time: 700, low: true });
   assert.equal(uniforms.uAurLow.value, 1, 'baixo chega ao shader do céu pelo uniforme compartilhado');
@@ -305,6 +312,9 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa) && /lowUniformDelta/.test(qa), 'compara intensidade e perfil do uniforme antes de aceitar pixels');
   assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
+  assert.ok(qa.includes('async function captureAuroraMotion') && qa.includes('recordVideo: { dir: motionDir') && qa.includes('await video.saveAs(videoPath)'), 'grava WebM temporal no mesmo cenário baseline/candidata');
+  assert.ok(qa.includes('for (let i = 0; i < 5; i++)') && qa.includes('await wait(2000)') && qa.includes('frameDeltas'), 'amostra cinco instantes separados por dois segundos sem congelar o relógio');
+  assert.ok(qa.includes("await captureAuroraMotion(browser, 'baseline', true)") && qa.includes("await captureAuroraMotion(browser, 'candidate', false)"), 'compara movimento real nos dois lados do A/B');
 });
 
 /* ---------- P2: morte → desintegração em pó ---------- */
