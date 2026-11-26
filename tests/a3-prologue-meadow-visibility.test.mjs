@@ -95,8 +95,16 @@ test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', ()
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas às duas rotas jogáveis');
   assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada rota jogável precisa ter uma caminhada candidata');
-  assert.ok(harness.includes('caminhada na trilha avançou menos de 2 m'), 'a trilha tropical precisa provar deslocamento real');
-  assert.ok(harness.includes('câmera não assentou após caminhada na trilha'), 'a captura da trilha espera a câmera estabilizar');
+  assert.ok(
+    harness.includes('const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";') &&
+    harness.includes('const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";') &&
+    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");'),
+    'prado e trilha precisam reprovar deslocamento curto com diagnóstico específico'
+  );
+  assert.ok(
+    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);'),
+    'prado e trilha precisam reprovar câmera instável após a caminhada'
+  );
 });
 
 
