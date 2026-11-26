@@ -67,7 +67,8 @@ Registro permanente da FASE 1 da missão de 26/11/2026 (loading cinematográfico
 
 ## Evidências (`docs/loading/evidencias/`)
 - `marcha-36s.mp4`: ciclo completo de 36 s, 640×360 a 12 fps, renderizado quadro a quadro no harness. Mostra as três trocas de cenário e as duas vinhetas. É uma captura offline em passo fixo (SwiftShader), **não** gravação em tempo real nem medição de FPS.
-- `desktop-*.jpg`, `retrato-360x800.jpg`, `paisagem-844x390.jpg`, `ready-390x844.jpg`, `rostos-closeup.jpg`, `erro-retry.jpg`.
+- Imagens: `desktop-vila-640.jpg`, `desktop-arena.jpg` e `desktop-neve-640.jpg` (os três atos); `desktop-vinheta-a.jpg` e `desktop-vinheta-b-corte.jpg`; `rostos-closeup.jpg` (olhos e sorrisos de frente); `retrato-360x800-vinhetas.jpg` e `retrato-390x844-arena.jpg`; `paisagem-844x390-ready.jpg`, `ready-390x844.jpg` e `ready-1365x768.jpg` (estado READY com o convite); `erro-retry-390x844.jpg` (diagnóstico e retry sobre o filme escurecido).
+- Correção achada no QA: no retrato, o Coliseu (77 m) passava por cima da estrada e escurecia a tela no ato da arena. Agora as peças grandes têm a borda interna limitada a 7 m do eixo e o Coliseu fica só no horizonte.
 
 ### Testes executados
 - `node --test tests/*.test.mjs *.test.mjs` com three.js real: todos passam.
