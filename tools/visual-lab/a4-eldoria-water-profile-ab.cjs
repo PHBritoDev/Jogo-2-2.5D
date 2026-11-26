@@ -40,7 +40,7 @@ const scenes = [
 const report = {
   status: 'incomplete', baseSha, candidateSha,
   renderer: 'Chromium/WebGL SwiftShader 852x480 — não Android físico',
-  profiles, scenes, cases: [], comparisons: [], errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0, sky: 0 }
+  profiles, scenes, cases: [], comparisons: [], motion: {}, errors: [], warnings: [], baselineRouteHits: { world: 0, aurora: 0, water: 0, sky: 0 }
 };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -245,6 +245,140 @@ async function captureSide(browser, side, baseline) {
   }
 }
 
+
+async function captureAuroraMotion(browser, side, baseline) {
+  const motionDir = path.join(out, 'motion');
+  fs.mkdirSync(motionDir, { recursive: true });
+  const context = await browser.newContext({
+    viewport: { width: 852, height: 480 }, deviceScaleFactor: 1,
+    isMobile: true, hasTouch: true,
+    recordVideo: { dir: motionDir, size: { width: 852, height: 480 } }
+  });
+  await context.addInitScript(({ selectedProfile }) => {
+    let seed = 0xA4E1D0;
+    Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    localStorage.setItem('seven-sins-3d-graphics', selectedProfile);
+  }, { selectedProfile: 'low' });
+  const page = await context.newPage();
+  const video = page.video();
+  page.on('pageerror', e => report.errors.push(side + ' motion pageerror: ' + String(e.message || e).slice(0, 400)));
+  page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' motion console: ' + msg.text().slice(0, 400)); });
+  page.on('requestfailed', req => {
+    const why = req.failure()?.errorText || '';
+    if (!/ERR_ABORTED|cancelled/i.test(why)) report.errors.push(side + ' motion requestfailed: ' + why + ' ' + req.url().slice(0, 180));
+  });
+  page.on('response', r => {
+    if (r.status() >= 400 && /\.(?:glb|js)(?:\?|$)/i.test(r.url()))
+      report.errors.push(side + ' motion HTTP ' + r.status() + ' ' + r.url().slice(0, 220));
+  });
+  if (baseline) {
+    await page.route(/\/(?:mundo-3d-prototype|aurora-luz3d|eldoria-water|ceu-atmosfera3d)\.js(?:\?.*)?$/, async route => {
+      const name = path.basename(new URL(route.request().url()).pathname);
+      if (name === 'mundo-3d-prototype.js') report.baselineRouteHits.world++;
+      if (name === 'aurora-luz3d.js') report.baselineRouteHits.aurora++;
+      if (name === 'eldoria-water.js') report.baselineRouteHits.water++;
+      if (name === 'ceu-atmosfera3d.js') report.baselineRouteHits.sky++;
+      await route.fulfill({ status: 200, contentType: 'text/javascript; charset=utf-8', body: baseModules[name] });
+    });
+  }
+  let contextClosed = false;
+  try {
+    await page.goto(baseUrl + '/mundo-3d-prototype.html?debug3d=1&a4AuroraMotion=' + side, {
+      waitUntil: 'domcontentloaded', timeout: 60000
+    });
+    await page.waitForFunction(() => window.SevenSinsDebug3D?.riteState?.().ready, null, { timeout: 240000 });
+    await page.evaluate(() => window.SevenSinsDebug3D.freeRoam());
+    await wait(1800);
+    await page.evaluate(() => {
+      const d = window.SevenSinsDebug3D;
+      d.setHour(22);
+      if (typeof d.weather === 'function') d.weather('limpo');
+      d.teleport(0, -29);
+      d.fly(null);
+      d.fly([0, 2, -29], [0, 22, -15]);
+      window.__a4MotionCameraPrevious = null;
+      window.__a4MotionCameraStable = 0;
+    });
+    await page.waitForFunction(() => {
+      const d = window.SevenSinsDebug3D, s = d?.state?.() || {}, u = window.__aurora327U || {};
+      const view = d?.camView?.([0, 22, -15]);
+      return Number.isFinite(s.x) && Number.isFinite(s.z) && Math.hypot(s.x, s.z + 29) < .25
+        && Number.isFinite(s.night) && s.night >= .99
+        && Number.isFinite(u.uAurK?.value) && u.uAurK.value >= .5
+        && u.uAurLow?.value === 1 && view?.onScreen && !view?.blocked;
+    }, null, { timeout: 30000, polling: 100 });
+    await page.waitForFunction(() => {
+      const camera = window.SevenSinsDebug3D?.cam?.();
+      if (!Array.isArray(camera) || camera.length !== 3 || !camera.every(Number.isFinite)) return false;
+      const previous = window.__a4MotionCameraPrevious;
+      window.__a4MotionCameraPrevious = camera;
+      const delta = previous ? Math.hypot(camera[0] - previous[0], camera[1] - previous[1], camera[2] - previous[2]) : Infinity;
+      window.__a4MotionCameraStable = delta < .015 ? (window.__a4MotionCameraStable || 0) + 1 : 0;
+      return window.__a4MotionCameraStable >= 4;
+    }, null, { timeout: 20000, polling: 100 });
+    const captureInfo = await page.evaluate(() => {
+      const canvas = document.getElementById('scene');
+      if (!(canvas instanceof HTMLCanvasElement)) throw new Error('canvas WebGL #scene ausente no vídeo temporal');
+      const siblings = Array.from(document.body.children).filter(node => node !== canvas);
+      for (const node of siblings) node.style.setProperty('visibility', 'hidden', 'important');
+      return {
+        canvasVisible: getComputedStyle(canvas).visibility === 'visible',
+        visibleBodySiblings: siblings.filter(node => getComputedStyle(node).visibility !== 'hidden').length
+      };
+    });
+    if (!captureInfo.canvasVisible || captureInfo.visibleBodySiblings !== 0)
+      report.errors.push(side + ' motion: overlays DOM não foram isolados=' + JSON.stringify(captureInfo));
+
+    const frames = [];
+    for (let i = 0; i < 5; i++) {
+      const diagnostic = await page.evaluate(() => {
+        const d = window.SevenSinsDebug3D, state = d?.state?.() || {}, u = window.__aurora327U || {};
+        return {
+          hour: state.dim?.hour ?? null, night: state.night ?? null,
+          auroraK: u.uAurK?.value ?? null, lowUniform: u.uAurLow?.value ?? null,
+          player: [state.x, state.y, state.z], camera: d?.cam?.() || null,
+          targetView: d?.camView?.([0, 22, -15]) || null
+        };
+      });
+      if (!Number.isFinite(diagnostic.hour) || !(diagnostic.hour >= 18 || diagnostic.hour < 6)
+        || !Number.isFinite(diagnostic.night) || diagnostic.night < .99
+        || !Number.isFinite(diagnostic.auroraK) || diagnostic.auroraK < .5
+        || diagnostic.lowUniform !== 1)
+        report.errors.push(side + ' motion frame ' + i + ': aurora saiu do estado noturno/baixo=' + JSON.stringify(diagnostic));
+      if (!diagnostic.player.every(Number.isFinite) || Math.hypot(diagnostic.player[0], diagnostic.player[2] + 29) >= .25)
+        report.errors.push(side + ' motion frame ' + i + ': jogador saiu da pose=' + JSON.stringify(diagnostic.player));
+      if (!diagnostic.targetView?.onScreen || diagnostic.targetView?.blocked)
+        report.errors.push(side + ' motion frame ' + i + ': alvo da câmera ficou obstruído=' + JSON.stringify(diagnostic.targetView));
+      const image = 'motion/' + side + '-low-aurora-' + String(i).padStart(2, '0') + '.png';
+      await page.locator('#scene').screenshot({ path: path.join(out, image), timeout: 90000, animations: 'disabled', scale: 'css' });
+      frames.push({ tMs: i * 2000, image, ...diagnostic });
+      if (i < 4) await wait(2000);
+    }
+
+    const videoPath = path.join(motionDir, side + '-low-aurora-ceu.webm');
+    await context.close();
+    contextClosed = true;
+    await video.saveAs(videoPath);
+    const frameDeltas = [];
+    for (let i = 1; i < frames.length; i++) {
+      frameDeltas.push({
+        fromMs: frames[i - 1].tMs, toMs: frames[i].tMs,
+        ...(await imageDiff(path.join(out, frames[i - 1].image), path.join(out, frames[i].image),
+          { left: 220, top: 75, width: 450, height: 190 }))
+      });
+    }
+    report.motion[side] = {
+      profile: 'low', scene: 'aurora-ceu', durationMs: 8000,
+      video: path.relative(out, videoPath).replace(/\\/g, '/'),
+      captureInfo, frames, frameDeltas
+    };
+    if (frameDeltas.every(delta => delta.changedChannelsOver4 < .001))
+      report.warnings.push(side + ' motion: variação temporal abaixo de 0,1% dos canais do ROI do céu; inspecionar o WebM antes de concluir');
+  } finally {
+    if (!contextClosed) await context.close().catch(() => {});
+  }
+}
+
 async function waterCoverage(file, region) {
   const { data, info } = await sharp(file).extract(region).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   let water = 0, pixels = 0;
@@ -288,6 +422,8 @@ async function imageDiff(a, b, region = null) {
     ] });
     await captureSide(browser, 'baseline', true);
     await captureSide(browser, 'candidate', false);
+    await captureAuroraMotion(browser, 'baseline', true);
+    await captureAuroraMotion(browser, 'candidate', false);
     if (!report.baselineRouteHits.world || !report.baselineRouteHits.aurora || !report.baselineRouteHits.water || !report.baselineRouteHits.sky)
       report.errors.push('Baseline inválido: não interceptou mundo + os dois módulos A4');
     for (const profile of profiles) for (const scene of scenes) {
