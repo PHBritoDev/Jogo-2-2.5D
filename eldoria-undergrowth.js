@@ -111,7 +111,7 @@ export function applyUndergrowthCameraFade(material, fadeSpanMeters = UNDERGROWT
     shader.vertexShader = shader.vertexShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
     shader.vertexShader = shader.vertexShader.replace(
       worldPositionChunk,
-      worldPositionChunk + '\nvA3UndergrowthWorldPosition = worldPosition.xyz;'
+      worldPositionChunk + '\nvec4 a3UndergrowthWorldPosition = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\na3UndergrowthWorldPosition = instanceMatrix * a3UndergrowthWorldPosition;\n#endif\na3UndergrowthWorldPosition = modelMatrix * a3UndergrowthWorldPosition;\nvA3UndergrowthWorldPosition = a3UndergrowthWorldPosition.xyz;'
     );
     shader.fragmentShader = shader.fragmentShader.replace(common, common + '\nvarying vec3 vA3UndergrowthWorldPosition;');
     const fade = '\n{float a3UnderDepth=max(-vViewPosition.z,0.001);vec2 a3UnderViewAngle=vec2(vViewPosition.x/a3UnderDepth,vViewPosition.y/a3UnderDepth+0.10);float a3UnderFocusRadius=length(a3UnderViewAngle/vec2(0.30,0.38));float a3UnderFocus=1.0-smoothstep(0.72,1.05,a3UnderFocusRadius);float a3UnderFade=clamp((length(vViewPosition)-0.6)/'
