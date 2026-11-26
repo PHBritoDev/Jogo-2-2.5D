@@ -12,7 +12,7 @@ const SEED = 0xA3C0FFEE;
 const CHANGED_MODULES = ["eldoria-prologue-meadow.js", "eldoria-undergrowth.js"];
 const VIEWPORTS = [
   { id: "mobile", width: 852, height: 393, isMobile: true, profile: "low" },
-  { id: "desktop", width: 1280, height: 720, isMobile: false, profile: "high" }
+  { id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }
 ];
 const SCENES = [
   { id: "prado-prologo", x: 54, z: 160, yaw: Math.PI, pitch: .12, distance: 6 },
@@ -90,6 +90,9 @@ async function setPose(page, scene) {
     D.teleport(s.x, s.z, s.yaw);
     D.fly(null);
     D.view(s.yaw, s.pitch, s.distance);
+    // snapCam é o preset de câmera determinístico usado pelos laboratórios do projeto;
+    // evita capturar a interpolação antiga do spawn, sobretudo no viewport desktop.
+    D.snapCam();
   }, scene);
   await page.waitForTimeout(800);
   return waitCameraStable(page, scene.distance);

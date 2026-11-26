@@ -33,12 +33,15 @@ uniform vec4 uRipples[${WATER_MAX_RIPPLES}];
 uniform vec4 uRocks[${WATER_MAX_ROCKS}];
 uniform int uRockCount;
 uniform vec4 uFord; // F2 vau: início, fim (m ao longo do rio), transição, intensidade
-uniform vec3 uAurC; uniform float uAurK, uAurT; uniform vec2 uAurD; // Mod 327: luz da aurora (aurora-luz3d.js)
+uniform vec3 uAurC; uniform float uAurK, uAurT, uAurLow; uniform vec2 uAurD; // Mod 327/368: luz e qualidade da aurora
 varying vec2 vUv; varying vec3 vWorld;
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(h21(i), h21(i + vec2(1, 0)), u.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), u.x), u.y); }
 float fbm(vec2 p){ float s = 0.0, a = .5; for (int i = 0; i < 4; i++){ s += vn(p) * a; p = p * 2.03 + 11.7; a *= .5; } return s; }
+// O perfil baixo mantém as duas escalas maiores e normaliza a amplitude; alto continua idêntico.
+float fbmLow(vec2 p){ float s = vn(p) * .5; p = p * 2.03 + 11.7; s += vn(p) * .25; return s * 1.25; }
+float waterFbm(vec2 p){ if (uAurLow > .5) return fbmLow(p); return fbm(p); }
 void main(){
   float across = uRadial > .5 ? clamp(vUv.y, 0.0, 1.0) : abs(vUv.y);            // 0 centro → 1 margem
   float speed = uFlow * (1.0 - across * across * .65);                            // mais rápido no meio
@@ -46,9 +49,9 @@ void main(){
   vec2 dir = uRadial > .5 ? normalize(vec2(.6, .8)) : vec2(1.0, 0.0);
   vec2 a = q * 1.0 - dir * uTime * speed * .42, b = q * 2.3 - dir * uTime * speed * .9 + 7.1;
   float e = .06;
-  float n0 = fbm(a) * .65 + fbm(b) * .35;
-  float nx = fbm(a + vec2(e, 0)) * .65 + fbm(b + vec2(e, 0)) * .35;
-  float nz = fbm(a + vec2(0, e)) * .65 + fbm(b + vec2(0, e)) * .35;
+  float n0 = waterFbm(a) * .65 + waterFbm(b) * .35;
+  float nx = waterFbm(a + vec2(e, 0)) * .65 + waterFbm(b + vec2(e, 0)) * .35;
+  float nz = waterFbm(a + vec2(0, e)) * .65 + waterFbm(b + vec2(0, e)) * .35;
   vec3 N = normalize(vec3((n0 - nx) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld)))), 1.0, (n0 - nz) * 3.2 * (.35 + .65 * (1.0 - smoothstep(15.0, 80.0, length(cameraPosition - vWorld))))));
   // Mod 316 — anéis de ondulação (passos na água rasa / aterrissagem): perturbam a normal e deixam um fio de espuma.
   float rippleFoam = 0.0;
@@ -71,12 +74,19 @@ void main(){
   if (uRadial > .5) { float trunks = .55 + .45 * sin(atan(vWorld.z - uLakeC.y, vWorld.x - uLakeC.x) * 23.0 + n0 * 3.0); sky = mix(sky, vec3(.05, .11, .07) * (1.0 - uNight * .5), smoothstep(.35, .95, across) * (.45 + .4 * trunks)); }
   vec3 col = mix(body, sky, fres * (1.0 - ford * .55)); // raso do vau: menos céu refletido, mais leito (sem leitoso)
   // Mod 327 — reflexo colorido e animado da aurora: depende da direção refletida (visão + ondulação), sem espelho
-  if (uAurK > .001) { float aUp = smoothstep(.04, .5, R.y), curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + fbm(vWorld.xz * .05 + uAurT * .03) * 2.4);
-    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23); col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5); }
+  if (uAurK > .001) {
+    float aUp = smoothstep(.04, .5, R.y), aurWarp;
+    // O mesmo seletor adaptativo governa a distorção da aurora, sem novo branch por efeito.
+    vec2 aurP = vWorld.xz * .05 + uAurT * .03;
+    aurWarp = waterFbm(aurP) * 2.4;
+    float curt = .5 + .5 * sin(dot(R.xz / (R.y + .25), uAurD) * 3.1 + uAurT * .11 + aurWarp);
+    float rays = .55 + .45 * sin(dot(R.xz, vec2(-uAurD.y, uAurD.x)) * 19.0 + uAurT * .23);
+    col += uAurC * uAurK * aUp * curt * curt * rays * (.3 + 2.0 * fres) * .8 * (1.0 - ford * .5);
+  }
   vec3 L = normalize(uSun); float spec = pow(max(dot(reflect(-L, N), V), 0.0), 90.0) * (1.0 - uNight * .7);
   col += uSunCol * spec * 1.4;
   // Espuma: margens recortadas por ruído e riscos que descem com a correnteza.
-  float streak = fbm(vec2(vUv.x * .9 - uTime * speed * 1.3, vUv.y * 5.0));
+  float streak = waterFbm(vec2(vUv.x * .9 - uTime * speed * 1.3, vUv.y * 5.0));
   float camDist = length(cameraPosition - vWorld), near = (1.0 - smoothstep(18.0, 70.0, camDist)); // longe: sem cintilar
   float foam = smoothstep(.8, .99, across + (streak - .5) * .3 * near);
   foam += smoothstep(.78, .93, streak) * .1 * (1.0 - across) * near;
@@ -87,13 +97,13 @@ void main(){
   if (uRadial < .5 && uFoamEnd > 0.0) foam *= 1.0 - smoothstep(uFoamEnd - 14.0, uFoamEnd - 2.0, vUv.x);
   for (int i = 0; i < ${WATER_MAX_ROCKS}; i++){ if (i >= uRockCount) break;
     vec4 r = uRocks[i]; float d = length(vWorld.xz - r.xy) - r.z;
-    float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * fbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
+    float ring = (1.0 - smoothstep(0.0, .9, d)) * (.55 + .45 * waterFbm(vWorld.xz * 2.0 - vec2(uTime * speed, 0.0)));
     foam = max(foam, ring * r.w); }
   foam = max(foam, rippleFoam);
   foam *= 1.0 - ford * .7; // no vau a margem não vira faixa branca contínua
-  if (ford > 0.0) foam = max(foam, ford * smoothstep(.62, .9, fbm(vec2(vUv.x * 2.4 - uTime * speed * 2.2, vUv.y * 7.0 + n0))) * (.16 + .3 * near));
+  if (ford > 0.0) foam = max(foam, ford * smoothstep(.62, .9, waterFbm(vec2(vUv.x * 2.4 - uTime * speed * 2.2, vUv.y * 7.0 + n0))) * (.16 + .3 * near));
   // Mod 316 — água branca (cascata): riscos longos que descem com a correnteza + bolhas; uWhite = 0 no rio/lago.
-  if (uWhite > 0.0) { float w = smoothstep(.38, .82, fbm(vec2(vUv.x * .55 - uTime * speed * 1.7, vUv.y * 3.2)) + (n0 - .5) * .35); foam = max(foam, uWhite * (.35 + .65 * w)); }
+  if (uWhite > 0.0) { float w = smoothstep(.38, .82, waterFbm(vec2(vUv.x * .55 - uTime * speed * 1.7, vUv.y * 3.2)) + (n0 - .5) * .35); foam = max(foam, uWhite * (.35 + .65 * w)); }
   col = mix(col, uFoam * (1.0 - uNight * .55), clamp(foam, 0.0, 1.0) * .85);
   float alpha = mix(uAlpha, .97, clamp(foam, 0.0, 1.0)) * (1.0 - smoothstep(.97, 1.0, across) * .6);
   // Margem rasa do lago mais transparente (o fundo aparece): a água deixa de parecer uma placa sobreposta.
@@ -121,7 +131,7 @@ export function createFlowWaterMaterial(THREE, o = {}) {
     uSkyZen: { value: new THREE.Color(o.skyZen ?? 0x6aa5d3) }, uWhite: { value: o.white ?? 0 }, uSunCol: { value: new THREE.Color(1, .96, .86) },
     uRipples: { value: Array.from({ length: WATER_MAX_RIPPLES }, () => new THREE.Vector4(0, 0, -99, 0)) }
   }]);
-  Object.assign(uniforms, o.aurora || waterAurora || { uAurC: { value: new THREE.Color() }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new THREE.Vector2(1, 0) } }); // Mod 327: uniforms COMPARTILHADOS (não clonados)
+  Object.assign(uniforms, o.aurora || waterAurora || { uAurC: { value: new THREE.Color() }, uAurK: { value: 0 }, uAurT: { value: 0 }, uAurD: { value: new THREE.Vector2(1, 0) }, uAurLow: { value: 0 } }); // Mod 327: uniforms COMPARTILHADOS (não clonados)
   const m = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide });
   m.name = o.radial ? 'eldoria-lake-water' : 'eldoria-river-water';
   /** Pool circular: reaproveita o anel mais antigo (sem alocação). */

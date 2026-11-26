@@ -121,6 +121,7 @@ test('o preset posiciona o jogador antes de reativar a câmera de acompanhamento
   const pose = harness.slice(harness.indexOf('async function setPose'), harness.indexOf('async function capture'));
   assert.ok(pose.indexOf('D.teleport(s.x, s.z, s.yaw);') < pose.indexOf('D.fly(null);'), 'teleporte deve preceder o follow-camera');
   assert.ok(pose.indexOf('D.fly(null);') < pose.indexOf('D.view(s.yaw, s.pitch, s.distance);'), 'a vista deve ser aplicada após reativar a câmera');
+  assert.ok(pose.indexOf('D.view(s.yaw, s.pitch, s.distance);') < pose.indexOf('D.snapCam();'), 'a câmera deve ser assentada pelo preset determinístico após configurar a vista');
 });
 
 test('a caminhada aguarda deslocamento real e registra bloqueios quando não avança', () => {
@@ -136,4 +137,11 @@ test('o comparador registra e reprova cipós com matrizes não finitas', () => {
   assert.ok(harness.includes('window.SevenSinsTropicalReport || null'), 'o relatório captura as métricas reais do sub-bosque');
   assert.ok(harness.includes('stats.finiteVines !== stats.vines'), 'a candidata exige todos os cipós com altura/posição finitas');
   assert.ok(harness.includes('tropicalStats: session.tropicalStats'), 'o artifact preserva as métricas para inspeção');
+});
+
+
+test('viewport desktop usa perfil baixo e dimensão estável no renderer de software', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.ok(harness.includes('{ id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }'),
+    'o desktop de QA usa a mesma carga baixa do soak de movimento de PC, sem alterar o perfil publicado');
 });
