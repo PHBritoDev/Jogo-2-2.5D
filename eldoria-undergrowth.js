@@ -124,6 +124,11 @@ export function broadLeafGeometry(THREE) {
   g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
   g.computeVertexNormals();g.computeBoundingSphere();return g;
 }
+/** A ponta de um folíolo alcança y=-0.1; a origem da instância não é o limite inferior real. */
+const VINE_GEOMETRY_MIN_Y = -.1;
+const VINE_GEOMETRY_MAX_Y = 1;
+const VINE_GEOMETRY_VERTICAL_SPAN = VINE_GEOMETRY_MAX_Y - VINE_GEOMETRY_MIN_Y;
+
 /** Cipó: fita fina curva de altura 1 (topo em y=1), balança com o vento do jogo. */
 export function vineGeometry(THREE) {
   const pos = [], col = [], S = 8, w = .035;
@@ -174,8 +179,10 @@ export function planTropical({ trees, zone, isFree, lowSpec = false, seed = 4242
         : speciesHeight * (Number.isFinite(t.s) && t.s > 0 ? t.s : 1);
       const top = treeHeight * (.62 + rnd() * .2);
       const rawLength = treeHeight * (.35 + rnd() * .35);
-      // A ponta inferior precisa permanecer 20 cm acima do terreno, sem alterar o consumo do RNG.
-      const len = Math.min(rawLength, Math.max(0, top - .2));
+      // O último folíolo passa de y=0 até y=-0.1; limitar pelo span real da malha evita enterrá-lo.
+      // O topo continua fixo e a menor coordenada renderizada fica a pelo menos 20 cm do terreno.
+      const maxLengthAboveGround = Math.max(0, (top - .2) / VINE_GEOMETRY_VERTICAL_SPAN);
+      const len = Math.min(rawLength, maxLengthAboveGround);
       const rot = rnd() * 6.28;
       if (len > 0 && vineFits(x, z)) vines.push({ x, z, top, len, rot });
     }
