@@ -294,9 +294,11 @@ test('aurora no céu: perfil baixo corta amostras de ruído sem reduzir intensid
 test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizada', () => {
   const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
   const workflow = fs.readFileSync(new URL('../.github/workflows/a4-eldoria-water-profile-ab.yml', import.meta.url), 'utf8');
+  const pullRequestTrigger = workflow.slice(workflow.indexOf('  pull_request:'), workflow.indexOf('  workflow_dispatch:'));
+  assert.ok(pullRequestTrigger.includes("      - 'aurora-luz3d.js'") && pullRequestTrigger.includes("      - '.github/workflows/a4-eldoria-water-profile-ab.yml'"), 'filtros de caminho continuam dentro do gatilho pull_request');
   assert.ok(workflow.includes('workflow_dispatch:') && workflow.includes('base_sha:') && workflow.includes('candidate_sha:'), 'A4 permite dispatch manual com SHAs explícitos');
   assert.ok(workflow.includes("if: github.event_name == 'workflow_dispatch'") && workflow.includes('INPUT_SHA'), 'dispatch manual rejeita candidate_sha diferente do HEAD selecionado');
-  assert.ok(workflow.includes('inputs.base_sha || github.event.pull_request.base.sha') && workflow.includes('inputs.candidate_sha || github.event.pull_request.head.sha || github.sha'), 'PR e dispatch manual usam os mesmos SHAs exatos');
+  assert.ok(workflow.includes('BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}') && workflow.includes('CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}'), 'PR e dispatch manual usam os mesmos SHAs exatos');
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');

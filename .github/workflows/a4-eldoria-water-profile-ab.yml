@@ -4,6 +4,13 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
+      - 'aurora-luz3d.js'
+      - 'ceu-atmosfera3d.js'
+      - 'eldoria-water.js'
+      - 'mundo-3d-prototype.js'
+      - 'tests/mod327.test.mjs'
+      - 'tools/visual-lab/a4-eldoria-water-profile-ab.cjs'
+      - '.github/workflows/a4-eldoria-water-profile-ab.yml'
   workflow_dispatch:
     inputs:
       base_sha:
@@ -14,13 +21,6 @@ on:
         description: "SHA exato do HEAD da branch A4 selecionada"
         required: true
         type: string
-      - 'aurora-luz3d.js'
-      - 'ceu-atmosfera3d.js'
-      - 'eldoria-water.js'
-      - 'mundo-3d-prototype.js'
-      - 'tests/mod327.test.mjs'
-      - 'tools/visual-lab/a4-eldoria-water-profile-ab.cjs'
-      - '.github/workflows/a4-eldoria-water-profile-ab.yml'
 
 permissions:
   contents: read
@@ -56,7 +56,7 @@ jobs:
           command -v ffprobe
           ffmpeg -version
           ffprobe -version
-      - name: Buscar o SHA exato da base da PR
+      - name: Buscar o SHA exato da base da comparação
         env:
           BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
         run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
@@ -75,7 +75,7 @@ jobs:
           exit 1
       - name: Comparar água e aurora do céu em quatro perfis
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
           CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}
           VISUAL_BASE_URL: http://127.0.0.1:4173
         run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/a4-eldoria-water-profile-ab.cjs
