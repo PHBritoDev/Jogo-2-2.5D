@@ -197,8 +197,14 @@ test('fade focal usa cone da câmera e Bayer 8x8 ancorado no mundo sem clareira 
   assert.equal(UNDERGROWTH_CAMERA_FADE_METERS, 5.6);
   assert.deepEqual(calls, ['wind'], 'o shader de vento anterior continua encadeado');
   assert.ok(shader.vertexShader.includes('varying vec3 vA3UndergrowthWorldPosition;'));
-  assert.ok(shader.vertexShader.includes('vA3UndergrowthWorldPosition = worldPosition.xyz;'),
-    'a posição mundial inclui a transformação de cada instância');
+  assert.ok(shader.vertexShader.includes('vec4 a3UndergrowthWorldPosition = vec4(transformed, 1.0);'),
+    'a posição parte do vértice já deformado pelo vento');
+  assert.ok(shader.vertexShader.includes('#ifdef USE_INSTANCING\\na3UndergrowthWorldPosition = instanceMatrix * a3UndergrowthWorldPosition;\\n#endif'),
+    'a posição mundial inclui a matriz de cada instância');
+  assert.ok(shader.vertexShader.includes('a3UndergrowthWorldPosition = modelMatrix * a3UndergrowthWorldPosition;'),
+    'a posição mundial inclui a transformação do objeto');
+  assert.ok(!shader.vertexShader.includes('worldPosition.xyz'),
+    'não depende da variável opcional declarada apenas em alguns materiais Three.js');
   assert.ok(shader.fragmentShader.includes('a3UnderFade=clamp((length(vViewPosition)-0.6)/5.60'),
     'a distância de fade mantém o alcance validado');
   assert.ok(shader.fragmentShader.includes('a3UnderFocusRadius=length(a3UnderViewAngle/vec2(0.30,0.38))'),
