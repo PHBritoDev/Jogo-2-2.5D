@@ -168,6 +168,9 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
   padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
   overflow:hidden;color:#f4ead6;text-align:center;
   background:
+    linear-gradient(90deg,#050810d9 0%,#080b16a6 45%,#080710c7 100%),
+    linear-gradient(0deg,#05070ed9 0%,transparent 54%,#05070e66 100%),
+    url('./assets/ui/menu/cinematic/environment.webp') center 43%/cover no-repeat,
     radial-gradient(ellipse at 50% 38%,#25324b 0%,#111a2b 30%,#080d18 68%,#03060d 100%);
   isolation:isolate;
 }
@@ -237,6 +240,24 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
 }
 @keyframes plPlanetFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes plOrbit{to{transform:rotate(423deg) scaleY(.42)}}
+
+
+/* Reaproveita a arte cinematográfica original aprovada no menu #569:
+   anjo, demônio, arco partido, ruínas, sete mundos e protagonista. */
+#loading .pl-card{width:min(720px,100%);padding:clamp(16px,3vh,28px) clamp(16px,4vw,34px) 22px;background:linear-gradient(155deg,#080c16d9,#080b13e8 78%);border-color:#c8a96d99}
+#loading .pl-world-art{display:block;width:min(100%,650px);height:clamp(116px,27vh,232px);margin:4px auto 8px;object-fit:contain;object-position:center;filter:drop-shadow(0 12px 24px #000b);animation:plWorldDrift 7s ease-in-out infinite}
+#loading .pl-planet{display:none}
+#loading .pl-title{font-size:clamp(19px,4.4vw,28px)}
+#loading .pl-subtitle{color:#d2d4df}
+#loading .pl-state{color:#e9d5aa}
+@keyframes plWorldDrift{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media(max-width:560px){
+ #loading{background-position:center,center,58% center,center}
+ #loading .pl-card{padding:14px 13px 18px}
+ #loading .pl-world-art{height:clamp(104px,25vh,156px);margin:0 auto 5px}
+ #loading .pl-kicker{font-size:8px;letter-spacing:.18em}
+}
+@media(max-height:520px){#loading .pl-world-art{height:clamp(76px,22vh,112px);margin:0 auto 2px}}
 
 </style>
 <link rel="stylesheet" href="./hud3d.css?v=a1-vorgazhek-portrait-vs-fit-r2">
@@ -363,7 +384,7 @@ body.lunar-ult-cine #lunar-skip{display:block}
 <div id="loading" role="status" aria-live="polite" aria-label="Carregamento do planeta">
   <div class="pl-card">
     <p class="pl-kicker">A BATALHA CONTRA OS 7 PECADOS CAPITAIS</p>
-    <div class="pl-planet" aria-hidden="true"><span class="pl-orbit"></span></div>
+    <img class="pl-world-art" src="./assets/ui/menu/cinematic/worlds-hero.webp" alt="" aria-hidden="true" fetchpriority="high">
     <h1 class="pl-title">A travessia entre mundos</h1>
     <p class="pl-subtitle" id="loading-copy">Preparando o planeta e organizando seus recursos 3D.</p>
     <div class="pl-divider"></div>
