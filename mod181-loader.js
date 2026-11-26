@@ -83,10 +83,13 @@ const loadingProgressLabel = document.getElementById('loading-progress-label');
 const loadingError = document.getElementById('loading-error');
 const loadingRetry = document.getElementById('load-retry');
 
+// Barra: os módulos baixados valem até 90%; os 10% finais só chegam quando o mundo confirma que está pronto
+// (#loading.hidden → estado READY no HTML). Nunca regride, mesmo quando o grafo descobre mais módulos.
+let shownPercent = 0;
 function setLoadingProgress(done, total, stateLabel) {
   const count = Math.max(0, Number(done) || 0);
   const maximum = Math.max(0, Number(total) || 0);
-  const percent = maximum > 0 ? Math.max(0, Math.min(100, Math.round(count / maximum * 100))) : 0;
+  const percent = shownPercent = Math.max(shownPercent, maximum > 0 ? Math.max(0, Math.min(90, Math.round(count / maximum * 90))) : 0);
   if (loadingFill) loadingFill.style.width = percent + '%';
   if (loadingPercent) loadingPercent.textContent = percent + '%';
   if (loadingProgress) loadingProgress.setAttribute('aria-valuenow', String(percent));
@@ -123,7 +126,7 @@ try {
       if (statusEl && (d % 5 === 0 || d === t)) statusEl.textContent = 'Baixando os módulos do mundo 3D… ' + d + '/' + t;
     }
   });
-  setLoadingProgress(warm.modules || 0, warm.modules || 0, 'MÓDULOS PREPARADOS');
+  setLoadingProgress(warm.modules || 0, warm.modules || 0, 'MONTANDO O MUNDO');
   if (loadingCopy) loadingCopy.textContent = 'Os módulos foram preparados. Finalizando a montagem do mundo 3D.';
   if (warm.failures.length) console.warn('[Mod 186] módulos que falharam ao baixar:', warm.failures);
   const blob = new Blob([code], { type: 'text/javascript' });
