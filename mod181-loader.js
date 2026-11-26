@@ -123,7 +123,7 @@ try {
       if (statusEl && (d % 5 === 0 || d === t)) statusEl.textContent = 'Baixando os módulos do mundo 3D… ' + d + '/' + t;
     }
   });
-  setLoadingProgress(warm.total || 0, warm.total || 0, 'MÓDULOS PREPARADOS');
+  setLoadingProgress(warm.modules || 0, warm.modules || 0, 'MÓDULOS PREPARADOS');
   if (loadingCopy) loadingCopy.textContent = 'Os módulos foram preparados. Finalizando a montagem do mundo 3D.';
   if (warm.failures.length) console.warn('[Mod 186] módulos que falharam ao baixar:', warm.failures);
   const blob = new Blob([code], { type: 'text/javascript' });
