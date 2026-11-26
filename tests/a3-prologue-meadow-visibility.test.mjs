@@ -93,7 +93,8 @@ test('harness A/B falha fechado em console, módulos candidatos, oclusão e deri
 
 test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
-  assert.ok(harness.includes('candidate.walks.find(w => w.scene === scene.id)'), 'cada cena precisa ter uma caminhada candidata');
+  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas às duas rotas jogáveis');
+  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada rota jogável precisa ter uma caminhada candidata');
   assert.ok(harness.includes('caminhada na trilha avançou menos de 2 m'), 'a trilha tropical precisa provar deslocamento real');
   assert.ok(harness.includes('câmera não assentou após caminhada na trilha'), 'a captura da trilha espera a câmera estabilizar');
 });
@@ -106,7 +107,7 @@ test('o timeout da câmera não é confundido com a distância esperada após ca
   assert.ok(harness.includes('while (Date.now() - started < timeoutMs)'), 'o laço respeita o timeout configurável');
   assert.ok(harness.includes('waitCameraStable(page, scene.distance, 9000)'), 'o executor compartilhado usa a distância da cena e 9 s de timeout após caminhar');
   assert.ok(harness.includes('return waitCameraStable(page, scene.distance)'), 'o preset inicial usa a distância da cena');
-  assert.ok(harness.includes('walkForward(session.page, meadow)') && harness.includes('walkForward(session.page, forest)'), 'prado e trilha usam o mesmo executor de caminhada');
+  assert.ok(harness.includes('walkForward(session.page, scene)') && harness.includes('WALK_SCENES.has(scene.id)'), 'prado e trilha usam o mesmo executor de caminhada');
   assert.ok(!harness.includes('waitCameraStable(session.page, 9000,'), 'timeout não pode ocupar o argumento da distância');
 });
 
@@ -114,12 +115,14 @@ test('as câmeras dirigidas começam alinhadas aos eixos reais da estrada e da t
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('x: 54, z: 160, yaw: Math.PI'), 'o prado olha para a estrada ao norte do spawn');
   assert.ok(harness.includes('x: -14, z: -105, yaw: -Math.PI / 2'), 'a trilha começa voltada para oeste, no eixo de samambaias');
+  assert.ok(harness.includes('{ id: "mobile-portrait", width: 393, height: 852, isMobile: true, profile: "low" }'), 'o QA cobre mobile em retrato');
+  assert.ok(harness.includes('id: "prado-ombro-lateral"') && harness.includes('heroYaw: Math.PI'), 'a vista lateral mostra o ombro sem virar o herói para fora da estrada');
 });
 
 test('o preset posiciona o jogador antes de reativar a câmera de acompanhamento', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   const pose = harness.slice(harness.indexOf('async function setPose'), harness.indexOf('async function capture'));
-  assert.ok(pose.indexOf('D.teleport(s.x, s.z, s.yaw);') < pose.indexOf('D.fly(null);'), 'teleporte deve preceder o follow-camera');
+  assert.ok(pose.indexOf('D.teleport(s.x, s.z, s.heroYaw ?? s.yaw);') < pose.indexOf('D.fly(null);'), 'teleporte preserva o yaw do herói e precede o follow-camera');
   assert.ok(pose.indexOf('D.fly(null);') < pose.indexOf('D.view(s.yaw, s.pitch, s.distance);'), 'a vista deve ser aplicada após reativar a câmera');
   assert.ok(pose.indexOf('D.view(s.yaw, s.pitch, s.distance);') < pose.indexOf('D.snapCam();'), 'a câmera deve ser assentada pelo preset determinístico após configurar a vista');
 });
