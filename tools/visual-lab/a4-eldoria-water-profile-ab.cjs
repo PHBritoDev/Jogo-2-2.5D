@@ -251,8 +251,7 @@ async function captureAuroraMotion(browser, side, baseline) {
   fs.mkdirSync(motionDir, { recursive: true });
   const context = await browser.newContext({
     viewport: { width: 852, height: 480 }, deviceScaleFactor: 1,
-    isMobile: true, hasTouch: true,
-    recordVideo: { dir: motionDir, size: { width: 852, height: 480 } }
+    isMobile: true, hasTouch: true, acceptDownloads: true
   });
   await context.addInitScript(({ selectedProfile }) => {
     let seed = 0xA4E1D0;
@@ -260,7 +259,6 @@ async function captureAuroraMotion(browser, side, baseline) {
     localStorage.setItem('seven-sins-3d-graphics', selectedProfile);
   }, { selectedProfile: 'low' });
   const page = await context.newPage();
-  const video = page.video();
   page.on('pageerror', e => report.errors.push(side + ' motion pageerror: ' + String(e.message || e).slice(0, 400)));
   page.on('console', msg => { if (msg.type() === 'error') report.errors.push(side + ' motion console: ' + msg.text().slice(0, 400)); });
   page.on('requestfailed', req => {
@@ -329,8 +327,36 @@ async function captureAuroraMotion(browser, side, baseline) {
     if (!captureInfo.canvasVisible || captureInfo.visibleBodySiblings !== 0)
       report.errors.push(side + ' motion: overlays DOM não foram isolados=' + JSON.stringify(captureInfo));
 
+    const recordingStart = await page.evaluate(() => {
+      const canvas = document.getElementById('scene');
+      if (!(canvas instanceof HTMLCanvasElement) || typeof canvas.captureStream !== 'function')
+        throw new Error('canvas#scene não suporta captureStream');
+      const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+        .find(type => MediaRecorder.isTypeSupported(type));
+      if (!mimeType) throw new Error('MediaRecorder WebM indisponível');
+      const stream = canvas.captureStream(30);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2400000 });
+      const chunks = [];
+      window.__a4MotionRecordError = null;
+      recorder.addEventListener('dataavailable', event => {
+        if (event.data?.size) chunks.push(event.data);
+      });
+      recorder.addEventListener('error', event => {
+        window.__a4MotionRecordError = String(event.error?.message || event.message || event);
+      });
+      recorder.start(250);
+      window.__a4MotionRecording = { stream, recorder, chunks, startedAt: performance.now(), mimeType };
+      return { mimeType, width: canvas.width, height: canvas.height, fps: 30 };
+    });
+
     const frames = [];
     for (let i = 0; i < 5; i++) {
+      if (i > 0) await page.evaluate(async targetMs => {
+        const startedAt = window.__a4MotionRecording?.startedAt;
+        if (!Number.isFinite(startedAt)) throw new Error('relógio do vídeo temporal ausente');
+        const remaining = targetMs - (performance.now() - startedAt);
+        if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+      }, i * 2000);
       const diagnostic = await page.evaluate(() => {
         const d = window.SevenSinsDebug3D, state = d?.state?.() || {}, u = window.__aurora327U || {};
         return {
@@ -349,16 +375,43 @@ async function captureAuroraMotion(browser, side, baseline) {
         report.errors.push(side + ' motion frame ' + i + ': jogador saiu da pose=' + JSON.stringify(diagnostic.player));
       if (!diagnostic.targetView?.onScreen || diagnostic.targetView?.blocked)
         report.errors.push(side + ' motion frame ' + i + ': alvo da câmera ficou obstruído=' + JSON.stringify(diagnostic.targetView));
+      const tMs = await page.evaluate(() => Math.round(performance.now() - window.__a4MotionRecording.startedAt));
       const image = 'motion/' + side + '-low-aurora-' + String(i).padStart(2, '0') + '.png';
       await page.locator('#scene').screenshot({ path: path.join(out, image), timeout: 90000, animations: 'disabled', scale: 'css' });
-      frames.push({ tMs: i * 2000, image, ...diagnostic });
-      if (i < 4) await wait(2000);
+      frames.push({ tMs, image, ...diagnostic });
     }
 
     const videoPath = path.join(motionDir, side + '-low-aurora-ceu.webm');
+    const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+    const videoMeta = await page.evaluate(async () => {
+      const state = window.__a4MotionRecording;
+      if (!state?.recorder || state.recorder.state === 'inactive')
+        throw new Error('MediaRecorder temporal não está ativo');
+      const durationMs = Math.round(performance.now() - state.startedAt);
+      const stopped = new Promise((resolve, reject) => {
+        state.recorder.addEventListener('stop', resolve, { once: true });
+        state.recorder.addEventListener('error', event => reject(new Error(String(event.error?.message || event.message || event))), { once: true });
+      });
+      state.recorder.stop();
+      await stopped;
+      state.stream.getTracks().forEach(track => track.stop());
+      if (window.__a4MotionRecordError) throw new Error('MediaRecorder: ' + window.__a4MotionRecordError);
+      const blob = new Blob(state.chunks, { type: state.recorder.mimeType || state.mimeType });
+      if (blob.size < 50000) throw new Error('vídeo temporal vazio ou incompleto: ' + blob.size + ' bytes');
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = 'aurora-motion.webm';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      return { durationMs, bytes: blob.size, mimeType: blob.type, objectUrl };
+    });
+    const download = await downloadPromise;
+    await download.saveAs(videoPath);
+    await page.evaluate(url => URL.revokeObjectURL(url), videoMeta.objectUrl);
     await context.close();
     contextClosed = true;
-    await video.saveAs(videoPath);
     const frameDeltas = [];
     for (let i = 1; i < frames.length; i++) {
       frameDeltas.push({
@@ -368,8 +421,10 @@ async function captureAuroraMotion(browser, side, baseline) {
       });
     }
     report.motion[side] = {
-      profile: 'low', scene: 'aurora-ceu', durationMs: 8000,
-      video: path.relative(out, videoPath).replace(/\\/g, '/'),
+      profile: 'low', scene: 'aurora-ceu', sampleWindowMs: 8000,
+      videoDurationMs: videoMeta.durationMs, videoBytes: videoMeta.bytes,
+      videoMimeType: videoMeta.mimeType, videoSource: 'canvas.captureStream/MediaRecorder (canvas only; no boot or HUD)',
+      recordingStart, video: path.relative(out, videoPath).replace(/\\/g, '/'),
       captureInfo, frames, frameDeltas
     };
     if (frameDeltas.every(delta => delta.changedChannelsOver4 < .001))

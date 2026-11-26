@@ -312,8 +312,8 @@ test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizad
   assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa) && /lowUniformDelta/.test(qa), 'compara intensidade e perfil do uniforme antes de aceitar pixels');
   assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
-  assert.ok(qa.includes('async function captureAuroraMotion') && qa.includes('recordVideo: { dir: motionDir') && qa.includes('await video.saveAs(videoPath)'), 'grava WebM temporal no mesmo cenário baseline/candidata');
-  assert.ok(qa.includes('for (let i = 0; i < 5; i++)') && qa.includes('await wait(2000)') && qa.includes('frameDeltas'), 'amostra cinco instantes separados por dois segundos sem congelar o relógio');
+  assert.ok(qa.includes('async function captureAuroraMotion') && qa.includes('canvas.captureStream(30)') && qa.includes('new MediaRecorder') && qa.includes('page.waitForEvent(\'download\'') && qa.includes('await download.saveAs(videoPath)'), 'grava somente o canvas WebGL por MediaRecorder, sem boot/HUD');
+  assert.ok(qa.includes('for (let i = 0; i < 5; i++)') && qa.includes('targetMs - (performance.now() - startedAt)') && qa.includes('videoDurationMs: videoMeta.durationMs') && !qa.includes('recordVideo: { dir: motionDir') && qa.includes('frameDeltas'), 'cinco instantes em 0/2/4/6/8 s e duração real registrada');
   assert.ok(qa.includes("await captureAuroraMotion(browser, 'baseline', true)") && qa.includes("await captureAuroraMotion(browser, 'candidate', false)"), 'compara movimento real nos dois lados do A/B');
 });
 
