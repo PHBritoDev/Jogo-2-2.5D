@@ -113,3 +113,26 @@ export function rankShelterApproaches({
     };
   });
 }
+
+
+/**
+ * Retorna os marcos radiais obrigatórios: terreno seguro → primeiro degrau → centro registrável.
+ * O A* deve planejar cada trecho em sequência; mirar apenas o centro pode contornar a entrada baixa.
+ */
+export function shelterApproachWaypoints(center, side, registrationOffset = 0.55) {
+  if (!center || !side || !Number.isFinite(center.x) || !Number.isFinite(center.z) ||
+      !Number.isFinite(side.angle) || !side.staging || !side.entry ||
+      !Number.isFinite(side.staging.x) || !Number.isFinite(side.staging.z) ||
+      !Number.isFinite(side.entry.x) || !Number.isFinite(side.entry.z) ||
+      !Number.isFinite(registrationOffset) || registrationOffset <= 0) return [];
+  const ux = Math.cos(side.angle), uz = Math.sin(side.angle);
+  const registration = { x: center.x + ux * registrationOffset, z: center.z + uz * registrationOffset };
+  const radial = point => Math.hypot(point.x - center.x, point.z - center.z);
+  const stagingDistance = radial(side.staging), entryDistance = radial(side.entry);
+  if (!(stagingDistance > entryDistance && entryDistance > registrationOffset)) return [];
+  return [
+    { kind: 'staging', x: side.staging.x, z: side.staging.z },
+    { kind: 'entry', x: side.entry.x, z: side.entry.z },
+    { kind: 'registration', x: registration.x, z: registration.z }
+  ];
+}
