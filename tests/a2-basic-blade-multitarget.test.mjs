@@ -989,3 +989,14 @@ test('Passagem do Julgamento cancela em posição segura se uma parede fina surg
  assert.deepEqual(from,path[4],'o herói permanece no último waypoint livre');
  assert.equal(moves.length,4,'nenhum waypoint depois da parede pode ser aplicado');
 });
+
+
+test('Combat315 captures Passagem from the gameplay camera and restores it after the lateral diagnostic',async()=>{
+ const harness=await readFile(new URL('../tools/visual-lab/combat315-qa.cjs',import.meta.url),'utf8');
+ const start=harness.indexOf('const riteShot='),end=harness.indexOf("\n  await E(()=>{for(const id",start);
+ assert.ok(start>=0&&end>start,'Passagem screenshot helper must exist');
+ const shot=harness.slice(start,end);
+ assert.ok(shot.indexOf('D.viewQA(false)')<shot.indexOf("n+'.png'"),'the first image must use the gameplay third-person camera');
+ assert.ok(shot.includes("n+'-lateral.png'"),'the lateral diagnostic must be a separate image');
+ assert.ok(shot.includes('D.fly(null);D.viewQA(false)'),'the diagnostic camera must be restored before the next gameplay step');
+});
