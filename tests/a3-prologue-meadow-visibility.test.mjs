@@ -91,7 +91,7 @@ test('cameraClear considera discard do fade apenas para folhas quase transparent
   assert.match(harness, /UNDERGROWTH_FADE_SPAN_METERS = 5\.6/);
   assert.match(harness, /UNDERGROWTH_FADE_DISCARD_THRESHOLD = 0\.92/);
   assert.match(harness, /Number\.isFinite\(hit\.dist\)/);
-  assert.match(harness, /(1 - fade) >= UNDERGROWTH_FADE_DISCARD_THRESHOLD/);
+  assert.match(harness, /\(1 - fade\) >= UNDERGROWTH_FADE_DISCARD_THRESHOLD/);
   assert.match(harness, /!view\.blocked \|\| isVisuallyFadedUndergrowthBlocker\(view\)/);
   assert.match(harness, /if \(!hit \|\| !FADED_UNDERGROWTH_BLOCKERS\.has\(hit\.name\)\) return false/);
 });
