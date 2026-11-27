@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as A from './act1-flow.js';
+import { chooseStoryTwoShotSide, chooseStoryTwoShotFrame, segmentMayIntersectAabb } from './story-camera-layout.js';
 
 const { ACT1, sanitizePlayerName, migrateProgress, questPresentation, combatStep, afterEnemyDefeated, afterWardenDefeat, vhazraelHandoffPlan, nextAct1Sub, personalizeLine, SPEAKERS } = A;
 const SCENES = ['villageArrivalScene', 'vendorRefusalScene', 'vendorScene', 'forestFirstScene', 'forestSecondScene', 'keyFoundScene', 'cageScene', 'faintScene', 'massacreScene', 'clueScene', 'feedingScene', 'holeScene', 'wardenIntroScene', 'wardenDefeatScene', 'vhazraelIntroScene', 'vhazraelDefeatScene', 'afterVhazraelScene'];
@@ -242,4 +243,190 @@ test('descanso, recibos e progresso da campanha sobrevivem juntos ao reload e à
   const legacy = migrateProgress({version: 5, questStep: 2, coins: 12});
   assert.deepEqual([legacy.sakuraRest, legacy.sideRewardClaims, legacy.coins], [-1, [], 12]);
   assert.deepEqual(migrateProgress({...progress, sakuraRest: 100}).sideRewardClaims, [receipt]);
+});
+
+test('objetivo e primeira troca da cena principal identificam o mesmo vendedor', () => {
+  const scene = A.vendorScene();
+  const refusal = A.vendorRefusalScene();
+  for (const [label, steps] of [['cena principal', scene], ['recusa', refusal]]) {
+    const opening = steps[0];
+    assert.equal(opening?.type, 'shot', label + ': enquadramento de dois atores deve vir antes da primeira fala');
+    assert.equal(opening?.id, 'teo-primeira-troca');
+    assert.equal(opening.dur, 0.65);
+    assert.deepEqual(opening.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
+  }
+  const paymentShot = scene.find(s => s.type === 'shot' && s.id === 'saco-de-ouro');
+  assert.deepEqual(paymentShot?.args, { cam: 'two', a: 'hero', b: 'vendor', side: -1, dist: 4.8 });
+  const heroLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.hero);
+  const vendorLine = scene.find(s => s.type === 'say' && s.who === SPEAKERS.vendor);
+  assert.equal(questPresentation(1, 1).objective, 'Pergunte a Téo sobre o Pecado da Ganância');
+  assert.equal(SPEAKERS.vendor, 'Téo · Provisões');
+  assert.equal(heroLine?.text, 'Com licença. O senhor já ouviu algum rumor sobre o Pecado da Ganância?');
+  assert.equal(vendorLine?.text, 'Rumor não enche barriga, forasteiro. Se não vai comprar nada, vaza.');
+  assert.ok(scene.indexOf(vendorLine) > scene.indexOf(heroLine), 'Téo deve responder depois da pergunta do protagonista');
+  const actionIds = scene.flatMap(s => [s.id, ...(s.with || []).map(w => w.id)]).filter(Boolean);
+  assert.equal(actionIds.filter(id => id === 'entregar-ouro').length, 1,
+    'a transação original de cinco moedas deve permanecer uma única vez na cena');
+  assert.ok(actionIds.indexOf('entregar-ouro') < actionIds.indexOf('anoitecer'),
+    'a transação deve ocorrer antes da transição para a noite');
+});
+
+
+test('broadphase AABB só descarta raios que comprovadamente não cruzam a barraca', () => {
+  const bounds = { min: { x: -1, y: 0, z: -1 }, max: { x: 1, y: 2, z: 1 } };
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, bounds), true,
+    'segmento atravessando a cobertura deve seguir para o raycast exato');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, bounds), false,
+    'segmento paralelo acima da cobertura pode ser descartado');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: -1.1, y: 1, z: 0 }, bounds), false,
+    'segmento que termina antes da barraca não deve fazer raycast');
+  assert.equal(segmentMayIntersectAabb({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, bounds), true,
+    'segmento iniciado dentro da caixa precisa continuar para o raycast exato');
+  assert.equal(segmentMayIntersectAabb({ x: 2, y: 1, z: 0 }, { x: -2, y: 1, z: 0 }, bounds), true,
+    'a broadphase deve funcionar nos dois sentidos do raio');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 1 }, { x: 2, y: 1, z: 1 }, bounds), true,
+    'contato com a face da caixa é candidato, não falso negativo');
+  assert.equal(segmentMayIntersectAabb({ x: -2, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, null), true,
+    'bounds ausente deve cair no raycast exato, nunca ocultar um possível bloqueador');
+});
+
+test('two-shot narrativo mantém o lado preferido livre e troca quando há barraca no eixo', () => {
+  const a = { x: 0, z: 0 }, b = { x: 0, z: 2 };
+  const open = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: () => false });
+  assert.equal(open.side, -1, 'sem obstáculo, preservar a direção autoral');
+  assert.equal(open.clearSamples, 13);
+  const alternate = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 });
+  assert.equal(alternate.side, 1, 'trocar para o lado livre quando a barraca bloqueia o preferido');
+  assert.equal(alternate.blockedSample, null);
+  const best = chooseStoryTwoShotSide({ a, b, preferredSide: -1, distance: 4, blockedAt: x => x < -1 || x > 2.5 });
+  assert.equal(best.side, 1, 'quando ambos os lados bloqueiam, escolher o maior corredor livre');
+  assert.ok(best.clearSamples > 0);
+  const visibleAlternative = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4,
+    // A barraca bloqueia somente a linha entre a câmera preferida e o segundo ator.
+    blockedAt: (x, z) => x < -0.5 && z > 1.6
+  });
+  assert.equal(visibleAlternative.side, 1,
+    'trocar de lado quando a barraca encobre o vendedor, mesmo com o corredor central livre');
+  assert.deepEqual(visibleAlternative.visibleActors, [true, true],
+    'o lado alternativo precisa manter os dois atores visíveis');
+});
+
+
+test('two-shot verifica oclusão 3D da cobertura, não apenas a pegada no chão', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, cameraHeight: 3.5, targetHeight: 1.45,
+    blockedAt: () => false,
+    // Simula a cobertura que avança sobre o vendedor no lado preferido.
+    visibleAt: camera => camera.x > 0
+  });
+  assert.equal(framing.side, 1, 'trocar de lado quando a geometria 3D encobre os atores');
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.equal(framing.camera.y, 3.5);
+  assert.equal(framing.target.y, 1.45);
+});
+
+
+test('two-shot rejeita enquadramento que mostra apenas parte do corpo atrás da cobertura', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const mostlyHidden = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    // No lado preferido, apenas os dois pontos baixos passam; o lado alternativo libera o corpo inteiro.
+    visibleAt: (camera, actor) => camera.x > 0 || actor.y < 1.0
+  });
+  assert.equal(mostlyHidden.side, 1);
+  assert.deepEqual(mostlyHidden.visibleActors, [true, true]);
+  assert.deepEqual(mostlyHidden.actorVisibilitySamples, [4, 4]);
+
+  const minorOcclusion = chooseStoryTwoShotSide({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    visibleAt: (_camera, actor) => actor.y < 1.7
+  });
+  assert.equal(minorOcclusion.side, -1, 'sem alternativa melhor, preservar o lado autoral');
+  assert.deepEqual(minorOcclusion.actorVisibilitySamples, [3, 3]);
+  assert.deepEqual(minorOcclusion.visibleActors, [false, false],
+    '3/4 pontos não bastam: toldo ainda pode esconder cabeça ou ombros');
+});
+
+
+test('two-shot rejeita 3/4 pontos sob toldo e sobe a câmera até 4/4', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5],
+    visibleAt: (camera, actor) => camera.y >= 4.5 || actor.y < 1.7
+  });
+  assert.equal(framing.cameraHeight, 4.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
+test('two-shot usa fallback alto quando a cobertura bloqueia os ângulos até 6,5 m', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5, 5.5, 6.5],
+    visibleAt: camera => camera.y >= 7.5
+  });
+  assert.equal(framing.cameraHeight, 7.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
+test('two-shot eleva a câmera somente até liberar o corpo dos dois atores', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5, 4.5, 5.5, 6.5],
+    // A cobertura bloqueia tronco/cabeça nas alturas baixas; a vista fica livre acima dela.
+    visibleAt: (camera, actor) => camera.y >= 5.5 || actor.y < 1.0
+  });
+  assert.equal(framing.cameraHeight, 5.5);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
+test('two-shot amplia o arco lateral quando a cobertura bloqueia os dois lados próximos', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, cameraHeights: [3.5, 4.5],
+    blockedAt: () => false,
+    // Só um ponto de câmera além da borda lateral da barraca revela os dois corpos.
+    visibleAt: camera => Math.abs(camera.x) >= 5.5
+  });
+  assert.equal(framing.side, -1.5, 'deve preservar o lado preferido e afastar a câmera até sair da cobertura');
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+});
+
+
+test('two-shot procura um deslocamento longitudinal quando os dois lados laterais continuam sob o toldo', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, blockedAt: () => false,
+    cameraHeights: [3.5],
+    alongOffsets: [0.6, -2.4, 2.4, -4.8, 4.8],
+    // A cobertura só libera a linha de visão quando a câmera sai do eixo lateral,
+    // avançando para além do lado do vendedor.
+    visibleAt: camera => camera.z >= 5
+  });
+  assert.equal(framing.complete, true);
+  assert.equal(framing.cameraHeight, 3.5);
+  assert.equal(framing.alongOffset, 4.8);
+  assert.deepEqual(framing.visibleActors, [true, true]);
+  assert.deepEqual(framing.actorVisibilitySamples, [4, 4]);
+  assert.ok(framing.attempts.length > 1, 'a busca deve registrar as alternativas testadas');
+});
+
+
+test('two-shot aceita mira baixa para manter os atores acima do painel cinematográfico', () => {
+  const a = { x: 0, y: 0, z: 0 }, b = { x: 0, y: 0, z: 2 };
+  const framing = chooseStoryTwoShotFrame({
+    a, b, preferredSide: -1, distance: 4, targetHeight: 0.3,
+    blockedAt: () => false
+  });
+  assert.equal(framing.targetHeight, 0.3);
+  assert.equal(framing.target.y, 0.3);
+  assert.equal(framing.complete, true);
 });
