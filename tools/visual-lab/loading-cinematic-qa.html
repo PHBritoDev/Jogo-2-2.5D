@@ -1,21 +1,24 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>QA — abertura cinematográfica do carregamento</title>
+<title>QA da abertura</title>
 <style>html,body{margin:0;height:100%;background:#000;overflow:hidden}
-#loading{position:fixed;inset:0;overflow:hidden;background:radial-gradient(ellipse 120% 70% at 50% 92%,#4a0c06 0%,#1c0605 34%,#070303 70%,#020101 100%)}
-#loading .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#cine{position:fixed;inset:0;overflow:hidden;background:#030102}
+#cine .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 #qa{position:fixed;left:6px;top:6px;color:#9f9;font:11px monospace;z-index:9;white-space:pre;pointer-events:none;text-shadow:0 1px 2px #000}</style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<!-- Harness de QA da abertura: a mesma cena do jogo, sem o loader. ?t=segundos posiciona o relógio; ?hud=1 mostra estatísticas. -->
-<div id="loading"></div><div id="qa"></div>
+<!-- Harness de QA da abertura (Mod 375): a mesma cena do jogo, sem o loader.
+     ?t=s posiciona o relógio da MARCHA; ?b=s pula para o Campo da Última Guerra no instante b; ?hud=1 mostra estatísticas. -->
+<div id="cine" data-state="loading"></div><div id="qa"></div>
 <script type="module">
 const q = new URLSearchParams(location.search);
-const m = await import('../../loading-cinematic3d.js');
-const api = m.startLoadingCinematic({ host: document.getElementById('loading'), base: new URL('../../', location.href).href });
+const m = await import('../../loading-cinematic3d.js?v=qa');
+const api = m.startLoadingCinematic({ host: document.getElementById('cine'), base: new URL('../../', location.href).href });
 window.__qa = { api, ready: false };
-const wait = () => new Promise(r => { const k = setInterval(() => { const s = api.stats(); if (s.actors >= 5 && s.npcs >= 2 && s.sets[0]) { clearInterval(k); r(); } }, 200); });
+const armed = () => api.actors.length >= 5 && api.actors.every(a => a.weapons.length >= a.def.weapons.length);
+const wait = () => new Promise(r => { const k = setInterval(() => { const s = api.stats(); if (armed() && api.kneeler && s.sets[0] && (!q.has('b') || (api.battle && api.battle.ready))) { clearInterval(k); r(); } }, 200); });
 await wait(); window.__qa.ready = true;
-if (q.has('t')) { api.pause(true); api.seek(+q.get('t')); }
+if (q.has('b')) { api.pause(true); api.toBattle(+q.get('b')); }
+else if (q.has('t')) { api.pause(true); api.seek(+q.get('t')); }
 if (q.get('hud') === '1') setInterval(() => { document.getElementById('qa').textContent = JSON.stringify(api.stats(), null, 1); }, 1000);
 </script></body></html>

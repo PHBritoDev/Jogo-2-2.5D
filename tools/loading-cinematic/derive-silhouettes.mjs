@@ -16,12 +16,15 @@ const { prune, dedup, weld, simplify, quantize, resample, meshopt, normals } = R
 const { MeshoptSimplifier, MeshoptEncoder } = R('meshoptimizer');
 
 export const SOURCES = [
-  { src: 'NewGanancia1.glb', out: 'assets/loading/ganancia-silhueta.glb', clips: ['Walking', 'Left_Slash'], ratio: .18 },
-  { src: 'VHAZRAEL.glb', out: 'assets/loading/bispo1-silhueta.glb', clips: ['Walking'], ratio: .18 },
-  { src: 'NewBispo2_Otimizado.glb', out: 'assets/loading/bispo2-silhueta.glb', clips: ['Walking'], ratio: .18 },
-  { src: 'NewBispo3.glb', out: 'assets/loading/bispo3-silhueta.glb', clips: ['Walking'], ratio: .18 },
-  { src: 'NewBispo4.glb', out: 'assets/loading/bispo4-silhueta.glb', clips: ['Walking', 'Charged_Upward_Slash'], ratio: .18 },
-  { src: 'NPC_Masculino_Animado_Otimizado_1K.glb', out: 'assets/loading/npc-adulto-silhueta.glb', clips: ['Walking', 'falling_down'], ratio: .2 },
+  // Mod 375: além da caminhada, os clipes REAIS de combate usados no Campo da Última Guerra (loading-battle3d.js)
+  { src: 'NewGanancia1.glb', out: 'assets/loading/ganancia-silhueta.glb', clips: ['Walking', 'Idle_14', 'Triple_Combo_Attack', 'Weapon_Combo', 'Double_Combo_Attack'], ratio: .18 },
+  // fase II (asas por ossos, como em greed-boss3d.js gkPrepareB/gkSynthB): só a postura de voo e o gesto de conjuração
+  { src: 'NewGanancia2.glb', out: 'assets/loading/ganancia2-silhueta.glb', clips: ['Dive_Down_and_Land_2', 'Arise'], ratio: .16 },
+  { src: 'VHAZRAEL.glb', out: 'assets/loading/bispo1-silhueta.glb', clips: ['Walking', 'Axe_Spin_Attack', 'Triple_Combo_Attack', 'mage_soell_cast_7'], ratio: .18 },
+  { src: 'NewBispo2_Otimizado.glb', out: 'assets/loading/bispo2-silhueta.glb', clips: ['Walking', 'Double_Blade_Spin', 'Triple_Combo_Attack', 'Attack'], ratio: .18 },
+  { src: 'NewBispo3.glb', out: 'assets/loading/bispo3-silhueta.glb', clips: ['Walking', 'Weapon_Combo', 'Axe_Spin_Attack', 'Skill_03'], ratio: .18 },
+  { src: 'NewBispo4.glb', out: 'assets/loading/bispo4-silhueta.glb', clips: ['Walking', 'Idle_14'], ratio: .18 },
+  { src: 'NPC_Masculino_Animado_Otimizado_1K.glb', out: 'assets/loading/npc-adulto-silhueta.glb', clips: ['Walking', 'falling_down', 'Running', 'Alert', 'Regular_Jump', 'Triple_Combo_Attack', 'Arise'], ratio: .2 },
   // protagonista em miniatura que corre junto da barra de progresso (mesma malha/esqueleto/corrida do jogo)
   { src: 'Prota_otimizado_2K.glb', out: 'assets/loading/protagonista-mini.glb', clips: ['Running'], ratio: .12 }
 ];

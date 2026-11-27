@@ -35,6 +35,8 @@
 
 `index.html` cria o iframe → o HTML 3D carrega `mod181-loader.js` → o loader reescreve URLs de módulos e assets antes da importação. **A raiz plana é uma dependência histórica de URLs relativas, não uma sugestão para colocar novos arquivos sem critério.** Não mova pastas/GLBs só para melhorar a aparência do GitHub: exija inventário de dependências, prova de carregamento, análise de cache e plano de rollback.
 
+**Entrada (Mod 375):** `game-flow.js` organiza a entrada em etapas explícitas `boot → planets → cinematic → world`. O boot (`#loading`) mostra só o progresso real dos módulos; a abertura cinematográfica (`loading-cinematic3d.js` + `loading-battle3d.js`, peças em `loading-kit3d.js`/`loading-fx3d.js`) roda em `#cine` DEPOIS da tela dos planetas, enquanto `finishWorldPrep()` envia texturas, compila e aquece shaders; o convite só aparece com o mundo realmente pronto. Registro: `docs/loading/LOADING-CINEMATICO-MOD375.md`.
+
 O arquivo `mundo-3d-prototype.js` é grande; **não reescreva tudo**. Para cada nova função, prefira um módulo coeso com contrato exportado e teste, ligado ao mundo principal por uma integração pequena. Evite duplicar lógica de VFX/câmera, criar magias fallback genéricas ou adicionar downloads pesados desnecessários.
 
 ## Processo mínimo de mudança
