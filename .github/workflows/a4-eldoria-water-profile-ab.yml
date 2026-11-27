@@ -1,15 +1,26 @@
-name: A4 — Eldória água low/medium/high A/B
+name: A4 — Eldória água e aurora low/medium/high A/B
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'aurora-luz3d.js'
+      - 'ceu-atmosfera3d.js'
       - 'eldoria-water.js'
       - 'mundo-3d-prototype.js'
       - 'tests/mod327.test.mjs'
       - 'tools/visual-lab/a4-eldoria-water-profile-ab.cjs'
       - '.github/workflows/a4-eldoria-water-profile-ab.yml'
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: "SHA exato da main usada como baseline"
+        required: true
+        type: string
+      candidate_sha:
+        description: "SHA exato do HEAD da branch A4 selecionada"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -21,16 +32,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validar SHA informado no dispatch manual
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          INPUT_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          if [ "$INPUT_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error::candidate_sha precisa corresponder ao HEAD da branch selecionada."
+            exit 1
+          fi
       - name: Validar sintaxe do comparador antes de instalar o navegador
         run: node --check tools/visual-lab/a4-eldoria-water-profile-ab.cjs
-      - name: Buscar o SHA exato da base da PR
+      - name: Instalar ffmpeg/ffprobe para o QA temporal
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg
+          command -v ffmpeg
+          command -v ffprobe
+          ffmpeg -version
+          ffprobe -version
+      - name: Buscar o SHA exato da base da comparação
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
         run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
       - name: Instalar Playwright e Chromium
         run: |
@@ -45,17 +73,17 @@ jobs:
           done
           cat /tmp/a4-water-ab.log
           exit 1
-      - name: Comparar módulos da base e da PR em quatro perfis
+      - name: Comparar água e aurora do céu em quatro perfis
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}
           VISUAL_BASE_URL: http://127.0.0.1:4173
         run: NODE_PATH=./tools/visual-lab/node_modules node tools/visual-lab/a4-eldoria-water-profile-ab.cjs
       - name: Publicar A/B para inspeção manual
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a4-eldoria-water-profile-ab-${{ github.run_number }}
+          name: a4-eldoria-water-aurora-profile-ab-${{ github.run_number }}
           path: visual-lab-results/a4-water-profile-ab/
           retention-days: 30
           if-no-files-found: warn

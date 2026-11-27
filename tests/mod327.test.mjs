@@ -198,6 +198,7 @@ test('fauna no jogo: controlador único, carregamento preguiçoso e áudio dos g
 
 /* ---------- ADENDO: aurora ilumina mundo e água ---------- */
 import { auroraColor, auroraLightK, auroraLowProfile, patchAuroraGround, auroraUniforms, updateAuroraLight, AURORA_WATER } from '../aurora-luz3d.js';
+import { createSkyAtmosphere } from '../ceu-atmosfera3d.js';
 test('aurora: paleta e intensidade cinematográfica preservadas no perfil baixo; custo cai só no detalhe', () => {
   assert.equal(auroraLightK(0, false, false), 0); assert.equal(auroraLightK(.8, true, false), 0, 'caverna/interior/dimensão: nada');
   assert.equal(auroraLightK(.8, false, false), .8);
@@ -258,17 +259,72 @@ test('aurora: terreno com faixas + oclusão pela inclinação, água com reflexo
   assert.ok(/patchAuroraGround\(THREE,material\)/.test(m) && /setWaterAurora\(auroraUniforms\(THREE\)\)/.test(m) && /closed:voidMode\|\|!!caveWalk/.test(m), 'Eldória + desligado em lugar fechado');
 });
 
-test('A4 A/B: perfis isolados, lago noturno real, câmera sincronizada e métricas informativas', () => {
+test('aurora no céu: perfil baixo corta amostras de ruído sem reduzir intensidade nem recompilar', needs3, () => {
+  assert.ok(THREE, 'CI precisa de three.js');
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera();
+  const sky = createSkyAtmosphere(THREE, scene), material = sky.mesh.material, uniforms = material.uniforms;
+  assert.equal(uniforms.uAurLow, auroraUniforms(THREE).uAurLow, 'céu, água e terreno compartilham o mesmo uniforme');
+  const shader = material.fragmentShader;
+  const branches = [...shader.matchAll(/if \(uAurLow > \.5\) rays = ([^;]+);\s*else rays = ([^;]+);/g)];
+  assert.equal(branches.length, 2, 'arcos e coroa têm variante econômica');
+  for (const [, lowExpr, highExpr] of branches) {
+    assert.equal((lowExpr.match(/n1\(/g) || []).length, 1, 'baixo: uma amostra de ruído por raio');
+    assert.equal((highExpr.match(/n1\(/g) || []).length, 2, 'médio/alto/máximo: duas amostras por raio');
+  }
+  sky.update(.016, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: true });
+  const animationTime = uniforms.uT.value;
+  sky.update(.25, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: true });
+  assert.ok(Math.abs(uniforms.uT.value - animationTime - .25) < 1e-9, 'tempo de movimento das cortinas avança com o delta real');
+  const pausedAnimationTime = uniforms.uT.value;
+  sky.update(.5, { camera, sunDir: new THREE.Vector3(0, 1, 0), elev: -5, night: 1, clear: 1, visible: false });
+  assert.equal(uniforms.uT.value, pausedAnimationTime, 'céu oculto pausa o relógio do shader');
+  assert.ok(shader.includes('uT * .06') && shader.includes('uT * .07') && shader.includes('uT * .045'), 'dobras e raios continuam animados nos dois tiers');
+  const auroraIntensity = sky.aurora, version = material.version;
+  updateAuroraLight(THREE, { level: .8, time: 700, low: true });
+  assert.equal(uniforms.uAurLow.value, 1, 'baixo chega ao shader do céu pelo uniforme compartilhado');
+  assert.equal(sky.aurora, auroraIntensity, 'a intensidade visual não é reduzida');
+  updateAuroraLight(THREE, { level: .8, time: 701, low: false });
+  assert.equal(uniforms.uAurLow.value, 0, 'alto restaura as duas amostras');
+  assert.equal(sky.aurora, auroraIntensity, 'a troca de qualidade preserva a intensidade');
+  assert.equal(material.version, version, 'troca por uniforme, sem recompilação');
+  assert.equal(scene.children.filter(o => o.name === 'ceu-atmosfera-mod323').length, 1, 'continua sendo uma esfera / um draw');
+  material.dispose(); sky.mesh.geometry.dispose();
+});
+
+test('A4 A/B: água e aurora do céu, perfis isolados e iluminação sincronizada', () => {
   const qa = fs.readFileSync(new URL('../tools/visual-lab/a4-eldoria-water-profile-ab.cjs', import.meta.url), 'utf8');
+  const workflow = fs.readFileSync(new URL('../.github/workflows/a4-eldoria-water-profile-ab.yml', import.meta.url), 'utf8');
+  const pullRequestTrigger = workflow.slice(workflow.indexOf('  pull_request:'), workflow.indexOf('  workflow_dispatch:'));
+  assert.ok(pullRequestTrigger.includes("      - 'aurora-luz3d.js'") && pullRequestTrigger.includes("      - '.github/workflows/a4-eldoria-water-profile-ab.yml'"), 'filtros de caminho continuam dentro do gatilho pull_request');
+  assert.ok(workflow.includes('workflow_dispatch:') && workflow.includes('base_sha:') && workflow.includes('candidate_sha:'), 'A4 permite dispatch manual com SHAs explícitos');
+  assert.ok(workflow.includes("if: github.event_name == 'workflow_dispatch'") && workflow.includes('INPUT_SHA'), 'dispatch manual rejeita candidate_sha diferente do HEAD selecionado');
+  assert.ok(workflow.includes('BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha }}') && workflow.includes('CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha || github.sha }}'), 'PR e dispatch manual usam os mesmos SHAs exatos');
   assert.ok(/for \(const profile of profiles\) \{\s*const context = await browser\.newContext/.test(qa), 'cada perfil recebe uma página limpa');
   assert.ok(/context\.addInitScript\([\s\S]*localStorage\.setItem\('seven-sins-3d-graphics', selectedProfile\)/.test(qa), 'preferência é aplicada antes do boot da aurora');
   assert.ok(/d\.snapCam\(\)/.test(qa), 'a câmera é assentada pelo helper real antes da comparação');
-  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa), 'água e aurora são capturadas no mesmo instante');
+  assert.ok(/Object\.defineProperty\(performance, 'now'/.test(qa) && /d\.setHour\(s\.hour\)/.test(qa), 'hora é reaplicada após congelar o relógio de animação');
   assert.ok(/name: 'lago-aurora', hour: 22, x: -27, z: -96/.test(qa), 'a captura noturna permanece no mesmo lago');
-  assert.ok(/waterRoi: \{ left: 100, top: 170, width: 120, height: 120 \}/.test(qa) && /waterRoi: \{ left: 280, top: 235, width: 100, height: 40 \}/.test(qa) && !/skyRoi:/.test(qa), 'mede água limpa nos dois horários e não pontua céu obstruído pela copa');
+  assert.ok(/waterRoi: \{ left: 320, top: 105, width: 140, height: 60 \}/.test(qa) && /waterRoi: \{ left: 270, top: 250, width: 120, height: 18 \}/.test(qa), 'mede o miolo da lâmina diurna e a água/reflexo noturno, fora do jogador');
+  assert.ok(/async function waterCoverage/.test(qa) && /waterCoverageBaseline < \.6/.test(qa) && /waterCoverageCandidate < \.6/.test(qa), 'rejeita ROI que não contém água suficiente antes de comparar pixels');
+  assert.ok(/name: 'aurora-ceu', hour: 22/.test(qa) && /camera: \{ from: \[0, 2, -29\], to: \[0, 22, -15\] \}/.test(qa) && /skyRoi: \{ left: 220, top: 75, width: 450, height: 190 \}/.test(qa) && /d\.fly\(s\.camera\.from, s\.camera\.to\)/.test(qa), 'mede a cortina em ROI central e câmera livre fixa');
+  assert.ok(/getElementById\('scene'\)/.test(qa) && /page\.locator\('#scene'\)\.screenshot/.test(qa) && /scale: 'css'/.test(qa), 'captura o canvas WebGL #scene');
+  assert.ok(/document\.body\.children/.test(qa) && /node\.style\.setProperty\('visibility', 'hidden', 'important'\)/.test(qa) && /diagnostic\.capture/.test(qa), 'remove overlays DOM sobrepostos antes de medir pixels');
+  assert.ok(/backingScaleX/.test(qa) && /backingScaleY/.test(qa), 'registra a escala real do backing WebGL sem tratar resolução baixa como falha');
+  assert.ok(/cameraTargetView/.test(qa), 'verifica que o alvo da câmera no céu não está obstruído');
+  assert.ok(/const cameraA =/.test(qa) && /const cameraB =/.test(qa), 'compara posição e alvo da câmera entre baseline e candidata');
+  assert.ok(/'ceu-atmosfera3d\.js'/.test(qa) && /baselineRouteHits\.sky/.test(qa), 'baseline intercepta o shader real do céu');
   assert.ok(/metricsStable/.test(qa) && /renderBudgetComparable/.test(qa), 'estabiliza/identifica métricas de render');
+  assert.ok(/state\.dim\?\.hour/.test(qa) && /state\.night/.test(qa) && /u\.uAurK\?\.value/.test(qa), 'registra relógio, fase dia/noite e intensidade real da aurora');
+  assert.ok(/lightingStateComparable/.test(qa) && /diagnostic\.auroraK/.test(qa) && /lowUniformDelta/.test(qa), 'compara intensidade e perfil do uniforme antes de aceitar pixels');
   assert.ok(!/draw calls A\/B divergiu|triângulos A\/B divergiu/.test(qa), 'LOD/culling variável não invalida sozinho a comparação de pixels');
   assert.ok(!/select\.value = mode;\s*select\.dispatchEvent/.test(qa), 'não troca perfil depois de congelar o relógio');
+  const motionStart = qa.indexOf('async function captureAuroraMotion');
+  const motionEnd = qa.indexOf('async function waterCoverage', motionStart);
+  const motion = qa.slice(motionStart, motionEnd);
+  assert.ok(motion.includes('canvas.captureStream(30)') && motion.includes('new MediaRecorder') && motion.includes("page.waitForEvent('download'") && motion.includes('await download.saveAs(videoPath)'), 'grava somente o canvas WebGL por MediaRecorder, sem boot/HUD');
+  assert.ok(motion.includes('await page.waitForTimeout(8500)') && motion.includes('requestAnimationFrame(collect)') && motion.includes('window.__a4MotionSamples') && motion.includes('videoDurationMs: encodedDurationMs'), 'grava janela contínua e coleta diagnósticos sem screenshots bloqueantes');
+  assert.ok(!motion.includes('.screenshot('), 'não faz readback/screenshot durante a gravação');
+  assert.ok(motion.includes('ffprobe') && motion.includes('ffmpeg') && motion.includes('maxFrameGapMs'), 'mede duração/quadros codificados e extrai PNGs depois do vídeo');
 });
 
 /* ---------- P2: morte → desintegração em pó ---------- */
