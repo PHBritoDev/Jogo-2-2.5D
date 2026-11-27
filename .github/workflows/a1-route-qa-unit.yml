@@ -1,6 +1,7 @@
 name: A1 — testes unitários do percurso de Eldória
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - '.github/workflows/a1-route-qa-unit.yml'
@@ -20,6 +21,8 @@ on:
       - 'tools/visual-lab/world-module-loader.test.cjs'
       - 'camera-water-clearance3d.js'
       - 'tests/camera-water-clearance.test.mjs'
+      - 'follow-camera-clearance3d.js'
+      - 'tests/follow-camera-clearance3d.test.mjs'
 
 permissions:
   contents: read
@@ -36,7 +39,7 @@ jobs:
       - name: Checkout SHA exato da PR
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node 22
         uses: actions/setup-node@v4
         with:
@@ -45,5 +48,6 @@ jobs:
         run: |
           node --input-type=module --check < mundo-3d-prototype.js
           node --input-type=module --check < camera-water-clearance3d.js
+          node --input-type=module --check < follow-camera-clearance3d.js
       - name: Testes do agente de cenas
-        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs tools/visual-lab/world-module-loader.test.cjs tests/camera-water-clearance.test.mjs
+        run: node --test tools/visual-lab/agent-qa.test.cjs tools/visual-lab/scene-capture-core.test.cjs tools/visual-lab/photographer.test.cjs tools/visual-lab/camera-tree-fade.test.cjs tools/visual-lab/world-module-loader.test.cjs tests/camera-water-clearance.test.mjs tests/follow-camera-clearance3d.test.mjs

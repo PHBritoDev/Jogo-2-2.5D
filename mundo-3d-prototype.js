@@ -74,6 +74,7 @@ import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
 import {createWalkables} from './eldoria-walkable.js';
+import {chooseShelterCameraShoulder} from './follow-camera-clearance3d.js';
 import {clampBakedMips} from './eldoria-baked-texture.js';
 import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createRegionProbe} from './eldoria-nostalgic-light.js';
 import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
@@ -2466,7 +2467,7 @@ buildAct1Cages();
 let dragonViewWeight=0,dragonDiveWeight=0;
 function dragonExternalView(){return cameraDistance<1.05&&dragonViewWeight>.08;}
 /* MOD 316 — câmera: estado do braço de mola (caverna) e da 1ª pessoa. */
-let caveArmLen=0,caveSide=0;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
+let caveArmLen=0,caveSide=0,shelterCameraYawOffset=0,shelterCameraDistanceScale=1,a1ShelterCameraDiagnostics=null;const _caveShoulder=new THREE.Vector3(),_caveYAxis=new THREE.Vector3(0,1,0);let fpBobPhase=0,fpBobAmp=0,fpEyeY=0,fpEyeH=0;const FP_FOV=60;
 /** Altura dos olhos do PRÓPRIO modelo: osso da cabeça (+7 cm até os olhos), medido uma vez em pé; sem osso, 0,93 × a
     altura da malha. Antes era 1,52 fixo com FOV 72 (grande-angular): o mundo parecia menor e mais lento. */
 function fpEyeHeight(){if(!fpEyeH&&model){let head=null;model.traverse(o=>{if(!head&&o.isBone&&/^(mixamorig:)?head$/i.test(o.name||''))head=o;});
@@ -2481,7 +2482,7 @@ function updatePlayerCamera(dt){
  const dragonGoal=judgmentDragon.active&&judgmentDragon.phase!=='channel'&&!(judgmentDragon.phase==='explode'&&judgmentDragon.age>.55)?1:0;
  dragonViewWeight+=(dragonGoal-dragonViewWeight)*(1-Math.exp(-4*dt));
  const diveGoal=judgmentDragon.active&&['advance','engulf','compress','explode'].includes(judgmentDragon.phase)?1:0;dragonDiveWeight+=(diveGoal-dragonDiveWeight)*(1-Math.exp(-3*dt));
- const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
+ const firstPerson=cameraDistance<1.05&&!riteCinematicView&&!dragonExternalView()&&!(ultCam.usuraFov!=null&&ultCam.want>.01);if(firstPerson){shelterCameraYawOffset=0;shelterCameraDistanceScale=1;}if(model)model.visible=!firstPerson&&!prota302.hidden;const target=new THREE.Vector3(player.position.x,player.position.y+(firstPerson?fpEyeHeight():1.15),player.position.z);
 if(firstPerson){
  // Câmera na altura dos olhos, com direção própria em primeira pessoa.
  // Em primeira pessoa, nao manter a camera atras da cabeca: o lag parecia
@@ -2501,7 +2502,70 @@ if(firstPerson){
  const camFrame=computeCameraTarget(target,dt);target.copy(camFrame.focus);target.y+=starfallCameraWeight*2;const dk=dragonViewWeight,dh=judgmentDragon.head;target.y+=dk*Math.max(2,Math.min(12,(dh.y-player.position.y)*.48));
  const headFocus=.2+dragonDiveWeight*.4;target.x+=(dh.x-target.x)*dk*headFocus;target.z+=(dh.z-target.z)*dk*headFocus;
  lastCamEngaged=!!camFrame.engaged;const camDistUse=Math.max(dragonExternalView()?6:0,effectiveCameraDistance(camFrame.engaged,dt))+starfallCameraWeight*4+dk*(29-14*dragonDiveWeight);
- const orbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(orbitYaw)*camDistUse*Math.cos(cameraPitch));
+ const allowShelterShoulder=!voidMode&&!cineActive&&!riteCinematicView&&!camFrame.engaged&&starfallCameraWeight<.01&&dk<.08&&!(ultCam.w>.01);
+ let shelterDecision=null,shelterNearPillar=false,shelterCameraLimit=1,shelterTargetDistance=camDistUse;
+ if(allowShelterShoulder){
+  // O desvio pertence apenas ao braço da câmera. cameraYaw continua sendo a referência
+  // estável do joystick, dash, mira e rotação do jogador.
+  const baseOrbitYaw=cameraYaw+(riteCinematicView?.45:0)+dk*1.05;
+  const baseOffset=new THREE.Vector3(Math.sin(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch),camDistUse*Math.sin(cameraPitch),Math.cos(baseOrbitYaw)*camDistUse*Math.cos(cameraPitch));
+  const nearbyPillars=eldoriaWalk.walls.filter(w=>w.name==='abrigo-pilar'&&Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+2);
+  shelterNearPillar=nearbyPillars.some(w=>Math.hypot(target.x-w.cx,target.z-w.cz)<camDistUse+.75&&target.y>=w.yb-.5&&target.y<=w.yt+1);
+  if(shelterNearPillar){
+   // Avalia o braço inteiro, não só o collider do pilar: um desvio que libera a pedra
+   // mas termina dentro de uma árvore/rocha ainda comprime o enquadramento.
+   const nearbyTrees=treeObstacles.filter(o=>Math.abs(o.x-target.x)<camDistUse+2&&Math.abs(o.z-target.z)<camDistUse+2);
+   const blockedAt=(x,y,z,rayOrigin=target,pillarMargin=0)=>{
+    const queryY=y-.9;
+    if(pillarMargin>0)for(const p of nearbyPillars){
+     if(queryY<p.yb-.05||queryY>p.yt+.05)continue;
+     const r=(p.r||.42)+pillarMargin,dx=x-p.cx,dz=z-p.cz;
+     if(dx*dx+dz*dz<r*r)return p;
+    }
+    const wall=eldoriaWalk.blocked(x,z,queryY,groundHeightAt);
+    if(wall?.name==='abrigo-pilar')return wall;
+    const rayX=x-rayOrigin.x,rayZ=z-rayOrigin.z,rayLen2=rayX*rayX+rayZ*rayZ;
+    if(rayLen2>.01)for(const o of nearbyTrees){
+     const rx=o.x-rayOrigin.x,rz=o.z-rayOrigin.z,t=(rx*rayX+rz*rayZ)/rayLen2;
+     if(t<=.05||t>1.05)continue;
+     const px=rx-rayX*t,pz=rz-rayZ*t,r=o.radius+.32;
+     if(px*px+pz*pz<r*r)return{name:'tree',x:o.x,z:o.z};
+    }
+    if(groundHeightAt(x,z)+.45>y)return{name:'terrain'};
+    if(wall)return wall;
+    if(rocksBlock(rockObstacles,x,z,y-.25,terrainHeightAt))return{name:'rock'};
+    if(journeyWorld&&journeyWorld.camBlocked(x,y,z))return{name:'journey'};
+    const deck=bridgeDeck(x,z);if(deck&&deck.edge&&y<deck.y+1.25)return{name:'bridge-deck'};
+    if(sakuraWorld&&sakuraWorld.root.visible&&(roadBlocked(x,z)||sakuraWorld.solidAt(x,z,y-.15,0,.3)))return{name:'sakura'};
+    return null;
+   };
+   const visibleAt=cameraPoint=>{
+    const shelterPreferredDistance=4.0,visibilityDistance=Math.min(camDistUse,shelterPreferredDistance),visibilityScale=visibilityDistance/Math.max(.001,camDistUse);
+    const visibleCamera={x:target.x+(cameraPoint.x-target.x)*visibilityScale,y:target.y+(cameraPoint.y-target.y)*visibilityScale,z:target.z+(cameraPoint.z-target.z)*visibilityScale};
+    let visible=0;
+    for(const height of [.72,1.15,1.58]){
+     const anchorY=player.position.y+height;let blocked=false;
+     for(let i=1;i<20;i++){
+      const t=i/20,x=visibleCamera.x+(player.position.x-visibleCamera.x)*t,y=visibleCamera.y+(anchorY-visibleCamera.y)*t,z=visibleCamera.z+(player.position.z-visibleCamera.z)*t;
+      if(blockedAt(x,y,z,cameraPoint,.12)){blocked=true;break;}
+     }
+     if(!blocked)visible++;
+    }
+    return visible>=2;
+   };
+   shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,visibleAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
+   if(shelterDecision?.chosen?.visible===true)shelterTargetDistance=Math.min(camDistUse,shelterPreferredDistance,shelterDecision.chosen.clearance);
+  }
+  const wanted=shelterDecision?.angle||0;
+  shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
+  const wantedDistanceScale=shelterNearPillar&&shelterDecision?.chosen?.visible===true?shelterTargetDistance/Math.max(.001,camDistUse):1;
+  shelterCameraDistanceScale+=(wantedDistanceScale-shelterCameraDistanceScale)*(1-Math.exp(-8*dt));
+ }else if(shelterCameraYawOffset||Math.abs(shelterCameraDistanceScale-1)>.001){
+  // Libera ombro e distância suavemente ao sair do abrigo, sem girar o referencial de movimento.
+  shelterCameraYawOffset*=Math.exp(-8*dt);
+  shelterCameraDistanceScale+=(1-shelterCameraDistanceScale)*(1-Math.exp(-8*dt));
+ }
+ const orbitYaw=cameraYaw+shelterCameraYawOffset+(riteCinematicView?.45:0)+dk*1.05;const orbitDistance=camDistUse*shelterCameraDistanceScale;const camOffset=new THREE.Vector3(Math.sin(orbitYaw)*orbitDistance*Math.cos(cameraPitch),orbitDistance*Math.sin(cameraPitch),Math.cos(orbitYaw)*orbitDistance*Math.cos(cameraPitch));
  if(inVolcano&&voidSpec.camSolid?.(target.x-voidSpec.x,target.y-voidSpec.y,target.z-voidSpec.z)){
   target.set(player.position.x,player.position.y+.8,player.position.z);
  }
@@ -2536,7 +2600,9 @@ if(firstPerson){
    limit=caveArmLimit(target,camOffset,limit);}
   else if(voidMode&&voidSpec.walk){const cs=voidSpec.camSolid;for(let i=1;i<=22;i++){const f=i/22*limit,cx=target.x+camOffset.x*f,cz=target.z+camOffset.z*f;if(cs?cs(cx-voidSpec.x,target.y+camOffset.y*f-voidSpec.y,cz-voidSpec.z):blockedAt(cx,cz)){limit=Math.max(.035,(i-1.7)/22*limit);break;}}} // MOD 311: zonas com volume (caverna/escadaria) testam o sólido em 3D
   if(limit<1)desired.copy(target).addScaledVector(camOffset,limit);
-  if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}}
+  if(voidMode&&voidSpec.ceil&&(voidSpec.walk===innWalkable||voidSpec.solid)){const top=voidSpec.y+voidSpec.ceil(desired.x-voidSpec.x,desired.z-voidSpec.z)-.35;if(desired.y>top)desired.y=top;}
+  shelterCameraLimit=limit;
+ }
  if((ascKey||inVolcano)&&voidSpec.camSolid){
   /* MOD 316 — braço de mola na caverna/escadaria: a posição sai direto de alvo + direção × comprimento (o lerp de posição
      cortava a corda do giro por dentro da rocha e o "copia se dentro do sólido" fazia a câmera saltar = tremedeira).
@@ -2550,7 +2616,14 @@ camera.position.copy(target).addScaledVector(camOffset,caveArmLen/len);
   if(voidSpec.ceil){const top=voidSpec.y+voidSpec.ceil(camera.position.x-voidSpec.x,camera.position.z-voidSpec.z)-.35;if(camera.position.y>top){const y0=camera.position.y;camera.position.y=top;/* Caverna C5: a folha antiga do teto fica abaixo da parede 3D junto às paredes; se baixar a câmera a enfia na rocha, vale o volume 3D (que já inclui a abóbada) */if(voidSpec.camSolid(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z)&&!voidSpec.camSolid(camera.position.x-voidSpec.x,y0-voidSpec.y,camera.position.z-voidSpec.z))camera.position.y=y0;}}
  }else{caveArmLen=0;caveSide=0;camera.position.lerp(desired,1-Math.exp(-8*dt));
  // O lerp pode atravessar a rocha ao girar rápido; nunca deixar a câmera permanecer DENTRO de um sólido.
- if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);}
+ if(voidMode&&voidSpec.camSolid?.(camera.position.x-voidSpec.x,camera.position.y-voidSpec.y,camera.position.z-voidSpec.z))camera.position.copy(desired);} if(window.SevenSinsDebug3D){
+  a1ShelterCameraDiagnostics={active:shelterNearPillar,player:player.position.toArray(),target:target.toArray(),camera:camera.position.toArray(),
+   requestedDistance:cameraDistance,effectiveDistance:camDistUse*shelterCameraDistanceScale,targetDistance:shelterTargetDistance,distanceScale:shelterCameraDistanceScale,actualDistance:camera.position.distanceTo(target),cameraYaw,cameraPitch,
+   shoulderYawOffset:shelterCameraYawOffset,finalLimit:shelterCameraLimit,
+   directClearance:shelterDecision?.direct?.clearance??null,chosenClearance:shelterDecision?.chosen?.clearance??null,
+   directBlocker:shelterDecision?.direct?.blocker?.name??null,triggerBlocker:shelterDecision?.direct?.triggerBlocker?.name??null,
+   chosenBlocker:shelterDecision?.chosen?.blocker?.name??null,chosenVisible:shelterDecision?.chosen?.visible??null,visibilityFailed:!!shelterDecision?.visibilityFailed,minClearance:shelterDecision?.requiredClearance??null};
+ }
  if(dimKey==='greed'&&voidMode)camera.position.y=Math.max(voidSpec.y+.65,camera.position.y);
  // A1: o braço de câmera não pode ficar no plano da água; o teste de terreno sozinho permite isso.
  if(!voidMode&&!cineActive&&!riteCinematicView&&dragonViewWeight<.01&&ultCam.want<.01&&ultCam.w<.01&&
@@ -9075,6 +9148,7 @@ vxTech(n){/* QA (teste isolado): força uma técnica do VÉRAXION — 'throw' ou
  ascState(){const z=ascKey&&ascZones[ascKey],O=ascKey&&ASC_ZONES[ascKey],P=player.position;return{key:ascKey,busy:ascBusy,local:O?{x:+(P.x-O.x).toFixed(2),y:+P.y.toFixed(2),z:+(P.z-O.z).toFixed(2)}:null,world:{x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2)},veil:ascVeil.style.opacity,zones:Object.keys(ascZones),stats:z?z.stats():null,progress:z&&z.progress?+z.progress().toFixed(3):null,frontier:window.SevenSinsFrontierReport||null};},
  fly(from,to){if(from){camera.position.set(...from);camera.lookAt(...to);}debugCameraOverride=from?{from:new THREE.Vector3(...from),to:new THREE.Vector3(...to)}:null;},
  cam(){return camera.position.toArray().map(v=>+v.toFixed(2));},
+ shelterCameraState(){return a1ShelterCameraDiagnostics;},
  /* QA A1: projeção somente leitura dos dois combatentes para detectar sobreposição real no retrato. */
  actorScreen(){
   const focusActor=newHero&&squadOn&&squadFocus?.alive?squadFocus:null;
