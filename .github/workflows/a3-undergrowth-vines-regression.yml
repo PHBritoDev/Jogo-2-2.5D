@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths:
       - 'eldoria-undergrowth.js'
+      - 'eldoria-tropical-trees.js'
+      - 'EldoriaArvoresTropicais.glb'
+      - 'tools/eldoria/trees/tree-species.mjs'
+      - 'tools/eldoria/trees/build-trees.mjs'
       - 'eldoria-prologue-meadow.js'
       - 'act1-world-layout.js'
       - 'mundo-3d-prototype.js'

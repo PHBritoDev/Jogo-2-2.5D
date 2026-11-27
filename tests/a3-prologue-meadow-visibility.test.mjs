@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { BROKEN_WHEEL, FALL_SPOT, PROLOGUE_MEADOW, TEREN_ROAD, TEREN_STOP } from '../act1-world-layout.js';
 import { planMeadow } from '../eldoria-prologue-meadow.js';
 
@@ -82,6 +83,40 @@ test('o fator de altura é aplicado só ao eixo vertical do InstancedMesh real',
   assert.match(world, /const prologueMeadow=buildPrologueMeadow\(THREE,\{[\s\S]{0,500}?road:TEREN_ROAD/);
 });
 
+test('cameraClear considera discard do fade apenas para folhas quase transparentes', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  assert.match(harness, /const FADED_UNDERGROWTH_BLOCKERS = new Set\(\[/);
+  assert.match(harness, /"eldoria-ferns"[\s\S]*"eldoria-bushes"[\s\S]*"eldoria-broadleaf"/);
+  assert.match(harness, /UNDERGROWTH_FADE_START_METERS = 0\.6/);
+  assert.match(harness, /UNDERGROWTH_FADE_SPAN_METERS = 5\.6/);
+  assert.match(harness, /UNDERGROWTH_FADE_DISCARD_THRESHOLD = 0\.92/);
+  assert.match(harness, /Number\.isFinite\(hit\.dist\)/);
+  assert.match(harness, /\(1 - fade\) >= UNDERGROWTH_FADE_DISCARD_THRESHOLD/);
+  assert.match(harness, /!view\.blocked \|\| isVisuallyFadedUndergrowthBlocker\(view\)/);
+  assert.match(harness, /if \(!hit \|\| !FADED_UNDERGROWTH_BLOCKERS\.has\(hit\.name\)\) return false/);
+});
+
+test('cameraClear distingue folha quase descartada de tronco e vegetação ainda opaca', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const start = harness.indexOf('const FADED_UNDERGROWTH_BLOCKERS');
+  const end = harness.indexOf('async function readState', start);
+  assert.ok(start >= 0 && end > start, 'helpers de oclusão precisam estar isolados antes da leitura de estado');
+  const source = harness.slice(start, end);
+  const api = runInNewContext(source + ';({ cameraClear, isVisuallyFadedUndergrowthBlocker });');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: null } }), true);
+  assert.equal(api.cameraClear({ camView: { onScreen: false, blocked: null } }), false);
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 0.8 } } }), true,
+    'folhas com mais de 92% do padrão descartado não devem reprovar a visibilidade');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 4.0 } } }), false,
+    'folhas ainda parcialmente opacas continuam sendo obstrução');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-ferns', dist: 5.9 } } }), false,
+    'folhas distantes permanecem opacas e não podem ser ignoradas');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-tree-trunk', dist: 5.9 } } }), false,
+    'troncos nunca são ignorados pelo QA');
+  assert.equal(api.cameraClear({ camView: { onScreen: true, blocked: { name: 'eldoria-bushes', dist: NaN } } }), false,
+    'distância inválida falha fechado');
+});
+
 test('harness A/B falha fechado em console, módulos candidatos, oclusão e deriva de câmera', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('candidate.moduleHits[file]'), 'a candidata precisa carregar os dois módulos alterados');
@@ -91,19 +126,22 @@ test('harness A/B falha fechado em console, módulos candidatos, oclusão e deri
   assert.ok(harness.includes('cameraClear('), 'o protagonista precisa estar enquadrado e sem oclusão');
 });
 
-test('o A/B executa caminhada real tanto no prado quanto na trilha tropical', () => {
+test('o A/B executa caminhada real no prado, na trilha tropical e na entrada da mata', () => {
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
-  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas às duas rotas jogáveis');
-  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada rota jogável precisa ter uma caminhada candidata');
+  assert.ok(harness.includes('WALK_SCENES.has(scene.id)'), 'as caminhadas são limitadas a cenas de rota jogável');
+  assert.ok(harness.includes('"mata-entrada-inicial"'), 'a pose inicial da mata também recebe caminhada real');
+  assert.ok(harness.includes('candidate.walks.find(w => w.scene === sceneId)'), 'cada cena de caminhada precisa ter evidência candidata');
   assert.ok(
     harness.includes('const routeArticle = scene.id === "trilha-samambaias" ? "na" : "no";') &&
     harness.includes('const routeLabel = scene.id === "trilha-samambaias" ? "trilha" : "prado";') &&
-    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + routeArticle + " " + routeLabel + " avançou menos de 2 m");'),
-    'prado e trilha precisam reprovar deslocamento curto com diagnóstico específico'
+    harness.includes('const walkArticle = scene.id === "mata-entrada-inicial" ? "na" : routeArticle;') &&
+    harness.includes('const walkLabel = scene.id === "mata-entrada-inicial" ? "entrada da mata" : routeLabel;') &&
+    harness.includes('if (walk.distance < 2) session.errors.page.push(viewport.id + ": caminhada " + walkArticle + " " + walkLabel + " avançou menos de 2 m");'),
+    'prado, trilha e entrada da mata precisam reprovar deslocamento curto com diagnóstico específico'
   );
   assert.ok(
-    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + routeArticle + " " + routeLabel);'),
-    'prado e trilha precisam reprovar câmera instável após a caminhada'
+    harness.includes('if (!walk.settled) session.errors.page.push(viewport.id + ": câmera não assentou após caminhada " + walkArticle + " " + walkLabel);'),
+    'as três cenas precisam reprovar câmera instável após a caminhada'
   );
 });
 
@@ -155,4 +193,18 @@ test('viewport desktop usa perfil baixo e dimensão estável no renderer de soft
   const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
   assert.ok(harness.includes('{ id: "desktop", width: 960, height: 540, isMobile: false, profile: "low" }'),
     'o desktop de QA usa a mesma carga baixa do soak de movimento de PC, sem alterar o perfil publicado');
+});
+
+
+test('todas as capturas estáticas A/B precedem as caminhadas para evitar contaminação de LOD/culling', () => {
+  const harness = readFileSync(new URL('../tools/visual-lab/a3-meadow-visibility-qa.cjs', import.meta.url), 'utf8');
+  const session = harness.slice(harness.indexOf('async function runSession'), harness.indexOf('async function main'));
+  const staticLoop = session.indexOf('for (const scene of SCENES) {');
+  const walkLoop = session.indexOf('for (const scene of SCENES.filter(scene => WALK_SCENES.has(scene.id)))');
+  const firstWalk = session.indexOf('walkForward(session.page, scene)');
+  assert.ok(staticLoop >= 0 && walkLoop > staticLoop, 'as poses A/B estáticas são capturadas primeiro');
+  assert.ok(session.slice(staticLoop, walkLoop).includes('captures.push'), 'a primeira passada grava os pares');
+  assert.ok(!session.slice(staticLoop, walkLoop).includes('walkForward'), 'nenhuma caminhada contamina a primeira passada');
+  assert.ok(firstWalk > walkLoop, 'o movimento só começa na segunda passada');
+  assert.ok(session.slice(walkLoop, firstWalk).includes('setPose(session.page, scene)'), 'cada caminhada reposiciona e estabiliza a cena');
 });
