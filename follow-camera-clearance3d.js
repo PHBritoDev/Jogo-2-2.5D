@@ -1,3 +1,5 @@
+export const SHELTER_CAMERA_PREFERRED_DISTANCE = 4.0;
+
 const SHOULDER_ANGLES = Object.freeze([0.24, -0.24, 0.42, -0.42, 0.60, -0.60, 0.78, -0.78]);
 
 /** Busca um braço lateral livre e, quando informado, uma linha de visão limpa do herói. */
