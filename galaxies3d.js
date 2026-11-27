@@ -52,6 +52,15 @@ export function planetSvg(id, locked) {
     '</svg>';
 }
 
+/** URLs da arte original aprovada (assets/ui/menu/cinematic/README.md) — as mesmas do CSS e da cena WebGL. */
+export const MENU_ART = ['environment.webp', 'worlds-hero.webp'];
+export function menuArtURL(file) { return new URL('./assets/ui/menu/cinematic/' + file, import.meta.url).href; }
+function loadImage(src) { return new Promise((resolve, reject) => { const image = new Image(); image.decoding = 'async'; image.onload = () => resolve(image); image.onerror = () => reject(new Error('falha ao carregar ' + src)); image.src = src; }); }
+/** Carrega e decodifica os dois WebP; uma nova tentativa por arquivo (com o mesmo endereço) antes de desistir. */
+export function loadMenuArt(load = loadImage) {
+  return Promise.all(MENU_ART.map(file => { const src = menuArtURL(file); return load(src).catch(() => load(src)); }));
+}
+
 export function galaxyProgress(galaxyId, { questStep = 0, bishopsDefeated = 0 } = {}) {
   if (galaxyId !== 1) return 0;
   if (questStep >= 30) return 1;
@@ -80,7 +89,9 @@ const NAV = [['GALÁXIAS', 'on'], ['LOJA', 'soon'], ['INVENTÁRIO', 'soon'], ['M
  */
 export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = () => true, onCelebrated, coins = 0, onSettings } = {}) {
   const open = unlockedGalaxies(save);
-  const root = el('section', { id: 'galaxy-screen', 'aria-label': 'Sete galáxias' });
+  // MOD 376: a tela nasce invisível ('gx-art-pending') e só aparece com a arte ORIGINAL aprovada (17/11) já decodificada;
+  // a ilustração SVG procedural fica apenas como reserva para falha real dos dois WebP (nunca como placeholder).
+  const root = el('section', { id: 'galaxy-screen', 'aria-label': 'Sete galáxias', class: 'gx-art-pending' });
   root.innerHTML = '<div class="gx-backdrop">' + infernalBackdrop() + '</div><div class="gx-stars"></div>' +
     '<header class="gx-head"><span class="gx-sigil" aria-hidden="true"></span><div><span class="gx-kicker">A BATALHA CONTRA OS</span><h1><span>7</span> PECADOS CAPITAIS</h1><p>Sete mundos acorrentados. Um deles já pede por você.</p></div></header>' +
     '<div class="gx-wallet"><span class="gx-coin"></span><b>' + Number(coins || 0).toLocaleString('pt-BR') + '</b></div>' +
@@ -168,9 +179,16 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
   renderDetail();
   document.body.appendChild(root);
   // The same authored layers remain interactive when WebGL is unavailable.
-  Promise.all(['environment.webp','worlds-hero.webp'].map(file=>new Promise((resolve,reject)=>{
-    const image=new Image();image.onload=resolve;image.onerror=reject;image.src=new URL('./assets/ui/menu/cinematic/'+file,import.meta.url).href;
-  }))).then(()=>{if(!closed&&root.isConnected)root.classList.add('gx-cinematic-ready');}).catch(()=>{});
+  // MOD 376: estado real de prontidão do menu. Cada WebP ganha UMA nova tentativa (rede móvel disputada) antes da reserva.
+  // revela de uma vez, por baixo do boot (que então desaparece): sem crossfade que deixe o HUD do mundo aparecer no meio
+  const reveal = () => { root.style.transition = 'none'; root.classList.remove('gx-art-pending'); void root.offsetWidth; root.style.transition = ''; };
+  const ready = loadMenuArt().then(() => {
+    if (closed || !root.isConnected) return 'closed';
+    root.classList.add('gx-cinematic-ready'); reveal(); root.dataset.gxMenuArt = 'original'; return 'original';
+  }, err => {
+    console.warn('[Galáxias] arte original indisponível; usando a reserva procedural', err && err.message);
+    if (!closed && root.isConnected) { reveal(); root.dataset.gxMenuArt = 'reserve'; } return 'reserve';
+  });
   const alignFallbackChains=()=>{
     const bounds=root.getBoundingClientRect(),W=bounds.width,H=bounds.height;if(!W||!H)return;
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
@@ -197,5 +215,5 @@ export function showGalaxyScreen({ progress = {}, save = {}, onEnter, isReady = 
     root.appendChild(banner);
     if (typeof onCelebrated === 'function') onCelebrated(freed);
   }
-  return { root, close };
+  return { root, close, ready };
 }

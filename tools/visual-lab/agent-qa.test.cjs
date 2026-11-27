@@ -259,3 +259,26 @@ test('rejeição antes da gravação permite corrigir o mesmo SHA',async()=>{
   await assert.rejects(check({input,runs,jobs:[{name:'evidencia',conclusion:'failure'}]}));
   await assert.rejects(check({input:{TARGET:branch+'.'}}));
 });
+
+
+test('A1: workflow pós-merge mantém dispatch direto, artifact rastreável e gatilhos de risco de câmera',()=>{
+  const a1=fs.readFileSync(path.join(__dirname,'../../.github/workflows/a1-eldoria-route-capture.yml'),'utf8');
+  const pushStart=a1.indexOf('\n  push:');
+  const pathsStart=a1.indexOf('\n    paths:\n',pushStart);
+  const dispatchStart=a1.indexOf('\n  workflow_dispatch:',pathsStart);
+  assert.ok(pushStart>=0&&pathsStart>pushStart&&dispatchStart>pathsStart,'push e workflow_dispatch precisam ser blocos distintos');
+  const pushPaths=a1.slice(pathsStart,dispatchStart);
+  for(const file of ['desktop-movement.js','world3d-terrain.js','eldoria-prologue-meadow.js','eldoria-undergrowth.js',
+    'eldoria-tropical-trees.js','EldoriaArvoresTropicais.glb','tools/eldoria/trees/tree-species.mjs','tools/eldoria/trees/build-trees.mjs']) {
+    assert.ok(pushPaths.includes("- '"+file+"'"),'mudança em '+file+' deve revalidar a rota/câmera A1');
+  }
+  for(const file of ['.github/workflows/a1-eldoria-route-capture.yml','tools/visual-lab/agent-qa.test.cjs',
+    'tools/visual-lab/scene-capture-core.test.cjs','tools/visual-lab/photographer.test.cjs','tools/visual-lab/camera-tree-fade.test.cjs']) {
+    assert.ok(!pushPaths.includes("- '"+file+"'"),'mudança apenas em '+file+' não deve iniciar uma gravação longa');
+  }
+  assert.ok(a1.includes('workflow_dispatch:')&&a1.includes("required: false")&&a1.includes("default: '0'")&&a1.includes('type: string'));
+  assert.ok(a1.includes("PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || 0 }}"));
+  assert.ok(a1.includes("ARTIFACT_NAME: qa-A1-${{ github.run_id }}"));
+  assert.ok(a1.includes("name: ${{ env.ARTIFACT_NAME }}"));
+  assert.ok(a1.includes("ref: ${{ github.sha }}"),'checkout precisa validar o SHA exato selecionado');
+});

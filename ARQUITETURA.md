@@ -146,6 +146,16 @@ noite. Braseiros (`BRAZIER_SPOTS`) iluminam os pontos de luta com 4 chamadas de 
 - Ativos grandes têm versão leve (`*-lod.glb`, `*-ui.webp`); os originais permanecem no repositório.
 - Use `?debug3d=1` e `SevenSinsDebug3D.triBreakdown()` para ver onde estão os triângulos.
 
+## Entrada e abertura (Mod 375)
+
+`game-flow.js` (etapas `boot → planets → cinematic → world`, sem temporizadores) é criado no HTML antes do loader e
+exposto em `window.__sinsFlow`. O mundo chama `planets()` ao montar o portão/galáxias e passa a continuação original para
+`enter(cont, extra)`; `finishWorldPrep()` (texturas por `initTexture` em fatias → `precompileWorld()` → `warmJourneyPrograms()`
+fatiado) chama `worldReady()`. A abertura (`loading-cinematic3d.js`, com `loading-kit3d.js`, `loading-fx3d.js` e o Campo
+da Última Guerra em `loading-battle3d.js`) usa silhuetas de `assets/loading/` (derivadas por
+`tools/loading-cinematic/derive-silhouettes.mjs`) e reaproveita os VFX originais dos Bispos/Ganância. QA:
+`tools/visual-lab/loading-cinematic-qa.html`. Detalhes: `docs/loading/LOADING-CINEMATICO-MOD375.md`.
+
 ## Marcadores de versão
 
 Ao mudar código: incremente o número visível (`#marker`), `BUILD` em `mod181-loader.js`, `?v=` em

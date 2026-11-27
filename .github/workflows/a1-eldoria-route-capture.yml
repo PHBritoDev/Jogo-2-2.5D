@@ -5,24 +5,34 @@ on:
     branches:
       - 'agentes/a1/eldoria-exterior-route-qa-mod361'
     paths:
-      - '.github/workflows/a1-eldoria-route-capture.yml'
       - 'mundo-3d-prototype.js'
       - 'camera-water-clearance3d.js'
       - 'tools/visual-lab/agent-qa.cjs'
-      - 'tools/visual-lab/agent-qa.test.cjs'
       - 'tools/visual-lab/scene-agent.cjs'
       - 'tools/visual-lab/scene-capture-core.cjs'
-      - 'tools/visual-lab/scene-capture-core.test.cjs'
       - 'tools/visual-lab/photographer.cjs'
-      - 'tools/visual-lab/photographer.test.cjs'
-      - 'tools/visual-lab/camera-tree-fade.test.cjs'
       - 'tools/visual-lab/package.json'
       - 'act1-world-layout.js'
       - 'eldoria-city-layout.js'
       - 'eldoria-city-plaza.js'
       - 'eldoria-live-village3d.js'
+      - 'desktop-movement.js'
+      - 'world3d-terrain.js'
+      - 'eldoria-prologue-meadow.js'
+      - 'eldoria-undergrowth.js'
+      - 'eldoria-tropical-trees.js'
+      - 'EldoriaArvoresTropicais.glb'
+      - 'tools/eldoria/trees/tree-species.mjs'
+      - 'tools/eldoria/trees/build-trees.mjs'
       - 'build-info.js'
 
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR de origem (0 para validação direta da main)'
+        required: false
+        default: '0'
+        type: string
 permissions:
   contents: read
 
@@ -38,7 +48,7 @@ jobs:
       AGENT: A1
       SCENARIO: floresta-percurso
       VIDEO: 'true'
-      PR: '692'
+      PR: ${{ github.event_name == 'workflow_dispatch' && inputs.pr || 0 }}
       VISUAL_OUTPUT: visual-lab-results
       VISUAL_BASE_URL: http://127.0.0.1:4173
       ARTIFACT_NAME: qa-A1-${{ github.run_id }}
@@ -87,7 +97,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-A1-${{ github.run_number }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: visual-lab-results/
           retention-days: 14
           if-no-files-found: warn

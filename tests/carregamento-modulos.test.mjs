@@ -37,7 +37,7 @@ test('grafo: cada módulo baixado uma vez, filhos e netos, concorrência limitad
 test('loader: aquece o grafo antes do import do blob e mostra o arquivo real + Tentar de novo', () => {
   const l = fs.readFileSync(new URL('../mod181-loader.js', import.meta.url), 'utf8');
   assert.ok(l.indexOf('await warmModuleGraph(') > 0 && l.indexOf('await warmModuleGraph(') < l.indexOf('await import(URL.createObjectURL(blob))'));
-  assert.ok(/describeFailure\(err, failures\)/.test(l) && /id = 'load-retry'/.test(l) && /location\.reload\(\)/.test(l));
+  assert.ok(/describeFailure\(err, failures\)/.test(l) && /getElementById\('load-retry'\)/.test(l) && /location\.reload\(\)/.test(l));
   assert.ok(!/setInterval|while \(true\)/.test(l), 'sem retry infinito');
 });
 

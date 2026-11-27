@@ -54,7 +54,7 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
   const b=document.createElement('button');b.className='adm-tab';b.textContent=label;b.type='button';b.setAttribute('aria-selected',String(id===current));b.addEventListener('click',()=>select(id));tabs.append(b);tabButtons.set(id,b);
   const page=document.createElement('div');page.className='adm-page';page.hidden=id!==current;const caption=document.createElement('div');caption.className='adm-caption';caption.textContent=id==='ganancia'?'Ultimate e fases — combate real':id==='dimensoes'?'Testes isolados · não salvam o progresso':'Teleportes seguros fora de combate';const grid=document.createElement('div');grid.className='adm-grid';page.append(caption,grid);scroll.append(page);pages.set(id,page);
  }
- const ultimateButton=action('ganancia','💥 ATIVAR ULTIMATE · JUÍZO DA USURA',onUltimate,{primary:true,wide:true});
+ const ultimateButton=action('ganancia','💥 ULTIMATE · CHEFES PRÓXIMOS',onUltimate,{primary:true,wide:true});
  action('ganancia','⏭ Próxima fase da Ganância',onPhase,{wide:true});
  action('ganancia','🎮 Abrir teste da Ganância',()=>onDimension('greed'),{wide:true});
  pauseButton=action('ganancia','⏸ PAUSAR INIMIGOS',()=>onPause?.(),{wide:true});
@@ -70,7 +70,7 @@ export function createAdmPanel({onTeleport,onDimension,onUltimate,onPhase,onKill
  action('viagem','🌋 Cidade 2 · Cinzária',()=>onTeleport('cinzaria'));
  action('viagem','🌿 Começar jornada',()=>{location.href='mundo-3d-prototype.html?adm=1&debug3d=1&jornadaInicio=1';return 'Abrindo jornada.'},{wide:true});
  action('viagem','↩ Laboratório de inimigos',()=>{location.href='laboratorio-inimigos.html';return 'Abrindo laboratório.'},{wide:true});
- function refresh(){const s=getState?.()||{};ultimateButton.title=s.phase===3?'Ativar o Juízo da Usura agora':s.inGreed?'Disponível depois da transformação para a fase III':'Entre na Dimensão da Ganância para usar';if(pauseButton){pauseButton.textContent=s.paused?'▶ RETOMAR INIMIGOS':'⏸ PAUSAR INIMIGOS';pauseButton.setAttribute('aria-pressed',String(!!s.paused));pauseButton.title=s.paused?'Retomar movimento dos inimigos e chefes':'Congelar inimigos e chefes do encontro';}}
+ function refresh(){const s=getState?.()||{};ultimateButton.title='Ativa a Ultimate original de cada chefe ativo a até 20 metros. Chefes fora do alcance são ignorados.';ultimateButton.disabled=!!s.ultimateBusy;if(pauseButton){pauseButton.textContent=s.paused?'▶ RETOMAR INIMIGOS':'⏸ PAUSAR INIMIGOS';pauseButton.setAttribute('aria-pressed',String(!!s.paused));pauseButton.title=s.paused?'Retomar movimento dos inimigos e chefes':'Congelar inimigos e chefes do encontro';}}
  toggle.addEventListener('click',e=>{e.stopPropagation();open(box.hidden);});close.addEventListener('click',()=>open(false));
  panel.append(toggle,box);box.append(header,tabs,scroll,status);document.body.append(panel);
  panel.addEventListener('pointerdown',e=>e.stopPropagation());

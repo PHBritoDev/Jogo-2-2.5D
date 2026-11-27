@@ -861,7 +861,9 @@ test('Passagem places each cut on the attacker-facing capsule surface',()=>{
  assert.ok(front.p.z<target.z&&front.p.x>0,'the cue must occupy the front-right surface seen by the attacker');
  assert.ok(Math.abs(front.yaw+.36)<1e-9,'the stroke plane follows the local capsule surface');
  const right=swordJudgmentCue({target,from:{x:5,y:0,z:5},n:6});
- assert.ok(right.p.x>.50&&right.p.x<.56,'side approach remains just outside the right-facing capsule surface');
+ const rightRadius=Math.hypot(right.p.x-target.x,right.p.z-target.z);
+ assert.ok(rightRadius>target.radius&&rightRadius<target.radius+.06,'side approach remains just outside the right-facing capsule surface');
+ assert.ok(right.p.x>target.x,'side approach stays on the right-facing half of the capsule');
  assert.ok(Math.abs(right.yaw-(-Math.PI/2+.36))<1e-9,'side approach rotates the local cut plane with the surface');
 });
 

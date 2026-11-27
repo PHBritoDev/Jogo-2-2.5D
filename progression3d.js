@@ -59,7 +59,7 @@ export const SHOP_ITEMS = [
     desc: 'Aprimora o dano de cada lâmina de 14 para 16. Requer Cerco das Cinco Lâminas Celestiais.', requires: 'magic' },
   { id: 'magic2_plus', sector: 'escrituras', kind: 'upgrade', name: 'Chuva de Estrelas II', cost: 120, level: 8, step: 16, stepText: 'chegar ao Vale do Altar (Ato III)',
     desc: 'Aumenta o dano de cada estrela de 6 para 8. Requer Chuva de Estrelas Celestiais.', requires: 'magic2' },
-  { id: 'magic3_plus', disabled: true, sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
+  { id: 'magic3_plus', sector: 'escrituras', kind: 'upgrade', name: 'Espada do Círculo', cost: 160, level: 9, step: 21, stepText: 'chegar à Torre (Ato IV)',
     desc: 'Nova Palavra do Ato IV: um círculo mágico se abre sob o inimigo e uma espada gigante irrompe do chão. Requer Tornado da Fênix Celestial.', requires: 'magic3' },
   // MOD 233 — Palavras novas: compráveis e equipáveis em qualquer um dos três espaços normais (Inventário → PALAVRAS).
   { id: 'skill_x_rupture', sector: 'escrituras', kind: 'skill', name: 'Ruptura em X', cost: 55, level: 4, step: 8,

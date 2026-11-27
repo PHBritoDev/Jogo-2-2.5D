@@ -7,9 +7,16 @@
 <meta name="theme-color" content="#05030a">
 <title>A Batalha Contra os 7 Pecados Capitais</title>
 <style>html,body{margin:0;height:100%;background:#05030a;overflow:hidden}#primary-3d-frame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#05030a}</style>
-<style>#lab-test-entry{position:fixed;z-index:9999;top:calc(10px + env(safe-area-inset-top));left:10px;padding:10px 15px;border:1px solid #dfbf78;border-radius:12px;background:#152234e8;color:#fff3bf;text-decoration:none;font:800 13px system-ui;box-shadow:0 3px 16px #0009}#lab-test-entry:focus-visible{outline:3px solid #fff}</style>
+<style>/* MOD 376: casca visível desde o primeiro byte (nunca tela preta) até o boot do jogo pintar dentro do iframe */
+#shell-boot{position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(ellipse 70% 60% at 50% 46%,#140a12,#050307 78%);color:#e9d6b2;font-family:Georgia,"Times New Roman",serif;text-align:center;transition:opacity .5s ease,visibility 0s linear .5s;pointer-events:none}
+#shell-boot span{font-size:clamp(10px,2.6vw,14px);letter-spacing:.34em;color:#cdb58e}#shell-boot b{font-weight:500;font-size:clamp(24px,7.4vw,44px);letter-spacing:.06em}#shell-boot i{font-style:normal;color:#c8202c;font-size:1.25em}
+#shell-boot small{margin-top:14px;font:700 9px/1 system-ui,sans-serif;letter-spacing:.24em;color:#d8c39ca8}#shell-boot.off{opacity:0;visibility:hidden}
+/* o atalho de testes só aparece em contexto de QA/admin (?testar=1 lembra no aparelho; ?testar=0 esquece) */
+#lab-test-entry{display:none}#lab-test-entry.qa{display:block}</style>
+<style>#lab-test-entry.qa{position:fixed;z-index:9999;top:calc(10px + env(safe-area-inset-top));left:10px;padding:10px 15px;border:1px solid #dfbf78;border-radius:12px;background:#152234e8;color:#fff3bf;text-decoration:none;font:800 13px system-ui;box-shadow:0 3px 16px #0009}#lab-test-entry.qa:focus-visible{outline:3px solid #fff}</style>
 </head>
 <body>
+<div id="shell-boot" role="status" aria-label="Carregando"><span>A BATALHA CONTRA OS</span><b><i>7</i> PECADOS CAPITAIS</b><small>CARREGANDO</small></div>
 <a id="lab-test-entry" href="./laboratorio-inimigos.html" aria-label="Abrir dimensão de testes dos inimigos">⚔ TESTAR</a>
 <script>
 /* MOD 202 — o mundo 3D é o jogo inteiro. O antigo mundo 2D foi removido: a dimensão de VHAZRAEL (e as dos outros
@@ -30,7 +37,17 @@
     var cleanUrl=window.location.pathname+(params.toString()?'?'+params.toString():'')+window.location.hash;
     window.history.replaceState({},'',cleanUrl);
   }
+  // Atalho TESTAR: só em contexto de QA/admin (parâmetros de teste, automação ou ?testar=1 lembrado neste aparelho).
+  try{ if(params.get('testar')==='1')localStorage.setItem('seven-sins-qa-shortcut','1'); if(params.get('testar')==='0')localStorage.removeItem('seven-sins-qa-shortcut'); }catch(e){}
+  var qaKeys=['testar','treinoEspadas','todasHabilidades','debug3d','testeDimensao','vfxLab236','testeQuantum233','qa','lab'];
+  var qa=navigator.webdriver||qaKeys.some(function(k){return params.has(k)&&params.get(k)!=='0';});
+  try{ qa=qa||localStorage.getItem('seven-sins-qa-shortcut')==='1'; }catch(e){}
+  if(qa)document.querySelector('#lab-test-entry').classList.add('qa');
+  // A casca some quando o boot do jogo pinta (mensagem do iframe) ou, no mínimo, quando o documento do iframe carrega.
+  var shellBoot=document.getElementById('shell-boot'),shellOff=function(){shellBoot.classList.add('off');};
+  window.addEventListener('message',function(e){if(e.origin===location.origin&&e.data&&e.data.type==='SEVEN_SINS_BOOT_PAINTED')shellOff();});
   var frame=document.createElement('iframe');
+  frame.addEventListener('load',shellOff);
   frame.id='primary-3d-frame';
   frame.title='Mundo 3D — A Batalha Contra os 7 Pecados Capitais';
   const lab = new URL('./laboratorio-inimigos.html', location.href);
