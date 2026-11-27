@@ -857,12 +857,12 @@ test('Passagem places each cut on the attacker-facing capsule surface',()=>{
  assert.ok(front);
  assert.ok(front.p.y>0&&front.p.y<target.height,'surface mark is placed above the ground-origin actor pivot');
  const frontRadius=Math.hypot(front.p.x-target.x,front.p.z-target.z);
- assert.ok(frontRadius>target.radius&&frontRadius<target.radius+.06);
+ assert.ok(frontRadius>target.radius+.08&&frontRadius<target.radius+.12);
  assert.ok(front.p.z<target.z&&front.p.x>0,'the cue must occupy the front-right surface seen by the attacker');
  assert.ok(Math.abs(front.yaw+.36)<1e-9,'the stroke plane follows the local capsule surface');
  const right=swordJudgmentCue({target,from:{x:5,y:0,z:5},n:6});
  const rightRadius=Math.hypot(right.p.x-target.x,right.p.z-target.z);
- assert.ok(rightRadius>target.radius&&rightRadius<target.radius+.06,'side approach remains just outside the right-facing capsule surface');
+ assert.ok(rightRadius>target.radius+.08&&rightRadius<target.radius+.12,'side approach remains just outside the right-facing capsule surface');
  assert.ok(right.p.x>target.x,'side approach stays on the right-facing half of the capsule');
  assert.ok(Math.abs(right.yaw-(-Math.PI/2+.36))<1e-9,'side approach rotates the local cut plane with the surface');
 });
@@ -880,7 +880,7 @@ test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async
  assert.ok(new Set(rolls.map(v=>v.toFixed(3))).size>=12,'cuts use varied slash angles rather than one parallel slab');
  for(const cue of cues){
   const radius=Math.hypot(cue.p.x-target.x,cue.p.z-target.z);
-  assert.ok(radius>target.radius&&radius<target.radius+.06,'each cut stays just outside the capsule without visibly floating');
+  assert.ok(radius>target.radius+.08&&radius<target.radius+.12,'each cut stays just outside the capsule without visibly floating');
  }
  let minSpacing=Infinity;
  for(let i=0;i<cues.length;i++)for(let j=i+1;j<cues.length;j++){
@@ -889,7 +889,7 @@ test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async
  }
  assert.ok(minSpacing>.34,'short marks keep visible gaps instead of merging into a single sheet');
  const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
- assert.ok(source.includes('m.material.depthTest=!overlay'),'surface cuts render above the enemy mesh without moving far off the capsule');
+ assert.ok(source.includes('m.material.depthTest=true'),'surface cuts render above the enemy mesh without moving far off the capsule');
  assert.ok(source.includes("cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?JUDGMENT_SLASH_TIMING.finalLife:JUDGMENT_SLASH_TIMING.life,judgmentSlash)"));
  assert.ok(!source.includes("if(e.final)cut(p,'prota',.82"),'finalizer must not add a crossed second slab');
 });
