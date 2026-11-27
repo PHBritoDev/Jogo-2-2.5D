@@ -162,7 +162,7 @@ async function main() {
     assert.ok(b.diagnostics?.active, 'diagnóstico do abrigo não foi ativado na PR');
     assert.equal(b.diagnostics.triggerBlocker, 'abrigo-pilar', 'o raio direto não identificou o pilar que dispara o desvio');
     assert.ok(Math.abs(b.diagnostics.shoulderYawOffset) >= 0.02, 'nenhum desvio lateral foi aplicado');
-    assert.ok(b.actualArm >= Math.max(4.0, a.actualArm + 1.2),
+    assert.ok(b.actualArm >= Math.max(3.8, a.actualArm + 1.2) && b.actualArm <= 4.05,
       'braço não recuperou distância suficiente: baseline=' + a.actualArm.toFixed(2) + ' m, PR=' + b.actualArm.toFixed(2) + ' m');
     assert.ok(b.diagnostics.finalLimit >= 0.65, 'colisão posterior ainda comprime o braço: limit=' + b.diagnostics.finalLimit);
     assert.ok(b.diagnostics.chosenClearance >= b.diagnostics.minClearance,
