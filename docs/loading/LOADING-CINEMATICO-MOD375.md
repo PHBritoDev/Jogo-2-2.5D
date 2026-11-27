@@ -131,3 +131,9 @@ Nenhuma toca os arquivos da abertura; a #691/#714 tocam `mundo-3d-prototype.js` 
 - Harness: `tools/visual-lab/loading-cinematic-qa.html` (`?t=` marcha, `?b=` batalha, `?hud=1`).
 - Limitações: nada medido em Android físico; números de tempo são do SwiftShader (CPU). `prefers-reduced-motion` mostra
   um quadro parado da marcha (sem movimento nem clarões); sem WebGL a abertura não monta e o convite continua funcionando.
+
+## 7. Evidências (`docs/loading/evidencias/`)
+- `abertura-375-640x360.mp4`: 76 s (marcha + Campo da Última Guerra), 640×360 a 10 fps, renderizado quadro a quadro em
+  passo fixo no harness (Chromium/SwiftShader) — mostra a composição, não o fps real.
+- `375-marcha-paisagem.jpg` (marcha e ameaça implícita), `375-campo-paisagem.jpg` (os dez momentos do campo),
+  `375-retrato-390x844.jpg` (retrato).
