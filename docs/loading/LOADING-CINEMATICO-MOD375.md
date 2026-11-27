@@ -33,6 +33,9 @@ compilação síncrona duplicada da cena inteira. Correção (`mundo-3d-prototyp
    uniformes do primeiro uso), cedendo a vez entre grupos; um desenho completo final confirma;
 4. só então `flow.worldReady()` — 100 % e o convite.
 
+Sem o fluxo em etapas (automação, `?noloadingcine`), o `#loading` some no tempo clássico (~5,5 s no SwiftShader) e a
+mesma preparação fatiada segue por trás, sem as tarefas longas de 8,65 s do Mod 374 (maior: ~1 s).
+
 | medida (SwiftShader, 412×915, sem throttle) | Mod 374 (main) | Mod 375 |
 |---|---|---|
 | "pronto" | 10,2 s | 26,0 s (real: texturas + shaders + aquecimento) |

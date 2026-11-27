@@ -1691,6 +1691,8 @@ function worldTextures(){const set=new Set();scene.traverse(o=>{const ms=o.mater
 let worldPrepStarted=false;
 function finishWorldPrep(){
  if(worldPrepStarted)return;worldPrepStarted=true;const flow=window.__sinsFlow,t0=performance.now();
+ /* sem o fluxo em etapas (automação/?noloadingcine): mantém o tempo clássico do #loading; a preparação segue fatiada por trás */
+ if(!(flow&&flow.active))loading.classList.add('hidden');
  const prog=(p,l)=>{if(flow&&flow.setProgress)flow.setProgress(p,l||'MONTANDO O MUNDO');};
  const list=renderer.initTexture?worldTextures():[],total=list.length;let i=0;const P=window.__worldPrep={textures:total,uploaded:0,t0,uploadMs:0,compileMs:0,warmMs:0,doneAt:0};
  /* cede a vez entre fatias (tarefas curtas): sem depender de ociosidade, que quase não existe com outras telas animando */
