@@ -1,6 +1,7 @@
 name: A1 — testes unitários do percurso de Eldória
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - '.github/workflows/a1-route-qa-unit.yml'
@@ -38,7 +39,7 @@ jobs:
       - name: Checkout SHA exato da PR
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Node 22
         uses: actions/setup-node@v4
         with:
