@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { readFile } from 'node:fs/promises';
-import { SwordRites, segmentBlocked, swordSideHitContext } from '../sword-rites3d.js';
+import { SwordRites, segmentBlocked, passagePath, swordSideHitContext, JUDGMENT_TIMES } from '../sword-rites3d.js';
 import { PROTA_DASH } from '../prota-combat3d.js';
 import { Enemy1Squad } from '../enemy1-squad3d.js';
 import { makeEnergy } from '../combat-energy3d.js';
-import { swordImpactYaw } from '../sword-rites-vfx3d.js';
+import { swordImpactYaw, swordJudgmentCue, JUDGMENT_SLASH_PROFILE, JUDGMENT_SLASH_TIMING, swordJudgmentSlashPoint, SWORD_TRAIL_PROFILES, swordTrailProfile } from '../sword-rites-vfx3d.js';
 
 const enemy = (id,x=0,z=3) => ({ id,x,y:1,z,radius:.48,height:1.7,alive:true });
 function encounter(blocked=()=>false) {
@@ -849,6 +849,103 @@ test('impact cut follows the connected blade or energy heading, not the global c
  near(swordImpactYaw({energy:{direction:{x:NaN,z:0},yaw:Infinity}}),0);
 });
 
+test('Passagem places each cut on the attacker-facing capsule surface',()=>{
+ const squad=new Enemy1Squad({ground:()=>0}),actor=squad.spawn([{x:0,z:5}])[0];
+ const target={...actor,radius:actor.T.radius,height:actor.T.height}; // Real production actor: y is its ground/base height.
+ assert.equal(target.y,0);
+ const front=swordJudgmentCue({target,from:{x:0,y:0,z:0},n:5});
+ assert.ok(front);
+ assert.ok(front.p.y>0&&front.p.y<target.height,'surface mark is placed above the ground-origin actor pivot');
+ const frontRadius=Math.hypot(front.p.x-target.x,front.p.z-target.z);
+ assert.ok(frontRadius>target.radius+.08&&frontRadius<target.radius+.12);
+ assert.ok(front.p.z<target.z&&front.p.x>0,'the cue must occupy the front-right surface seen by the attacker');
+ assert.ok(Math.abs(front.yaw+.36)<1e-9,'the stroke plane follows the local capsule surface');
+ const right=swordJudgmentCue({target,from:{x:5,y:0,z:5},n:6});
+ const rightRadius=Math.hypot(right.p.x-target.x,right.p.z-target.z);
+ assert.ok(rightRadius>target.radius+.08&&rightRadius<target.radius+.12,'side approach remains just outside the right-facing capsule surface');
+ assert.ok(right.p.x>target.x,'side approach stays on the right-facing half of the capsule');
+ assert.ok(Math.abs(right.yaw-(-Math.PI/2+.36))<1e-9,'side approach rotates the local cut plane with the surface');
+});
+
+test('Passagem distributes 16 short cuts in a separated 4×4 body pattern',async()=>{
+ const target={x:0,y:0,z:5,radius:.5,height:1.8},from={x:0,y:0,z:0};
+ const cues=Array.from({length:16},(_,n)=>swordJudgmentCue({target,from,n}));
+ const positions=new Set(cues.map(c=>[c.p.x,c.p.y,c.p.z].map(v=>v.toFixed(3)).join(',')));
+ assert.equal(positions.size,16,'all 16 cuts must occupy distinct points');
+ const heights=cues.map(c=>c.p.y),yaws=cues.map(c=>c.yaw),rolls=cues.map(c=>c.roll);
+ assert.ok(Math.min(...heights)>.1,'no cut is placed below the enemy ground plane');
+ assert.ok(Math.max(...heights)<target.height,'all cuts remain within the enemy body height');
+ assert.ok(Math.max(...heights)-Math.min(...heights)>1.2,'cuts span most of the enemy body');
+ assert.ok(Math.max(...yaws)-Math.min(...yaws)>2.0,'four columns wrap around the visible front hemisphere');
+ assert.ok(new Set(rolls.map(v=>v.toFixed(3))).size>=12,'cuts use varied slash angles rather than one parallel slab');
+ for(const cue of cues){
+  const radius=Math.hypot(cue.p.x-target.x,cue.p.z-target.z);
+  assert.ok(radius>target.radius+.08&&radius<target.radius+.12,'each cut stays just outside the capsule without visibly floating');
+ }
+ let minSpacing=Infinity;
+ for(let i=0;i<cues.length;i++)for(let j=i+1;j<cues.length;j++){
+  const a=cues[i].p,b=cues[j].p;
+  minSpacing=Math.min(minSpacing,Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z));
+ }
+ assert.ok(minSpacing>.34,'short marks keep visible gaps instead of merging into a single sheet');
+ const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(source.includes('m.material.depthTest=true'),'surface cuts render above the enemy mesh without moving far off the capsule');
+ assert.ok(source.includes("cut(p,'prota',e.final?1.18:1.08,roll,yaw,e.final?JUDGMENT_SLASH_TIMING.finalLife:JUDGMENT_SLASH_TIMING.life,judgmentSlash)"));
+ assert.ok(!source.includes("if(e.final)cut(p,'prota',.82"),'finalizer must not add a crossed second slab');
+});
+
+test('Passagem uses a compact tapered ribbon instead of the shared broad crescent',async()=>{
+ const profile=JUDGMENT_SLASH_PROFILE;
+ assert.ok(profile.length>.42&&profile.length<.5,'individual cuts remain compact but long enough to read as blade strokes');
+ assert.ok(profile.maxWidth>.05&&profile.maxWidth<.06,'individual cuts have enough width to remain legible at mobile distance');
+ const endWidth=Math.abs(swordJudgmentSlashPoint(0,1).y-swordJudgmentSlashPoint(0,0).y);
+ const middleWidth=Math.abs(swordJudgmentSlashPoint(.5,1).y-swordJudgmentSlashPoint(.5,0).y);
+ assert.ok(middleWidth>endWidth*4,'the ribbon tapers sharply at both ends');
+ assert.ok(Math.abs(swordJudgmentSlashPoint(.5,0).z)>0,'the stroke has a slight 3D bow');
+ const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(vfx.includes("geometry=crescent"),'ordinary impacts retain the original crescent geometry by default');
+ assert.ok(vfx.includes("m.geometry=geometry"),'the pooled cut meshes accept a dedicated judgment geometry');
+ assert.ok(vfx.includes("m.material.depthTest=true"),'judgment strokes respect scene depth instead of overlaying the hero');
+ assert.ok(vfx.includes("glowMesh.scale.set(1.14,1.3,1.12)"),'judgment strokes receive a restrained, dedicated glow edge');
+ assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
+});
+
+test('Passagem keeps all 16 surface cuts alive together through the final impact',()=>{
+ const sequenceSpan=JUDGMENT_TIMES.at(-1)-JUDGMENT_TIMES[0];
+ assert.ok(JUDGMENT_SLASH_TIMING.life>sequenceSpan+.8,'the first cut remains visible with a fade margin at the sixteenth hit');
+ assert.ok(JUDGMENT_SLASH_TIMING.finalLife>JUDGMENT_SLASH_TIMING.life,'the final cut gets a slightly longer finish');
+});
+
+test('Passagem blade trail is a short, soft accent capped at 30 Hz without changing other sword trails',async()=>{
+ const passage=swordTrailProfile('prota'),standard=swordTrailProfile('basic');
+ assert.ok(passage.tip-passage.base<(standard.tip-standard.base)*.35,'Passagem trail is only a short accent of the real blade');
+ assert.equal(passage,SWORD_TRAIL_PROFILES.prota);
+ assert.equal(standard,SWORD_TRAIL_PROFILES.standard);
+ assert.equal(passage.life,.09);
+ assert.equal(passage.opacity,.38);
+ assert.equal(passage.interval,1/30);
+ assert.equal(standard.life,.24,'ordinary sword trails keep their original lifetime');
+ assert.equal(standard.opacity,1,'ordinary sword trails keep their original opacity');
+ assert.equal(standard.interval,0,'ordinary sword trails keep full sampling');
+ const source=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
+ assert.ok(source.includes('profile=swordTrailProfile(a.kind)'),'production trail sampling uses the immutable per-rite profile');
+ assert.ok(source.includes('dx*profile.base')&&source.includes('dx*profile.tip'),'production trail geometry uses the profile endpoints without per-frame point objects');
+});
+
+test('Passagem judgment events carry a stable attacker origin for VFX placement',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('judgment-origin-focus',0,5),events=[];
+ const rites=new SwordRites({
+  blocked:()=>false,move:p=>Object.assign(from,p),hit:()=>true,
+  event:(type,data)=>{if(type==='judgment')events.push({origin:data.from,at:{...from}});}
+ });
+ assert.deepEqual(rites.cast('prota',{mana:100,from,target:focus}),{ok:true,cost:28});
+ const ctx={from,target:focus,sword:'prota',grounded:true};
+ for(const dt of [.25,.25,.2])rites.update(dt,ctx);
+ assert.ok(events.length>0,'at least one judgment cut must be emitted');
+ assert.deepEqual(events[0].origin,events[0].at,'event must snapshot the hero position at the hit');
+ assert.notEqual(events[0].origin,from,'event origin must not alias the live movement object');
+});
+
 test('production blade impacts forward their yaw and both impact cuts use the resolved heading',async()=>{
  const source=await readFile(new URL('../sword-rites3d.js',import.meta.url),'utf8');
  const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
@@ -861,4 +958,45 @@ test('production blade impacts forward their yaw and both impact cuts use the re
  assert.match(branch,/cut\(p,e\.sword,cue\.scale,Math\.PI\*\.5,yaw,cue\.life\)/);
  assert.match(branch,/cut\(p,e\.sword,cue\.secondScale,-Math\.PI\*\.5,yaw\+Math\.PI\/2,cue\.secondLife\)/);
  assert.doesNotMatch(branch,/time\*3/,'impact orientation must not depend on global elapsed time');
+});
+
+
+test('Passagem do Julgamento rejeita paredes de 1 cm entre os waypoints de 6 cm',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('thin-wall-focus',0,5);
+ let probes=0;
+ const blocked=p=>{
+  probes++;
+  return p.z>1&&p.z<1.01&&Math.abs(Math.abs(p.x)-.30)<.018;
+ };
+ assert.equal(passagePath(from,focus,blocked),null,'os dois corredores laterais têm uma parede fina no primeiro segmento');
+ assert.ok(probes<5000,'a verificação fina continua limitada a uma única construção de rota');
+});
+
+test('Passagem do Julgamento cancela em posição segura se uma parede fina surgir entre waypoints',()=>{
+ const from={x:0,y:0,z:0},focus=enemy('dynamic-wall-focus',0,5);
+ let wall=null;const moves=[];
+ const blocked=p=>!!wall&&Math.hypot(p.x-wall.x,p.y-wall.y,p.z-wall.z)<.006;
+ const rites=new SwordRites({blocked,move:p=>{Object.assign(from,p);moves.push({...p});}});
+ assert.deepEqual(rites.cast('prota',{mana:100,from,target:focus}),{ok:true,cost:28});
+ const path=rites.active.path;
+ assert.ok(path.length>8,'o trajeto deve conter waypoints de movimento');
+ const a=path[4],b=path[5];
+ wall={x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2};
+ const ctx={from,target:focus,sword:'prota',grounded:true};
+ rites.update(.25,ctx);
+ rites.update(.06,ctx);
+ assert.equal(rites.busy,false,'a passagem deve cancelar antes de cruzar o obstáculo novo');
+ assert.deepEqual(from,path[4],'o herói permanece no último waypoint livre');
+ assert.equal(moves.length,4,'nenhum waypoint depois da parede pode ser aplicado');
+});
+
+
+test('Combat315 captures Passagem from the gameplay camera and restores it after the lateral diagnostic',async()=>{
+ const harness=await readFile(new URL('../tools/visual-lab/combat315-qa.cjs',import.meta.url),'utf8');
+ const start=harness.indexOf('const riteShot='),end=harness.indexOf("\n  await E(()=>{for(const id",start);
+ assert.ok(start>=0&&end>start,'Passagem screenshot helper must exist');
+ const shot=harness.slice(start,end);
+ assert.ok(shot.indexOf('D.viewQA(false)')<shot.indexOf("n+'.png'"),'the first image must use the gameplay third-person camera');
+ assert.ok(shot.includes("n+'-lateral.png'"),'the lateral diagnostic must be a separate image');
+ assert.ok(shot.includes('D.fly(null);D.viewQA(false)'),'the diagnostic camera must be restored before the next gameplay step');
 });
