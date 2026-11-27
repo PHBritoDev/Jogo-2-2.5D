@@ -74,7 +74,7 @@ import {mountCityDressing} from './eldoria-city-dressing.js';
 import {ELDORIA_HOUSES,ELDORIA_SMITHY} from './eldoria-city-layout.js';
 import {ELDORIA_STREETS,doorPaths,treeStructurePlan} from './eldoria-city-layout.js';
 import {createWalkables} from './eldoria-walkable.js';
-import {chooseShelterCameraShoulder} from './follow-camera-clearance3d.js';
+import {chooseShelterCameraShoulder,SHELTER_CAMERA_PREFERRED_DISTANCE} from './follow-camera-clearance3d.js';
 import {clampBakedMips} from './eldoria-baked-texture.js';
 import {createLightState,sampleTimeOfDay,applyRegionGrade,sunDirection,createRegionProbe} from './eldoria-nostalgic-light.js';
 import {createWeatherDirector,applyWeatherToLight,WEATHER} from './eldoria-weather.js';
@@ -2540,7 +2540,7 @@ if(firstPerson){
     return null;
    };
    const visibleAt=cameraPoint=>{
-    const shelterPreferredDistance=4.0,visibilityDistance=Math.min(camDistUse,shelterPreferredDistance),visibilityScale=visibilityDistance/Math.max(.001,camDistUse);
+    const visibilityDistance=Math.min(camDistUse,SHELTER_CAMERA_PREFERRED_DISTANCE),visibilityScale=visibilityDistance/Math.max(.001,camDistUse);
     const visibleCamera={x:target.x+(cameraPoint.x-target.x)*visibilityScale,y:target.y+(cameraPoint.y-target.y)*visibilityScale,z:target.z+(cameraPoint.z-target.z)*visibilityScale};
     let visible=0;
     for(const height of [.72,1.15,1.58]){
@@ -2554,7 +2554,7 @@ if(firstPerson){
     return visible>=2;
    };
    shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,visibleAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
-   if(shelterDecision?.chosen?.visible===true)shelterTargetDistance=Math.min(camDistUse,shelterPreferredDistance,shelterDecision.chosen.clearance);
+   if(shelterDecision?.chosen?.visible===true)shelterTargetDistance=Math.min(camDistUse,SHELTER_CAMERA_PREFERRED_DISTANCE,shelterDecision.chosen.clearance);
   }
   const wanted=shelterDecision?.angle||0;
   shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
