@@ -30,7 +30,7 @@ export function swordJudgmentCue(e){
  const hasFrom=from&&Number.isFinite(from.x)&&Number.isFinite(from.z);
  const dx=hasFrom?t.x-from.x:0,dz=hasFrom?t.z-from.z:1,len=Math.hypot(dx,dz);
  const heading=len>1e-5?Math.atan2(dx,dz):Number.isFinite(e?.yaw)?e.yaw:0;
- const radius=Number.isFinite(t.radius)&&t.radius>0?t.radius:.48,surfaceRadius=radius+.035;
+ const radius=Number.isFinite(t.radius)&&t.radius>0?t.radius:.48,surfaceRadius=radius+.10;
  const height=Number.isFinite(t.height)&&t.height>0?t.height:1.7,n=Math.max(0,Math.min(15,Math.floor(Number.isFinite(e?.n)?e.n:0)));
  const row=Math.floor(n/4),col=n%4;
  // Four columns wrap around the front 106° of the capsule; four rows span almost the full body.
@@ -38,7 +38,7 @@ export function swordJudgmentCue(e){
  // Enemy squad actor.y is its ground/base height, not the capsule center.
  const vertical=((row+.5)/4)*height+Math.sin(n*2.399)*.018;
  const roll=(row%2?1:-1)*(.46+(col-1.5)*.08)+Math.sin(n*2.399)*.045;
- // Stay 3.5 cm outside the collision capsule and render as a shallow surface cut over the enemy mesh.
+ // Keep marks just beyond the combat capsule; normal depth testing prevents them drawing over the hero or scenery.
  return{p:{x:t.x-nx*surfaceRadius,y:t.y+vertical,z:t.z-nz*surfaceRadius},yaw:surfaceYaw,roll,row,col};
 }
 /** Original world-space sword ribbons and eroded, volumetric cutting waves.
@@ -98,7 +98,7 @@ export function createSwordRitesVFX(T,scene){
  judgmentSlash.setAttribute('position',new T.Float32BufferAttribute(jpos,3));judgmentSlash.setAttribute('uv',new T.Float32BufferAttribute(juv,2));judgmentSlash.setAttribute('birth',new T.Float32BufferAttribute(jbirth,1));judgmentSlash.setIndex(jidx);judgmentSlash.computeVertexNormals();
  // birth is shared as zero for cuts; clock is their local age.
  const cuts=Array.from({length:16},()=>{const g=new T.Group(),mat=makeMaterial(),glow=makeMaterial('prota',1),m=new T.Mesh(crescent,mat),h=new T.Mesh(crescent,glow);h.scale.set(1.02,1.12,1.1);g.add(m,h);root.add(g);g.visible=false;return{g,mat,glow,age:10,life:.5,wave:null};});
- function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4,geometry=crescent){const c=cuts[cutCursor++%cuts.length],overlay=geometry===judgmentSlash;c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>{m.geometry=geometry;m.rotation.z=roll;m.material.depthTest=!overlay;m.material.depthWrite=false;m.renderOrder=overlay?8:0;});const glowMesh=c.g.children[1];if(overlay){glowMesh.scale.set(1.14,1.3,1.12);}else{glowMesh.scale.set(1.02,1.12,1.1);}c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}c.glow.uniforms.opacity.value=overlay?1.25:1;return c;}
+ function cut(p,sword,scale=1.6,roll=0,yaw=0,life=.4,geometry=crescent){const c=cuts[cutCursor++%cuts.length],overlay=geometry===judgmentSlash;c.g.visible=true;c.age=0;c.life=life;c.wave=null;c.g.position.set(p.x,p.y,p.z);c.g.rotation.set(0,yaw,0);c.g.children.forEach(m=>{m.geometry=geometry;m.rotation.z=roll;m.material.depthTest=true;m.material.depthWrite=false;m.renderOrder=overlay?8:0;});const glowMesh=c.g.children[1];if(overlay){glowMesh.scale.set(1.14,1.3,1.12);}else{glowMesh.scale.set(1.02,1.12,1.1);}c.g.scale.setScalar(scale);for(const m of [c.mat,c.glow]){tint(m,sword);m.uniforms.life.value=life;m.uniforms.opacity.value=1;}c.glow.uniforms.opacity.value=overlay?1.25:1;return c;}
  const shardGeo=new T.TetrahedronGeometry(1,0),shardMat=new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,toneMapped:false}),shards=new T.InstancedMesh(shardGeo,shardMat,192);shards.frustumCulled=false;shards.instanceMatrix.setUsage(T.DynamicDrawUsage);root.add(shards);const dummy=new T.Object3D(),color=new T.Color();
  const particles=Array.from({length:192},()=>({life:0,age:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:0}));
  const activeIndices=new Uint16Array(particles.length),activePositions=new Int16Array(particles.length),changedMatrixIndices=new Uint16Array(particles.length),changedColorIndices=new Uint16Array(particles.length),rangeFlags=new Uint8Array(particles.length);
