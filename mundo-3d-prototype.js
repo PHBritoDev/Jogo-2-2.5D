@@ -3719,7 +3719,7 @@ const GALAXY_STORE='seven-sins-galaxies';
 function openGalaxyScreen(){
  let save={};try{save=JSON.parse(localStorage.getItem(GALAXY_STORE)||'{}');}catch(_){}
  menuGate=true;closeWorldMap();closeShop();setPaused(false);
- showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(window.__sinsFlow&&window.__sinsFlow.active&&window.__sinsFlow.step==='planets')||((!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled),onEnter:()=>{const go=()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startAwakeningCine();}};const flow=window.__sinsFlow;if(flow&&flow.enter)flow.enter(go);else go();}});
+ return showGalaxyScreen({progress:{questStep,bishopsDefeated},save,coins,onSettings:()=>{const gb=document.getElementById('graphics-toggle-3d');if(gb)gb.click();},onCelebrated:()=>{try{delete save.celebrate;localStorage.setItem(GALAXY_STORE,JSON.stringify(save));}catch(_){}},isReady:()=>(window.__sinsFlow&&window.__sinsFlow.active&&window.__sinsFlow.step==='planets')||((!loading||loading.classList.contains('hidden')||loading.style.display==='none')&&worldCompiled),onEnter:()=>{const go=()=>{menuGate=false;worldAudio.unlock();if(pendingAwakening){pendingAwakening=false;startAwakeningCine();}};const flow=window.__sinsFlow;if(flow&&flow.enter)flow.enter(go);else go();}});
 }
 /* MOD 203 — Marco 1 (roteiro em docs/roteiro/M1-PROLOGO.md): Reino Celestial → tela das galáxias → despertar no
    Mundo da Ganância. As cenas são dados (prologue-flow.js); aqui ficam câmera, animações, efeitos e telas.
@@ -4012,7 +4012,11 @@ function openStartGate(){
  const begin=()=>{gate.hidden=true;worldAudio.unlock();menuGate=false;clock.getDelta();startHeavenCine();};
  bindInstantTap(go,()=>{if(!ready||gate.hidden)return;if(flow&&flow.enter&&flow.step==='planets')flow.enter(begin,heaven);else begin();});
 }
-if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');if(window.__sinsFlow&&window.__sinsFlow.planets)window.__sinsFlow.planets(); /* MOD 375: etapa 'planets' antes de montar a tela (o portão já nasce liberado; a abertura segura a entrada) */if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;openStartGate();}else openGalaxyScreen();}
+if(menuGate){pendingAwakening=awakeningActive;awakeningActive=false;const skip=document.getElementById('skip-awakening');if(skip)skip.classList.add('hidden');const toPlanets=()=>{if(window.__sinsFlow&&window.__sinsFlow.planets)window.__sinsFlow.planets();};
+ /* MOD 376: a etapa 'planets' só começa com a tela ORIGINAL realmente pronta (arte de 17/11 decodificada). Até lá o boot
+    continua visível com o progresso real — nada de tela preta nem do menu procedural de reserva como placeholder. */
+ if(questStep===0&&!awakeningSeen&&!heavenSeen){pendingAwakening=false;toPlanets();openStartGate();}
+ else{if(window.__sinsFlow&&window.__sinsFlow.active)window.__sinsFlow.setProgress(window.__sinsFlow.progress,'ABRINDO AS GALÁXIAS');const gx=openGalaxyScreen();Promise.resolve(gx&&gx.ready).then(toPlanets,toPlanets);}}
 /* MOD 190 — corações e perfil. Corações vivem num registro próprio (regeneram com o jogo fechado). */
 const HEART_STORE='seven-sins-hearts';
 let heartState=(()=>{
