@@ -2501,7 +2501,7 @@ if(firstPerson){
     return null;
    };
    const visibleAt=cameraPoint=>{
-    const visibilityDistance=Math.min(camDistUse,4.5),visibilityScale=visibilityDistance/Math.max(.001,camDistUse);
+    const shelterPreferredDistance=4.0,visibilityDistance=Math.min(camDistUse,shelterPreferredDistance),visibilityScale=visibilityDistance/Math.max(.001,camDistUse);
     const visibleCamera={x:target.x+(cameraPoint.x-target.x)*visibilityScale,y:target.y+(cameraPoint.y-target.y)*visibilityScale,z:target.z+(cameraPoint.z-target.z)*visibilityScale};
     let visible=0;
     for(const height of [.72,1.15,1.58]){
@@ -2515,7 +2515,7 @@ if(firstPerson){
     return visible>=2;
    };
    shelterDecision=chooseShelterCameraShoulder({target:{x:target.x,y:target.y,z:target.z},offset:{x:baseOffset.x,y:baseOffset.y,z:baseOffset.z},previous:shelterCameraYawOffset,blockedAt,visibleAt,samples:24,minClearance:Math.max(3.2,camDistUse*.65)});
-   if(shelterDecision?.chosen?.visible===true)shelterTargetDistance=Math.min(camDistUse,4.5,shelterDecision.chosen.clearance);
+   if(shelterDecision?.chosen?.visible===true)shelterTargetDistance=Math.min(camDistUse,shelterPreferredDistance,shelterDecision.chosen.clearance);
   }
   const wanted=shelterDecision?.angle||0;
   shelterCameraYawOffset+=(wanted-shelterCameraYawOffset)*(1-Math.exp(-8*dt));
