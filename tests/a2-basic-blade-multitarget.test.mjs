@@ -905,7 +905,7 @@ test('Passagem uses a compact tapered ribbon instead of the shared broad crescen
  const vfx=await readFile(new URL('../sword-rites-vfx3d.js',import.meta.url),'utf8');
  assert.ok(vfx.includes("geometry=crescent"),'ordinary impacts retain the original crescent geometry by default');
  assert.ok(vfx.includes("m.geometry=geometry"),'the pooled cut meshes accept a dedicated judgment geometry');
- assert.ok(vfx.includes("m.material.depthTest=!overlay"),'judgment strokes are visible over the enemy surface');
+ assert.ok(vfx.includes("m.material.depthTest=true"),'judgment strokes respect scene depth instead of overlaying the hero');
  assert.ok(vfx.includes("glowMesh.scale.set(1.14,1.3,1.12)"),'judgment strokes receive a restrained, dedicated glow edge');
  assert.ok(vfx.includes("judgmentSlash.dispose()"),'the dedicated geometry is disposed with the VFX pool');
 });
