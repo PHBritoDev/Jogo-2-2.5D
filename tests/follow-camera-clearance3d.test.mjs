@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createWalkables } from '../eldoria-walkable.js';
 import { SHELTER } from '../eldoria-shelter3d.js';
-import { chooseShelterCameraShoulder } from '../follow-camera-clearance3d.js';
+import { chooseShelterCameraShoulder, SHELTER_CAMERA_PREFERRED_DISTANCE } from '../follow-camera-clearance3d.js';
 
 const target = { x: 7.0639, y: 1.15, z: -78.7448 };
 const yaw = -0.2629, pitch = 0.12, distance = 6;
@@ -185,4 +185,8 @@ test('não aplica shoulder se nenhum candidato mantém o protagonista visível',
   });
   assert.equal(result.angle, 0);
   assert.equal(result.visibilityFailed, true);
+});
+
+test('distância preferida da câmera do abrigo preserva enquadramento legível', () => {
+  assert.equal(SHELTER_CAMERA_PREFERRED_DISTANCE, 4.0);
 });
