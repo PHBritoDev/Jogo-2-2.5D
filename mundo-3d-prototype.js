@@ -1728,7 +1728,8 @@ function warmJourneyPrograms(){
  const root=scene;/* o mundo aberto inteiro (jornada, Eldória, Cinzária, vulcão por fora): peças ocultas por distância também */
  const saved=[];root.traverse(o=>{if(o.isLight)return;saved.push([o,o.visible,o.frustumCulled]);});
  const drawable=o=>o.isMesh||o.isPoints||o.isLine||o.isSprite;
- const force=only=>{for(const [o] of saved){o.visible=!only||!drawable(o)||only.has(o);o.frustumCulled=false;}},restore=()=>{for(const [o,v,f] of saved){o.visible=v;o.frustumCulled=f;}};
+ /* MOD 375: o estado é fotografado a CADA desenho (o jogo pode mudar visibilidades entre as fatias: dimensão, encontros) */
+ const force=only=>{for(const r of saved){const o=r[0];r[1]=o.visible;r[2]=o.frustumCulled;o.visible=!only||!drawable(o)||only.has(o);o.frustumCulled=false;}},restore=()=>{for(const [o,v,f] of saved){o.visible=v;o.frustumCulled=f;}};
  /* tudo visível SÓ dentro de chamadas síncronas: o compileAsync recolhe os materiais na hora da chamada e cada desenho de 1 px
     acontece num único passo — nenhum quadro do jogo roda com objetos ocultos expostos (inimigo, encontros, TP).
     MOD 375: o desenho é FATIADO por grupos de objetos (o programa de cada material não depende do que mais está na cena —
