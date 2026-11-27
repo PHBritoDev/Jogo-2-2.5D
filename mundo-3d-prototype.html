@@ -179,6 +179,15 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
 #cine .lc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.1s ease}
 #cine.lc-ready .lc-canvas{opacity:1}
 #loading[hidden]{display:none}
+/* MOD 376: o boot nunca é uma tela preta — título discreto no centro e a arte original do menu, escurecida, por trás
+   (o mesmo arquivo pré-carregado que a tela das galáxias usa; sem a arte, fica só o gradiente) */
+#loading{background:#07040a url("assets/ui/menu/cinematic/environment.webp") center/cover no-repeat}
+#loading:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 46%,#0b0610b0,#050307f2 78%)}
+#loading .pl-boot-title{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(92vw,620px);color:#e9d6b2;text-shadow:0 2px 14px #000;pointer-events:none}
+#loading .pl-boot-title span{display:block;font:600 clamp(10px,2.6vw,14px)/1.4 Georgia,"Times New Roman",serif;letter-spacing:.34em;color:#cdb58e}
+#loading .pl-boot-title b{display:block;margin-top:6px;font:500 clamp(24px,7.4vw,44px)/1.1 Georgia,"Times New Roman",serif;letter-spacing:.06em}
+#loading .pl-boot-title i{font-style:normal;color:#c8202c;font-size:1.25em}
+#loading.boot-done .pl-boot-title,#loading[data-state="error"] .pl-boot-title{display:none}
 #loading .pl-vignette,#cine .pl-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 85% 75% at 50% 52%,transparent 55%,#000a 100%),linear-gradient(0deg,#000c 0%,transparent 18%,transparent 86%,#0007 100%)}
 #loading .pl-hud,#cine .pl-hud{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 72px));pointer-events:none}
 #loading .pl-lane,#cine .pl-lane{height:clamp(30px,5.2vh,44px);margin:0 0 2px}
@@ -204,8 +213,11 @@ body:has(#adm-toggle[aria-expanded="true"]) #adm-tp-vulcao-ato2-quick { display:
 @media(max-width:560px){#loading .pl-hud,#cine .pl-hud{width:calc(100% - 84px);margin-left:-12px}}
 
 </style>
+<!-- MOD 376: a arte ORIGINAL do menu (17/11) baixa primeiro, em paralelo com os módulos: a tela das galáxias abre pronta -->
+<link rel="preload" as="image" type="image/webp" href="./assets/ui/menu/cinematic/environment.webp" fetchpriority="high">
+<link rel="preload" as="image" type="image/webp" href="./assets/ui/menu/cinematic/worlds-hero.webp" fetchpriority="high">
 <link rel="stylesheet" href="./hud3d.css?v=a1-vorgazhek-portrait-vs-fit-r2">
-<link rel="stylesheet" href="./galaxies-infernal-reference.css?v=ui-inferno-20261112">
+<link rel="stylesheet" href="./galaxies-infernal-reference.css?v=mod376-original-art">
 <link rel="stylesheet" href="./cine3d.css?v=mod244-combate-cinematico">
 <style id="zark-ultimate-cinematic-ui-281">
 /* Mod 281 — conteúdo da cena tem prioridade. Preserva controles reais de
@@ -327,6 +339,7 @@ body.lunar-ult-cine #lunar-skip{display:block}
 <button id="lab-reset" type="button">Reiniciar</button><div id="lab-metrics" aria-live="off"></div></section>
 <div id="loading" role="status" aria-live="polite" aria-label="Carregamento do planeta" data-state="loading">
   <div class="pl-vignette" aria-hidden="true"></div>
+  <div class="pl-boot-title" aria-hidden="true"><span>A BATALHA CONTRA OS</span><b><i>7</i> PECADOS CAPITAIS</b></div>
   <div class="pl-hud">
     <div class="pl-track" role="progressbar" aria-label="Carregamento do mundo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="loading-progress"><div class="pl-fill" id="loading-progress-fill"></div></div>
     <div class="pl-meta"><span id="loading-progress-label">AGUARDE</span><span class="pl-percent" id="loading-percent">0%</span></div>
@@ -339,6 +352,7 @@ body.lunar-ult-cine #lunar-skip{display:block}
     <button class="pl-retry" id="load-retry" type="button">TENTAR NOVAMENTE</button>
   </div>
 </div>
+<script>/* MOD 376: avisa a casca (index.html) que o boot já está pintado */requestAnimationFrame(function(){requestAnimationFrame(function(){try{if(parent!==window)parent.postMessage({type:"SEVEN_SINS_BOOT_PAINTED"},location.origin);}catch(e){}});});</script>
 <div id="cine" hidden role="status" aria-live="polite" aria-label="Abertura: a marcha dos pecados" data-state="idle">
   <div class="pl-vignette" aria-hidden="true"></div>
   <div class="pl-hud">

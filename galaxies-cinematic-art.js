@@ -17,7 +17,8 @@ export function attachCinematicArt({root,scene,environment,stage,planets,width:W
  let active=true,ready=false,background,hero;
  const time={value:0},worlds=[];
  const layer=new T.Group();layer.name='cinematic-art-layers';scene.add(layer);
- const promise=Promise.allSettled(URLS.map(url=>new T.TextureLoader().loadAsync(new URL(url,import.meta.url).href))).then(results=>{
+ const load=href=>new T.TextureLoader().loadAsync(href);/* MOD 376: uma nova tentativa antes da reserva geométrica */
+ const promise=Promise.allSettled(URLS.map(url=>{const href=new URL(url,import.meta.url).href;return load(href).catch(()=>load(href));})).then(results=>{
   const textures=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
   if(!active||results.some(r=>r.status==='rejected')){textures.forEach(t=>t.dispose());return false;}
   const [backdrop,atlas]=textures;textures.forEach(t=>{t.colorSpace=T.SRGBColorSpace;t.anisotropy=2;});

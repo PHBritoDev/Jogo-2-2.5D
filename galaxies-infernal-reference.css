@@ -159,3 +159,7 @@
   border-radius: 50%;
   background: radial-gradient(ellipse at center, transparent 60%, var(--g) 69%, transparent 71%);
 }
+
+/* MOD 376: invisível até a arte original aprovada estar decodificada (o boot continua por baixo); sem placeholder genérico */
+#galaxy-screen.gx-art-pending{opacity:0!important;pointer-events:none}
+#galaxy-screen.gx-art-pending .gx-backdrop>svg{visibility:hidden}
